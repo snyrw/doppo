@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import logo from "./logo-blue.png";
 import Image from "next/image";
 
@@ -10,6 +10,24 @@ export default function Home() {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [availableModels, setAvailableModels] = useState<
+    { id: string; display_name: string; requires_hf_token: boolean }[]
+  >([]);
+  const [selectedModel, setSelectedModel] = useState("gpt2-small");
+  const [modelsLoading, setModelsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/models`)
+      .then((r) => r.json())
+      .then((models) => {
+        setAvailableModels(models);
+        if (models.length > 0) setSelectedModel(models[0].id);
+      })
+      .catch(() =>
+        setAvailableModels([{ id: "gpt2-small", display_name: "GPT-2 Small", requires_hf_token: false }])
+      )
+      .finally(() => setModelsLoading(false));
+  }, []);
 
   const runLogitLens = async () => {
     setIsLoading(true);
@@ -17,18 +35,19 @@ export default function Home() {
     setData(null);
 
     try {
-      const response = await fetch("http://localhost:8000/api/run-lens", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/run-lens`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Sending the exact payload your Pydantic model expects
         body: JSON.stringify({
           prompt: prompt,
-          model_name: "gpt2-small" // or gpt2-small depending on what you're testing
+          model_name: selectedModel
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch data from backend");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail ?? `Request failed with status ${response.status}`);
       }
 
       const result = await response.json();
@@ -40,12 +59,13 @@ export default function Home() {
     }
   };
 
+  // PLEASE CHANGE THIS YEE YEE ASS FONT
   return (
     <div className="min-h-screen bg-gray-50 p-0 text-black">
       <h1 className="text-3xl bg-white font-bold mb-2 flex justify-between">
-        <div className="flex space-x-2 p-3">
-          <Image className="h-10 w-10" src={logo} alt="Logo"/>
-          <div className="text-blue-400 font-normal text-2xl p-1">logitlensviz</div>
+        <div className="flex p-3">
+          <Image className="h-9 w-9" src={logo} alt="Logo"/>
+          <div className="text-blue-400 font-bold text-xl p-1">logitlensviz</div>
         </div>
         <div className="justify-right space-x-3 p-3">
         <button
@@ -68,11 +88,24 @@ export default function Home() {
 
       {/* Control Panel */}
       <div className="bg-white p-4 rounded-lg shadow mb-8 max-w-3xl">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+        <select
+          className="w-full border border-gray-300 rounded p-2 mb-4"
+          value={selectedModel}
+          onChange={(e) => setSelectedModel(e.target.value)}
+          disabled={modelsLoading || isLoading}
+        >
+          {availableModels.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.display_name}{m.requires_hf_token ? " (requires HF token)" : ""}
+            </option>
+          ))}
+        </select>
         <label className="block text-sm font-medium text-gray-700 mb-2">Prompt</label>
         <textarea
           className="w-full border border-gray-300 rounded p-2 mb-4"
           rows={3}
-          value={"Test"}
+          value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
         />
         <button
