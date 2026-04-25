@@ -3,11 +3,18 @@
 import { useState, useEffect } from "react";
 import logo from "./logo-blue.png";
 import Image from "next/image";
+import AuthButtons from "./components/AuthModal";
+
+type HeatmapData = {
+  x_labels: string[];
+  y_labels: string[];
+  heatmap_data: number[][];
+};
 
 export default function Home() {
   // Gemini is dumb, hardcoded the prompt into the frontend
   const [prompt, setPrompt] = useState("The capital of France is Paris. The capital of Germany is");
-  const [data, setData] = useState(null);
+  const [data, setData] = useState<HeatmapData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [availableModels, setAvailableModels] = useState<
@@ -38,7 +45,6 @@ export default function Home() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/run-lens`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Sending the exact payload your Pydantic model expects
         body: JSON.stringify({
           prompt: prompt,
           model_name: selectedModel
@@ -53,7 +59,7 @@ export default function Home() {
       const result = await response.json();
       setData(result);
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setIsLoading(false);
     }
@@ -67,24 +73,15 @@ export default function Home() {
           <Image className="h-9 w-9" src={logo} alt="Logo"/>
           <div className="text-blue-400 font-bold text-xl p-1">logitlensviz</div>
         </div>
-        <div className="justify-right space-x-3 p-3">
-        <button
-          className="bg-white text-lg font-thin text-blue-400 px-3 py-1 rounded outline-2 outline-solid hover:bg-blue-100 disabled:bg-blue-300 transition-colors"
-        >
-          Export
-        </button>
-        <button
-          className="bg-white text-lg font-thin text-blue-400 px-3 py-1 rounded outline-2 outline-solid hover:bg-blue-100 disabled:bg-blue-300 transition-colors"
-        >
-          Log In 
-        </button>
-        <button
-          className="bg-white text-lg font-thin text-blue-400 px-3 py-1 rounded outline-2 outline-solid hover:bg-blue-100 disabled:bg-blue-300 transition-colors"
-        >
-          Sign Up 
-        </button>
+        <div className="justify-right space-x-3 p-3 flex items-center">
+          <button
+            className="bg-white text-lg font-thin text-blue-400 px-3 py-1 rounded outline-2 outline-solid hover:bg-blue-100 disabled:bg-blue-300 transition-colors"
+          >
+            Export
+          </button>
+          <AuthButtons />
         </div>
-        </h1> {/* Turn this into the header */}
+      </h1> {/* Turn this into the header */}
 
       {/* Control Panel */}
       <div className="bg-white p-4 rounded-lg shadow mb-8 max-w-3xl">
@@ -122,14 +119,14 @@ export default function Home() {
       {data && (
         <div className="bg-white p-6 rounded-lg shadow overflow-x-auto">
           <h2 className="text-xl font-bold mb-4">Results</h2>
-          
+
           <div className="flex flex-col inline-block min-w-max">
             {/* X-Axis (Tokens) */}
             <div className="flex">
-              <div className="w-32 shrink-0"></div> {/* Empty top-left corner */}
+              <div className="w-32 shrink-0"></div>
               {data.x_labels.map((token, i) => (
                 <div key={i} className="w-12 shrink-0 text-xs text-center font-mono transform -rotate-45 origin-bottom-left pb-2">
-                  {token.replace(' ', ' ')} {/* Visually represents the space token */}
+                  {token.replace(' ', ' ')}
                 </div>
               ))}
             </div>
@@ -137,7 +134,7 @@ export default function Home() {
             {/* Y-Axis (Layers) & Heatmap Data */}
             {data.y_labels.map((layerName, yIndex) => (
               <div key={layerName} className="flex items-center">
-                
+
                 {/* Layer Label */}
                 <div className="w-32 shrink-0 text-xs text-gray-500 font-mono pr-2 text-right">
                   {layerName}
@@ -149,11 +146,9 @@ export default function Home() {
                     <div
                       key={`${yIndex}-${xIndex}`}
                       className="w-12 h-8 shrink-0 border border-gray-100 relative group cursor-pointer"
-                      // Using inline styles to dynamically set the opacity of the blue color based on probability
                       style={{ backgroundColor: `rgba(59, 130, 246, ${prob})` }}
                       title={`Token: ${data.x_labels[xIndex]}\nLayer: ${layerName}\nProb: ${(prob * 100).toFixed(2)}%`}
                     >
-                      {/* Optional: Show text if probability is very high, otherwise hide it */}
                       <span className="opacity-0 group-hover:opacity-100 absolute inset-0 flex items-center justify-center text-[10px] text-black bg-white/70">
                         {prob.toFixed(2)}
                       </span>
