@@ -1,37 +1,39 @@
 "use server";
-import { neon } from "@neondatabase/serverless";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "Missing DATABASE_URL environment variable. Set DATABASE_URL to your Neon connection string (from org-misty-smoke-22013610 / project summer-resonance-09986595) in .env.local or your deployment env."
-  );
-}
+import { createHash } from "node:crypto";
+import { eq, and } from "drizzle-orm";
+import { db } from "./db";
+import { heatmapCache } from "./schema";
 
-// single client instance for serverless usage
-const sql = neon(process.env.DATABASE_URL);
+export async function runLensWithCache(prompt: string, modelName: string) {
+  const cached = await db
+    .select({ heatmapData: heatmapCache.heatmapData })
+    .from(heatmapCache)
+    .where(and(eq(heatmapCache.prompt, prompt), eq(heatmapCache.modelName, modelName)))
+    .limit(1);
 
-// initialize a simple table (run once)
-export async function initDb() {
-  await sql`
-    CREATE TABLE IF NOT EXISTS public.examples (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT now()
-    );
-  `;
-}
+  if (cached.length > 0) {
+    return cached[0].heatmapData;
+  }
 
-// fetch recent rows
-export async function getData() {
-  const rows = await sql`SELECT id, name, created_at FROM public.examples ORDER BY created_at DESC LIMIT 100;`;
-  return rows;
-}
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/run-lens`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, model_name: modelName }),
+  });
 
-// insert a row
-export async function insertExample(name: string) {
-  const [row] = await sql`
-    INSERT INTO public.examples (name) VALUES (${name})
-    RETURNING id, name, created_at;
-  `;
-  return row;
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error((errorData as { detail?: string }).detail ?? `Request failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  const id = createHash("sha256").update(`${modelName}:${prompt}`).digest("hex");
+  await db
+    .insert(heatmapCache)
+    .values({ id, prompt, modelName, heatmapData: data })
+    .onConflictDoNothing();
+
+  return data;
 }
