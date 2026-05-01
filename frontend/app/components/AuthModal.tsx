@@ -50,7 +50,7 @@ export default function AuthButtons() {
         <span className="text-sm text-gray-600">{session.user.email}</span>
         <button
           onClick={() => signOut()}
-          className="bg-white text-lg font-thin text-blue-400 px-3 py-1 rounded outline-2 outline-solid hover:bg-blue-100 transition-colors"
+          className="bg-white text-sm font-light text-blue-400 px-2.5 py-0.5 rounded border border-blue-300 hover:bg-blue-50 transition-colors"
         >
           Sign Out
         </button>
@@ -62,13 +62,13 @@ export default function AuthButtons() {
     <>
       <button
         onClick={() => openModal("signin")}
-        className="bg-white text-lg font-thin text-blue-400 px-3 py-1 rounded outline-2 outline-solid hover:bg-blue-100 disabled:bg-blue-300 transition-colors"
+        className="bg-white text-sm font-light text-blue-400 px-2.5 py-0.5 rounded border border-blue-300 hover:bg-blue-50 disabled:opacity-50 transition-colors"
       >
         Log In
       </button>
       <button
         onClick={() => openModal("signup")}
-        className="bg-white text-lg font-thin text-blue-400 px-3 py-1 rounded outline-2 outline-solid hover:bg-blue-100 disabled:bg-blue-300 transition-colors"
+        className="bg-white text-sm font-light text-blue-400 px-2.5 py-0.5 rounded border border-blue-300 hover:bg-blue-50 disabled:opacity-50 transition-colors"
       >
         Sign Up
       </button>

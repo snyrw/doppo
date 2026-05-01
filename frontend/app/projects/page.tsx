@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useEffect, useReducer } from "react";
-import logo from "../logo-blue.png";
-import Image from "next/image";
-import AuthButtons from "../components/AuthModal";
+import { useState, useEffect, useReducer, useRef } from "react";
 import SandboxCanvas from "../components/SandboxCanvas";
 import ConfigPane from "../components/ConfigPane";
-import Link from "next/link";
+import Navbar from "../components/Navbar";
 import { runLensWithCache } from "../actions";
 import type { LensCardData } from "../components/LensCard";
 
 type ModelInfo = {
   id: string;
   display_name: string;
+  description: string;
   requires_hf_token: boolean;
 };
 
@@ -96,13 +94,26 @@ export default function Projects() {
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [configOpen, setConfigOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const projectsRef = useRef<HTMLDivElement>(null);
   const [state, dispatch] = useReducer(appReducer, initialState);
+
+  useEffect(() => {
+    if (!projectsOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (projectsRef.current && !projectsRef.current.contains(e.target as Node)) {
+        setProjectsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [projectsOpen]);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/models`)
       .then(r => r.json())
       .then(models => setAvailableModels(models))
-      .catch(() => setAvailableModels([{ id: "gpt2-small", display_name: "GPT-2 Small", requires_hf_token: false }]))
+      .catch(() => setAvailableModels([{ id: "gpt2-small", display_name: "GPT-2 Small", description: "Classic 12-layer baseline, fast cold starts.", requires_hf_token: false }]))
       .finally(() => setModelsLoading(false));
   }, []);
 
@@ -130,24 +141,12 @@ export default function Projects() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f8fafc" }}>
-      {/* Header */}
-      <header style={{ background: "#ffffff", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 12px", height: 57, borderBottom: "1px solid #f3f4f6", flexShrink: 0, zIndex: 40, position: "relative" }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none" }}>
-          <Image className="h-9 w-9" src={logo} alt="Logo" />
-          <span style={{ color: "#60a5fa", fontWeight: 700, fontSize: 18 }}>logitlensviz</span>
-        </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button style={{ background: "#fff", fontSize: 15, fontWeight: 300, color: "#60a5fa", padding: "4px 12px", borderRadius: 4, border: "2px solid #60a5fa", cursor: "pointer" }}>
-            Export
-          </button>
-          <AuthButtons />
-        </div>
-      </header>
+      <Navbar/>
 
       {/* Canvas area — relative so the "Add Lens +" button can float over it */}
       <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
-        {/* "Add Lens +" floating button — top-left, over the canvas */}
-        <div style={{ position: "absolute", top: 12, left: 12, zIndex: 35 }}>
+        {/* Floating buttons — top-left, over the canvas */}
+        <div style={{ position: "absolute", top: 12, left: 12, zIndex: 35, display: "flex", gap: 8, alignItems: "flex-start" }}>
           <button
             onClick={() => setConfigOpen(true)}
             style={{
@@ -155,7 +154,7 @@ export default function Projects() {
               color: "#ffffff",
               border: "none",
               borderRadius: 6,
-              padding: "8px 14px",
+              padding: "5px 10px",
               fontSize: 13,
               fontWeight: 600,
               cursor: "pointer",
@@ -176,6 +175,69 @@ export default function Projects() {
             <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
             Add Lens
           </button>
+
+          {/* Projects button + dropdown */}
+          <div ref={projectsRef} style={{ position: "relative" }}>
+            <button
+              onClick={() => setProjectsOpen(o => !o)}
+              style={{
+                background: "#fff",
+                color: "#2563eb",
+                border: "1px solid #93c5fd",
+                borderRadius: 6,
+                padding: "5px 10px",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxShadow: "0 2px 8px rgba(37,99,235,0.1)",
+                transition: "background 150ms, border-color 150ms",
+                letterSpacing: "0.01em",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+            >
+              Projects
+            </button>
+
+            {projectsOpen && (
+              <div style={{
+                position: "absolute",
+                top: "calc(100% + 6px)",
+                left: 0,
+                background: "#fff",
+                border: "2px solid #93c5fd",
+                borderRadius: 6,
+                boxShadow: "0 4px 16px rgba(37,99,235,0.12)",
+                display: "flex",
+                flexDirection: "column",
+                minWidth: 140,
+                overflow: "hidden",
+              }}>
+                {["Search", "New", "Duplicate", "Share", "Delete"].map(label => (
+                  <button
+                    key={label}
+                    onClick={() => setProjectsOpen(false)}
+                    style={{
+                      background: "#fff",
+                      color: "#2563eb",
+                      border: "none",
+                      borderBottom: label !== "Delete" ? "1px solid #e0f0ff" : "none",
+                      padding: "10px 16px",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      transition: "background 120ms",
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <SandboxCanvas
