@@ -311,10 +311,17 @@ class _TLBase:
         torch.cuda.empty_cache()
 
     @modal.method()
-    def run_logit_lens(self, prompt: str) -> dict:
+    def run_logit_lens(self, prompt: str, top_k: int = 5):
+        import json
+        import torch
+
+        yield json.dumps({"stage": "tokenizing"})
         tokens = self.model.to_tokens(prompt)
+
+        yield json.dumps({"stage": "forward_pass"})
         _, cache = self.model.run_with_cache(tokens)
 
+        yield json.dumps({"stage": "computing"})
         accumulated_residual, labels = cache.accumulated_resid(
             layer=-1, incl_mid=False, return_labels=True
         )
@@ -323,16 +330,30 @@ class _TLBase:
         layer_logits = self.model.unembed(scaled_resid)
         layer_probs = layer_logits.softmax(dim=-1)
 
+        pred_probs = layer_probs[:, :-1, :]
         next_tokens = tokens[0, 1:]
-        gathered_probs = _gather_next_token_probs(layer_probs[:, :-1, :], next_tokens)
-
+        gathered_probs = _gather_next_token_probs(pred_probs, next_tokens)
         token_strings = self.model.to_str_tokens(tokens)[1:]
 
-        return {
-            "x_labels": token_strings,
-            "y_labels": labels,
-            "heatmap_data": gathered_probs.float().cpu().tolist(),
-        }
+        topk_vals, topk_ids = torch.topk(pred_probs, k=top_k, dim=-1)
+        n_layers, n_pos, k = topk_ids.shape
+        flat_ids = topk_ids.reshape(-1).cpu().tolist()
+        flat_strs = [self.model.tokenizer.decode([int(tid)]) for tid in flat_ids]
+        topk_token_strings = [
+            [[flat_strs[li * n_pos * k + p * k + j] for j in range(k)] for p in range(n_pos)]
+            for li in range(n_layers)
+        ]
+
+        yield json.dumps({
+            "stage": "done",
+            "data": {
+                "x_labels": token_strings,
+                "y_labels": labels,
+                "heatmap_data": gathered_probs.float().cpu().tolist(),
+                "topk_tokens": topk_token_strings,
+                "topk_probs": topk_vals.float().cpu().tolist(),
+            },
+        })
 
 
 @app.cls(gpu="L4", **_TL_KWARGS)
@@ -394,6 +415,7 @@ def api():
                 "display_name": entry["display_name"],
                 "description": entry["description"],
                 "requires_hf_token": entry["requires_hf_token"],
+                "gpu_tier": entry["gpu_tier"],
             }
             for key, entry in FEATURED_MODELS.items()
         ]
@@ -405,12 +427,11 @@ def api():
             raise HTTPException(status_code=400, detail=result["reason"])
         return result
 
-    @web_app.post("/api/run-lens")
-    async def run_logit_lens(request: LogitLensRequest):
-        entry = FEATURED_MODELS.get(request.model_name)
+    @web_app.post("/api/run-lens-stream")
+    async def run_logit_lens_stream(request: LogitLensRequest):
+        from fastapi.responses import StreamingResponse
 
-        # Custom (user-supplied) repo — not in the featured list.
-        # Validate and auto-detect the appropriate GPU tier from the model's config.
+        entry = FEATURED_MODELS.get(request.model_name)
         if entry is None:
             validation = validate_hf_repo(request.model_name, hf_token=hf_token)
             if not validation["valid"]:
@@ -421,10 +442,16 @@ def api():
             cls = _TIER_TO_CLS[entry["gpu_tier"]]
             model_id = entry["model_id"]
 
-        try:
-            result = await cls(model_id=model_id).run_logit_lens.remote.aio(request.prompt)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-        return result
+        async def event_stream():
+            try:
+                async for chunk in cls(model_id=model_id).run_logit_lens.remote_gen.aio(
+                    request.prompt, request.top_k
+                ):
+                    yield f"data: {chunk}\n\n"
+            except Exception as e:
+                safe = str(e).replace("\\", "\\\\").replace('"', '\\"')
+                yield f'data: {{"stage":"error","error":"{safe}"}}\n\n'
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
 
     return web_app

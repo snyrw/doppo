@@ -20,7 +20,6 @@ type SandboxCanvasProps = {
   onCanvasChange: (state: CanvasState) => void;
   onMoveCard: (id: string, pos: { x: number; y: number }) => void;
   onRemoveCard: (id: string) => void;
-  onEditCard: (id: string) => void;
 };
 
 export default function SandboxCanvas({
@@ -29,7 +28,6 @@ export default function SandboxCanvas({
   onCanvasChange,
   onMoveCard,
   onRemoveCard,
-  onEditCard,
 }: SandboxCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -123,7 +121,6 @@ export default function SandboxCanvas({
             onDragMove={onDragMove}
             onDragEnd={onDragEnd}
             onRemove={onRemoveCard}
-            onEdit={onEditCard}
           />
         ))}
       </div>

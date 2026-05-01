@@ -4,7 +4,6 @@ import { useState, useEffect, useReducer, useRef } from "react";
 import SandboxCanvas from "../components/SandboxCanvas";
 import ConfigPane from "../components/ConfigPane";
 import Navbar from "../components/Navbar";
-import { runLensWithCache } from "../actions";
 import type { LensCardData } from "../components/LensCard";
 
 type ModelInfo = {
@@ -12,12 +11,15 @@ type ModelInfo = {
   display_name: string;
   description: string;
   requires_hf_token: boolean;
+  gpu_tier: string;
 };
 
 type HeatmapData = {
   x_labels: string[];
   y_labels: string[];
   heatmap_data: number[][];
+  topk_tokens?: string[][][];
+  topk_probs?: number[][][];
 };
 
 type CanvasState = {
@@ -34,6 +36,7 @@ type AppAction =
   | { type: "ADD_CARD"; card: LensCardData }
   | { type: "CARD_RESOLVED"; id: string; data: HeatmapData }
   | { type: "CARD_ERRORED"; id: string; error: string }
+  | { type: "CARD_STAGE"; id: string; stage: string }
   | { type: "MOVE_CARD"; id: string; position: { x: number; y: number } }
   | { type: "REMOVE_CARD"; id: string }
   | { type: "SET_CANVAS"; canvas: CanvasState };
@@ -76,6 +79,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
           c.id === action.id ? { ...c, position: action.position } : c
         ),
       };
+    case "CARD_STAGE":
+      return {
+        ...state,
+        lensCards: state.lensCards.map(c =>
+          c.id === action.id ? { ...c, loadingStage: action.stage } : c
+        ),
+      };
     case "REMOVE_CARD":
       return { ...state, lensCards: state.lensCards.filter(c => c.id !== action.id) };
     case "SET_CANVAS":
@@ -113,11 +123,11 @@ export default function Projects() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/models`)
       .then(r => r.json())
       .then(models => setAvailableModels(models))
-      .catch(() => setAvailableModels([{ id: "gpt2-small", display_name: "GPT-2 Small", description: "Classic 12-layer baseline, fast cold starts.", requires_hf_token: false }]))
+      .catch(() => setAvailableModels([{ id: "gpt2-small", display_name: "GPT-2 Small", description: "Classic 12-layer baseline, fast cold starts.", requires_hf_token: false, gpu_tier: "tl_small" }]))
       .finally(() => setModelsLoading(false));
   }, []);
 
-  const handleAddLens = ({ modelName, prompt }: { modelName: string; prompt: string }) => {
+  const handleAddLens = ({ modelName, prompt, gpuTier }: { modelName: string; prompt: string; gpuTier?: string }) => {
     setConfigOpen(false);
 
     const id = crypto.randomUUID();
@@ -129,13 +139,52 @@ export default function Projects() {
       data: null,
       error: null,
       position: autoArrangePos(state.lensCards.length),
+      gpuTier,
+      startedAt: Date.now(),
     };
 
     dispatch({ type: "ADD_CARD", card });
 
-    // Fire inference, resolve asynchronously into the card
-    runLensWithCache(prompt, modelName)
-      .then(data => dispatch({ type: "CARD_RESOLVED", id, data: data as HeatmapData }))
+    fetch("/api/run-lens", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, modelName }),
+    })
+      .then(async (response) => {
+        if (!response.ok || !response.body) {
+          const err = await response.json().catch(() => ({})) as { detail?: string };
+          dispatch({ type: "CARD_ERRORED", id, error: err.detail ?? `Request failed (${response.status})` });
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? "";
+
+          for (const part of parts) {
+            const line = part.split("\n").find(l => l.startsWith("data: "));
+            if (!line) continue;
+            try {
+              const event = JSON.parse(line.slice(6)) as { stage: string; data?: HeatmapData; error?: string };
+              if (event.stage === "done" && event.data) {
+                dispatch({ type: "CARD_RESOLVED", id, data: event.data });
+              } else if (event.stage === "error") {
+                dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
+              } else {
+                dispatch({ type: "CARD_STAGE", id, stage: event.stage });
+              }
+            } catch { /* malformed chunk */ }
+          }
+        }
+      })
       .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
   };
 
@@ -246,7 +295,6 @@ export default function Projects() {
           onCanvasChange={canvas => dispatch({ type: "SET_CANVAS", canvas })}
           onMoveCard={(id, position) => dispatch({ type: "MOVE_CARD", id, position })}
           onRemoveCard={id => dispatch({ type: "REMOVE_CARD", id })}
-          onEditCard={() => setConfigOpen(true)}
         />
 
         <ConfigPane

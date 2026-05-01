@@ -7,6 +7,7 @@ type ModelInfo = {
   display_name: string;
   description: string;
   requires_hf_token: boolean;
+  gpu_tier: string;
 };
 
 type CustomValidation = {
@@ -19,7 +20,7 @@ type ConfigPaneProps = {
   isOpen: boolean;
   availableModels: ModelInfo[];
   modelsLoading: boolean;
-  onSubmit: (config: { modelName: string; prompt: string }) => void;
+  onSubmit: (config: { modelName: string; prompt: string; gpuTier?: string }) => void;
   onClose: () => void;
 };
 
@@ -103,7 +104,10 @@ export default function ConfigPane({
   const handleRun = () => {
     if (!canRun) return;
     const modelName = usingCustom ? customRepoId.trim() : selectedModel;
-    onSubmit({ modelName, prompt });
+    const gpuTier = usingCustom
+      ? (customValidation?.gpu_tier ?? undefined)
+      : (availableModels.find(m => m.id === selectedModel)?.gpu_tier ?? undefined);
+    onSubmit({ modelName, prompt, gpuTier });
     doReset();
   };
 
