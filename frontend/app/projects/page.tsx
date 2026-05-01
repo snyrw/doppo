@@ -148,12 +148,15 @@ export default function Projects() {
     fetch("/api/run-lens", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, modelName }),
+      body: JSON.stringify({ prompt, modelName, gpuTier }),
     })
       .then(async (response) => {
         if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { detail?: string };
-          dispatch({ type: "CARD_ERRORED", id, error: err.detail ?? `Request failed (${response.status})` });
+          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
+          const message = response.status === 401
+            ? (err.error ?? "Sign in to use medium and large models")
+            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
+          dispatch({ type: "CARD_ERRORED", id, error: message });
           return;
         }
 

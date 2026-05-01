@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "@/app/lib/auth-client";
 
 type ModelInfo = {
   id: string;
@@ -39,6 +40,7 @@ export default function ConfigPane({
   onSubmit,
   onClose,
 }: ConfigPaneProps) {
+  const { data: session } = useSession();
   const [selectedModel, setSelectedModel] = useState("");
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [customRepoId, setCustomRepoId] = useState("");
@@ -100,6 +102,11 @@ export default function ConfigPane({
 
   const usingCustom = customRepoId.trim() !== "";
   const canRun = usingCustom ? (customValidation?.valid === true) : selectedModel !== "";
+
+  const selectedGpuTier = usingCustom
+    ? (customValidation?.gpu_tier ?? null)
+    : (availableModels.find(m => m.id === selectedModel)?.gpu_tier ?? null);
+  const isLockedByAuth = !session && selectedGpuTier !== null && selectedGpuTier !== "tl_small";
 
   const handleRun = () => {
     if (!canRun) return;
@@ -254,6 +261,11 @@ export default function ConfigPane({
                           HF token required
                         </span>
                       )}
+                      {!session && m.gpu_tier !== "tl_small" && (
+                        <span style={{ fontSize: 9, color: "#d97706", marginTop: 1, letterSpacing: "0.02em" }}>
+                          Sign in to run
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -350,26 +362,31 @@ export default function ConfigPane({
 
         {/* Footer */}
         <div style={{ padding: "12px 16px", borderTop: "1px solid #f3f4f6" }}>
+          {isLockedByAuth && (
+            <p style={{ margin: "0 0 8px", fontSize: 11, color: "#6b7280", textAlign: "center" }}>
+              Sign in to run medium and large models
+            </p>
+          )}
           <button
             onClick={handleRun}
-            disabled={!canRun}
+            disabled={!canRun || isLockedByAuth}
             style={{
               width: "100%",
               padding: "10px 0",
               borderRadius: 6,
               border: "none",
-              background: canRun ? "#2563eb" : "#bfdbfe",
+              background: (!canRun || isLockedByAuth) ? "#bfdbfe" : "#2563eb",
               color: "#ffffff",
               fontSize: 13,
               fontWeight: 600,
-              cursor: canRun ? "pointer" : "not-allowed",
+              cursor: (!canRun || isLockedByAuth) ? "not-allowed" : "pointer",
               letterSpacing: "0.02em",
               transition: "background 150ms",
             }}
-            onMouseEnter={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "#1d4ed8"; }}
-            onMouseLeave={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "#2563eb"; }}
+            onMouseEnter={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "#1d4ed8"; }}
+            onMouseLeave={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "#2563eb"; }}
           >
-            Run Lens →
+            {isLockedByAuth ? "Sign in to run →" : "Run Lens →"}
           </button>
         </div>
       </div>

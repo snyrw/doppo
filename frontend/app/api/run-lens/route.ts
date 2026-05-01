@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/app/db";
 import { heatmapCache } from "@/app/schema";
+import { auth } from "@/app/lib/auth";
 
 const SSE_HEADERS = {
   "Content-Type": "text/event-stream",
@@ -32,10 +33,22 @@ async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<strin
 }
 
 export async function POST(request: NextRequest) {
-  const { prompt, modelName } = (await request.json()) as {
+  const { prompt, modelName, gpuTier } = (await request.json()) as {
     prompt: string;
     modelName: string;
+    gpuTier?: string;
   };
+
+  // Anything other than a known tl_small request requires a session.
+  if (gpuTier !== "tl_small") {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session) {
+      return new Response(
+        JSON.stringify({ error: "Sign in to access medium and large models" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+  }
 
   // Cache hit — emit a single done event and return immediately.
   const cached = await db
