@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/app/db";
 import { heatmapCache } from "@/app/schema";
 import { auth } from "@/app/lib/auth";
+import { putHeatmap, getHeatmap } from "@/app/lib/r2";
 
 const SSE_HEADERS = {
   "Content-Type": "text/event-stream",
@@ -50,15 +51,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Cache hit — emit a single done event and return immediately.
+  // Cache hit — fetch blob from R2 and emit a single done event.
   const cached = await db
-    .select({ heatmapData: heatmapCache.heatmapData })
+    .select({ id: heatmapCache.id, r2Key: heatmapCache.r2Key })
     .from(heatmapCache)
     .where(and(eq(heatmapCache.prompt, prompt), eq(heatmapCache.modelName, modelName)))
     .limit(1);
 
-  if (cached.length > 0) {
-    const payload = JSON.stringify({ stage: "done", data: cached[0].heatmapData });
+  if (cached.length > 0 && cached[0].r2Key) {
+    const data = await getHeatmap(cached[0].r2Key);
+    db.update(heatmapCache)
+      .set({ lastAccessedAt: new Date() })
+      .where(eq(heatmapCache.id, cached[0].id))
+      .catch(console.error);
+    const payload = JSON.stringify({ stage: "done", data });
     return new Response(`data: ${payload}\n\n`, { headers: SSE_HEADERS });
   }
 
@@ -112,11 +118,15 @@ export async function POST(request: NextRequest) {
 
     if (doneData) {
       const id = createHash("sha256").update(`${modelName}:${prompt}`).digest("hex");
-      await db
-        .insert(heatmapCache)
-        .values({ id, prompt, modelName, heatmapData: doneData as Record<string, unknown> })
-        .onConflictDoNothing()
-        .catch(console.error);
+      try {
+        await putHeatmap(id, doneData);
+        await db
+          .insert(heatmapCache)
+          .values({ id, prompt, modelName, r2Key: id })
+          .onConflictDoNothing();
+      } catch (err) {
+        console.error("Cache write failed:", err);
+      }
     }
   })();
 

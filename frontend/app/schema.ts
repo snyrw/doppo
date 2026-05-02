@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, jsonb, index, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, index, boolean } from "drizzle-orm/pg-core";
 
 export const heatmapCache = pgTable(
   "heatmap_cache",
@@ -6,12 +6,13 @@ export const heatmapCache = pgTable(
     id: text("id").primaryKey(),
     prompt: text("prompt").notNull(),
     modelName: text("model_name").notNull(),
-    heatmapData: jsonb("heatmap_data").notNull(),
+    r2Key: text("r2_key"),
     createdAt: timestamp("created_at").defaultNow(),
+    lastAccessedAt: timestamp("last_accessed_at"),
   },
-  (table) => ({
-    promptModelIdx: index("prompt_model_idx").on(table.prompt, table.modelName),
-  })
+  (table) => [
+    index("prompt_model_idx").on(table.prompt, table.modelName),
+  ]
 );
 
 // BetterAuth required tables
