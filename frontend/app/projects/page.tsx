@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useReducer, useRef, Suspense } from "react";
+import { useState, useEffect, useReducer, useRef, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SandboxCanvas from "../components/SandboxCanvas";
 import ConfigPane from "../components/ConfigPane";
 import Navbar from "../components/Navbar";
+import { ProjectSearch } from "../components/ProjectSearch";
 import type { LensCardData } from "../components/LensCard";
 import { useSession } from "../lib/auth-client";
 import {
@@ -12,6 +13,7 @@ import {
   duplicateProject,
   deleteProject,
   loadProject,
+  updateProject,
 } from "../actions";
 
 type ModelInfo = {
@@ -119,10 +121,16 @@ function Projects() {
   const [modelsLoading, setModelsLoading] = useState(true);
   const [configOpen, setConfigOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectName, setProjectName] = useState("Untitled Project");
+  const [nameEditing, setNameEditing] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
   const projectsRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const projectIdRef = useRef<string | null>(null);
+  const stateRef = useRef(state);
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
@@ -144,23 +152,55 @@ function Projects() {
     if (!projectsOpen) setDeleteConfirming(false);
   }, [projectsOpen]);
 
+  const loadAndSetProject = useCallback(async (id: string) => {
+    setProjectId(id);
+    router.replace(`/projects?id=${id}`);
+    try {
+      const result = await loadProject(id);
+      if (!result) { router.replace("/projects"); return; }
+      const lensCards: LensCardData[] = result.cards.map(c => ({
+        ...c,
+        status: "result" as const,
+        error: null,
+      }));
+      setProjectName(result.name);
+      dispatch({ type: "LOAD_PROJECT", cards: lensCards, canvas: result.canvas });
+    } catch {
+      router.replace("/projects");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Load project from URL on mount
   useEffect(() => {
     const id = searchParams.get("id");
     if (!id) return;
-    setProjectId(id);
-    loadProject(id)
-      .then(result => {
-        if (!result) { router.replace("/projects"); return; }
-        const lensCards: LensCardData[] = result.cards.map(c => ({
-          ...c,
-          status: "result" as const,
-          error: null,
-        }));
-        dispatch({ type: "LOAD_PROJECT", cards: lensCards, canvas: result.canvas });
-      })
-      .catch(() => router.replace("/projects"));
+    loadAndSetProject(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep refs in sync so SSE callbacks always read latest values
+  useEffect(() => { projectIdRef.current = projectId; }, [projectId]);
+  useEffect(() => { stateRef.current = state; }, [state]);
+
+  // Focus + select-all the name input whenever editing starts
+  useEffect(() => {
+    if (nameEditing) {
+      nameInputRef.current?.focus();
+      nameInputRef.current?.select();
+    }
+  }, [nameEditing]);
+
+  // Cmd+K / Ctrl+K toggles the project search palette
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(o => !o);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // Fetch available models
@@ -224,6 +264,14 @@ function Projects() {
               const event = JSON.parse(line.slice(6)) as { stage: string; data?: HeatmapData; error?: string };
               if (event.stage === "done" && event.data) {
                 dispatch({ type: "CARD_RESOLVED", id, data: event.data });
+                const pid = projectIdRef.current;
+                if (pid) {
+                  const existingResult = stateRef.current.lensCards
+                    .filter(c => c.status === "result")
+                    .map(c => ({ id: c.id, modelName: c.modelName, prompt: c.prompt, data: c.data!, position: c.position, gpuTier: c.gpuTier }));
+                  updateProject(pid, [...existingResult, { id, modelName, prompt, data: event.data, position: card.position, gpuTier }], stateRef.current.canvas)
+                    .catch(console.error);
+                }
               } else if (event.stage === "error") {
                 dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
               } else {
@@ -241,8 +289,21 @@ function Projects() {
     setProjectsOpen(false);
     const { id } = await createProject([], state.canvas);
     setProjectId(id);
+    setProjectName("Untitled Project");
     dispatch({ type: "RESET_CANVAS" });
     router.replace(`/projects?id=${id}`);
+    setNameEditing(true);
+  }
+
+  async function handleRename(newName: string) {
+    const trimmed = newName.trim() || "Untitled Project";
+    setProjectName(trimmed);
+    setNameEditing(false);
+    if (!projectId) return;
+    const resultCards = state.lensCards
+      .filter(c => c.status === "result")
+      .map(c => ({ id: c.id, modelName: c.modelName, prompt: c.prompt, data: c.data!, position: c.position, gpuTier: c.gpuTier }));
+    updateProject(projectId, resultCards, state.canvas, trimmed).catch(console.error);
   }
 
   async function handleDuplicate() {
@@ -283,7 +344,7 @@ function Projects() {
       {/* Canvas area — relative so the "Add Lens +" button can float over it */}
       <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
         {/* Floating buttons — top-left, over the canvas */}
-        <div style={{ position: "absolute", top: 12, left: 12, zIndex: 35, display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <div style={{ position: "absolute", top: 12, left: 12, zIndex: 35, display: "flex", gap: 8, alignItems: "center" }}>
           <button
             onClick={() => setConfigOpen(true)}
             style={{
@@ -350,25 +411,39 @@ function Projects() {
                 minWidth: 160,
                 overflow: "hidden",
               }}>
-                {/* Search — not yet implemented */}
+                {/* Search */}
                 <button
-                  onClick={() => setProjectsOpen(false)}
+                  onClick={() => { setProjectsOpen(false); setSearchOpen(true); }}
                   style={{
                     background: "#fff",
-                    color: "#2563eb",
                     border: "none",
                     borderBottom: "1px solid #e0f0ff",
                     padding: "10px 16px",
                     fontSize: 13,
                     fontWeight: 500,
-                    cursor: "pointer",
                     textAlign: "left",
                     transition: "background 120ms",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    ...(loggedIn ? enabledStyle : disabledStyle),
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
+                  disabled={!loggedIn}
+                  title={loggedIn ? undefined : "Sign in to search projects"}
+                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
                 >
-                  Search
+                  <span>Search</span>
+                  <kbd style={{
+                    fontSize: 10,
+                    fontFamily: "monospace",
+                    background: loggedIn ? "#eff6ff" : "transparent",
+                    color: loggedIn ? "#2563eb" : "#93c5fd",
+                    border: `1px solid ${loggedIn ? "#93c5fd" : "#dbeafe"}`,
+                    borderRadius: 3,
+                    padding: "0 4px",
+                    lineHeight: "16px",
+                  }}>⌘K</kbd>
                 </button>
 
                 {/* New */}
@@ -511,7 +586,103 @@ function Projects() {
               </div>
             )}
           </div>
+
+          {/* Inline project name — only shown when a project is loaded */}
+          {projectId && (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              paddingLeft: 10,
+              borderLeft: "1px solid #cbd5e1",
+            }}>
+              {nameEditing ? (
+                <input
+                  ref={nameInputRef}
+                  defaultValue={projectName}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") e.currentTarget.blur();
+                    if (e.key === "Escape") { setNameEditing(false); }
+                  }}
+                  onBlur={e => handleRename(e.target.value)}
+                  style={{
+                    border: "1px solid #93c5fd",
+                    borderRadius: 5,
+                    padding: "3px 8px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: "#1e293b",
+                    background: "#fff",
+                    outline: "none",
+                    boxShadow: "0 0 0 3px rgba(37,99,235,0.08)",
+                    minWidth: 100,
+                    maxWidth: 220,
+                    fontFamily: "inherit",
+                    transition: "box-shadow 120ms",
+                  }}
+                />
+              ) : (
+                <button
+                  onClick={() => setNameEditing(true)}
+                  title="Rename project"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "text",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: "#334155",
+                    padding: "3px 6px",
+                    borderRadius: 5,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    maxWidth: 220,
+                    transition: "background 120ms",
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = "#f1f5f9";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = "none";
+                  }}
+                >
+                  <span style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    maxWidth: 190,
+                    display: "block",
+                  }}>
+                    {projectName}
+                  </span>
+                  {/* Pencil icon */}
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#94a3b8"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ flexShrink: 0 }}
+                  >
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
         </div>
+
+        <ProjectSearch
+          isOpen={searchOpen}
+          currentProjectId={projectId}
+          onClose={() => setSearchOpen(false)}
+          onSelect={id => { setSearchOpen(false); loadAndSetProject(id); }}
+        />
 
         <SandboxCanvas
           cards={state.lensCards}

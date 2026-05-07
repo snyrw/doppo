@@ -58,7 +58,7 @@ The model selection UI has two mutually exclusive modes:
 - `app/lib/auth.ts` — BetterAuth server config (Google + GitHub + email/password)
 - `app/lib/auth-client.ts` — exports `useSession`, `signIn`, `signOut`, `signUp`
 - `app/lib/r2.ts` — Cloudflare R2 helpers: `putHeatmap(key, data)` / `getHeatmap(key)`
-- `app/components/` — `SandboxCanvas`, `LensCard`, `ConfigPane`, `Navbar`, `AuthModal`
+- `app/components/` — `SandboxCanvas`, `LensCard`, `ConfigPane`, `Navbar`, `AuthModal`, `ProjectSearch`
 - `app/hooks/` — `useCanvasPan`, `useCardDrag`
 
 ### Styling
@@ -111,15 +111,22 @@ await sql.query(`CREATE TABLE ...`);  // .query(string), NOT sql`` or sql()
 
 `neon(url)` returns a tagged-template function — calling it as `sql("string")` throws; use `sql.query("string")` for programmatic use.
 
+### `updatedAt` on UPDATE
+
+`timestamp.defaultNow()` only fires on INSERT. Always set `updatedAt: new Date()` explicitly inside `.set()` when writing UPDATE queries.
+
 ---
 
 ## Projects feature
 
 Projects persist canvas state and completed lens cards to the `project` table (`id, userId, name, cards jsonb, canvas jsonb`). Each project is identified by `?id=<uuid>` in the URL.
 
-- **New** — creates an empty project row, resets canvas, navigates to new ID
+- **New** — creates a project row with **empty cards** (`[]`); cards are only persisted via explicit `updateProject` calls, never implicitly on creation
+- **Auto-save** — `updateProject(id, cards, canvas, name?)` fires on each `CARD_RESOLVED` SSE event; uses `projectIdRef` + `stateRef` (synced via `useEffect`) to avoid stale closures inside the async SSE callback
+- **Rename** — inline editable name in the floating button row; shown only when a project is loaded; `handleRename` calls `updateProject` with the new name
 - **Duplicate** — serializes only `status: "result"` cards (skips loading/error), saves as new row
 - **Delete** — inline two-step confirmation in dropdown; deletes row, redirects to `/projects`
+- **Search** — command palette (`ProjectSearch` component), triggered by Search button or Cmd+K; fetches all projects via `listProjects()` on open (selects full `cards` jsonb — can be heavy for many large projects), then filters client-side
 - On mount, `?id=` is read via `useSearchParams` and restored via `loadProject` server action
-- All three actions are auth-gated; buttons are greyed with tooltip when logged out
+- All project actions are auth-gated; buttons use `disabledStyle` / `enabledStyle` objects and `title` for tooltip
 - Use `router.replace()` not `router.push()` for project navigation (avoids back-button clutter)

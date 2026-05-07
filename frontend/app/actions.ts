@@ -1,7 +1,7 @@
 "use server";
 
 import { createHash } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "./db";
 import { heatmapCache, project } from "./schema";
@@ -108,16 +108,71 @@ export async function deleteProject(projectId: string): Promise<void> {
 
 export async function loadProject(
   projectId: string
-): Promise<{ cards: SerializedCard[]; canvas: CanvasState } | null> {
+): Promise<{ name: string; cards: SerializedCard[]; canvas: CanvasState } | null> {
   const userId = await getAuthedUserId();
   const rows = await db
-    .select({ cards: project.cards, canvas: project.canvas })
+    .select({ name: project.name, cards: project.cards, canvas: project.canvas })
     .from(project)
     .where(and(eq(project.id, projectId), eq(project.userId, userId)))
     .limit(1);
   if (rows.length === 0) return null;
   return {
+    name: rows[0].name,
     cards: rows[0].cards as SerializedCard[],
     canvas: rows[0].canvas as CanvasState,
   };
+}
+
+export async function updateProject(
+  projectId: string,
+  cards: SerializedCard[],
+  canvas: CanvasState,
+  name?: string
+): Promise<void> {
+  const userId = await getAuthedUserId();
+  await db
+    .update(project)
+    .set({
+      cards,
+      canvas,
+      updatedAt: new Date(),
+      ...(name !== undefined ? { name } : {}),
+    })
+    .where(and(eq(project.id, projectId), eq(project.userId, userId)));
+}
+
+export type ProjectSummary = {
+  id: string;
+  name: string;
+  updatedAt: Date;
+  cardCount: number;
+  models: string[];
+  firstPrompt: string | null;
+};
+
+export async function listProjects(): Promise<ProjectSummary[]> {
+  const userId = await getAuthedUserId();
+  const rows = await db
+    .select({
+      id: project.id,
+      name: project.name,
+      updatedAt: project.updatedAt,
+      cards: project.cards,
+    })
+    .from(project)
+    .where(eq(project.userId, userId))
+    .orderBy(desc(project.updatedAt));
+
+  return rows.map(row => {
+    const cards = (row.cards ?? []) as SerializedCard[];
+    const models = [...new Set(cards.map(c => c.modelName))];
+    return {
+      id: row.id,
+      name: row.name,
+      updatedAt: row.updatedAt,
+      cardCount: cards.length,
+      models,
+      firstPrompt: cards[0]?.prompt ?? null,
+    };
+  });
 }
