@@ -380,7 +380,7 @@ _TIER_TO_CLS = {
 }
 
 
-@app.function(image=web_image)
+@app.function(image=web_image, secrets=[hf_secret])
 @modal.concurrent(max_inputs=50)
 @modal.asgi_app()
 def api():
