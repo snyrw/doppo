@@ -13,7 +13,7 @@ export default function SnapGrid({ isDragging }: SnapGridProps) {
         width: "100%",
         height: "100%",
         pointerEvents: "none",
-        opacity: isDragging ? 0.3 : 0,
+        opacity: isDragging ? 0.5 : 0,
         transition: "opacity 150ms ease",
       }}
     >
@@ -22,7 +22,7 @@ export default function SnapGrid({ isDragging }: SnapGridProps) {
           <path
             d="M 40 0 L 0 0 0 40"
             fill="none"
-            stroke="rgb(59,130,246)"
+            stroke="rgba(88, 166, 255, 0.35)"
             strokeWidth="0.5"
             strokeDasharray="2 6"
           />

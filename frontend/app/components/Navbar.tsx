@@ -9,21 +9,23 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
   return (
     <header
       style={{
-        background: "#ffffff",
+        background: "#161b22",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "0 14px",
+        padding: "0 16px",
         height: 50,
-        borderBottom: "1px solid #f3f4f6",
+        borderBottom: "1px solid #21262d",
         flexShrink: 0,
         zIndex: 40,
         position: "relative",
       }}
     >
-      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 6, textDecoration: "none" }}>
+      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
         <Image className="h-8 w-8" src={logo} alt="Logo" />
-        <span style={{ color: "#60a5fa", fontWeight: 700, fontSize: 16 }}>logitlensviz</span>
+        <span style={{ color: "#58a6ff", fontWeight: 700, fontSize: 15, letterSpacing: "0.03em" }}>
+          logitlensviz
+        </span>
       </Link>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {actions}

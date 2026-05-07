@@ -135,7 +135,6 @@ function Projects() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  // Close dropdown on outside click
   useEffect(() => {
     if (!projectsOpen) return;
     function handleClickOutside(e: MouseEvent) {
@@ -147,7 +146,6 @@ function Projects() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [projectsOpen]);
 
-  // Reset delete confirmation when dropdown closes
   useEffect(() => {
     if (!projectsOpen) setDeleteConfirming(false);
   }, [projectsOpen]);
@@ -171,7 +169,6 @@ function Projects() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load project from URL on mount
   useEffect(() => {
     const id = searchParams.get("id");
     if (!id) return;
@@ -179,11 +176,9 @@ function Projects() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep refs in sync so SSE callbacks always read latest values
   useEffect(() => { projectIdRef.current = projectId; }, [projectId]);
   useEffect(() => { stateRef.current = state; }, [state]);
 
-  // Focus + select-all the name input whenever editing starts
   useEffect(() => {
     if (nameEditing) {
       nameInputRef.current?.focus();
@@ -191,7 +186,6 @@ function Projects() {
     }
   }, [nameEditing]);
 
-  // Cmd+K / Ctrl+K toggles the project search palette
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -203,7 +197,6 @@ function Projects() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Fetch available models
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/models`)
       .then(r => r.json())
@@ -334,40 +327,40 @@ function Projects() {
   }
 
   const loggedIn = !!session?.user;
-  const disabledStyle = { color: "#93c5fd", cursor: "default" as const };
-  const enabledStyle = { color: "#2563eb", cursor: "pointer" as const };
+  const disabledStyle = { color: "#484f58", cursor: "default" as const };
+  const enabledStyle = { color: "#58a6ff", cursor: "pointer" as const };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#0d1117" }}>
       <Navbar/>
 
-      {/* Canvas area — relative so the "Add Lens +" button can float over it */}
       <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
-        {/* Floating buttons — top-left, over the canvas */}
+        {/* Floating buttons — top-left */}
         <div style={{ position: "absolute", top: 12, left: 12, zIndex: 35, display: "flex", gap: 8, alignItems: "center" }}>
           <button
             onClick={() => setConfigOpen(true)}
             style={{
-              background: configOpen ? "#1d4ed8" : "#2563eb",
-              color: "#ffffff",
+              background: configOpen ? "#1f6feb" : "#58a6ff",
+              color: "#0d1117",
               border: "none",
               borderRadius: 6,
               padding: "5px 10px",
               fontSize: 13,
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(37,99,235,0.3)",
+              boxShadow: "0 2px 12px rgba(88,166,255,0.25)",
               transition: "background 150ms, box-shadow 150ms",
               display: "flex",
               alignItems: "center",
               gap: 6,
               letterSpacing: "0.01em",
+              fontFamily: "inherit",
             }}
             onMouseEnter={e => {
-              if (!configOpen) (e.currentTarget as HTMLButtonElement).style.background = "#1d4ed8";
+              if (!configOpen) (e.currentTarget as HTMLButtonElement).style.background = "#79c0ff";
             }}
             onMouseLeave={e => {
-              if (!configOpen) (e.currentTarget as HTMLButtonElement).style.background = "#2563eb";
+              if (!configOpen) (e.currentTarget as HTMLButtonElement).style.background = "#58a6ff";
             }}
           >
             <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
@@ -379,20 +372,27 @@ function Projects() {
             <button
               onClick={() => setProjectsOpen(o => !o)}
               style={{
-                background: "#fff",
-                color: "#2563eb",
-                border: "1px solid #93c5fd",
+                background: "#161b22",
+                color: "#58a6ff",
+                border: "1px solid #30363d",
                 borderRadius: 6,
                 padding: "5px 10px",
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(37,99,235,0.1)",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
                 transition: "background 150ms, border-color 150ms",
                 letterSpacing: "0.01em",
+                fontFamily: "inherit",
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = "#1c2128";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "#58a6ff";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = "#161b22";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "#30363d";
+              }}
             >
               Projects
             </button>
@@ -402,10 +402,10 @@ function Projects() {
                 position: "absolute",
                 top: "calc(100% + 6px)",
                 left: 0,
-                background: "#fff",
-                border: "2px solid #93c5fd",
+                background: "#161b22",
+                border: "1px solid #30363d",
                 borderRadius: 6,
-                boxShadow: "0 4px 16px rgba(37,99,235,0.12)",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
                 display: "flex",
                 flexDirection: "column",
                 minWidth: 160,
@@ -415,9 +415,9 @@ function Projects() {
                 <button
                   onClick={() => { setProjectsOpen(false); setSearchOpen(true); }}
                   style={{
-                    background: "#fff",
+                    background: "#161b22",
                     border: "none",
-                    borderBottom: "1px solid #e0f0ff",
+                    borderBottom: "1px solid #21262d",
                     padding: "10px 16px",
                     fontSize: 13,
                     fontWeight: 500,
@@ -426,20 +426,21 @@ function Projects() {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    fontFamily: "inherit",
                     ...(loggedIn ? enabledStyle : disabledStyle),
                   }}
                   disabled={!loggedIn}
                   title={loggedIn ? undefined : "Sign in to search projects"}
-                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "#1c2128"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#161b22"; }}
                 >
                   <span>Search</span>
                   <kbd style={{
                     fontSize: 10,
                     fontFamily: "monospace",
-                    background: loggedIn ? "#eff6ff" : "transparent",
-                    color: loggedIn ? "#2563eb" : "#93c5fd",
-                    border: `1px solid ${loggedIn ? "#93c5fd" : "#dbeafe"}`,
+                    background: loggedIn ? "#1c2128" : "transparent",
+                    color: loggedIn ? "#58a6ff" : "#484f58",
+                    border: `1px solid ${loggedIn ? "#30363d" : "#21262d"}`,
                     borderRadius: 3,
                     padding: "0 4px",
                     lineHeight: "16px",
@@ -452,18 +453,19 @@ function Projects() {
                   disabled={!loggedIn}
                   title={loggedIn ? undefined : "Sign in to save projects"}
                   style={{
-                    background: "#fff",
+                    background: "#161b22",
                     border: "none",
-                    borderBottom: "1px solid #e0f0ff",
+                    borderBottom: "1px solid #21262d",
                     padding: "10px 16px",
                     fontSize: 13,
                     fontWeight: 500,
                     textAlign: "left",
                     transition: "background 120ms",
+                    fontFamily: "inherit",
                     ...(loggedIn ? enabledStyle : disabledStyle),
                   }}
-                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "#1c2128"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#161b22"; }}
                 >
                   New
                 </button>
@@ -474,62 +476,65 @@ function Projects() {
                   disabled={!loggedIn}
                   title={loggedIn ? undefined : "Sign in to save projects"}
                   style={{
-                    background: "#fff",
+                    background: "#161b22",
                     border: "none",
-                    borderBottom: "1px solid #e0f0ff",
+                    borderBottom: "1px solid #21262d",
                     padding: "10px 16px",
                     fontSize: 13,
                     fontWeight: 500,
                     textAlign: "left",
                     transition: "background 120ms",
+                    fontFamily: "inherit",
                     ...(loggedIn ? enabledStyle : disabledStyle),
                   }}
-                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "#1c2128"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#161b22"; }}
                 >
                   Duplicate
                 </button>
 
-                {/* Share — not yet implemented */}
+                {/* Share */}
                 <button
                   onClick={() => setProjectsOpen(false)}
                   style={{
-                    background: "#fff",
-                    color: "#2563eb",
+                    background: "#161b22",
+                    color: "#58a6ff",
                     border: "none",
-                    borderBottom: "1px solid #e0f0ff",
+                    borderBottom: "1px solid #21262d",
                     padding: "10px 16px",
                     fontSize: 13,
                     fontWeight: 500,
                     cursor: "pointer",
                     textAlign: "left",
                     transition: "background 120ms",
+                    fontFamily: "inherit",
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#1c2128"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#161b22"; }}
                 >
                   Share
                 </button>
 
                 {/* Delete — inline confirmation */}
                 {deleteConfirming ? (
-                  <div style={{ display: "flex", borderTop: "1px solid #fee2e2" }}>
+                  <div style={{ display: "flex", borderTop: "1px solid #21262d" }}>
                     <button
                       onClick={() => setDeleteConfirming(false)}
                       style={{
                         flex: 1,
-                        background: "#fff",
-                        color: "#6b7280",
+                        background: "#161b22",
+                        color: "#7d8590",
                         border: "none",
-                        borderRight: "1px solid #fee2e2",
+                        borderRight: "1px solid #21262d",
                         padding: "10px 12px",
                         fontSize: 12,
                         fontWeight: 500,
                         cursor: "pointer",
                         transition: "background 120ms",
+                        fontFamily: "inherit",
                       }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#f9fafb"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#1c2128"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#161b22"; }}
                     >
                       Cancel
                     </button>
@@ -537,17 +542,18 @@ function Projects() {
                       onClick={handleDeleteConfirmed}
                       style={{
                         flex: 1,
-                        background: "#fff",
-                        color: "#dc2626",
+                        background: "#161b22",
+                        color: "#f85149",
                         border: "none",
                         padding: "10px 12px",
                         fontSize: 12,
                         fontWeight: 600,
                         cursor: "pointer",
                         transition: "background 120ms",
+                        fontFamily: "inherit",
                       }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fef2f2"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(248,81,73,0.1)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#161b22"; }}
                     >
                       Confirm
                     </button>
@@ -567,18 +573,19 @@ function Projects() {
                         : undefined
                     }
                     style={{
-                      background: "#fff",
+                      background: "#161b22",
                       border: "none",
                       padding: "10px 16px",
                       fontSize: 13,
                       fontWeight: 500,
                       textAlign: "left",
                       transition: "background 120ms",
-                      color: loggedIn && projectId ? "#dc2626" : "#fca5a5",
+                      color: loggedIn && projectId ? "#f85149" : "#484f58",
                       cursor: loggedIn && projectId ? "pointer" : "default",
+                      fontFamily: "inherit",
                     }}
-                    onMouseEnter={e => { if (loggedIn && projectId) (e.currentTarget as HTMLButtonElement).style.background = "#fef2f2"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                    onMouseEnter={e => { if (loggedIn && projectId) (e.currentTarget as HTMLButtonElement).style.background = "rgba(248,81,73,0.1)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#161b22"; }}
                   >
                     Delete
                   </button>
@@ -587,14 +594,14 @@ function Projects() {
             )}
           </div>
 
-          {/* Inline project name — only shown when a project is loaded */}
+          {/* Inline project name */}
           {projectId && (
             <div style={{
               display: "flex",
               alignItems: "center",
               gap: 6,
               paddingLeft: 10,
-              borderLeft: "1px solid #cbd5e1",
+              borderLeft: "1px solid #21262d",
             }}>
               {nameEditing ? (
                 <input
@@ -606,15 +613,15 @@ function Projects() {
                   }}
                   onBlur={e => handleRename(e.target.value)}
                   style={{
-                    border: "1px solid #93c5fd",
+                    border: "1px solid #58a6ff",
                     borderRadius: 5,
                     padding: "3px 8px",
                     fontSize: 13,
                     fontWeight: 500,
-                    color: "#1e293b",
-                    background: "#fff",
+                    color: "#e6edf3",
+                    background: "#0d1117",
                     outline: "none",
-                    boxShadow: "0 0 0 3px rgba(37,99,235,0.08)",
+                    boxShadow: "0 0 0 3px rgba(88,166,255,0.1)",
                     minWidth: 100,
                     maxWidth: 220,
                     fontFamily: "inherit",
@@ -631,7 +638,7 @@ function Projects() {
                     cursor: "text",
                     fontSize: 13,
                     fontWeight: 500,
-                    color: "#334155",
+                    color: "#7d8590",
                     padding: "3px 6px",
                     borderRadius: 5,
                     display: "flex",
@@ -639,9 +646,10 @@ function Projects() {
                     gap: 5,
                     maxWidth: 220,
                     transition: "background 120ms",
+                    fontFamily: "inherit",
                   }}
                   onMouseEnter={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "#f1f5f9";
+                    (e.currentTarget as HTMLButtonElement).style.background = "#1c2128";
                   }}
                   onMouseLeave={e => {
                     (e.currentTarget as HTMLButtonElement).style.background = "none";
@@ -662,7 +670,7 @@ function Projects() {
                     height="11"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#94a3b8"
+                    stroke="#484f58"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"

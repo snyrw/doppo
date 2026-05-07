@@ -58,13 +58,46 @@ export default function AuthButtons() {
     }
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    border: "1px solid #30363d",
+    borderRadius: 6,
+    padding: "8px 10px",
+    fontSize: 13,
+    color: "#e6edf3",
+    background: "#0d1117",
+    outline: "none",
+    fontFamily: "inherit",
+    boxSizing: "border-box",
+    transition: "border-color 120ms",
+  };
+
   if (session?.user) {
     return (
-      <div className="flex items-center space-x-3">
-        <span className="text-sm text-gray-600">{session.user.email}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ fontSize: 11, color: "#7d8590" }}>{session.user.email}</span>
         <button
           onClick={() => signOut()}
-          className="bg-white text-sm font-light text-blue-400 px-2.5 py-0.5 rounded border border-blue-300 hover:bg-blue-50 transition-colors"
+          style={{
+            background: "transparent",
+            fontSize: 12,
+            fontWeight: 400,
+            color: "#7d8590",
+            padding: "3px 10px",
+            borderRadius: 5,
+            border: "1px solid #30363d",
+            cursor: "pointer",
+            transition: "background 120ms, color 120ms",
+            fontFamily: "inherit",
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = "#1c2128";
+            (e.currentTarget as HTMLButtonElement).style.color = "#e6edf3";
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+            (e.currentTarget as HTMLButtonElement).style.color = "#7d8590";
+          }}
         >
           Sign Out
         </button>
@@ -76,95 +109,189 @@ export default function AuthButtons() {
     <>
       <button
         onClick={() => openModal("signin")}
-        className="bg-white text-sm font-light text-blue-400 px-2.5 py-0.5 rounded border border-blue-300 hover:bg-blue-50 disabled:opacity-50 transition-colors"
+        style={{
+          background: "transparent",
+          fontSize: 12,
+          fontWeight: 400,
+          color: "#7d8590",
+          padding: "4px 12px",
+          borderRadius: 6,
+          border: "1px solid #30363d",
+          cursor: "pointer",
+          transition: "background 120ms, color 120ms, border-color 120ms",
+          fontFamily: "inherit",
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLButtonElement).style.background = "#1c2128";
+          (e.currentTarget as HTMLButtonElement).style.color = "#e6edf3";
+          (e.currentTarget as HTMLButtonElement).style.borderColor = "#58a6ff";
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+          (e.currentTarget as HTMLButtonElement).style.color = "#7d8590";
+          (e.currentTarget as HTMLButtonElement).style.borderColor = "#30363d";
+        }}
       >
         Log In
       </button>
       <button
         onClick={() => openModal("signup")}
-        className="bg-white text-sm font-light text-blue-400 px-2.5 py-0.5 rounded border border-blue-300 hover:bg-blue-50 disabled:opacity-50 transition-colors"
+        style={{
+          background: "#58a6ff",
+          fontSize: 12,
+          fontWeight: 600,
+          color: "#0d1117",
+          padding: "4px 12px",
+          borderRadius: 6,
+          border: "none",
+          cursor: "pointer",
+          letterSpacing: "0.02em",
+          fontFamily: "inherit",
+        }}
       >
         Sign Up
       </button>
 
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.65)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 50,
+          }}
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm"
-            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#161b22",
+              borderRadius: 10,
+              border: "1px solid #30363d",
+              boxShadow: "0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(88,166,255,0.06)",
+              padding: 28,
+              width: "100%",
+              maxWidth: 400,
+            }}
+            onClick={e => e.stopPropagation()}
           >
-            <h2 className="text-xl font-bold mb-4 text-gray-800">
+            <h2 style={{ fontSize: 17, fontWeight: 700, margin: "0 0 18px", color: "#e6edf3" }}>
               {mode === "signin" ? "Log In" : mode === "signup" ? "Sign Up" : "Check your email"}
             </h2>
+
             {mode === "verify" && (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600">
-                  We sent a verification link to <strong>{email}</strong>. Click it to activate your account.
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <p style={{ fontSize: 13, color: "#7d8590", margin: 0 }}>
+                  We sent a verification link to{" "}
+                  <strong style={{ color: "#e6edf3" }}>{email}</strong>. Click it to activate your account.
                 </p>
-                <p className="text-xs text-gray-400">
+                <p style={{ fontSize: 11, color: "#484f58", margin: 0 }}>
                   (In local dev, the link is printed to the server console instead.)
                 </p>
                 <button
-                  className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+                  style={{
+                    width: "100%",
+                    background: "#58a6ff",
+                    color: "#0d1117",
+                    padding: "10px 0",
+                    borderRadius: 6,
+                    border: "none",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    marginTop: 4,
+                  }}
                   onClick={() => setOpen(false)}
                 >
                   Done
                 </button>
               </div>
             )}
+
             {mode !== "verify" && (
               <>
-                <form onSubmit={handleSubmit} className="space-y-3">
+                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {mode === "signup" && (
                     <input
                       type="text"
                       placeholder="Name"
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      onChange={e => setName(e.target.value)}
                       required
-                      className="w-full border border-gray-300 rounded p-2 text-sm"
+                      style={inputStyle}
                     />
                   )}
                   <input
                     type="email"
                     placeholder="Email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     required
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    style={inputStyle}
                   />
                   <input
                     type="password"
                     placeholder="Password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     required
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    style={inputStyle}
                   />
-                  {error && <p className="text-red-500 text-sm">{error}</p>}
+                  {error && <p style={{ fontSize: 12, color: "#f85149", margin: "2px 0 0" }}>{error}</p>}
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
+                    style={{
+                      width: "100%",
+                      background: loading ? "#1c2128" : "#58a6ff",
+                      color: loading ? "#484f58" : "#0d1117",
+                      padding: "10px 0",
+                      borderRadius: 6,
+                      border: "none",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: loading ? "not-allowed" : "pointer",
+                      transition: "background 120ms",
+                      fontFamily: "inherit",
+                      marginTop: 2,
+                    }}
                   >
-                    {loading ? "..." : mode === "signin" ? "Log In" : "Create Account"}
+                    {loading ? "…" : mode === "signin" ? "Log In" : "Create Account"}
                   </button>
                 </form>
 
-                <div className="flex items-center my-3">
-                  <div className="flex-1 border-t border-gray-200" />
-                  <span className="px-2 text-xs text-gray-400">or continue with</span>
-                  <div className="flex-1 border-t border-gray-200" />
+                <div style={{ display: "flex", alignItems: "center", margin: "14px 0" }}>
+                  <div style={{ flex: 1, height: 1, background: "#21262d" }} />
+                  <span style={{ padding: "0 10px", fontSize: 11, color: "#484f58" }}>or continue with</span>
+                  <div style={{ flex: 1, height: 1, background: "#21262d" }} />
                 </div>
 
                 <button
                   type="button"
                   disabled={!!socialLoading || loading}
                   onClick={() => handleSocialSignIn("google")}
-                  className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded py-2 text-sm hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    border: "1px solid #30363d",
+                    borderRadius: 6,
+                    padding: "9px 0",
+                    fontSize: 13,
+                    color: "#e6edf3",
+                    background: "#1c2128",
+                    cursor: (socialLoading || loading) ? "not-allowed" : "pointer",
+                    opacity: (socialLoading || loading) ? 0.5 : 1,
+                    transition: "background 120ms",
+                    fontFamily: "inherit",
+                  }}
+                  onMouseEnter={e => { if (!socialLoading && !loading) (e.currentTarget as HTMLButtonElement).style.background = "#21262d"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#1c2128"; }}
                 >
                   <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -173,27 +300,55 @@ export default function AuthButtons() {
                     <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.96 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
                     <path fill="none" d="M0 0h48v48H0z"/>
                   </svg>
-                  {socialLoading === "google" ? "Connecting..." : "Google"}
+                  {socialLoading === "google" ? "Connecting…" : "Google"}
                 </button>
 
                 <button
                   type="button"
                   disabled={!!socialLoading || loading}
                   onClick={() => handleSocialSignIn("github")}
-                  className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded py-2 text-sm hover:bg-gray-50 disabled:opacity-50 transition-colors mt-2"
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    border: "1px solid #30363d",
+                    borderRadius: 6,
+                    padding: "9px 0",
+                    fontSize: 13,
+                    color: "#e6edf3",
+                    background: "#1c2128",
+                    cursor: (socialLoading || loading) ? "not-allowed" : "pointer",
+                    opacity: (socialLoading || loading) ? 0.5 : 1,
+                    transition: "background 120ms",
+                    fontFamily: "inherit",
+                    marginTop: 8,
+                  }}
+                  onMouseEnter={e => { if (!socialLoading && !loading) (e.currentTarget as HTMLButtonElement).style.background = "#21262d"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#1c2128"; }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#e6edf3" aria-hidden="true">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
                   </svg>
-                  {socialLoading === "github" ? "Connecting..." : "GitHub"}
+                  {socialLoading === "github" ? "Connecting…" : "GitHub"}
                 </button>
 
-                <p className="text-center text-sm text-gray-500 mt-3">
+                <p style={{ textAlign: "center", fontSize: 12, color: "#7d8590", margin: "14px 0 0" }}>
                   {mode === "signin" ? (
                     <>
                       No account?{" "}
                       <button
-                        className="text-blue-500 underline"
+                        style={{
+                          color: "#58a6ff",
+                          cursor: "pointer",
+                          background: "none",
+                          border: "none",
+                          textDecoration: "underline",
+                          fontSize: 12,
+                          fontFamily: "inherit",
+                          padding: 0,
+                        }}
                         onClick={() => setMode("signup")}
                       >
                         Sign up
@@ -203,7 +358,16 @@ export default function AuthButtons() {
                     <>
                       Have an account?{" "}
                       <button
-                        className="text-blue-500 underline"
+                        style={{
+                          color: "#58a6ff",
+                          cursor: "pointer",
+                          background: "none",
+                          border: "none",
+                          textDecoration: "underline",
+                          fontSize: 12,
+                          fontFamily: "inherit",
+                          padding: 0,
+                        }}
                         onClick={() => setMode("signin")}
                       >
                         Log in

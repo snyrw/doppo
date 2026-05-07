@@ -33,18 +33,15 @@ export default function SandboxCanvas({
   const worldRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // Keep a ref to current canvas state for use inside event handlers
   const stateRef = useRef(canvasState);
   stateRef.current = canvasState;
 
-  // Card drag
   const { startDrag, onDragMove, onDragEnd, isDragging } = useCardDrag({
     getCurrentZoom: () => stateRef.current.zoom,
     onCommit: onMoveCard,
     cardRefs,
   });
 
-  // Canvas pan
   const { panHandlers } = useCanvasPan({
     onPanChange: (offset) => {
       onCanvasChange({ ...stateRef.current, panOffset: offset });
@@ -52,7 +49,6 @@ export default function SandboxCanvas({
     getCurrentPan: () => stateRef.current.panOffset,
   });
 
-  // Wheel zoom — must be imperative to use { passive: false }
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
@@ -65,7 +61,6 @@ export default function SandboxCanvas({
       const factor = e.deltaY < 0 ? 1.1 : 0.9;
       const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
 
-      // Focal-point correction: keep the point under the cursor fixed in canvas space
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
       const canvasX = (mouseX - panOffset.x) / zoom;
@@ -78,7 +73,7 @@ export default function SandboxCanvas({
 
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, []); // empty — reads state via stateRef, registers once
+  }, []);
 
   const setCardRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
     if (el) cardRefs.current.set(id, el);
@@ -94,12 +89,13 @@ export default function SandboxCanvas({
         flex: 1,
         overflow: "hidden",
         position: "relative",
-        background: "#f8fafc",
+        background: "#0d1117",
+        backgroundImage: "radial-gradient(circle, #21262d 1px, transparent 1px)",
+        backgroundSize: "24px 24px",
         cursor: isDragging ? "grabbing" : "default",
       }}
       {...panHandlers}
     >
-      {/* World — everything inside here is in canvas-space coordinates */}
       <div
         ref={worldRef}
         style={{
@@ -125,7 +121,6 @@ export default function SandboxCanvas({
         ))}
       </div>
 
-      {/* Empty state */}
       {cards.length === 0 && (
         <div style={{
           position: "absolute",
@@ -137,33 +132,33 @@ export default function SandboxCanvas({
           gap: 10,
           pointerEvents: "none",
         }}>
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style={{ opacity: 0.15 }}>
-            <circle cx="20" cy="20" r="18" stroke="#374151" strokeWidth="1.5" />
-            <circle cx="20" cy="20" r="10" stroke="#374151" strokeWidth="1.5" />
-            <circle cx="20" cy="20" r="2" fill="#374151" />
-            <line x1="20" y1="2" x2="20" y2="8" stroke="#374151" strokeWidth="1.5" />
-            <line x1="20" y1="32" x2="20" y2="38" stroke="#374151" strokeWidth="1.5" />
-            <line x1="2" y1="20" x2="8" y2="20" stroke="#374151" strokeWidth="1.5" />
-            <line x1="32" y1="20" x2="38" y2="20" stroke="#374151" strokeWidth="1.5" />
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style={{ opacity: 0.2 }}>
+            <circle cx="20" cy="20" r="18" stroke="#58a6ff" strokeWidth="1.5" />
+            <circle cx="20" cy="20" r="10" stroke="#58a6ff" strokeWidth="1.5" />
+            <circle cx="20" cy="20" r="2" fill="#58a6ff" />
+            <line x1="20" y1="2" x2="20" y2="8" stroke="#58a6ff" strokeWidth="1.5" />
+            <line x1="20" y1="32" x2="20" y2="38" stroke="#58a6ff" strokeWidth="1.5" />
+            <line x1="2" y1="20" x2="8" y2="20" stroke="#58a6ff" strokeWidth="1.5" />
+            <line x1="32" y1="20" x2="38" y2="20" stroke="#58a6ff" strokeWidth="1.5" />
           </svg>
-          <p style={{ fontSize: 13, color: "#9ca3af" }}>Add a lens to get started</p>
+          <p style={{ fontSize: 12, color: "#484f58", letterSpacing: "0.05em" }}>Add a lens to get started</p>
         </div>
       )}
 
-      {/* Zoom indicator */}
       {zoom !== 1 && (
         <div style={{
           position: "absolute",
           bottom: 12,
           right: 12,
           fontSize: 10,
-          color: "#9ca3af",
-          background: "rgba(255,255,255,0.8)",
-          border: "1px solid #e5e7eb",
+          color: "#7d8590",
+          background: "rgba(22, 27, 34, 0.9)",
+          border: "1px solid #30363d",
           borderRadius: 4,
           padding: "3px 7px",
           pointerEvents: "none",
           fontVariantNumeric: "tabular-nums",
+          letterSpacing: "0.05em",
         }}>
           {Math.round(zoom * 100)}%
         </div>
