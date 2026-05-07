@@ -46,3 +46,80 @@ The model selection UI has two mutually exclusive modes:
 `/api/models` → `{ id, display_name, description, requires_hf_token }[]`
 `/api/validate-model` → `{ valid, gpu_tier, reason }`
 `/api/run-lens` → `{ x_labels, y_labels, heatmap_data }`
+
+---
+
+## Frontend file layout
+
+- `app/projects/page.tsx` — main canvas page; `useReducer` manages `{ lensCards, canvas }` state
+- `app/schema.ts` — all Drizzle table definitions
+- `app/actions.ts` — all server actions (`"use server"` file-level directive)
+- `app/db.ts` — Drizzle client using `drizzle-orm/neon-http` (HTTP, not websocket)
+- `app/lib/auth.ts` — BetterAuth server config (Google + GitHub + email/password)
+- `app/lib/auth-client.ts` — exports `useSession`, `signIn`, `signOut`, `signUp`
+- `app/lib/r2.ts` — Cloudflare R2 helpers: `putHeatmap(key, data)` / `getHeatmap(key)`
+- `app/components/` — `SandboxCanvas`, `LensCard`, `ConfigPane`, `Navbar`, `AuthModal`
+- `app/hooks/` — `useCanvasPan`, `useCardDrag`
+
+### Styling
+
+The entire codebase uses **inline styles** — no Tailwind classes, no CSS modules. Keep additions consistent.
+
+Color tokens in use: `#2563eb` (primary blue), `#1d4ed8` (active/hover), `#93c5fd` (border/disabled), `#eff6ff` (hover bg), `#f8fafc` (page bg), `#dc2626` (destructive red). Border radius is consistently `6px`. Navbar is `50px` tall at `zIndex: 40`.
+
+### Auth patterns
+
+Client-side session check: `const { data: session } = useSession()` from `lib/auth-client`.
+
+Server-side (routes and server actions):
+```ts
+import { headers } from "next/headers";
+import { auth } from "./lib/auth";
+const session = await auth.api.getSession({ headers: await headers() });
+if (!session?.user) throw new Error("Unauthorized");
+```
+
+`tl_small` models are accessible without auth; `tl_medium` / `tl_large` require a session. Always verify row ownership (`userId` match) before mutating DB rows.
+
+### Heatmap caching
+
+`/api/run-lens` checks the `heatmap_cache` table before forwarding to Modal. Cache key = SHA-256 of `modelName:prompt`. Hits are served from Cloudflare R2 via `getHeatmap(r2Key)`; misses call Modal, then write to R2 + insert a `heatmap_cache` row.
+
+### SSE streaming (`/api/run-lens`)
+
+The route streams Server-Sent Events from Modal. Event shape: `data: { stage, data?, error? }`. `stage` is `"done"` (with `data`), `"error"` (with `error`), or a descriptive loading string. Client splits on `\n\n`, finds `data: ` lines, and JSON-parses each chunk.
+
+### `useSearchParams` requires `<Suspense>`
+
+Any client component using `useSearchParams` must be wrapped in `<Suspense>` — missing it causes a build-time error in App Router prerendered routes.
+
+---
+
+## Database / Drizzle notes
+
+### Applying migrations
+
+**`drizzle-kit migrate` and `drizzle-kit push` both hang in non-TTY environments** (Claude Code bash, CI) due to the `@neondatabase/serverless` websocket transport. Workaround — write a temporary `.mjs` script:
+
+```js
+import { neon } from "@neondatabase/serverless";
+import { config } from "dotenv";
+config({ path: ".env.local" });
+const sql = neon(process.env.DATABASE_URL);
+await sql.query(`CREATE TABLE ...`);  // .query(string), NOT sql`` or sql()
+```
+
+`neon(url)` returns a tagged-template function — calling it as `sql("string")` throws; use `sql.query("string")` for programmatic use.
+
+---
+
+## Projects feature
+
+Projects persist canvas state and completed lens cards to the `project` table (`id, userId, name, cards jsonb, canvas jsonb`). Each project is identified by `?id=<uuid>` in the URL.
+
+- **New** — creates an empty project row, resets canvas, navigates to new ID
+- **Duplicate** — serializes only `status: "result"` cards (skips loading/error), saves as new row
+- **Delete** — inline two-step confirmation in dropdown; deletes row, redirects to `/projects`
+- On mount, `?id=` is read via `useSearchParams` and restored via `loadProject` server action
+- All three actions are auth-gated; buttons are greyed with tooltip when logged out
+- Use `router.replace()` not `router.push()` for project navigation (avoids back-button clutter)

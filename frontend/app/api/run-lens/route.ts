@@ -40,20 +40,13 @@ export async function POST(request: NextRequest) {
     gpuTier?: string;
   };
 
-  // Anything other than a known tl_small request requires a session.
   if (gpuTier !== "tl_small") {
-    const skipAuth =
-      process.env.NODE_ENV !== "production" &&
-      process.env.SKIP_AUTH === "true";
-
-    if (!skipAuth) {
-      const session = await auth.api.getSession({ headers: request.headers });
-      if (!session) {
-        return new Response(
-          JSON.stringify({ error: "Sign in to access medium and large models" }),
-          { status: 401, headers: { "Content-Type": "application/json" } }
-        );
-      }
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session) {
+      return new Response(
+        JSON.stringify({ error: "Sign in to access medium and large models" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
     }
   }
 

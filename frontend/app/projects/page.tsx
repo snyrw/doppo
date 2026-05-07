@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, useEffect, useReducer, useRef } from "react";
+import { useState, useEffect, useReducer, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import SandboxCanvas from "../components/SandboxCanvas";
 import ConfigPane from "../components/ConfigPane";
 import Navbar from "../components/Navbar";
 import type { LensCardData } from "../components/LensCard";
+import { useSession } from "../lib/auth-client";
+import {
+  createProject,
+  duplicateProject,
+  deleteProject,
+  loadProject,
+} from "../actions";
 
 type ModelInfo = {
   id: string;
@@ -39,7 +47,9 @@ type AppAction =
   | { type: "CARD_STAGE"; id: string; stage: string }
   | { type: "MOVE_CARD"; id: string; position: { x: number; y: number } }
   | { type: "REMOVE_CARD"; id: string }
-  | { type: "SET_CANVAS"; canvas: CanvasState };
+  | { type: "SET_CANVAS"; canvas: CanvasState }
+  | { type: "LOAD_PROJECT"; cards: LensCardData[]; canvas: CanvasState }
+  | { type: "RESET_CANVAS" };
 
 const CARD_COL_WIDTH = 360;
 const CARD_ROW_HEIGHT = 320;
@@ -53,6 +63,11 @@ function autoArrangePos(index: number): { x: number; y: number } {
     y: GRID_MARGIN + row * (CARD_ROW_HEIGHT + GRID_MARGIN),
   };
 }
+
+const initialState: AppState = {
+  lensCards: [],
+  canvas: { panOffset: { x: 0, y: 0 }, zoom: 1 },
+};
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
@@ -90,24 +105,29 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, lensCards: state.lensCards.filter(c => c.id !== action.id) };
     case "SET_CANVAS":
       return { ...state, canvas: action.canvas };
+    case "LOAD_PROJECT":
+      return { lensCards: action.cards, canvas: action.canvas };
+    case "RESET_CANVAS":
+      return initialState;
     default:
       return state;
   }
 }
 
-const initialState: AppState = {
-  lensCards: [],
-  canvas: { panOffset: { x: 0, y: 0 }, zoom: 1 },
-};
-
-export default function Projects() {
+function Projects() {
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [configOpen, setConfigOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
   const projectsRef = useRef<HTMLDivElement>(null);
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { data: session } = useSession();
 
+  // Close dropdown on outside click
   useEffect(() => {
     if (!projectsOpen) return;
     function handleClickOutside(e: MouseEvent) {
@@ -119,6 +139,31 @@ export default function Projects() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [projectsOpen]);
 
+  // Reset delete confirmation when dropdown closes
+  useEffect(() => {
+    if (!projectsOpen) setDeleteConfirming(false);
+  }, [projectsOpen]);
+
+  // Load project from URL on mount
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (!id) return;
+    setProjectId(id);
+    loadProject(id)
+      .then(result => {
+        if (!result) { router.replace("/projects"); return; }
+        const lensCards: LensCardData[] = result.cards.map(c => ({
+          ...c,
+          status: "result" as const,
+          error: null,
+        }));
+        dispatch({ type: "LOAD_PROJECT", cards: lensCards, canvas: result.canvas });
+      })
+      .catch(() => router.replace("/projects"));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch available models
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/models`)
       .then(r => r.json())
@@ -191,6 +236,46 @@ export default function Projects() {
       .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
   };
 
+  async function handleNew() {
+    if (!session?.user) return;
+    setProjectsOpen(false);
+    const { id } = await createProject([], state.canvas);
+    setProjectId(id);
+    dispatch({ type: "RESET_CANVAS" });
+    router.replace(`/projects?id=${id}`);
+  }
+
+  async function handleDuplicate() {
+    if (!session?.user) return;
+    setProjectsOpen(false);
+    const resultCards = state.lensCards
+      .filter(c => c.status === "result")
+      .map(({ id, modelName, prompt, data, position, gpuTier }) => ({
+        id,
+        modelName,
+        prompt,
+        data: data!,
+        position,
+        gpuTier,
+      }));
+    const { id } = await duplicateProject(resultCards, state.canvas);
+    setProjectId(id);
+    router.replace(`/projects?id=${id}`);
+  }
+
+  async function handleDeleteConfirmed() {
+    if (!projectId) return;
+    await deleteProject(projectId);
+    setProjectId(null);
+    setDeleteConfirming(false);
+    dispatch({ type: "RESET_CANVAS" });
+    router.replace("/projects");
+  }
+
+  const loggedIn = !!session?.user;
+  const disabledStyle = { color: "#93c5fd", cursor: "default" as const };
+  const enabledStyle = { color: "#2563eb", cursor: "pointer" as const };
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f8fafc" }}>
       <Navbar/>
@@ -262,31 +347,167 @@ export default function Projects() {
                 boxShadow: "0 4px 16px rgba(37,99,235,0.12)",
                 display: "flex",
                 flexDirection: "column",
-                minWidth: 140,
+                minWidth: 160,
                 overflow: "hidden",
               }}>
-                {["Search", "New", "Duplicate", "Share", "Delete"].map(label => (
+                {/* Search — not yet implemented */}
+                <button
+                  onClick={() => setProjectsOpen(false)}
+                  style={{
+                    background: "#fff",
+                    color: "#2563eb",
+                    border: "none",
+                    borderBottom: "1px solid #e0f0ff",
+                    padding: "10px 16px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "background 120ms",
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                >
+                  Search
+                </button>
+
+                {/* New */}
+                <button
+                  onClick={handleNew}
+                  disabled={!loggedIn}
+                  title={loggedIn ? undefined : "Sign in to save projects"}
+                  style={{
+                    background: "#fff",
+                    border: "none",
+                    borderBottom: "1px solid #e0f0ff",
+                    padding: "10px 16px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    textAlign: "left",
+                    transition: "background 120ms",
+                    ...(loggedIn ? enabledStyle : disabledStyle),
+                  }}
+                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                >
+                  New
+                </button>
+
+                {/* Duplicate */}
+                <button
+                  onClick={handleDuplicate}
+                  disabled={!loggedIn}
+                  title={loggedIn ? undefined : "Sign in to save projects"}
+                  style={{
+                    background: "#fff",
+                    border: "none",
+                    borderBottom: "1px solid #e0f0ff",
+                    padding: "10px 16px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    textAlign: "left",
+                    transition: "background 120ms",
+                    ...(loggedIn ? enabledStyle : disabledStyle),
+                  }}
+                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                >
+                  Duplicate
+                </button>
+
+                {/* Share — not yet implemented */}
+                <button
+                  onClick={() => setProjectsOpen(false)}
+                  style={{
+                    background: "#fff",
+                    color: "#2563eb",
+                    border: "none",
+                    borderBottom: "1px solid #e0f0ff",
+                    padding: "10px 16px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "background 120ms",
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                >
+                  Share
+                </button>
+
+                {/* Delete — inline confirmation */}
+                {deleteConfirming ? (
+                  <div style={{ display: "flex", borderTop: "1px solid #fee2e2" }}>
+                    <button
+                      onClick={() => setDeleteConfirming(false)}
+                      style={{
+                        flex: 1,
+                        background: "#fff",
+                        color: "#6b7280",
+                        border: "none",
+                        borderRight: "1px solid #fee2e2",
+                        padding: "10px 12px",
+                        fontSize: 12,
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        transition: "background 120ms",
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#f9fafb"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteConfirmed}
+                      style={{
+                        flex: 1,
+                        background: "#fff",
+                        color: "#dc2626",
+                        border: "none",
+                        padding: "10px 12px",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "background 120ms",
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fef2f2"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    key={label}
-                    onClick={() => setProjectsOpen(false)}
+                    onClick={() => {
+                      if (!loggedIn || !projectId) return;
+                      setDeleteConfirming(true);
+                    }}
+                    disabled={!loggedIn || !projectId}
+                    title={
+                      !loggedIn
+                        ? "Sign in to save projects"
+                        : !projectId
+                        ? "No saved project to delete"
+                        : undefined
+                    }
                     style={{
                       background: "#fff",
-                      color: "#2563eb",
                       border: "none",
-                      borderBottom: label !== "Delete" ? "1px solid #e0f0ff" : "none",
                       padding: "10px 16px",
                       fontSize: 13,
                       fontWeight: 500,
-                      cursor: "pointer",
                       textAlign: "left",
                       transition: "background 120ms",
+                      color: loggedIn && projectId ? "#dc2626" : "#fca5a5",
+                      cursor: loggedIn && projectId ? "pointer" : "default",
                     }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#eff6ff"; }}
+                    onMouseEnter={e => { if (loggedIn && projectId) (e.currentTarget as HTMLButtonElement).style.background = "#fef2f2"; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#fff"; }}
                   >
-                    {label}
+                    Delete
                   </button>
-                ))}
+                )}
               </div>
             )}
           </div>
@@ -309,5 +530,13 @@ export default function Projects() {
         />
       </div>
     </div>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <Suspense>
+      <Projects />
+    </Suspense>
   );
 }

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, index, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, index, boolean, jsonb } from "drizzle-orm/pg-core";
 
 export const heatmapCache = pgTable(
   "heatmap_cache",
@@ -60,4 +60,14 @@ export const verification = pgTable("verification", {
   expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const project = pgTable("project", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  name: text("name").notNull().default("Untitled Project"),
+  cards: jsonb("cards").notNull().default([]),
+  canvas: jsonb("canvas").notNull().default({ panOffset: { x: 0, y: 0 }, zoom: 1 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
