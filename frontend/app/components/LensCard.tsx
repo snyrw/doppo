@@ -40,6 +40,19 @@ const TIER_LABELS: Record<string, string> = {
   tl_large: "A100-80GB",
 };
 
+// approximate char width at 7px Azeret Mono
+const CHAR_W = 4.5;
+const CELL_PAD = 6;
+const MIN_CELL_W = 20;
+const MAX_CELL_W = 48;
+const Y_LABEL_W = 28;
+const COL_GAP = 2;
+
+function computeCellWidth(xLabels: string[]): number {
+  const maxLen = Math.max(...xLabels.map(t => t.length));
+  return Math.max(MIN_CELL_W, Math.min(MAX_CELL_W, Math.ceil(maxLen * CHAR_W) + CELL_PAD));
+}
+
 function formatElapsed(ms: number): string {
   const s = Math.floor(ms / 1000);
   const m = Math.floor(s / 60);
@@ -55,12 +68,6 @@ function getStageLabel(stage: string | undefined, elapsedMs: number): string {
   return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
 }
 
-function simplifyLayerLabel(raw: string): string {
-  if (raw === "embedding") return "emb";
-  const match = raw.match(/\.(\d+)\./);
-  return match ? match[1] : raw;
-}
-
 export default function LensCard({
   card,
   ref,
@@ -74,6 +81,7 @@ export default function LensCard({
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [pinnedCol, setPinnedCol] = React.useState<number | null>(null);
   const [activeLayer, setActiveLayer] = React.useState(0);
+  const [headerHovered, setHeaderHovered] = React.useState(false);
 
   React.useEffect(() => {
     if (card.status !== "loading") return;
@@ -83,14 +91,18 @@ export default function LensCard({
     return () => clearInterval(id);
   }, [card.status, card.startedAt]);
 
-  // Default activeLayer to the last layer once data arrives
   React.useEffect(() => {
     if (card.data) setActiveLayer(card.data.y_labels.length - 1);
   }, [card.data]);
 
-  const shortPrompt = card.prompt.length > 38 ? card.prompt.slice(0, 38) + "…" : card.prompt;
   const canToggle = card.status === "result" && card.data?.topk_tokens != null;
   const canPin = card.status === "result" && card.data?.topk_tokens != null;
+  const cellWidth = card.data ? computeCellWidth(card.data.x_labels) : 24;
+  const rowGap = mode === "tokens" && card.data?.topk_tokens != null ? 2 : 0;
+  // 6px padding on each side of the heatmap body; COL_GAP between every flex child
+  const heatmapPx = card.data
+    ? Y_LABEL_W + (cellWidth + COL_GAP) * card.data.x_labels.length + 12
+    : null;
 
   const handleColClick = (i: number) => {
     setPinnedCol(prev => (prev === i ? null : i));
@@ -102,7 +114,7 @@ export default function LensCard({
           tokens: card.data.topk_tokens[activeLayer][pinnedCol],
           probs: card.data.topk_probs![activeLayer][pinnedCol],
           colLabel: card.data.x_labels[pinnedCol],
-          layerLabel: simplifyLayerLabel(card.data.y_labels[activeLayer]),
+          layerLabel: String(activeLayer),
         }
       : null;
 
@@ -122,6 +134,7 @@ export default function LensCard({
         flexDirection: "column",
         ...(card.status === "loading" ? { width: 280, height: 200 } : {}),
         ...(card.status === "error" ? { width: 280 } : {}),
+        ...(card.status === "result" && heatmapPx ? { width: heatmapPx } : {}),
       }}
     >
       <style>{`
@@ -130,7 +143,69 @@ export default function LensCard({
           from { opacity: 0; transform: translateX(8px); }
           to   { opacity: 1; transform: translateX(0); }
         }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(3px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
+
+      {/* Hover popup — floats above the card on header hover */}
+      {headerHovered && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 6px)",
+            left: 0,
+            background: "var(--color-card)",
+            border: "1px solid var(--color-card-border)",
+            borderRadius: 8,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+            padding: "10px 12px",
+            zIndex: 100,
+            pointerEvents: "none",
+            minWidth: 200,
+            maxWidth: 320,
+            animation: "fadeUp 120ms ease-out",
+          }}
+        >
+          <p style={{
+            fontSize: 11,
+            fontWeight: 600,
+            margin: 0,
+            color: "var(--color-text)",
+            fontFamily: "var(--font-azeret-mono), monospace",
+            wordBreak: "break-all",
+          }}>
+            {card.modelName}
+          </p>
+          <p style={{
+            fontSize: 10,
+            color: "var(--color-text-muted)",
+            margin: "5px 0 0",
+            lineHeight: 1.5,
+            fontFamily: "var(--font-azeret-mono), monospace",
+            wordBreak: "break-word",
+          }}>
+            {card.prompt}
+          </p>
+          {card.gpuTier && (
+            <span style={{
+              display: "inline-block",
+              marginTop: 6,
+              fontSize: 9,
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              color: "var(--color-accent)",
+              background: "var(--color-surface-border)",
+              border: "1px solid var(--color-card-border)",
+              borderRadius: 3,
+              padding: "1px 5px",
+            }}>
+              {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Focus panel — slides out to the left when a column is pinned */}
       {panelData && (
@@ -148,7 +223,6 @@ export default function LensCard({
             animation: "slideInLeft 140ms ease-out",
           }}
         >
-          {/* Header */}
           <div style={{
             display: "flex",
             justifyContent: "space-between",
@@ -178,7 +252,6 @@ export default function LensCard({
             </span>
           </div>
 
-          {/* Bar chart */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {panelData.tokens.map((tok, i) => {
               const prob = panelData.probs[i];
@@ -221,7 +294,6 @@ export default function LensCard({
             })}
           </div>
 
-          {/* Hint */}
           <p style={{ fontSize: 8, color: "var(--color-surface-border)", margin: "8px 0 0", textAlign: "center" }}>
             hover rows to change layer
           </p>
@@ -233,6 +305,8 @@ export default function LensCard({
         onPointerDown={e => onStartDrag(e, card.id, card.position)}
         onPointerMove={onDragMove}
         onPointerUp={onDragEnd}
+        onMouseEnter={() => setHeaderHovered(true)}
+        onMouseLeave={() => setHeaderHovered(false)}
         style={{
           padding: "7px 10px",
           borderBottom: "1px solid var(--color-surface-border)",
@@ -243,6 +317,8 @@ export default function LensCard({
           userSelect: "none",
           flexShrink: 0,
           borderRadius: "8px 8px 0 0",
+          minWidth: 0,
+          overflow: "hidden",
         }}
       >
         <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
@@ -253,14 +329,13 @@ export default function LensCard({
           <circle cx="2" cy="10" r="1.2" fill="currentColor" />
           <circle cx="6" cy="10" r="1.2" fill="currentColor" />
         </svg>
-        <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {card.modelName}
         </span>
-        <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: "0 0 auto", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {shortPrompt}
+        <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {card.prompt}
         </span>
 
-        {/* Prob / Tokens mode toggle — only when top-k data is present */}
         {canToggle && (
           <div
             onPointerDown={e => e.stopPropagation()}
@@ -298,7 +373,6 @@ export default function LensCard({
       {/* Body */}
       {card.status === "loading" && (
         <div style={{ display: "flex", flexDirection: "column", padding: "12px 14px", gap: 10, minHeight: 110 }}>
-          {/* GPU tier + elapsed timer */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             {card.gpuTier ? (
               <span style={{
@@ -315,7 +389,6 @@ export default function LensCard({
             </span>
           </div>
 
-          {/* Spinner + stage label */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <div style={{
               width: 20, height: 20,
@@ -345,28 +418,28 @@ export default function LensCard({
 
       {card.status === "result" && card.data && (
         <div style={{ overflow: "auto", padding: 6 }}>
-          <div style={{ display: "inline-block" }}>
-            {/* X-axis labels */}
-            <div style={{ display: "flex" }}>
-              <div style={{ width: 32, flexShrink: 0 }} />
+          <div style={{ display: "inline-flex", flexDirection: "column", gap: rowGap }}>
+            {/* X-axis labels — flat, no rotation, width tracks longest token */}
+            <div style={{ display: "flex", gap: COL_GAP }}>
+              <div style={{ width: Y_LABEL_W, flexShrink: 0 }} />
               {card.data.x_labels.map((token, i) => (
                 <div
                   key={i}
                   onClick={() => canPin && handleColClick(i)}
                   style={{
-                    width: 24,
+                    width: cellWidth,
                     flexShrink: 0,
-                    fontSize: 9,
+                    fontSize: 7,
                     textAlign: "center",
                     fontFamily: "var(--font-azeret-mono), monospace",
                     color: pinnedCol === i ? "var(--color-accent)" : "var(--color-text-muted)",
                     fontWeight: pinnedCol === i ? 700 : 400,
-                    transform: "rotate(-45deg)",
-                    transformOrigin: "bottom left",
-                    paddingBottom: 6,
                     overflow: "hidden",
                     whiteSpace: "nowrap",
+                    textOverflow: "ellipsis",
+                    paddingBottom: 4,
                     cursor: canPin ? "pointer" : "default",
+                    boxSizing: "border-box",
                   }}
                 >
                   {token}
@@ -378,20 +451,21 @@ export default function LensCard({
             {card.data.y_labels.map((layerName, yIndex) => (
               <div
                 key={layerName}
-                style={{ display: "flex", alignItems: "center" }}
+                style={{ display: "flex", alignItems: "center", gap: COL_GAP }}
                 onMouseEnter={() => pinnedCol !== null && setActiveLayer(yIndex)}
               >
                 <div style={{
-                  width: 32,
+                  width: Y_LABEL_W,
                   flexShrink: 0,
                   fontSize: 9,
                   fontFamily: "var(--font-azeret-mono), monospace",
                   paddingRight: 4,
                   textAlign: "right",
+                  overflow: "hidden",
                   color: pinnedCol !== null && activeLayer === yIndex ? "var(--color-accent)" : "var(--color-text-muted)",
                   fontWeight: pinnedCol !== null && activeLayer === yIndex ? 700 : 400,
                 }}>
-                  {simplifyLayerLabel(layerName)}
+                  {String(yIndex)}
                 </div>
                 {card.data!.heatmap_data[yIndex].map((prob, xIndex) => {
                   const inTokensMode = mode === "tokens" && card.data!.topk_tokens != null;
@@ -402,12 +476,12 @@ export default function LensCard({
                   const isActivePinnedCell = isPinned && activeLayer === yIndex;
 
                   const tooltipText = inTokensMode
-                    ? `Top predictions at "${card.data!.x_labels[xIndex]}", ${layerName}:\n${
+                    ? `Top predictions at "${card.data!.x_labels[xIndex]}", layer ${yIndex}:\n${
                         card.data!.topk_tokens![yIndex][xIndex]
                           .map((t, i) => `${(card.data!.topk_probs![yIndex][xIndex][i] * 100).toFixed(1)}%  ${JSON.stringify(t)}`)
                           .join("\n")
                       }`
-                    : `Token: ${card.data!.x_labels[xIndex]}\nLayer: ${layerName}\nProb: ${(prob * 100).toFixed(2)}%`;
+                    : `Token: ${card.data!.x_labels[xIndex]}\nLayer: ${yIndex}\nProb: ${(prob * 100).toFixed(2)}%`;
 
                   const cellBg = interpolateColor(palette, topProb);
                   const cellBorder = isActivePinnedCell
@@ -421,7 +495,7 @@ export default function LensCard({
                       key={`${yIndex}-${xIndex}`}
                       title={tooltipText}
                       style={{
-                        width: 24,
+                        width: cellWidth,
                         height: cellHeight,
                         flexShrink: 0,
                         backgroundColor: cellBg,
@@ -429,6 +503,7 @@ export default function LensCard({
                         display: inTokensMode ? "flex" : undefined,
                         alignItems: inTokensMode ? "center" : undefined,
                         justifyContent: inTokensMode ? "center" : undefined,
+                        borderRadius: 2,
                         overflow: "hidden",
                         cursor: canPin ? "pointer" : "default",
                         boxSizing: "border-box",
