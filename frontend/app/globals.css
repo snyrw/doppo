@@ -2,39 +2,39 @@
 
 /* === Theme tokens === */
 :root {
-  --color-bg: #ffffff;
-  --color-panel: #f4f3ef;
-  --color-card: #ffffff;
-  --color-card-border: #e0ddd8;
-  --color-surface-border: #e8e5e0;
-  --color-text: #101010;
-  --color-text-muted: #6b7280;
-  --color-accent: #3a6b55;
-  --color-accent-hover: #2e5542;
-  --color-accent-fg: #f0f5f2;
+  --color-bg: #ecebe4;
+  --color-panel: #ecebe4;
+  --color-card: #ecebe4;
+  --color-card-border: #c4c3bc;
+  --color-surface-border: #d4d2cb;
+  --color-text: #1c1c1c;
+  --color-text-muted: #7a7876;
+  --color-accent: #3a3938;
+  --color-accent-hover: #1c1c1c;
+  --color-accent-fg: #ecebe4;
   /* heatmap cell color as r,g,b channels for use in rgba() */
-  --heatmap-rgb: 58, 107, 85;
+  --heatmap-rgb: 28, 28, 28;
 }
 
 [data-theme="dark"] {
-  --color-bg: #131315;
-  --color-panel: #1b1b1e;
-  --color-card: #252528;
-  --color-card-border: transparent;
-  --color-surface-border: #2c2c30;
-  --color-text: #ededeb;
-  --color-text-muted: #9ca3af;
-  --color-accent: #4d8a6e;
-  --color-accent-hover: #3d7a5e;
-  --color-accent-fg: #f0f5f2;
-  --heatmap-rgb: 77, 138, 110;
+  --color-bg: #1c1c1c;
+  --color-panel: #1c1c1c;
+  --color-card: #272726;
+  --color-card-border: #363533;
+  --color-surface-border: #2e2e2c;
+  --color-text: #ecebe4;
+  --color-text-muted: #8a8986;
+  --color-accent: #d4d2cb;
+  --color-accent-hover: #ecebe4;
+  --color-accent-fg: #1c1c1c;
+  --heatmap-rgb: 220, 218, 210;
 }
 
 /* === Base === */
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-azeret-mono), monospace;
 }
 
 /* === Shared utilities === */
@@ -52,7 +52,7 @@ body {
   border: none;
   cursor: pointer;
   color: var(--color-text-muted);
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-azeret-mono), monospace;
   font-size: 12px;
   transition: color 120ms ease;
   padding: 0;
@@ -68,7 +68,7 @@ body {
   border-radius: 5px;
   cursor: pointer;
   color: var(--color-text-muted);
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-azeret-mono), monospace;
   font-size: 12px;
   padding: 3px 10px;
   transition: border-color 120ms ease, color 120ms ease;

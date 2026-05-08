@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import AuthButtons from "./AuthModal";
 import Link from "next/link";
+import Image from "next/image";
+import lightLogo from "../lightlogo.png";
+import darkLogo from "../darklogo.png";
 
 function MoonIcon() {
   return (
@@ -69,9 +72,15 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
           gap: 8,
         }}
       >
+        <Image
+          src={mounted && isDark ? darkLogo : lightLogo}
+          alt="logitlensviz logo"
+          height={24}
+          suppressHydrationWarning
+        />
         <span
           style={{
-            fontFamily: "var(--font-geist-mono), monospace",
+            fontFamily: "var(--font-azeret-mono), monospace",
             fontSize: 14,
             fontWeight: 600,
             color: "var(--color-accent)",
@@ -79,18 +88,6 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
           }}
         >
           logitlensviz
-        </span>
-        <span
-          style={{
-            fontFamily: "var(--font-geist-mono), monospace",
-            fontSize: 10,
-            color: "var(--color-text-muted)",
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            paddingTop: 1,
-          }}
-        >
-          beta
         </span>
       </Link>
 

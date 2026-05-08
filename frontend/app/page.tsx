@@ -32,7 +32,7 @@ function Specimen() {
     <div
       style={{
         background: "var(--color-bg)",
-        border: "2px solid var(--color-card-border)",
+        border: "1.5px solid var(--color-card-border)",
         borderRadius: 12,
         padding: "22px 22px 14px",
         display: "inline-block",
@@ -126,35 +126,6 @@ function Specimen() {
   );
 }
 
-function FeatureNote({ label, text }: { label: string; text: string }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      <span
-        style={{
-          fontFamily: "var(--font-geist-mono), monospace",
-          fontSize: 9,
-          fontWeight: 600,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "var(--color-accent)",
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          fontFamily: "var(--font-geist-mono), monospace",
-          fontSize: 12,
-          color: "var(--color-text-muted)",
-          lineHeight: 1.5,
-        }}
-      >
-        {text}
-      </span>
-    </div>
-  );
-}
-
 export default function Home() {
   return (
     <div
@@ -174,8 +145,22 @@ export default function Home() {
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           overflow: "hidden",
+          position: "relative",
         }}
       >
+        {/* Center rule */}
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "12%",
+            bottom: "12%",
+            width: 1,
+            background: "var(--color-surface-border)",
+            pointerEvents: "none",
+          }}
+        />
+
         {/* Left: Text content */}
         <div
           style={{
@@ -189,12 +174,11 @@ export default function Home() {
           {/* Eyebrow */}
           <p
             style={{
-              fontFamily: "var(--font-geist-mono), monospace",
+              fontFamily: "var(--font-azeret-mono), monospace",
               fontSize: 10,
               fontWeight: 600,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "var(--color-accent)",
+              letterSpacing: "0.04em",
+              color: "var(--color-text-muted)",
               margin: "0 0 18px",
             }}
           >
@@ -206,31 +190,30 @@ export default function Home() {
             style={{
               fontFamily: "var(--font-fraunces), Georgia, serif",
               fontSize: "clamp(36px, 3.2vw, 50px)",
-              fontWeight: 700,
-              lineHeight: 1.08,
+              fontWeight: 400,
+              lineHeight: 1.15,
               letterSpacing: "-0.02em",
               color: "var(--color-text)",
               margin: "0 0 22px",
             }}
           >
-            See what the<br />model is<br />thinking.
+            Watch token predictions form,<br /><em>layer by layer.</em>
           </h1>
 
           {/* Description */}
           <p
             style={{
-              fontFamily: "var(--font-geist-mono), monospace",
+              fontFamily: "var(--font-azeret-mono), monospace",
               fontSize: 13,
-              lineHeight: 1.8,
+              lineHeight: 2.0,
               color: "var(--color-text-muted)",
               margin: "0 0 34px",
               maxWidth: 360,
             }}
           >
-            Run any HuggingFace model and watch token
-            probabilities build layer by layer as the
-            transformer processes your prompt. No code, no
-            notebooks.
+            Models from HuggingFace Hub,
+            GPU-accelerated via Modal. Results in
+            seconds. No code, no notebooks.
           </p>
 
           {/* CTA */}
@@ -244,7 +227,7 @@ export default function Home() {
                 gap: 8,
                 padding: "9px 20px",
                 borderRadius: 6,
-                fontFamily: "var(--font-geist-mono), monospace",
+                fontFamily: "var(--font-azeret-mono), monospace",
                 fontSize: 13,
                 fontWeight: 500,
                 letterSpacing: "0.02em",
@@ -255,20 +238,29 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Feature notes */}
+          {/* Feature tags */}
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "16px 24px",
-              paddingTop: 24,
+              display: "flex",
+              gap: 20,
+              paddingTop: 20,
               borderTop: "1px solid var(--color-surface-border)",
+              flexWrap: "wrap",
             }}
           >
-            <FeatureNote label="Models" text="Any model on HuggingFace Hub" />
-            <FeatureNote label="Layers" text="Full residual stream, every layer" />
-            <FeatureNote label="Speed" text="GPU-accelerated via Modal" />
-            <FeatureNote label="Storage" text="Save and revisit experiments" />
+            {["TransformerLens 3.0 models", "Every layer", "GPU-accelerated", "Saved projects"].map((tag) => (
+              <span
+                key={tag}
+                style={{
+                  fontFamily: "var(--font-azeret-mono), monospace",
+                  fontSize: 10,
+                  color: "var(--color-text-muted)",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
 
@@ -279,25 +271,39 @@ export default function Home() {
             alignItems: "center",
             justifyContent: "center",
             padding: "48px 64px",
-            background: "var(--color-panel)",
+            backgroundImage: "radial-gradient(circle, var(--color-surface-border) 1px, transparent 1px)",
+            backgroundSize: "22px 22px",
             borderLeft: "1px solid var(--color-surface-border)",
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 16 }}>
-            {/* Specimen label */}
-            <p
-              style={{
-                fontFamily: "var(--font-geist-mono), monospace",
-                fontSize: 10,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "var(--color-text-muted)",
-                margin: 0,
-                opacity: 0.6,
-              }}
-            >
-              Sample output
-            </p>
+            {/* Fig. 1 label */}
+            <div>
+              <p
+                style={{
+                  fontFamily: "var(--font-azeret-mono), monospace",
+                  fontSize: 9,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "var(--color-text-muted)",
+                  margin: "0 0 3px",
+                  opacity: 0.5,
+                }}
+              >
+                Fig. 1
+              </p>
+              <p
+                style={{
+                  fontFamily: "var(--font-azeret-mono), monospace",
+                  fontSize: 10,
+                  color: "var(--color-text-muted)",
+                  margin: 0,
+                  opacity: 0.75,
+                }}
+              >
+                Token probability by layer — GPT-2 Small
+              </p>
+            </div>
 
             <Specimen />
 
@@ -322,7 +328,7 @@ export default function Home() {
                 />
                 <span
                   style={{
-                    fontFamily: "var(--font-geist-mono), monospace",
+                    fontFamily: "var(--font-azeret-mono), monospace",
                     fontSize: 10,
                     color: "var(--color-text-muted)",
                   }}
@@ -337,13 +343,13 @@ export default function Home() {
                     height: 10,
                     background: "rgba(var(--heatmap-rgb), 0.1)",
                     borderRadius: 2,
-                    border: "0.5px solid rgba(200,200,210,0.4)",
+                    border: "0.5px solid var(--color-surface-border)",
                     flexShrink: 0,
                   }}
                 />
                 <span
                   style={{
-                    fontFamily: "var(--font-geist-mono), monospace",
+                    fontFamily: "var(--font-azeret-mono), monospace",
                     fontSize: 10,
                     color: "var(--color-text-muted)",
                   }}
