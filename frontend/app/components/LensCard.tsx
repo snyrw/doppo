@@ -414,11 +414,11 @@ export default function LensCard({
                         width: 24,
                         height: cellHeight,
                         flexShrink: 0,
-                        backgroundColor: `rgba(59, 130, 246, ${topProb})`,
+                        backgroundColor: `rgba(var(--heatmap-rgb), ${topProb})`,
                         border: isActivePinnedCell
-                          ? "1.5px solid #2563eb"
+                          ? "1.5px solid var(--color-accent)"
                           : isPinned
-                          ? "0.5px solid rgba(37,99,235,0.4)"
+                          ? "0.5px solid rgba(var(--heatmap-rgb), 0.4)"
                           : "0.5px solid rgba(229,231,235,0.5)",
                         display: inTokensMode ? "flex" : undefined,
                         alignItems: inTokensMode ? "center" : undefined,

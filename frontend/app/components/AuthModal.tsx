@@ -60,12 +60,11 @@ export default function AuthButtons() {
 
   if (session?.user) {
     return (
-      <div className="flex items-center space-x-3">
-        <span className="text-sm text-gray-600">{session.user.email}</span>
-        <button
-          onClick={() => signOut()}
-          className="bg-white text-sm font-light text-blue-400 px-2.5 py-0.5 rounded border border-blue-300 hover:bg-blue-50 transition-colors"
-        >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span className="nav-btn-ghost" style={{ cursor: "default" }}>
+          {session.user.email}
+        </span>
+        <button onClick={() => signOut()} className="nav-btn-outline">
           Sign Out
         </button>
       </div>
@@ -74,16 +73,10 @@ export default function AuthButtons() {
 
   return (
     <>
-      <button
-        onClick={() => openModal("signin")}
-        className="bg-white text-sm font-light text-blue-400 px-2.5 py-0.5 rounded border border-blue-300 hover:bg-blue-50 disabled:opacity-50 transition-colors"
-      >
+      <button onClick={() => openModal("signin")} className="nav-btn-ghost">
         Log In
       </button>
-      <button
-        onClick={() => openModal("signup")}
-        className="bg-white text-sm font-light text-blue-400 px-2.5 py-0.5 rounded border border-blue-300 hover:bg-blue-50 disabled:opacity-50 transition-colors"
-      >
+      <button onClick={() => openModal("signup")} className="nav-btn-outline">
         Sign Up
       </button>
 

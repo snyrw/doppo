@@ -63,9 +63,19 @@ The model selection UI has two mutually exclusive modes:
 
 ### Styling
 
-The entire codebase uses **inline styles** — no Tailwind classes, no CSS modules. Keep additions consistent.
+**Hybrid approach:** CSS custom properties + utility classes in `globals.css` for static/themed styles; inline styles only for computed runtime values (card positions, probability-based cell colors). Tailwind utility classes are also present in some components (`page.tsx`, `AuthModal.tsx`).
 
-Color tokens in use: `#2563eb` (primary blue), `#1d4ed8` (active/hover), `#93c5fd` (border/disabled), `#eff6ff` (hover bg), `#f8fafc` (page bg), `#dc2626` (destructive red). Border radius is consistently `6px`. Navbar is `50px` tall at `zIndex: 40`.
+**CSS custom property tokens** (defined in `globals.css`, toggled by `[data-theme="dark"]` on `<html>`):
+- `--color-bg` / `--color-panel` / `--color-card` / `--color-card-border` / `--color-surface-border`
+- `--color-text` / `--color-text-muted`
+- `--color-accent` / `--color-accent-hover` / `--color-accent-fg` (evergreen `#3a6b55` light, `#4d8a6e` dark)
+- `--heatmap-rgb` — RGB channels only (e.g. `58, 107, 85`) for use as `rgba(var(--heatmap-rgb), ${prob})` in inline styles
+
+**Dark mode:** `data-theme="dark"` attribute on `<html>`, set by an inline `<script>` in `layout.tsx`'s `<head>` (reads `localStorage` + system preference). Toggled at runtime by `Navbar`. `<html>` carries `suppressHydrationWarning`. Do **not** use `@custom-variant dark` — it causes a silent Turbopack compile failure where old CSS is served with no error logged.
+
+**CSS not updating?** Kill the dev server, `rm -rf .next/cache`, restart. Turbopack can silently serve stale compiled CSS when a directive causes a parse error.
+
+Navbar is `50px` tall at `zIndex: 40`. `ConfigPane` uses `top: 57px` (navbar + 7px gap). `border-radius: 6px` is the standard for interactive controls; cards use `12px`.
 
 ### Auth patterns
 
