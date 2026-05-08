@@ -126,6 +126,7 @@ function Projects() {
   const [projectName, setProjectName] = useState("Untitled Project");
   const [nameEditing, setNameEditing] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const configRef = useRef<HTMLDivElement>(null);
   const projectsRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [state, dispatch] = useReducer(appReducer, initialState);
@@ -134,6 +135,18 @@ function Projects() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
+
+  // Close config popover on outside click
+  useEffect(() => {
+    if (!configOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (configRef.current && !configRef.current.contains(e.target as Node)) {
+        setConfigOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [configOpen]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -345,34 +358,43 @@ function Projects() {
       <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
         {/* Floating buttons — top-left, over the canvas */}
         <div style={{ position: "absolute", top: 12, left: 12, zIndex: 35, display: "flex", gap: 8, alignItems: "center" }}>
-          <button
-            onClick={() => setConfigOpen(true)}
-            style={{
-              background: configOpen ? "var(--color-accent-hover)" : "var(--color-accent)",
-              color: "var(--color-accent-fg)",
-              border: "none",
-              borderRadius: 6,
-              padding: "5px 10px",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: "pointer",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-              transition: "background 150ms, box-shadow 150ms",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              letterSpacing: "0.01em",
-            }}
-            onMouseEnter={e => {
-              if (!configOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)";
-            }}
-            onMouseLeave={e => {
-              if (!configOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)";
-            }}
-          >
-            <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
-            Add Lens
-          </button>
+          <div ref={configRef} style={{ position: "relative" }}>
+            <button
+              onClick={() => setConfigOpen(o => !o)}
+              style={{
+                background: configOpen ? "var(--color-accent-hover)" : "var(--color-accent)",
+                color: "var(--color-accent-fg)",
+                border: "none",
+                borderRadius: 6,
+                padding: "5px 10px",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                transition: "background 150ms, box-shadow 150ms",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                letterSpacing: "0.01em",
+              }}
+              onMouseEnter={e => {
+                if (!configOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)";
+              }}
+              onMouseLeave={e => {
+                if (!configOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)";
+              }}
+            >
+              <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
+              Add Lens
+            </button>
+            <ConfigPane
+              isOpen={configOpen}
+              availableModels={availableModels}
+              modelsLoading={modelsLoading}
+              onSubmit={handleAddLens}
+              onClose={() => setConfigOpen(false)}
+            />
+          </div>
 
           {/* Projects button + dropdown */}
           <div ref={projectsRef} style={{ position: "relative" }}>
@@ -691,13 +713,6 @@ function Projects() {
           onRemoveCard={id => dispatch({ type: "REMOVE_CARD", id })}
         />
 
-        <ConfigPane
-          isOpen={configOpen}
-          availableModels={availableModels}
-          modelsLoading={modelsLoading}
-          onSubmit={handleAddLens}
-          onClose={() => setConfigOpen(false)}
-        />
       </div>
     </div>
   );

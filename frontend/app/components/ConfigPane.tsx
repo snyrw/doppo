@@ -118,41 +118,26 @@ export default function ConfigPane({
     doReset();
   };
 
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={handleClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          top: 50,
-          zIndex: 29,
-          background: "rgba(0,0,0,0.18)",
-          opacity: isOpen ? 1 : 0,
-          pointerEvents: isOpen ? "auto" : "none",
-          transition: "opacity 200ms ease-out",
-        }}
-      />
+  if (!isOpen) return null;
 
-      {/* Pane */}
-      <div
-        style={{
-          position: "fixed",
-          top: 57,
-          right: 0,
-          height: "calc(100vh - 57px)",
-          width: 340,
-          zIndex: 30,
-          transform: isOpen ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 200ms ease-out",
-          display: "flex",
-          flexDirection: "column",
-          background: "var(--color-bg)",
-          borderLeft: "1px solid var(--color-card-border)",
-          boxShadow: "-8px 0 32px rgba(0,0,0,0.10)",
-        }}
-      >
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: "calc(100% + 6px)",
+        left: 0,
+        width: 380,
+        zIndex: 30,
+        display: "flex",
+        flexDirection: "column",
+        background: "var(--color-card)",
+        border: "1px solid var(--color-card-border)",
+        borderRadius: 8,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+        animation: "cfgDropIn 140ms ease-out",
+      }}
+    >
+      <style>{`@keyframes cfgDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
         {/* Header */}
         <div
           style={{
@@ -201,7 +186,7 @@ export default function ConfigPane({
         </div>
 
         {/* Form body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+        <div style={{ overflowY: "auto", maxHeight: "calc(100vh - 180px)", padding: "16px" }}>
 
           {/* Featured models */}
           <div style={{ marginBottom: 20 }}>
@@ -391,7 +376,6 @@ export default function ConfigPane({
             {isLockedByAuth ? "Sign in to run →" : "Run Lens →"}
           </button>
         </div>
-      </div>
-    </>
+    </div>
   );
 }
