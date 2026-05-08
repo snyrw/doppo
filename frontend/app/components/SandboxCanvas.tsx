@@ -94,7 +94,7 @@ export default function SandboxCanvas({
         flex: 1,
         overflow: "hidden",
         position: "relative",
-        background: "#f8fafc",
+        background: "var(--color-bg)",
         cursor: isDragging ? "grabbing" : "default",
       }}
       {...panHandlers}

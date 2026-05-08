@@ -126,7 +126,7 @@ export default function ConfigPane({
         style={{
           position: "fixed",
           inset: 0,
-          top: 57,
+          top: 50,
           zIndex: 29,
           background: "rgba(0,0,0,0.18)",
           opacity: isOpen ? 1 : 0,
@@ -148,8 +148,8 @@ export default function ConfigPane({
           transition: "transform 200ms ease-out",
           display: "flex",
           flexDirection: "column",
-          background: "#ffffff",
-          borderLeft: "1px solid #e5e7eb",
+          background: "var(--color-bg)",
+          borderLeft: "1px solid var(--color-card-border)",
           boxShadow: "-8px 0 32px rgba(0,0,0,0.10)",
         }}
       >
@@ -160,19 +160,19 @@ export default function ConfigPane({
             alignItems: "center",
             justifyContent: "space-between",
             padding: "14px 16px 12px",
-            borderBottom: "1px solid #f3f4f6",
+            borderBottom: "1px solid var(--color-surface-border)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.5 }}>
-              <circle cx="8" cy="8" r="6.5" stroke="#3b82f6" strokeWidth="1" />
-              <circle cx="8" cy="8" r="3.5" stroke="#3b82f6" strokeWidth="1" />
-              <line x1="8" y1="1" x2="8" y2="2.5" stroke="#3b82f6" strokeWidth="1" />
-              <line x1="8" y1="13.5" x2="8" y2="15" stroke="#3b82f6" strokeWidth="1" />
-              <line x1="1" y1="8" x2="2.5" y2="8" stroke="#3b82f6" strokeWidth="1" />
-              <line x1="13.5" y1="8" x2="15" y2="8" stroke="#3b82f6" strokeWidth="1" />
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.5, color: "var(--color-text-muted)" }}>
+              <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1" />
+              <circle cx="8" cy="8" r="3.5" stroke="currentColor" strokeWidth="1" />
+              <line x1="8" y1="1" x2="8" y2="2.5" stroke="currentColor" strokeWidth="1" />
+              <line x1="8" y1="13.5" x2="8" y2="15" stroke="currentColor" strokeWidth="1" />
+              <line x1="1" y1="8" x2="2.5" y2="8" stroke="currentColor" strokeWidth="1" />
+              <line x1="13.5" y1="8" x2="15" y2="8" stroke="currentColor" strokeWidth="1" />
             </svg>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#111827", letterSpacing: "0.01em" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", letterSpacing: "0.01em" }}>
               New Lens
             </span>
           </div>
@@ -187,14 +187,14 @@ export default function ConfigPane({
               borderRadius: 4,
               border: "none",
               background: "transparent",
-              color: "#9ca3af",
+              color: "var(--color-text-muted)",
               cursor: "pointer",
               fontSize: 16,
               lineHeight: 1,
               transition: "background 120ms, color 120ms",
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#f3f4f6"; (e.currentTarget as HTMLButtonElement).style.color = "#374151"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "#9ca3af"; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
           >
             ×
           </button>
@@ -205,12 +205,12 @@ export default function ConfigPane({
 
           {/* Featured models */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "#6b7280", textTransform: "uppercase", marginBottom: 8 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
               Featured Models
             </label>
 
             {modelsLoading ? (
-              <div style={{ fontSize: 12, color: "#9ca3af", padding: "12px 0" }}>Loading models…</div>
+              <div style={{ fontSize: 12, color: "var(--color-text-muted)", padding: "12px 0" }}>Loading models…</div>
             ) : (
               <div style={{
                 display: "grid",
@@ -228,10 +228,10 @@ export default function ConfigPane({
                       onClick={() => selectFeaturedModel(m.id)}
                       title={m.description}
                       style={{
-                        border: `1.5px solid ${isSelected ? "#2563eb" : "#e5e7eb"}`,
+                        border: `1.5px solid ${isSelected ? "var(--color-accent)" : "var(--color-card-border)"}`,
                         borderRadius: 7,
                         padding: "8px 9px",
-                        background: isSelected ? "#eff6ff" : "#fff",
+                        background: isSelected ? "var(--color-surface-border)" : "var(--color-card)",
                         cursor: "pointer",
                         textAlign: "left",
                         transition: "border-color 120ms, background 120ms",
@@ -239,15 +239,15 @@ export default function ConfigPane({
                         flexDirection: "column",
                         gap: 3,
                       }}
-                      onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "#93c5fd"; }}
-                      onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "#e5e7eb"; }}
+                      onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-accent)"; }}
+                      onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-card-border)"; }}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "#1d4ed8" : "#111827", lineHeight: 1.3 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "var(--color-accent)" : "var(--color-text)", lineHeight: 1.3 }}>
                         {m.display_name}
                       </span>
                       <span style={{
                         fontSize: 10,
-                        color: "#6b7280",
+                        color: "var(--color-text-muted)",
                         lineHeight: 1.4,
                         display: "-webkit-box",
                         WebkitLineClamp: 2,
@@ -257,7 +257,7 @@ export default function ConfigPane({
                         {m.description}
                       </span>
                       {m.requires_hf_token && (
-                        <span style={{ fontSize: 9, color: "#9ca3af", marginTop: 1, letterSpacing: "0.02em" }}>
+                        <span style={{ fontSize: 9, color: "var(--color-text-muted)", marginTop: 1, letterSpacing: "0.02em" }}>
                           HF token required
                         </span>
                       )}
@@ -275,16 +275,16 @@ export default function ConfigPane({
 
           {/* Divider */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ flex: 1, height: 1, background: "#f3f4f6" }} />
-            <span style={{ fontSize: 10, color: "#9ca3af", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
+            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>
               or
             </span>
-            <div style={{ flex: 1, height: 1, background: "#f3f4f6" }} />
+            <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
           </div>
 
           {/* Any HuggingFace model */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "#6b7280", textTransform: "uppercase", marginBottom: 8 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
               Any HuggingFace Model
             </label>
             <div style={{ display: "flex", gap: 6 }}>
@@ -296,12 +296,13 @@ export default function ConfigPane({
                 onKeyDown={e => { if (e.key === "Enter" && customRepoId.trim()) validateCustomRepo(); }}
                 style={{
                   flex: 1,
-                  border: `1px solid ${usingCustom ? "#93c5fd" : "#d1d5db"}`,
+                  border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
                   borderRadius: 6,
                   padding: "6px 8px",
                   fontSize: 11,
-                  fontFamily: "monospace",
-                  color: "#111827",
+                  fontFamily: "var(--font-azeret-mono), monospace",
+                  color: "var(--color-text)",
+                  background: "var(--color-bg)",
                   outline: "none",
                   transition: "border-color 120ms",
                 }}
@@ -310,12 +311,12 @@ export default function ConfigPane({
                 onClick={validateCustomRepo}
                 disabled={!customRepoId.trim() || customValidating}
                 style={{
-                  border: "1px solid #d1d5db",
+                  border: "1px solid var(--color-card-border)",
                   borderRadius: 6,
                   padding: "6px 10px",
                   fontSize: 11,
-                  background: "#f9fafb",
-                  color: "#374151",
+                  background: "var(--color-surface-border)",
+                  color: "var(--color-text-muted)",
                   cursor: (!customRepoId.trim() || customValidating) ? "not-allowed" : "pointer",
                   opacity: (!customRepoId.trim() || customValidating) ? 0.5 : 1,
                   whiteSpace: "nowrap",
@@ -336,7 +337,7 @@ export default function ConfigPane({
 
           {/* Prompt */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "#6b7280", textTransform: "uppercase", marginBottom: 6 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
               Prompt
             </label>
             <textarea
@@ -345,11 +346,12 @@ export default function ConfigPane({
               rows={5}
               style={{
                 width: "100%",
-                border: "1px solid #d1d5db",
+                border: "1px solid var(--color-card-border)",
                 borderRadius: 6,
                 padding: "8px 10px",
                 fontSize: 13,
-                color: "#111827",
+                color: "var(--color-text)",
+                background: "var(--color-bg)",
                 resize: "vertical",
                 outline: "none",
                 fontFamily: "inherit",
@@ -361,9 +363,9 @@ export default function ConfigPane({
         </div>
 
         {/* Footer */}
-        <div style={{ padding: "12px 16px", borderTop: "1px solid #f3f4f6" }}>
+        <div style={{ padding: "12px 16px", borderTop: "1px solid var(--color-surface-border)" }}>
           {isLockedByAuth && (
-            <p style={{ margin: "0 0 8px", fontSize: 11, color: "#6b7280", textAlign: "center" }}>
+            <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--color-text-muted)", textAlign: "center" }}>
               Sign in to run medium and large models
             </p>
           )}
@@ -375,16 +377,16 @@ export default function ConfigPane({
               padding: "10px 0",
               borderRadius: 6,
               border: "none",
-              background: (!canRun || isLockedByAuth) ? "#bfdbfe" : "#2563eb",
-              color: "#ffffff",
+              background: (!canRun || isLockedByAuth) ? "var(--color-surface-border)" : "var(--color-accent)",
+              color: (!canRun || isLockedByAuth) ? "var(--color-text-muted)" : "var(--color-accent-fg)",
               fontSize: 13,
               fontWeight: 600,
               cursor: (!canRun || isLockedByAuth) ? "not-allowed" : "pointer",
               letterSpacing: "0.02em",
               transition: "background 150ms",
             }}
-            onMouseEnter={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "#1d4ed8"; }}
-            onMouseLeave={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "#2563eb"; }}
+            onMouseEnter={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+            onMouseLeave={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
           >
             {isLockedByAuth ? "Sign in to run →" : "Run Lens →"}
           </button>

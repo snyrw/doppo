@@ -111,9 +111,9 @@ export default function LensCard({
         left: card.position.x,
         top: card.position.y,
         zIndex: pinnedCol !== null ? 20 : 10,
-        background: "#ffffff",
+        background: "var(--color-card)",
         borderRadius: 8,
-        border: "1px solid #e5e7eb",
+        border: "1px solid var(--color-card-border)",
         boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",
@@ -137,8 +137,8 @@ export default function LensCard({
             right: "calc(100% + 8px)",
             top: 0,
             width: 180,
-            background: "#fff",
-            border: "1px solid #e5e7eb",
+            background: "var(--color-card)",
+            border: "1px solid var(--color-card-border)",
             borderRadius: 8,
             boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
             padding: "8px 10px",
@@ -154,12 +154,12 @@ export default function LensCard({
             gap: 4,
           }}>
             <span style={{
-              fontFamily: "monospace",
+              fontFamily: "var(--font-azeret-mono), monospace",
               fontSize: 11,
               fontWeight: 700,
-              color: "#1e40af",
-              background: "#eff6ff",
-              border: "1px solid #bfdbfe",
+              color: "var(--color-accent)",
+              background: "var(--color-surface-border)",
+              border: "1px solid var(--color-card-border)",
               borderRadius: 3,
               padding: "1px 5px",
               maxWidth: 90,
@@ -170,7 +170,7 @@ export default function LensCard({
             }}>
               {panelData.colLabel}
             </span>
-            <span style={{ fontSize: 9, color: "#9ca3af", fontFamily: "monospace", flexShrink: 0 }}>
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", flexShrink: 0 }}>
               layer {panelData.layerLabel}
             </span>
           </div>
@@ -183,9 +183,9 @@ export default function LensCard({
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <span style={{
                     width: 48,
-                    fontFamily: "monospace",
+                    fontFamily: "var(--font-azeret-mono), monospace",
                     fontSize: 9,
-                    color: "#374151",
+                    color: "var(--color-text)",
                     overflow: "hidden",
                     whiteSpace: "nowrap",
                     textOverflow: "ellipsis",
@@ -194,11 +194,11 @@ export default function LensCard({
                   }}>
                     {JSON.stringify(tok)}
                   </span>
-                  <div style={{ flex: 1, height: 8, background: "#f1f5f9", borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{ flex: 1, height: 8, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
                     <div style={{
                       width: `${prob * 100}%`,
                       height: "100%",
-                      background: i === 0 ? "#2563eb" : "#93c5fd",
+                      background: i === 0 ? "var(--color-accent)" : "var(--color-card-border)",
                       borderRadius: 2,
                       transition: "width 120ms ease-out",
                     }} />
@@ -206,7 +206,7 @@ export default function LensCard({
                   <span style={{
                     width: 30,
                     fontSize: 9,
-                    color: "#6b7280",
+                    color: "var(--color-text-muted)",
                     textAlign: "right",
                     flexShrink: 0,
                     fontVariantNumeric: "tabular-nums",
@@ -219,7 +219,7 @@ export default function LensCard({
           </div>
 
           {/* Hint */}
-          <p style={{ fontSize: 8, color: "#d1d5db", margin: "8px 0 0", textAlign: "center" }}>
+          <p style={{ fontSize: 8, color: "var(--color-surface-border)", margin: "8px 0 0", textAlign: "center" }}>
             hover rows to change layer
           </p>
         </div>
@@ -232,7 +232,7 @@ export default function LensCard({
         onPointerUp={onDragEnd}
         style={{
           padding: "7px 10px",
-          borderBottom: "1px solid #f3f4f6",
+          borderBottom: "1px solid var(--color-surface-border)",
           display: "flex",
           alignItems: "center",
           gap: 6,
@@ -243,17 +243,17 @@ export default function LensCard({
         }}
       >
         <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
-          <circle cx="2" cy="2" r="1.2" fill="#374151" />
-          <circle cx="6" cy="2" r="1.2" fill="#374151" />
-          <circle cx="2" cy="6" r="1.2" fill="#374151" />
-          <circle cx="6" cy="6" r="1.2" fill="#374151" />
-          <circle cx="2" cy="10" r="1.2" fill="#374151" />
-          <circle cx="6" cy="10" r="1.2" fill="#374151" />
+          <circle cx="2" cy="2" r="1.2" fill="currentColor" />
+          <circle cx="6" cy="2" r="1.2" fill="currentColor" />
+          <circle cx="2" cy="6" r="1.2" fill="currentColor" />
+          <circle cx="6" cy="6" r="1.2" fill="currentColor" />
+          <circle cx="2" cy="10" r="1.2" fill="currentColor" />
+          <circle cx="6" cy="10" r="1.2" fill="currentColor" />
         </svg>
-        <span style={{ fontSize: 11, color: "#374151", fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {card.modelName}
         </span>
-        <span style={{ fontSize: 10, color: "#9ca3af", flex: "0 0 auto", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: "0 0 auto", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {shortPrompt}
         </span>
 
@@ -261,7 +261,7 @@ export default function LensCard({
         {canToggle && (
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{ display: "flex", border: "1px solid #e5e7eb", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}
+            style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}
           >
             {(["prob", "tokens"] as const).map(m => (
               <button
@@ -270,8 +270,8 @@ export default function LensCard({
                 style={{
                   fontSize: 9,
                   padding: "2px 6px",
-                  background: mode === m ? "#2563eb" : "transparent",
-                  color: mode === m ? "#fff" : "#9ca3af",
+                  background: mode === m ? "var(--color-accent)" : "transparent",
+                  color: mode === m ? "var(--color-accent-fg)" : "var(--color-text-muted)",
                   border: "none",
                   cursor: "pointer",
                   lineHeight: 1.4,
@@ -286,7 +286,7 @@ export default function LensCard({
         <button
           onPointerDown={e => e.stopPropagation()}
           onClick={() => onRemove(card.id)}
-          style={{ fontSize: 12, color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+          style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
         >
           ×
         </button>
@@ -300,14 +300,14 @@ export default function LensCard({
             {card.gpuTier ? (
               <span style={{
                 fontSize: 9, fontWeight: 600, letterSpacing: "0.06em",
-                color: "#2563eb", background: "#eff6ff",
-                border: "1px solid #bfdbfe", borderRadius: 3,
+                color: "var(--color-accent)", background: "var(--color-surface-border)",
+                border: "1px solid var(--color-card-border)", borderRadius: 3,
                 padding: "1px 5px",
               }}>
                 {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
               </span>
             ) : <span />}
-            <span style={{ fontSize: 10, color: "#9ca3af", fontFamily: "monospace", fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
               {formatElapsed(elapsedMs)}
             </span>
           </div>
@@ -316,18 +316,18 @@ export default function LensCard({
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <div style={{
               width: 20, height: 20,
-              border: "2px solid #dbeafe",
-              borderTopColor: "#2563eb",
+              border: "2px solid var(--color-surface-border)",
+              borderTopColor: "var(--color-accent)",
               borderRadius: "50%",
               animation: "spin 0.8s linear infinite",
             }} />
-            <p style={{ fontSize: 11, color: "#6b7280", margin: 0 }}>
+            <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
               {getStageLabel(card.loadingStage, elapsedMs)}
             </p>
           </div>
 
           {!card.loadingStage && elapsedMs > 30_000 && (
-            <p style={{ fontSize: 10, color: "#9ca3af", margin: 0, textAlign: "center", lineHeight: 1.5 }}>
+            <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: 0, textAlign: "center", lineHeight: 1.5 }}>
               First run warms the GPU container — large models can take up to 2 min.
             </p>
           )}
@@ -355,8 +355,8 @@ export default function LensCard({
                     flexShrink: 0,
                     fontSize: 9,
                     textAlign: "center",
-                    fontFamily: "monospace",
-                    color: pinnedCol === i ? "#2563eb" : "#6b7280",
+                    fontFamily: "var(--font-azeret-mono), monospace",
+                    color: pinnedCol === i ? "var(--color-accent)" : "var(--color-text-muted)",
                     fontWeight: pinnedCol === i ? 700 : 400,
                     transform: "rotate(-45deg)",
                     transformOrigin: "bottom left",
@@ -382,10 +382,10 @@ export default function LensCard({
                   width: 32,
                   flexShrink: 0,
                   fontSize: 9,
-                  fontFamily: "monospace",
+                  fontFamily: "var(--font-azeret-mono), monospace",
                   paddingRight: 4,
                   textAlign: "right",
-                  color: pinnedCol !== null && activeLayer === yIndex ? "#2563eb" : "#9ca3af",
+                  color: pinnedCol !== null && activeLayer === yIndex ? "var(--color-accent)" : "var(--color-text-muted)",
                   fontWeight: pinnedCol !== null && activeLayer === yIndex ? 700 : 400,
                 }}>
                   {simplifyLayerLabel(layerName)}
@@ -419,7 +419,7 @@ export default function LensCard({
                           ? "1.5px solid var(--color-accent)"
                           : isPinned
                           ? "0.5px solid rgba(var(--heatmap-rgb), 0.4)"
-                          : "0.5px solid rgba(229,231,235,0.5)",
+                          : "0.5px solid rgba(var(--heatmap-rgb), 0.12)",
                         display: inTokensMode ? "flex" : undefined,
                         alignItems: inTokensMode ? "center" : undefined,
                         justifyContent: inTokensMode ? "center" : undefined,
@@ -432,9 +432,9 @@ export default function LensCard({
                       {inTokensMode && topToken !== null && (
                         <span style={{
                           fontSize: 7,
-                          fontFamily: "monospace",
+                          fontFamily: "var(--font-azeret-mono), monospace",
                           lineHeight: 1,
-                          color: topProb > 0.5 ? "#fff" : "#1e3a5f",
+                          color: topProb > 0.5 ? "var(--color-bg)" : "var(--color-text)",
                           maxWidth: "100%",
                           overflow: "hidden",
                           whiteSpace: "nowrap",

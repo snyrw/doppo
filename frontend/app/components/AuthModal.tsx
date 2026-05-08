@@ -58,6 +58,19 @@ export default function AuthButtons() {
     }
   };
 
+  const inputStyle: React.CSSProperties = {
+    border: "1px solid var(--color-card-border)",
+    borderRadius: 6,
+    padding: "6px 10px",
+    fontSize: 13,
+    color: "var(--color-text)",
+    background: "var(--color-bg)",
+    width: "100%",
+    boxSizing: "border-box",
+    outline: "none",
+    fontFamily: "inherit",
+  };
+
   if (session?.user) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -82,26 +95,35 @@ export default function AuthButtons() {
 
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+          className="fixed inset-0 z-50"
+          style={{ background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm"
+            style={{
+              background: "var(--color-card)",
+              borderRadius: 8,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+              padding: 24,
+              width: "100%",
+              maxWidth: 384,
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-xl font-bold mb-4 text-gray-800">
+            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, marginTop: 0, color: "var(--color-text)" }}>
               {mode === "signin" ? "Log In" : mode === "signup" ? "Sign Up" : "Check your email"}
             </h2>
             {mode === "verify" && (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600">
-                  We sent a verification link to <strong>{email}</strong>. Click it to activate your account.
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
+                  We sent a verification link to <strong style={{ color: "var(--color-text)" }}>{email}</strong>. Click it to activate your account.
                 </p>
-                <p className="text-xs text-gray-400">
+                <p style={{ margin: 0, fontSize: 11, color: "var(--color-text-muted)" }}>
                   (In local dev, the link is printed to the server console instead.)
                 </p>
                 <button
-                  className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+                  className="btn-accent"
+                  style={{ borderRadius: 6, padding: "8px 0", fontSize: 13, border: "none", cursor: "pointer", width: "100%" }}
                   onClick={() => setOpen(false)}
                 >
                   Done
@@ -110,7 +132,7 @@ export default function AuthButtons() {
             )}
             {mode !== "verify" && (
               <>
-                <form onSubmit={handleSubmit} className="space-y-3">
+                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {mode === "signup" && (
                     <input
                       type="text"
@@ -118,7 +140,7 @@ export default function AuthButtons() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
-                      className="w-full border border-gray-300 rounded p-2 text-sm"
+                      style={inputStyle}
                     />
                   )}
                   <input
@@ -127,7 +149,7 @@ export default function AuthButtons() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    style={inputStyle}
                   />
                   <input
                     type="password"
@@ -135,29 +157,58 @@ export default function AuthButtons() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full border border-gray-300 rounded p-2 text-sm"
+                    style={inputStyle}
                   />
-                  {error && <p className="text-red-500 text-sm">{error}</p>}
+                  {error && <p style={{ margin: 0, color: "#dc2626", fontSize: 12 }}>{error}</p>}
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-blue-300 transition-colors"
+                    style={{
+                      borderRadius: 6,
+                      padding: "8px 0",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      border: "none",
+                      cursor: loading ? "not-allowed" : "pointer",
+                      width: "100%",
+                      background: "var(--color-accent)",
+                      color: "var(--color-accent-fg)",
+                      opacity: loading ? 0.5 : 1,
+                      transition: "background 150ms",
+                    }}
                   >
                     {loading ? "..." : mode === "signin" ? "Log In" : "Create Account"}
                   </button>
                 </form>
 
-                <div className="flex items-center my-3">
-                  <div className="flex-1 border-t border-gray-200" />
-                  <span className="px-2 text-xs text-gray-400">or continue with</span>
-                  <div className="flex-1 border-t border-gray-200" />
+                <div style={{ display: "flex", alignItems: "center", margin: "12px 0", gap: 8 }}>
+                  <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
+                  <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>or continue with</span>
+                  <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
                 </div>
 
                 <button
                   type="button"
                   disabled={!!socialLoading || loading}
                   onClick={() => handleSocialSignIn("google")}
-                  className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded py-2 text-sm hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    border: "1px solid var(--color-card-border)",
+                    borderRadius: 6,
+                    padding: "8px 0",
+                    fontSize: 13,
+                    background: "var(--color-bg)",
+                    color: "var(--color-text-muted)",
+                    cursor: (!!socialLoading || loading) ? "not-allowed" : "pointer",
+                    opacity: (!!socialLoading || loading) ? 0.5 : 1,
+                    transition: "background 120ms",
+                  }}
+                  onMouseEnter={e => { if (!socialLoading && !loading) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-bg)"; }}
                 >
                   <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -173,7 +224,25 @@ export default function AuthButtons() {
                   type="button"
                   disabled={!!socialLoading || loading}
                   onClick={() => handleSocialSignIn("github")}
-                  className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded py-2 text-sm hover:bg-gray-50 disabled:opacity-50 transition-colors mt-2"
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    border: "1px solid var(--color-card-border)",
+                    borderRadius: 6,
+                    padding: "8px 0",
+                    marginTop: 8,
+                    fontSize: 13,
+                    background: "var(--color-bg)",
+                    color: "var(--color-text-muted)",
+                    cursor: (!!socialLoading || loading) ? "not-allowed" : "pointer",
+                    opacity: (!!socialLoading || loading) ? 0.5 : 1,
+                    transition: "background 120ms",
+                  }}
+                  onMouseEnter={e => { if (!socialLoading && !loading) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-bg)"; }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12"/>
@@ -181,12 +250,12 @@ export default function AuthButtons() {
                   {socialLoading === "github" ? "Connecting..." : "GitHub"}
                 </button>
 
-                <p className="text-center text-sm text-gray-500 mt-3">
+                <p style={{ textAlign: "center", fontSize: 13, color: "var(--color-text-muted)", marginTop: 12, marginBottom: 0 }}>
                   {mode === "signin" ? (
                     <>
                       No account?{" "}
                       <button
-                        className="text-blue-500 underline"
+                        style={{ color: "var(--color-accent)", textDecoration: "underline", background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 13 }}
                         onClick={() => setMode("signup")}
                       >
                         Sign up
@@ -196,7 +265,7 @@ export default function AuthButtons() {
                     <>
                       Have an account?{" "}
                       <button
-                        className="text-blue-500 underline"
+                        style={{ color: "var(--color-accent)", textDecoration: "underline", background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 13 }}
                         onClick={() => setMode("signin")}
                       >
                         Log in
