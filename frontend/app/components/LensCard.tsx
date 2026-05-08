@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { usePalette } from "../hooks/usePalette";
+import { interpolateColor, getContrastColor } from "../lib/palette";
 
 type HeatmapData = {
   x_labels: string[];
@@ -67,6 +69,7 @@ export default function LensCard({
   onDragEnd,
   onRemove,
 }: LensCardProps) {
+  const palette = usePalette();
   const [mode, setMode] = React.useState<"prob" | "tokens">("prob");
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [pinnedCol, setPinnedCol] = React.useState<number | null>(null);
@@ -406,6 +409,13 @@ export default function LensCard({
                       }`
                     : `Token: ${card.data!.x_labels[xIndex]}\nLayer: ${layerName}\nProb: ${(prob * 100).toFixed(2)}%`;
 
+                  const cellBg = interpolateColor(palette, topProb);
+                  const cellBorder = isActivePinnedCell
+                    ? "1.5px solid var(--color-accent)"
+                    : isPinned
+                    ? "0.5px solid var(--color-card-border)"
+                    : "0.5px solid var(--color-surface-border)";
+
                   return (
                     <div
                       key={`${yIndex}-${xIndex}`}
@@ -414,12 +424,8 @@ export default function LensCard({
                         width: 24,
                         height: cellHeight,
                         flexShrink: 0,
-                        backgroundColor: `rgba(var(--heatmap-rgb), ${topProb})`,
-                        border: isActivePinnedCell
-                          ? "1.5px solid var(--color-accent)"
-                          : isPinned
-                          ? "0.5px solid rgba(var(--heatmap-rgb), 0.4)"
-                          : "0.5px solid rgba(var(--heatmap-rgb), 0.12)",
+                        backgroundColor: cellBg,
+                        border: cellBorder,
                         display: inTokensMode ? "flex" : undefined,
                         alignItems: inTokensMode ? "center" : undefined,
                         justifyContent: inTokensMode ? "center" : undefined,
@@ -434,7 +440,7 @@ export default function LensCard({
                           fontSize: 7,
                           fontFamily: "var(--font-azeret-mono), monospace",
                           lineHeight: 1,
-                          color: topProb > 0.5 ? "var(--color-bg)" : "var(--color-text)",
+                          color: getContrastColor(palette, topProb),
                           maxWidth: "100%",
                           overflow: "hidden",
                           whiteSpace: "nowrap",
