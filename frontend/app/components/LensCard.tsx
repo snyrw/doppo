@@ -121,6 +121,7 @@ export default function LensCard({
   return (
     <div
       ref={ref}
+      data-card-id={card.id}
       style={{
         position: "absolute",
         left: card.position.x,

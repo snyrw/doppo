@@ -108,12 +108,46 @@ export async function deleteProject(projectId: string): Promise<void> {
 
 export async function loadProject(
   projectId: string
-): Promise<{ name: string; cards: SerializedCard[]; canvas: CanvasState } | null> {
+): Promise<{ name: string; cards: SerializedCard[]; canvas: CanvasState; shareId: string | null } | null> {
   const userId = await getAuthedUserId();
+  const rows = await db
+    .select({ name: project.name, cards: project.cards, canvas: project.canvas, shareId: project.shareId })
+    .from(project)
+    .where(and(eq(project.id, projectId), eq(project.userId, userId)))
+    .limit(1);
+  if (rows.length === 0) return null;
+  return {
+    name: rows[0].name,
+    cards: rows[0].cards as SerializedCard[],
+    canvas: rows[0].canvas as CanvasState,
+    shareId: rows[0].shareId ?? null,
+  };
+}
+
+export async function setProjectShare(projectId: string): Promise<{ shareId: string }> {
+  const userId = await getAuthedUserId();
+  const rows = await db
+    .select({ shareId: project.shareId })
+    .from(project)
+    .where(and(eq(project.id, projectId), eq(project.userId, userId)))
+    .limit(1);
+  if (rows.length === 0) throw new Error("Project not found");
+  if (rows[0].shareId) {
+    await db.update(project).set({ isPublic: true, updatedAt: new Date() }).where(eq(project.id, projectId));
+    return { shareId: rows[0].shareId };
+  }
+  const shareId = crypto.randomUUID();
+  await db.update(project).set({ isPublic: true, shareId, updatedAt: new Date() }).where(eq(project.id, projectId));
+  return { shareId };
+}
+
+export async function loadPublicProject(
+  shareId: string
+): Promise<{ name: string; cards: SerializedCard[]; canvas: CanvasState } | null> {
   const rows = await db
     .select({ name: project.name, cards: project.cards, canvas: project.canvas })
     .from(project)
-    .where(and(eq(project.id, projectId), eq(project.userId, userId)))
+    .where(and(eq(project.shareId, shareId), eq(project.isPublic, true)))
     .limit(1);
   if (rows.length === 0) return null;
   return {

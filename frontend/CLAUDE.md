@@ -51,6 +51,7 @@ The model selection UI has two mutually exclusive modes:
 
 ## Frontend file layout
 
+- `app/page.tsx` — hero/landing page; **server component** — client interactivity (state, effects) must live in a child `"use client"` component
 - `app/projects/page.tsx` — main canvas page; `useReducer` manages `{ lensCards, canvas }` state
 - `app/schema.ts` — all Drizzle table definitions
 - `app/actions.ts` — all server actions (`"use server"` file-level directive)
@@ -58,8 +59,11 @@ The model selection UI has two mutually exclusive modes:
 - `app/lib/auth.ts` — BetterAuth server config (Google + GitHub + email/password)
 - `app/lib/auth-client.ts` — exports `useSession`, `signIn`, `signOut`, `signUp`
 - `app/lib/r2.ts` — Cloudflare R2 helpers: `putHeatmap(key, data)` / `getHeatmap(key)`
-- `app/components/` — `SandboxCanvas`, `LensCard`, `ConfigPane`, `Navbar`, `AuthModal`, `ProjectSearch`
-- `app/hooks/` — `useCanvasPan`, `useCardDrag`
+- `app/lib/palette.ts` — four heatmap palettes; `interpolateColor(palette, prob)` is the canonical color function
+- `app/hooks/usePalette.ts` — reads `localStorage` + listens for `palettechange` custom events; returns current `PaletteName`
+- `app/components/` — `SandboxCanvas`, `LensCard`, `ConfigPane`, `Navbar`, `AuthModal`, `ProjectSearch`, `HeroSpecimen`
+- `app/hooks/` — `useCanvasPan`, `useCardDrag`, `usePalette`
+- `app/share/[shareId]/` — `page.tsx` (server, fetches via `loadPublicProject`) + `ShareCanvas.tsx` (client, wraps `SandboxCanvas` with noop callbacks)
 
 ### Styling
 
@@ -68,8 +72,10 @@ The model selection UI has two mutually exclusive modes:
 **CSS custom property tokens** (defined in `globals.css`, toggled by `[data-theme="dark"]` on `<html>`):
 - `--color-bg` / `--color-panel` / `--color-card` / `--color-card-border` / `--color-surface-border`
 - `--color-text` / `--color-text-muted`
-- `--color-accent` / `--color-accent-hover` / `--color-accent-fg` (evergreen `#3a6b55` light, `#4d8a6e` dark)
-- `--heatmap-rgb` — RGB channels only (e.g. `58, 107, 85`) for use as `rgba(var(--heatmap-rgb), ${prob})` in inline styles
+- `--color-accent` / `--color-accent-hover` / `--color-accent-fg` — warm neutral: `#3a3938` light, `#d4d2cb` dark (redesign moved away from the old evergreen `#3a6b55`; accent is now essentially the inverted text color)
+- `--heatmap-rgb` — RGB channels of the text color (`28,28,28` light / `220,218,210` dark) for `rgba(var(--heatmap-rgb), ${prob})`. **Only valid for `warm-mono`** — for all other palettes use `interpolateColor(palette, prob)` from `app/lib/palette.ts`
+
+**Heatmap palettes** — four options, cycled in `PALETTE_ORDER`: `warm-mono` (amber `rgba(175,118,32,alpha)`, the default), `rdbu` (ColorBrewer diverging blue→red), `viridis` (perceptually uniform, colorblind-safe), `inferno` (high contrast dark-to-bright). `PALETTE_META` has `label`, `description`, and `swatchCss` gradient strings for each. Palette is persisted to `localStorage` as `"heatmap-palette"` and broadcast via a `palettechange` custom event.
 
 **Dark mode:** `data-theme="dark"` attribute on `<html>`, set by an inline `<script>` in `layout.tsx`'s `<head>` (reads `localStorage` + system preference). Toggled at runtime by `Navbar`. `<html>` carries `suppressHydrationWarning`. Do **not** use `@custom-variant dark` — it causes a silent Turbopack compile failure where old CSS is served with no error logged.
 
@@ -129,7 +135,7 @@ await sql.query(`CREATE TABLE ...`);  // .query(string), NOT sql`` or sql()
 
 ## Projects feature
 
-Projects persist canvas state and completed lens cards to the `project` table (`id, userId, name, cards jsonb, canvas jsonb`). Each project is identified by `?id=<uuid>` in the URL.
+Projects persist canvas state and completed lens cards to the `project` table (`id, userId, name, cards jsonb, canvas jsonb, isPublic boolean, shareId text unique`). Each project is identified by `?id=<uuid>` in the URL.
 
 - **New** — creates a project row with **empty cards** (`[]`); cards are only persisted via explicit `updateProject` calls, never implicitly on creation
 - **Auto-save** — `updateProject(id, cards, canvas, name?)` fires on each `CARD_RESOLVED` SSE event; uses `projectIdRef` + `stateRef` (synced via `useEffect`) to avoid stale closures inside the async SSE callback
@@ -137,6 +143,18 @@ Projects persist canvas state and completed lens cards to the `project` table (`
 - **Duplicate** — serializes only `status: "result"` cards (skips loading/error), saves as new row
 - **Delete** — inline two-step confirmation in dropdown; deletes row, redirects to `/projects`
 - **Search** — command palette (`ProjectSearch` component), triggered by Search button or Cmd+K; fetches all projects via `listProjects()` on open (selects full `cards` jsonb — can be heavy for many large projects), then filters client-side
+- **Share** — `setProjectShare(projectId)` generates/returns a stable `shareId` UUID and sets `isPublic = true`; public read-only canvas at `/share/[shareId]` via `loadPublicProject(shareId)` (no auth). Share button copies `origin/share/<id>` to clipboard.
+- **Export** — per-card PNG via `html-to-image`; see html-to-image note below.
 - On mount, `?id=` is read via `useSearchParams` and restored via `loadProject` server action
 - All project actions are auth-gated; buttons use `disabledStyle` / `enabledStyle` objects and `title` for tooltip
 - Use `router.replace()` not `router.push()` for project navigation (avoids back-button clutter)
+
+### html-to-image
+
+Used for per-card PNG export. Two required workarounds:
+1. **Blank image when element is `position: absolute` inside a CSS-transformed parent** — the card's `left`/`top` values push content outside the canvas. Fix: `toPng(el, { pixelRatio: 3, width: el.offsetWidth, height: el.offsetHeight, style: { position: "relative", left: "0", top: "0" } })`.
+2. **SSR** — never import at module level; use `const { toPng } = await import("html-to-image")` inside the handler.
+
+### Dropdown submenus
+
+A dropdown with `overflow: hidden` clips `position: absolute` children even when correctly positioned. For fly-out submenus: set the dropdown to `overflow: visible` and add `borderRadius` to the first (`"6px 6px 0 0"`) and last (`"0 0 6px 6px"`) items instead.

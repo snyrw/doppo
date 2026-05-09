@@ -14,6 +14,7 @@ import {
   deleteProject,
   loadProject,
   updateProject,
+  setProjectShare,
 } from "../actions";
 
 type ModelInfo = {
@@ -126,6 +127,10 @@ function Projects() {
   const [projectName, setProjectName] = useState("Untitled Project");
   const [nameEditing, setNameEditing] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [shareId, setShareId] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportingId, setExportingId] = useState<string | null>(null);
   const configRef = useRef<HTMLDivElement>(null);
   const projectsRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -160,9 +165,12 @@ function Projects() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [projectsOpen]);
 
-  // Reset delete confirmation when dropdown closes
+  // Reset delete confirmation + export submenu when dropdown closes
   useEffect(() => {
-    if (!projectsOpen) setDeleteConfirming(false);
+    if (!projectsOpen) {
+      setDeleteConfirming(false);
+      setExportOpen(false);
+    }
   }, [projectsOpen]);
 
   const loadAndSetProject = useCallback(async (id: string) => {
@@ -177,6 +185,7 @@ function Projects() {
         error: null,
       }));
       setProjectName(result.name);
+      setShareId(result.shareId);
       dispatch({ type: "LOAD_PROJECT", cards: lensCards, canvas: result.canvas });
     } catch {
       router.replace("/projects");
@@ -346,7 +355,39 @@ function Projects() {
     router.replace("/projects");
   }
 
+  async function handleShare() {
+    if (!projectId || !session?.user) return;
+    setProjectsOpen(false);
+    const { shareId: id } = await setProjectShare(projectId);
+    setShareId(id);
+    await navigator.clipboard.writeText(`${window.location.origin}/share/${id}`);
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2500);
+  }
+
+  async function handleExport(cardId: string, modelName: string, prompt: string) {
+    const el = document.querySelector(`[data-card-id="${cardId}"]`) as HTMLElement | null;
+    if (!el) return;
+    setExportingId(cardId);
+    try {
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(el, {
+        pixelRatio: 3,
+        width: el.offsetWidth,
+        height: el.offsetHeight,
+        style: { position: "relative", left: "0", top: "0" },
+      });
+      const link = document.createElement("a");
+      link.download = `${modelName.split("/").pop()}-${prompt.slice(0, 24).replace(/\s+/g, "-")}.png`;
+      link.href = dataUrl;
+      link.click();
+    } finally {
+      setExportingId(null);
+    }
+  }
+
   const loggedIn = !!session?.user;
+  const resolvedCards = state.lensCards.filter(c => c.status === "result");
   const disabledStyle = { color: "var(--color-text-muted)" as const, cursor: "default" as const, opacity: 0.5 };
   const enabledStyle = { color: "var(--color-text)" as const, cursor: "pointer" as const, opacity: 1 };
 
@@ -431,7 +472,7 @@ function Projects() {
                 display: "flex",
                 flexDirection: "column",
                 minWidth: 160,
-                overflow: "hidden",
+                overflow: "visible",
               }}>
                 {/* Search */}
                 <button
@@ -440,6 +481,7 @@ function Projects() {
                     background: "var(--color-card)",
                     border: "none",
                     borderBottom: "1px solid var(--color-surface-border)",
+                    borderRadius: "6px 6px 0 0",
                     padding: "10px 16px",
                     fontSize: 13,
                     fontWeight: 500,
@@ -512,25 +554,103 @@ function Projects() {
                   Duplicate
                 </button>
 
-                {/* Share — not yet implemented */}
+                {/* Export — submenu to the right */}
+                <div style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setExportOpen(o => !o)}
+                    disabled={!resolvedCards.length}
+                    style={{
+                      width: "100%",
+                      background: "var(--color-card)",
+                      border: "none",
+                      borderBottom: "1px solid var(--color-surface-border)",
+                      padding: "10px 16px",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      textAlign: "left",
+                      transition: "background 120ms",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      ...(!resolvedCards.length ? disabledStyle : enabledStyle),
+                    }}
+                    onMouseEnter={e => { if (resolvedCards.length) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                  >
+                    <span>Export</span>
+                    <span style={{ fontSize: 10, opacity: 0.5 }}>▶</span>
+                  </button>
+
+                  {exportOpen && resolvedCards.length > 0 && (
+                    <div style={{
+                      position: "absolute",
+                      top: 0,
+                      left: "calc(100% + 6px)",
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-card-border)",
+                      borderRadius: 6,
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+                      display: "flex",
+                      flexDirection: "column",
+                      minWidth: 220,
+                      maxHeight: 320,
+                      overflowY: "auto",
+                      zIndex: 10,
+                    }}>
+                      {resolvedCards.map((card, i) => (
+                        <button
+                          key={card.id}
+                          onClick={() => handleExport(card.id, card.modelName, card.prompt)}
+                          disabled={exportingId === card.id}
+                          style={{
+                            background: "var(--color-card)",
+                            border: "none",
+                            borderBottom: i < resolvedCards.length - 1 ? "1px solid var(--color-surface-border)" : "none",
+                            padding: "9px 14px",
+                            fontSize: 12,
+                            textAlign: "left",
+                            cursor: exportingId === card.id ? "default" : "pointer",
+                            transition: "background 120ms",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 2,
+                            opacity: exportingId === card.id ? 0.5 : 1,
+                          }}
+                          onMouseEnter={e => { if (!exportingId) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                        >
+                          <span style={{ fontWeight: 600, color: "var(--color-text)", fontFamily: "var(--font-azeret-mono), monospace", fontSize: 11 }}>
+                            {card.modelName.split("/").pop()}
+                          </span>
+                          <span style={{ color: "var(--color-text-muted)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 192 }}>
+                            {exportingId === card.id ? "Exporting…" : card.prompt}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Share */}
                 <button
-                  onClick={() => setProjectsOpen(false)}
+                  onClick={handleShare}
+                  disabled={!loggedIn || !projectId}
+                  title={!loggedIn ? "Sign in to share" : !projectId ? "Save a project first" : shareId ? "Copy share link" : "Generate share link"}
                   style={{
                     background: "var(--color-card)",
-                    color: "var(--color-text)",
                     border: "none",
                     borderBottom: "1px solid var(--color-surface-border)",
                     padding: "10px 16px",
                     fontSize: 13,
                     fontWeight: 500,
-                    cursor: "pointer",
                     textAlign: "left",
                     transition: "background 120ms",
+                    ...(!loggedIn || !projectId ? disabledStyle : enabledStyle),
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
+                  onMouseEnter={e => { if (loggedIn && projectId) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
                 >
-                  Share
+                  {shareId ? "Copy link" : "Share"}
                 </button>
 
                 {/* Delete — inline confirmation */}
@@ -544,6 +664,7 @@ function Projects() {
                         color: "var(--color-text-muted)",
                         border: "none",
                         borderRight: "1px solid var(--color-surface-border)",
+                        borderRadius: "0 0 0 6px",
                         padding: "10px 12px",
                         fontSize: 12,
                         fontWeight: 500,
@@ -562,6 +683,7 @@ function Projects() {
                         background: "var(--color-card)",
                         color: "#dc2626",
                         border: "none",
+                        borderRadius: "0 0 6px 0",
                         padding: "10px 12px",
                         fontSize: 12,
                         fontWeight: 600,
@@ -591,6 +713,7 @@ function Projects() {
                     style={{
                       background: "var(--color-card)",
                       border: "none",
+                      borderRadius: "0 0 6px 6px",
                       padding: "10px 16px",
                       fontSize: 13,
                       fontWeight: 500,
@@ -714,6 +837,26 @@ function Projects() {
         />
 
       </div>
+
+      {shareCopied && (
+        <div style={{
+          position: "fixed",
+          bottom: 20,
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "var(--color-accent)",
+          color: "var(--color-accent-fg)",
+          padding: "8px 18px",
+          borderRadius: 6,
+          fontSize: 13,
+          fontWeight: 500,
+          zIndex: 1000,
+          boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
+          pointerEvents: "none",
+        }}>
+          Link copied to clipboard
+        </div>
+      )}
     </div>
   );
 }

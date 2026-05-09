@@ -68,6 +68,8 @@ export const project = pgTable("project", {
   name: text("name").notNull().default("Untitled Project"),
   cards: jsonb("cards").notNull().default([]),
   canvas: jsonb("canvas").notNull().default({ panOffset: { x: 0, y: 0 }, zoom: 1 }),
+  isPublic: boolean("is_public").notNull().default(false),
+  shareId: text("share_id").unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

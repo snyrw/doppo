@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { PALETTE_ORDER, PALETTE_META, interpolateColor } from "../lib/palette";
 
 const TOKENS = ["The", "Eiffel", "Tower", "is", "located", "in", "the", "city"];
-const LAYERS = ["emb", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"];
+const LAYERS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"];
 
 const PROBS: number[][] = [
   [0.07, 0.58, 0.42, 0.31, 0.09, 0.14, 0.22, 0.11],
@@ -90,28 +90,18 @@ export default function HeroSpecimen() {
                 key={i}
                 style={{
                   width: CELL_W,
-                  height: 50,
                   flexShrink: 0,
-                  display: "flex",
-                  alignItems: "flex-end",
+                  fontSize: 9,
+                  textAlign: "center",
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  color: "var(--color-text-muted)",
                   overflow: "hidden",
-                  paddingLeft: 3,
+                  whiteSpace: "nowrap",
+                  textOverflow: "ellipsis",
+                  paddingBottom: 4,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontFamily: "var(--font-geist-mono), monospace",
-                    color: "var(--color-text-muted)",
-                    whiteSpace: "nowrap",
-                    transform: "rotate(-45deg)",
-                    transformOrigin: "left bottom",
-                    display: "block",
-                    lineHeight: 1,
-                  }}
-                >
-                  {tok}
-                </span>
+                {tok}
               </div>
             ))}
           </div>
