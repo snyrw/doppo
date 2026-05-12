@@ -4,6 +4,8 @@ import { useRef, useEffect, useCallback } from "react";
 import SnapGrid from "./SnapGrid";
 import LensCard, { type LensCardData } from "./LensCard";
 import DlaCard, { type DlaCardData } from "./DlaCard";
+import AttributionCard, { type AttributionCardData } from "./AttributionCard";
+import ActivationCard, { type ActivationCardData } from "./ActivationCard";
 import { useCanvasPan } from "../hooks/useCanvasPan";
 import { useCardDrag } from "../hooks/useCardDrag";
 
@@ -15,12 +17,15 @@ type CanvasState = {
   zoom: number;
 };
 
+export type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData;
+
 type SandboxCanvasProps = {
-  cards: (LensCardData | DlaCardData)[];
+  cards: AnyCard[];
   canvasState: CanvasState;
   onCanvasChange: (state: CanvasState) => void;
   onMoveCard: (id: string, pos: { x: number; y: number }) => void;
   onRemoveCard: (id: string) => void;
+  onVerifyTopK: (attributionCardId: string, k: number) => void;
 };
 
 export default function SandboxCanvas({
@@ -29,6 +34,7 @@ export default function SandboxCanvas({
   onCanvasChange,
   onMoveCard,
   onRemoveCard,
+  onVerifyTopK,
 }: SandboxCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -88,6 +94,27 @@ export default function SandboxCanvas({
 
   const { panOffset, zoom } = canvasState;
 
+  function renderCard(card: AnyCard) {
+    const sharedProps = {
+      key: card.id,
+      ref: setCardRef(card.id),
+      onStartDrag: startDrag,
+      onDragMove,
+      onDragEnd,
+      onRemove: onRemoveCard,
+    };
+    switch (card.cardType) {
+      case "dla":
+        return <DlaCard {...sharedProps} card={card} />;
+      case "attribution":
+        return <AttributionCard {...sharedProps} card={card} onVerifyTopK={onVerifyTopK} />;
+      case "activation":
+        return <ActivationCard {...sharedProps} card={card} />;
+      default:
+        return <LensCard {...sharedProps} card={card as LensCardData} />;
+    }
+  }
+
   return (
     <div
       ref={viewportRef}
@@ -112,30 +139,7 @@ export default function SandboxCanvas({
         }}
       >
         <SnapGrid isDragging={isDragging} />
-
-        {cards.map(card =>
-          card.cardType === "dla" ? (
-            <DlaCard
-              key={card.id}
-              card={card}
-              ref={setCardRef(card.id)}
-              onStartDrag={startDrag}
-              onDragMove={onDragMove}
-              onDragEnd={onDragEnd}
-              onRemove={onRemoveCard}
-            />
-          ) : (
-            <LensCard
-              key={card.id}
-              card={card}
-              ref={setCardRef(card.id)}
-              onStartDrag={startDrag}
-              onDragMove={onDragMove}
-              onDragEnd={onDragEnd}
-              onRemove={onRemoveCard}
-            />
-          )
-        )}
+        {cards.map(renderCard)}
       </div>
 
       {/* Empty state */}

@@ -4,6 +4,9 @@ import Navbar from "../../components/Navbar";
 import ShareCanvas from "./ShareCanvas";
 import type { LensCardData } from "../../components/LensCard";
 import type { DlaCardData } from "../../components/DlaCard";
+import type { AttributionCardData } from "../../components/AttributionCard";
+import type { ActivationCardData } from "../../components/ActivationCard";
+import type { AnyCard } from "../../components/SandboxCanvas";
 
 export default async function SharePage({
   params,
@@ -14,11 +17,26 @@ export default async function SharePage({
   const project = await loadPublicProject(shareId);
   if (!project) notFound();
 
-  const cards: (LensCardData | DlaCardData)[] = project.cards.map(c =>
-    c.cardType === "dla"
-      ? ({ ...c, cardType: "dla" as const, status: "result" as const, error: null } as DlaCardData)
-      : ({ ...c, cardType: "logit-lens" as const, status: "result" as const, error: null } as LensCardData)
-  );
+  const cards: AnyCard[] = project.cards.map(c => {
+    if (c.cardType === "dla") {
+      return { ...c, cardType: "dla" as const, status: "result" as const, error: null } as DlaCardData;
+    }
+    if (c.cardType === "attribution") {
+      return {
+        ...c, cardType: "attribution" as const, status: "result" as const, error: null,
+        cleanPrompt: c.prompt, corruptedPrompt: c.corruptedPrompt ?? "",
+        targetPosition: c.targetPosition ?? "last", targetToken: c.targetToken ?? null,
+        verifyStatus: "idle" as const,
+      } as unknown as AttributionCardData;
+    }
+    if (c.cardType === "activation") {
+      return {
+        ...c, cardType: "activation" as const, status: "result" as const, error: null,
+        cleanPrompt: c.prompt, k: 10, parentAttributionId: c.parentAttributionId ?? "",
+      } as unknown as ActivationCardData;
+    }
+    return { ...c, cardType: "logit-lens" as const, status: "result" as const, error: null } as LensCardData;
+  });
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>

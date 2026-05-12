@@ -5,10 +5,13 @@ import { useSearchParams, useRouter } from "next/navigation";
 import SandboxCanvas from "../components/SandboxCanvas";
 import ConfigPane from "../components/ConfigPane";
 import DlaConfigPane from "../components/DlaConfigPane";
+import AttributionConfigPane from "../components/AttributionConfigPane";
 import Navbar from "../components/Navbar";
 import { ProjectSearch } from "../components/ProjectSearch";
 import type { LensCardData } from "../components/LensCard";
 import type { DlaCardData, DlaData } from "../components/DlaCard";
+import type { AttributionCardData, AttributionData } from "../components/AttributionCard";
+import type { ActivationCardData, ActivationPatchResult } from "../components/ActivationCard";
 import { useSession } from "../lib/auth-client";
 import {
   createProject,
@@ -40,21 +43,27 @@ type CanvasState = {
   zoom: number;
 };
 
+type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData;
+
 type AppState = {
-  lensCards: (LensCardData | DlaCardData)[];
+  lensCards: AnyCard[];
   canvas: CanvasState;
 };
 
 type AppAction =
-  | { type: "ADD_CARD"; card: LensCardData | DlaCardData }
+  | { type: "ADD_CARD"; card: AnyCard }
   | { type: "CARD_RESOLVED"; id: string; data: HeatmapData }
   | { type: "DLA_CARD_RESOLVED"; id: string; data: DlaData }
+  | { type: "ATTRIBUTION_CARD_RESOLVED"; id: string; data: AttributionData }
+  | { type: "ACTIVATION_CARD_RESOLVED"; id: string; data: ActivationPatchResult; parentAttributionId: string }
+  | { type: "ATTRIBUTION_VERIFY_STARTED"; id: string; k: number; verifyCardId: string }
+  | { type: "ATTRIBUTION_VERIFY_DONE"; id: string }
   | { type: "CARD_ERRORED"; id: string; error: string }
   | { type: "CARD_STAGE"; id: string; stage: string }
   | { type: "MOVE_CARD"; id: string; position: { x: number; y: number } }
   | { type: "REMOVE_CARD"; id: string }
   | { type: "SET_CANVAS"; canvas: CanvasState }
-  | { type: "LOAD_PROJECT"; cards: (LensCardData | DlaCardData)[]; canvas: CanvasState }
+  | { type: "LOAD_PROJECT"; cards: AnyCard[]; canvas: CanvasState }
   | { type: "RESET_CANVAS" };
 
 const CARD_COL_WIDTH = 360;
@@ -83,21 +92,55 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType !== "dla" ? { ...c, status: "result", data: action.data } : c
+          c.id === action.id && c.cardType !== "dla" && c.cardType !== "attribution" && c.cardType !== "activation"
+            ? { ...c, status: "result" as const, data: action.data } : c
         ),
       };
     case "DLA_CARD_RESOLVED":
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType === "dla" ? { ...c, status: "result", data: action.data } : c
+          c.id === action.id && c.cardType === "dla" ? { ...c, status: "result" as const, data: action.data } : c
+        ),
+      };
+    case "ATTRIBUTION_CARD_RESOLVED":
+      return {
+        ...state,
+        lensCards: state.lensCards.map(c =>
+          c.id === action.id && c.cardType === "attribution" ? { ...c, status: "result" as const, data: action.data } : c
+        ),
+      };
+    case "ACTIVATION_CARD_RESOLVED":
+      return {
+        ...state,
+        lensCards: state.lensCards.map(c => {
+          if (c.id === action.id && c.cardType === "activation")
+            return { ...c, status: "result" as const, data: action.data };
+          if (c.id === action.parentAttributionId && c.cardType === "attribution")
+            return { ...c, verifyStatus: "done" as const };
+          return c;
+        }),
+      };
+    case "ATTRIBUTION_VERIFY_STARTED":
+      return {
+        ...state,
+        lensCards: state.lensCards.map(c =>
+          c.id === action.id && c.cardType === "attribution"
+            ? { ...c, verifyStatus: "loading" as const, verifyK: action.k, verifyCardId: action.verifyCardId } : c
+        ),
+      };
+    case "ATTRIBUTION_VERIFY_DONE":
+      return {
+        ...state,
+        lensCards: state.lensCards.map(c =>
+          c.id === action.id && c.cardType === "attribution" ? { ...c, verifyStatus: "done" as const } : c
         ),
       };
     case "CARD_ERRORED":
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
-          c.id === action.id ? { ...c, status: "error", error: action.error } : c
+          c.id === action.id ? { ...c, status: "error" as const, error: action.error } : c
         ),
       };
     case "MOVE_CARD":
@@ -127,11 +170,22 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-function serializeCard(c: LensCardData | DlaCardData) {
+function serializeCard(c: AnyCard) {
   if (c.cardType === "dla") {
     return { id: c.id, cardType: "dla" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken };
   }
+  if (c.cardType === "attribution") {
+    return { id: c.id, cardType: "attribution" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken };
+  }
+  if (c.cardType === "activation") {
+    return { id: c.id, cardType: "activation" as const, modelName: c.modelName, prompt: c.cleanPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, parentAttributionId: c.parentAttributionId };
+  }
   return { id: c.id, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier };
+}
+
+function getCardPrompt(c: AnyCard): string {
+  if (c.cardType === "attribution" || c.cardType === "activation") return c.cleanPrompt;
+  return c.prompt;
 }
 
 function Projects() {
@@ -140,6 +194,7 @@ function Projects() {
   const [addOpen, setAddOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const [dlaOpen, setDlaOpen] = useState(false);
+  const [attributionOpen, setAttributionOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -162,17 +217,18 @@ function Projects() {
 
   // Close add dropdown + sub-panes on outside click
   useEffect(() => {
-    if (!addOpen && !configOpen && !dlaOpen) return;
+    if (!addOpen && !configOpen && !dlaOpen && !attributionOpen) return;
     function handleClickOutside(e: MouseEvent) {
       if (addRef.current && !addRef.current.contains(e.target as Node)) {
         setAddOpen(false);
         setConfigOpen(false);
         setDlaOpen(false);
+        setAttributionOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [addOpen, configOpen, dlaOpen]);
+  }, [addOpen, configOpen, dlaOpen, attributionOpen]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -200,11 +256,27 @@ function Projects() {
     try {
       const result = await loadProject(id);
       if (!result) { router.replace("/projects"); return; }
-      const lensCards: (LensCardData | DlaCardData)[] = result.cards.map(c =>
-        c.cardType === "dla"
-          ? ({ ...c, cardType: "dla" as const, status: "result" as const, error: null } as DlaCardData)
-          : ({ ...c, cardType: "logit-lens" as const, status: "result" as const, error: null } as LensCardData)
-      );
+      const lensCards: AnyCard[] = result.cards.map(c => {
+        if (c.cardType === "dla") {
+          return { ...c, cardType: "dla" as const, status: "result" as const, error: null } as DlaCardData;
+        }
+        if (c.cardType === "attribution") {
+          return {
+            ...c, cardType: "attribution" as const, status: "result" as const, error: null,
+            cleanPrompt: c.prompt, corruptedPrompt: c.corruptedPrompt ?? "",
+            targetPosition: c.targetPosition ?? "last", targetToken: c.targetToken ?? null,
+            verifyStatus: "idle" as const,
+          } as unknown as AttributionCardData;
+        }
+        if (c.cardType === "activation") {
+          return {
+            ...c, cardType: "activation" as const, status: "result" as const, error: null,
+            cleanPrompt: c.prompt, k: 10,
+            parentAttributionId: c.parentAttributionId ?? "",
+          } as unknown as ActivationCardData;
+        }
+        return { ...c, cardType: "logit-lens" as const, status: "result" as const, error: null } as LensCardData;
+      });
       setProjectName(result.name);
       setShareId(result.shareId);
       dispatch({ type: "LOAD_PROJECT", cards: lensCards, canvas: result.canvas });
@@ -406,6 +478,170 @@ function Projects() {
       .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
   };
 
+  const handleAddAttribution = ({ modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, targetToken }: {
+    modelName: string; cleanPrompt: string; corruptedPrompt: string; gpuTier?: string;
+    targetPosition: number | "last"; targetToken: string | null;
+  }) => {
+    setAttributionOpen(false);
+
+    const id = crypto.randomUUID();
+    const card: AttributionCardData = {
+      id,
+      cardType: "attribution",
+      status: "loading",
+      modelName,
+      cleanPrompt,
+      corruptedPrompt,
+      data: null,
+      error: null,
+      position: autoArrangePos(stateRef.current.lensCards.length),
+      gpuTier,
+      startedAt: Date.now(),
+      targetPosition,
+      targetToken,
+      verifyStatus: "idle",
+    };
+
+    dispatch({ type: "ADD_CARD", card });
+
+    fetch("/api/run-attribution", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetToken }),
+    })
+      .then(async (response) => {
+        if (!response.ok || !response.body) {
+          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
+          const message = response.status === 401
+            ? (err.error ?? "Sign in to use medium and large models")
+            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
+          dispatch({ type: "CARD_ERRORED", id, error: message });
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? "";
+          for (const part of parts) {
+            const line = part.split("\n").find(l => l.startsWith("data: "));
+            if (!line) continue;
+            try {
+              const event = JSON.parse(line.slice(6)) as { stage: string; data?: AttributionData; error?: string };
+              if (event.stage === "done" && event.data) {
+                dispatch({ type: "ATTRIBUTION_CARD_RESOLVED", id, data: event.data });
+                const pid = projectIdRef.current;
+                if (pid) {
+                  const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+                  updateProject(pid, [...existingResult, { id, cardType: "attribution" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: event.data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken }], stateRef.current.canvas).catch(console.error);
+                }
+              } else if (event.stage === "error") {
+                dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
+              } else {
+                dispatch({ type: "CARD_STAGE", id, stage: event.stage });
+              }
+            } catch { /* malformed chunk */ }
+          }
+        }
+      })
+      .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
+  };
+
+  const handleVerifyTopK = (attributionCardId: string, k: number) => {
+    const attrCard = stateRef.current.lensCards.find(c => c.id === attributionCardId && c.cardType === "attribution") as AttributionCardData | undefined;
+    if (!attrCard?.data) return;
+
+    const activationId = crypto.randomUUID();
+    const activationCard: ActivationCardData = {
+      id: activationId,
+      cardType: "activation",
+      status: "loading",
+      modelName: attrCard.modelName,
+      cleanPrompt: attrCard.cleanPrompt,
+      k,
+      parentAttributionId: attributionCardId,
+      data: null,
+      error: null,
+      position: { x: attrCard.position.x + 420, y: attrCard.position.y },
+      gpuTier: attrCard.gpuTier,
+      startedAt: Date.now(),
+    };
+
+    dispatch({ type: "ADD_CARD", card: activationCard });
+    dispatch({ type: "ATTRIBUTION_VERIFY_STARTED", id: attributionCardId, k, verifyCardId: activationId });
+
+    const components = attrCard.data.top_k_components;
+    const targetTokenIdx = attrCard.data.target_token_idx;
+
+    fetch("/api/run-activation-patch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cleanPrompt: attrCard.cleanPrompt,
+        corruptedPrompt: attrCard.corruptedPrompt,
+        modelName: attrCard.modelName,
+        gpuTier: attrCard.gpuTier,
+        targetPosition: attrCard.targetPosition,
+        targetTokenIdx,
+        components,
+        k,
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok || !response.body) {
+          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
+          const message = response.status === 401
+            ? (err.error ?? "Sign in to use medium and large models")
+            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
+          dispatch({ type: "CARD_ERRORED", id: activationId, error: message });
+          dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? "";
+          for (const part of parts) {
+            const line = part.split("\n").find(l => l.startsWith("data: "));
+            if (!line) continue;
+            try {
+              const event = JSON.parse(line.slice(6)) as { stage: string; data?: ActivationPatchResult; error?: string };
+              if (event.stage === "done" && event.data) {
+                dispatch({ type: "ACTIVATION_CARD_RESOLVED", id: activationId, data: event.data, parentAttributionId: attributionCardId });
+                const pid = projectIdRef.current;
+                if (pid) {
+                  const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+                  updateProject(pid, [...existingResult, { id: activationId, cardType: "activation" as const, modelName: attrCard.modelName, prompt: attrCard.cleanPrompt, data: event.data as Record<string, unknown>, position: activationCard.position, gpuTier: attrCard.gpuTier, parentAttributionId: attributionCardId }], stateRef.current.canvas).catch(console.error);
+                }
+              } else if (event.stage === "error") {
+                dispatch({ type: "CARD_ERRORED", id: activationId, error: event.error ?? "Unknown error" });
+                dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
+              } else {
+                dispatch({ type: "CARD_STAGE", id: activationId, stage: event.stage });
+              }
+            } catch { /* malformed chunk */ }
+          }
+        }
+      })
+      .catch(err => {
+        dispatch({ type: "CARD_ERRORED", id: activationId, error: err instanceof Error ? err.message : "Unknown error" });
+        dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
+      });
+  };
+
   async function handleNew() {
     if (!session?.user) return;
     setProjectsOpen(false);
@@ -491,9 +727,9 @@ function Projects() {
           <div ref={addRef} style={{ position: "relative" }}>
             {/* "Add +" button */}
             <button
-              onClick={() => { setAddOpen(o => !o); setConfigOpen(false); setDlaOpen(false); }}
+              onClick={() => { setAddOpen(o => !o); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); }}
               style={{
-                background: (addOpen || configOpen || dlaOpen) ? "var(--color-accent-hover)" : "var(--color-accent)",
+                background: (addOpen || configOpen || dlaOpen || attributionOpen) ? "var(--color-accent-hover)" : "var(--color-accent)",
                 color: "var(--color-accent-fg)",
                 border: "none",
                 borderRadius: 6,
@@ -508,8 +744,8 @@ function Projects() {
                 gap: 6,
                 letterSpacing: "0.01em",
               }}
-              onMouseEnter={e => { if (!addOpen && !configOpen && !dlaOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-              onMouseLeave={e => { if (!addOpen && !configOpen && !dlaOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+              onMouseEnter={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+              onMouseLeave={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
             >
               <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
               Add
@@ -542,13 +778,22 @@ function Projects() {
                   <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Layer-by-layer predictions</span>
                 </button>
                 <button
-                  onClick={() => { setAddOpen(false); setDlaOpen(true); setConfigOpen(false); }}
-                  style={{ background: "var(--color-card)", border: "none", borderRadius: "0 0 6px 6px", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
+                  onClick={() => { setAddOpen(false); setDlaOpen(true); setConfigOpen(false); setAttributionOpen(false); }}
+                  style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: 0, padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
                 >
                   <span>DLA</span>
                   <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Direct attribution per component</span>
+                </button>
+                <button
+                  onClick={() => { setAddOpen(false); setAttributionOpen(true); setConfigOpen(false); setDlaOpen(false); }}
+                  style={{ background: "var(--color-card)", border: "none", borderRadius: "0 0 6px 6px", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                >
+                  <span>Attribution</span>
+                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Map behavioral difference → verify causally</span>
                 </button>
               </div>
             )}
@@ -566,6 +811,13 @@ function Projects() {
               modelsLoading={modelsLoading}
               onSubmit={handleAddDla}
               onClose={() => setDlaOpen(false)}
+            />
+            <AttributionConfigPane
+              isOpen={attributionOpen}
+              availableModels={availableModels}
+              modelsLoading={modelsLoading}
+              onSubmit={handleAddAttribution}
+              onClose={() => setAttributionOpen(false)}
             />
           </div>
 
@@ -732,7 +984,7 @@ function Projects() {
                       {resolvedCards.map((card, i) => (
                         <button
                           key={card.id}
-                          onClick={() => handleExport(card.id, card.modelName, card.prompt)}
+                          onClick={() => handleExport(card.id, card.modelName, getCardPrompt(card))}
                           disabled={exportingId === card.id}
                           style={{
                             background: "var(--color-card)",
@@ -755,7 +1007,7 @@ function Projects() {
                             {card.modelName.split("/").pop()}
                           </span>
                           <span style={{ color: "var(--color-text-muted)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 192 }}>
-                            {exportingId === card.id ? "Exporting…" : card.prompt}
+                            {exportingId === card.id ? "Exporting…" : getCardPrompt(card)}
                           </span>
                         </button>
                       ))}
@@ -966,6 +1218,7 @@ function Projects() {
           onCanvasChange={canvas => dispatch({ type: "SET_CANVAS", canvas })}
           onMoveCard={(id, position) => dispatch({ type: "MOVE_CARD", id, position })}
           onRemoveCard={id => dispatch({ type: "REMOVE_CARD", id })}
+          onVerifyTopK={handleVerifyTopK}
         />
 
       </div>

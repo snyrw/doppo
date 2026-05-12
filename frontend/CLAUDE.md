@@ -16,7 +16,7 @@ TL 3.0 replaces `HookedTransformer` with `TransformerBridge`. Use `TransformerBr
 
 TL 3.0 supports ~9,000 models out of the box, so any standard HF model can be loaded through the same `_TLBase` class — there is no need to special-case architectures.
 
-**Multi-GPU is not supported.** `TransformerBridge` does not support `device_map="auto"`. Models requiring multiple GPUs (typically >30B params) cannot be loaded. These are rejected at validation time.
+**Multi-GPU is not supported.** `TransformerBridge` does not support `device_map="auto"`. Models that require multiple GPUs cannot be loaded. Models up to 70B fit on a single H200 and are supported; >70B is rejected at validation time.
 
 ### DLA / component attribution in TL3
 
@@ -29,6 +29,15 @@ Use full string hook names — tuple shorthand (`cache["attn_out", layer]`) is g
 
 `to_single_token()` is gone — use `model.to_tokens(token, prepend_bos=False)[0, 0]`.
 
+### Hook callbacks in `run_with_hooks`
+
+`run_with_hooks` passes the hook object as a **keyword argument** named `hook`: `fn(value, hook=hook_obj)`. The second parameter MUST be named `hook` — any other name (`__h`, `*_`, etc.) causes `got an unexpected keyword argument 'hook'` at runtime. Correct pattern:
+```python
+def _fn(value, hook):   # 'hook' name is required
+    ...
+    return value
+```
+
 ### Model loading (backend/main.py)
 
 `FEATURED_MODELS` is editorial curation for the frontend — it is **not a gate** on what can run. Any valid HF model ID is accepted by `run-lens`. Featured entries have explicit `gpu_tier` values; custom models get their tier auto-detected.
@@ -36,9 +45,12 @@ Use full string hook names — tuple shorthand (`cache["attn_out", layer]`) is g
 **GPU tiers:**
 - `tl_small` → L4 (< 4B params)
 - `tl_medium` → A10G (4–12B params)
-- `tl_large` → A100-80GB (12–30B params)
+- `tl_large` → A100-80GB (12–38B params; A100-80GB fits ~38B in bfloat16)
+- `tl_xlarge` → H200 (38–70B params; 141 GB VRAM fits 70B in bfloat16)
 
-**GPU tier detection** reads `num_parameters` from `config.json` first; falls back to `num_hidden_layers × hidden_size` as a proxy. Returns `None` (→ rejected) if the model is likely >30B. Conservative fallback when config is absent: `tl_large`.
+**B200 is not supported** — requires PyTorch 2.7+; current image pins `torch==2.6.0`.
+
+**GPU tier detection** reads `num_parameters` from `config.json` first; falls back to `num_hidden_layers × hidden_size` as a proxy. Returns `None` (→ rejected) if the model is likely >70B. Conservative fallback when config is absent: `tl_large`. Tier labels are defined in `app/lib/tiers.ts` — import from there, do not redefine inline per component.
 
 ---
 
@@ -54,9 +66,13 @@ The model selection UI has two mutually exclusive modes:
 
 ### Sandbox card types
 
-`LensCardData` (in `LensCard.tsx`) carries `cardType?: "logit-lens"` — optional so old saved projects without the field still render correctly. `DlaCardData` (in `DlaCard.tsx`) carries `cardType: "dla"` as a required discriminant. `SandboxCanvas` accepts `(LensCardData | DlaCardData)[]` and branches on `card.cardType === "dla"`. When restoring cards from the DB, discriminate on `cardType` and cast explicitly — don't rely on spreading `SerializedCard` directly into a typed card.
+Four card types exist: `"logit-lens"` (`LensCardData`), `"dla"` (`DlaCardData`), `"attribution"` (`AttributionCardData`), `"activation"` (`ActivationCardData`). The full union is `AnyCard`, exported from `SandboxCanvas.tsx`. `SandboxCanvas` uses a `renderCard(card)` switch on `cardType`; `ShareCanvas` passes a noop `onVerifyTopK`. When restoring cards from the DB, discriminate on `cardType` and cast explicitly — don't rely on spreading `SerializedCard` directly into a typed card.
 
-`SerializedCard.data` in `actions.ts` is `Record<string, unknown>` — never a concrete heatmap or DLA type — because the DB stores jsonb and doesn't care about shape.
+`AttributionCardData` uses `cleanPrompt` / `corruptedPrompt` instead of a single `prompt` field. Use the `getCardPrompt(card)` helper in `page.tsx` for generic prompt access across all card types.
+
+Attribution payload (`/api/run-attribution` done event) includes both `target_token` (decoded string) and `target_token_idx` (vocab integer) — the activation patch endpoint requires the integer.
+
+`SerializedCard.data` in `actions.ts` is `Record<string, unknown>` — never a concrete heatmap or DLA type — because the DB stores jsonb and doesn't care about shape. Cast through `unknown` when restoring typed card data from DB.
 
 ### API contract
 
@@ -64,6 +80,8 @@ The model selection UI has two mutually exclusive modes:
 `/api/validate-model` → `{ valid, gpu_tier, reason }`
 `/api/run-lens` → `{ x_labels, y_labels, heatmap_data }`
 `/api/run-dla` → `{ target_token, target_position, y_labels, x_labels, layer_dla, head_dla }`
+`/api/run-attribution` → `{ target_token, target_token_idx, target_position, y_labels, x_labels, layer_attribution, head_attribution, top_k_components }` — cached in `attribution_cache` table + R2
+`/api/run-activation-patch` → `{ total_diff, components[{layer, head, component_type, attribution_score, actual_effect}] }` — not cached (ephemeral)
 
 ---
 
@@ -79,7 +97,8 @@ The model selection UI has two mutually exclusive modes:
 - `app/lib/r2.ts` — Cloudflare R2 helpers: `putHeatmap(key, data)` / `getHeatmap(key)`
 - `app/lib/palette.ts` — four heatmap palettes; `interpolateColor(palette, prob)` for unsigned [0,1] values; `interpolateColorDivergent(palette, value, absMax)` for signed DLA values (rdbu anchored at zero)
 - `app/hooks/usePalette.ts` — reads `localStorage` + listens for `palettechange` custom events; returns current `PaletteName`
-- `app/components/` — `SandboxCanvas`, `LensCard`, `DlaCard`, `ConfigPane`, `DlaConfigPane`, `Navbar`, `AuthModal`, `ProjectSearch`, `HeroSpecimen`
+- `app/lib/tiers.ts` — shared `TIER_LABELS` constant for all four GPU tiers; import here, never redefine inline
+- `app/components/` — `SandboxCanvas` (exports `AnyCard` union), `LensCard`, `DlaCard`, `AttributionCard`, `ActivationCard`, `ConfigPane`, `DlaConfigPane`, `AttributionConfigPane`, `Navbar`, `AuthModal`, `ProjectSearch`, `HeroSpecimen`
 - `app/hooks/` — `useCanvasPan`, `useCardDrag`, `usePalette`
 - `app/share/[shareId]/` — `page.tsx` (server, fetches via `loadPublicProject`) + `ShareCanvas.tsx` (client, wraps `SandboxCanvas` with noop callbacks)
 

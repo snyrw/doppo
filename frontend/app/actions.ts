@@ -68,6 +68,8 @@ type SerializedCard = {
   gpuTier?: string;
   targetPosition?: number | "last";
   targetToken?: string | null;
+  corruptedPrompt?: string;       // attribution cards
+  parentAttributionId?: string;   // activation cards
 };
 
 type CanvasState = {

@@ -24,9 +24,10 @@ tl_image = (
 
 
 # gpu_tier drives which Modal class handles a model.
-# tl_small  → L4         (<4B, GPT-2 family + sub-4B instruct models)
-# tl_medium → A10G       (7–9B models)
-# tl_large  → A100-80GB  (14–27B models)
+# tl_small  → L4         (< 4B, GPT-2 family + sub-4B instruct models)
+# tl_medium → A10G       (4–12B models)
+# tl_large  → A100-80GB  (12–38B models; A100 fits ~38B in bfloat16)
+# tl_xlarge → H200       (38–70B models; H200 141GB fits 70B in bfloat16)
 FEATURED_MODELS: dict[str, dict] = {
     # ── GPT-2 ────────────────────────────────────────────────────────────────
     "gpt2-small": {
@@ -160,6 +161,21 @@ FEATURED_MODELS: dict[str, dict] = {
         "requires_hf_token": True,
         "gpu_tier": "tl_large",
     },
+    # ── XL tier (H200) ───────────────────────────────────────────────────────
+    "Qwen/Qwen3-30B": {
+        "display_name": "Qwen3 (32B)",
+        "description": "Qwen3 mid-range at 32B params. Fits on A100-80GB with comfortable headroom.",
+        "model_id": "Qwen/Qwen3-30B",
+        "requires_hf_token": False,
+        "gpu_tier": "tl_large",  # 32B < 38B A100 ceiling
+    },
+    "meta-llama/Llama-3.3-70B-Instruct": {
+        "display_name": "Llama 3.3 Instruct (70B)",
+        "description": "Meta's flagship 70B on a single H200. Re-enabled with single-GPU support.",
+        "model_id": "meta-llama/Llama-3.3-70B-Instruct",
+        "requires_hf_token": True,
+        "gpu_tier": "tl_xlarge",
+    },
 }
 
 web_image = modal.Image.debian_slim(python_version="3.12").pip_install(
@@ -170,7 +186,13 @@ def _detect_gpu_tier(config: dict) -> str:
     """
     Estimate GPU tier from a model's config.json.
     Falls back to tl_large when the model is too large for a cheaper tier or size is unknown.
-    Returns None if the model exceeds the single-GPU limit (~30B).
+    Returns None if the model exceeds the single-GPU limit (~70B on H200).
+
+    Tiers:
+      tl_small  → L4         (< 4B)
+      tl_medium → A10G       (4–12B)
+      tl_large  → A100-80GB  (12–38B; A100-80GB fits ~38B in bfloat16)
+      tl_xlarge → H200       (38–70B; H200 141GB fits 70B in bfloat16)
     """
     num_params = config.get("num_parameters")
     if isinstance(num_params, (int, float)):
@@ -178,9 +200,11 @@ def _detect_gpu_tier(config: dict) -> str:
             return "tl_small"
         if num_params < 12e9:
             return "tl_medium"
-        if num_params < 30e9:
+        if num_params < 38e9:
             return "tl_large"
-        return None  # exceeds single-GPU limit
+        if num_params < 70e9:
+            return "tl_xlarge"
+        return None  # exceeds single-GPU limit (~70B)
 
     # Proxy: num_hidden_layers × hidden_size scales predictably with model size.
     layers = config.get("num_hidden_layers", 0)
@@ -192,6 +216,8 @@ def _detect_gpu_tier(config: dict) -> str:
         return "tl_medium"
     if proxy and proxy < 400_000:
         return "tl_large"
+    if proxy and proxy < 700_000:
+        return "tl_xlarge"
     if proxy:
         return None  # likely 70B+
 
@@ -248,7 +274,7 @@ def validate_hf_repo(repo_id: str, hf_token: str | None) -> dict:
             detected = _detect_gpu_tier(config)
             if detected is None:
                 return _invalid(
-                    "Model appears to exceed ~30B parameters. Multi-GPU is not yet supported — "
+                    "Model appears to exceed ~70B parameters. Single-GPU limit is 70B on H200 — "
                     "choose a smaller model."
                 )
             gpu_tier = detected
@@ -374,6 +400,237 @@ class _TLBase:
         })
 
     @modal.method()
+    def run_attribution(
+        self,
+        clean_prompt: str,
+        corrupted_prompt: str,
+        target_position: int | str = "last",
+        target_token: str | None = None,
+        top_n: int = 30,
+    ):
+        import json
+        import torch
+
+        yield json.dumps({"stage": "tokenizing"})
+        clean_tokens = self.model.to_tokens(clean_prompt)
+        corrupted_tokens = self.model.to_tokens(corrupted_prompt)
+        pos = int(clean_tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
+
+        n_layers = self.model.cfg.n_layers
+        n_heads = self.model.cfg.n_heads
+
+        # Resolve target token from clean run
+        yield json.dumps({"stage": "clean_forward_pass"})
+        with torch.no_grad():
+            _, clean_cache = self.model.run_with_cache(clean_tokens)
+
+        if target_token is None:
+            final_resid = clean_cache[f"blocks.{n_layers - 1}.hook_resid_post"]
+            final_logits = self.model.unembed(self.model.ln_final(final_resid))
+            target_idx = int(final_logits[0, pos].argmax())
+        else:
+            ids = self.model.to_tokens(target_token, prepend_bos=False)
+            target_idx = int(ids[0, 0])
+        resolved_token = self.model.tokenizer.decode([target_idx])
+
+        # Corrupted forward pass with gradients — proper first-order Taylor attribution.
+        # Hooks save each activation and call retain_grad() so .grad is populated
+        # after metric.backward(). torch.enable_grad() overrides the global
+        # set_grad_enabled(False) set in load_model.
+        yield json.dumps({"stage": "corrupted_forward_backward"})
+
+        corrupted_z: dict[int, torch.Tensor] = {}
+        corrupted_attn_out: dict[int, torch.Tensor] = {}
+        corrupted_mlp_out: dict[int, torch.Tensor] = {}
+
+        def make_save_hook(d: dict, key: int):
+            def _fn(value, hook):
+                d[key] = value
+                value.retain_grad()
+                return value
+            return _fn
+
+        fwd_hooks = []
+        for L in range(n_layers):
+            fwd_hooks.append((f"blocks.{L}.attn.hook_z",   make_save_hook(corrupted_z, L)))
+            fwd_hooks.append((f"blocks.{L}.hook_attn_out", make_save_hook(corrupted_attn_out, L)))
+            fwd_hooks.append((f"blocks.{L}.hook_mlp_out",  make_save_hook(corrupted_mlp_out, L)))
+
+        with torch.enable_grad():
+            logits_corrupted = self.model.run_with_hooks(corrupted_tokens, fwd_hooks=fwd_hooks)
+            metric = logits_corrupted[0, pos, target_idx]
+            metric.backward()
+
+        yield json.dumps({"stage": "computing_attribution"})
+
+        all_components: list[dict] = []
+        head_attribution: list[list[float]] = []
+
+        for L in range(n_layers):
+            z_grad = corrupted_z[L].grad
+            if z_grad is None:
+                raise RuntimeError(
+                    f"hook_z gradient is None at layer {L}. "
+                    "The TL3 bridge may be detaching activations — cannot compute attribution."
+                )
+            clean_z_L = clean_cache[f"blocks.{L}.attn.hook_z"][0, pos].float()     # [n_heads, d_head]
+            corrupted_z_L = corrupted_z[L][0, pos].float()
+            grad_z_L = z_grad[0, pos].float()
+
+            row: list[float] = []
+            for H in range(n_heads):
+                z_diff = clean_z_L[H] - corrupted_z_L[H]   # [d_head]
+                attr = float((z_diff * grad_z_L[H]).sum())
+                row.append(attr)
+                all_components.append({
+                    "layer": L,
+                    "head": H,
+                    "component_type": "attn_head",
+                    "attribution_score": attr,
+                })
+            head_attribution.append(row)
+
+        layer_attribution: list[float] = []
+        for L in range(n_layers):
+            attn_grad = corrupted_attn_out[L].grad
+            mlp_grad = corrupted_mlp_out[L].grad
+            if attn_grad is None or mlp_grad is None:
+                raise RuntimeError(
+                    f"hook_attn_out or hook_mlp_out gradient is None at layer {L}."
+                )
+            attn_diff = (
+                clean_cache[f"blocks.{L}.hook_attn_out"][0, pos].float()
+                - corrupted_attn_out[L][0, pos].float()
+            )
+            mlp_diff = (
+                clean_cache[f"blocks.{L}.hook_mlp_out"][0, pos].float()
+                - corrupted_mlp_out[L][0, pos].float()
+            )
+            layer_attr = float(
+                (attn_diff * corrupted_attn_out[L].grad[0, pos].float()).sum()
+                + (mlp_diff * corrupted_mlp_out[L].grad[0, pos].float()).sum()
+            )
+            layer_attribution.append(layer_attr)
+            all_components.append({
+                "layer": L,
+                "head": -1,
+                "component_type": "mlp",
+                "attribution_score": float((mlp_diff * mlp_grad[0, pos].float()).sum()),
+            })
+
+        all_components.sort(key=lambda c: abs(c["attribution_score"]), reverse=True)
+        top_k_components = all_components[:top_n]
+
+        yield json.dumps({
+            "stage": "done",
+            "data": {
+                "target_token": resolved_token,
+                "target_token_idx": target_idx,
+                "target_position": pos,
+                "y_labels": [f"L{i}" for i in range(n_layers)],
+                "x_labels": [f"H{i}" for i in range(n_heads)],
+                "layer_attribution": layer_attribution,
+                "head_attribution": head_attribution,
+                "top_k_components": top_k_components,
+            },
+        })
+
+    @modal.method()
+    def run_activation_patch(
+        self,
+        clean_prompt: str,
+        corrupted_prompt: str,
+        target_position: int | str = "last",
+        target_token_idx: int = 0,
+        components: list[dict] | None = None,
+        k: int = 10,
+    ):
+        import json
+        import torch
+
+        if components is None:
+            components = []
+
+        yield json.dumps({"stage": "tokenizing"})
+        clean_tokens = self.model.to_tokens(clean_prompt)
+        corrupted_tokens = self.model.to_tokens(corrupted_prompt)
+        pos = int(clean_tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
+        top_components = components[:k]
+
+        # Build set of hook names needed for corrupted cache
+        hook_names: set[str] = set()
+        for comp in top_components:
+            L = comp["layer"]
+            if comp["component_type"] == "attn_head":
+                hook_names.add(f"blocks.{L}.attn.hook_z")
+            else:
+                hook_names.add(f"blocks.{L}.hook_mlp_out")
+
+        yield json.dumps({"stage": "preparing"})
+        with torch.no_grad():
+            _, corrupted_cache = self.model.run_with_cache(
+                corrupted_tokens,
+                names_filter=lambda name: name in hook_names,
+            )
+            clean_metric = float(self.model(clean_tokens)[0, pos, target_token_idx])
+            corrupted_metric = float(self.model(corrupted_tokens)[0, pos, target_token_idx])
+        total_diff = max(abs(clean_metric - corrupted_metric), 1e-8)
+
+        results: list[dict] = []
+        for i, comp in enumerate(top_components):
+            L = comp["layer"]
+            H = comp.get("head", -1)
+
+            if comp["component_type"] == "attn_head":
+                corrupted_z_val = corrupted_cache[f"blocks.{L}.attn.hook_z"][:, :, H, :].clone()
+
+                def make_head_hook(cached_z, head_idx):
+                    def _fn(value, hook):
+                        value[:, :, head_idx, :] = cached_z
+                        return value
+                    return _fn
+
+                hook_fn = make_head_hook(corrupted_z_val, H)
+                hook_name = f"blocks.{L}.attn.hook_z"
+            else:
+                corrupted_mlp_val = corrupted_cache[f"blocks.{L}.hook_mlp_out"].clone()
+
+                def make_mlp_hook(cached_mlp):
+                    def _fn(value, hook):
+                        return cached_mlp
+                    return _fn
+
+                hook_fn = make_mlp_hook(corrupted_mlp_val)
+                hook_name = f"blocks.{L}.hook_mlp_out"
+
+            with torch.no_grad():
+                patched_logits = self.model.run_with_hooks(
+                    clean_tokens,
+                    fwd_hooks=[(hook_name, hook_fn)],
+                )
+            patched_metric = float(patched_logits[0, pos, target_token_idx])
+            actual_effect = (clean_metric - patched_metric) / total_diff
+
+            results.append({
+                "layer": L,
+                "head": H,
+                "component_type": comp["component_type"],
+                "attribution_score": comp["attribution_score"],
+                "actual_effect": actual_effect,
+            })
+
+            yield json.dumps({"stage": f"patching_{i + 1}_of_{len(top_components)}"})
+
+        yield json.dumps({"stage": "computing_effects"})
+        yield json.dumps({
+            "stage": "done",
+            "data": {
+                "total_diff": total_diff,
+                "components": results,
+            },
+        })
+
+    @modal.method()
     def run_logit_lens(self, prompt: str, top_k: int = 5):
         import json
         import torch
@@ -434,12 +691,18 @@ class TransformerLensLarge(_TLBase):
     model_id: str = modal.parameter()
 
 
+@app.cls(gpu="H200", **_TL_KWARGS)
+class TransformerLensXLarge(_TLBase):
+    model_id: str = modal.parameter()
+
+
 # ── Routing table ─────────────────────────────────────────────────────────────
 
 _TIER_TO_CLS = {
-    "tl_small": TransformerLensSmall,
+    "tl_small":  TransformerLensSmall,
     "tl_medium": TransformerLensMedium,
-    "tl_large": TransformerLensLarge,
+    "tl_large":  TransformerLensLarge,
+    "tl_xlarge": TransformerLensXLarge,
 }
 
 
@@ -470,6 +733,22 @@ def api():
         model_name: str
         target_position: int | str = "last"
         target_token: str | None = None
+
+    class AttributionRequest(BaseModel):
+        prompt: str            # clean prompt
+        corrupted_prompt: str
+        model_name: str
+        target_position: int | str = "last"
+        target_token: str | None = None
+
+    class ActivationPatchRequest(BaseModel):
+        prompt: str            # clean prompt
+        corrupted_prompt: str
+        model_name: str
+        target_position: int | str = "last"
+        target_token_idx: int
+        components: list[dict]
+        k: int
 
     class ValidateModelRequest(BaseModel):
         repo_id: str
@@ -542,6 +821,68 @@ def api():
             try:
                 async for chunk in cls(model_id=model_id).run_dla.remote_gen.aio(
                     request.prompt, request.target_position, request.target_token
+                ):
+                    yield f"data: {chunk}\n\n"
+            except Exception as e:
+                safe = str(e).replace("\\", "\\\\").replace('"', '\\"')
+                yield f'data: {{"stage":"error","error":"{safe}"}}\n\n'
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+    @web_app.post("/api/run-attribution-stream")
+    async def run_attribution_stream(request: AttributionRequest):
+        from fastapi.responses import StreamingResponse
+
+        entry = FEATURED_MODELS.get(request.model_name)
+        if entry is None:
+            validation = validate_hf_repo(request.model_name, hf_token=hf_token)
+            if not validation["valid"]:
+                raise HTTPException(status_code=400, detail=validation["reason"])
+            cls = _TIER_TO_CLS[validation["gpu_tier"]]
+            model_id = request.model_name
+        else:
+            cls = _TIER_TO_CLS[entry["gpu_tier"]]
+            model_id = entry["model_id"]
+
+        async def event_stream():
+            try:
+                async for chunk in cls(model_id=model_id).run_attribution.remote_gen.aio(
+                    request.prompt,
+                    request.corrupted_prompt,
+                    request.target_position,
+                    request.target_token,
+                ):
+                    yield f"data: {chunk}\n\n"
+            except Exception as e:
+                safe = str(e).replace("\\", "\\\\").replace('"', '\\"')
+                yield f'data: {{"stage":"error","error":"{safe}"}}\n\n'
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+    @web_app.post("/api/run-activation-patch-stream")
+    async def run_activation_patch_stream(request: ActivationPatchRequest):
+        from fastapi.responses import StreamingResponse
+
+        entry = FEATURED_MODELS.get(request.model_name)
+        if entry is None:
+            validation = validate_hf_repo(request.model_name, hf_token=hf_token)
+            if not validation["valid"]:
+                raise HTTPException(status_code=400, detail=validation["reason"])
+            cls = _TIER_TO_CLS[validation["gpu_tier"]]
+            model_id = request.model_name
+        else:
+            cls = _TIER_TO_CLS[entry["gpu_tier"]]
+            model_id = entry["model_id"]
+
+        async def event_stream():
+            try:
+                async for chunk in cls(model_id=model_id).run_activation_patch.remote_gen.aio(
+                    request.prompt,
+                    request.corrupted_prompt,
+                    request.target_position,
+                    request.target_token_idx,
+                    request.components,
+                    request.k,
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:

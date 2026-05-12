@@ -3,6 +3,7 @@
 import React from "react";
 import { usePalette } from "../hooks/usePalette";
 import { interpolateColor, getContrastColor } from "../lib/palette";
+import { TIER_LABELS } from "../lib/tiers";
 
 type HeatmapData = {
   x_labels: string[];
@@ -35,11 +36,6 @@ type LensCardProps = {
   onRemove: (id: string) => void;
 };
 
-const TIER_LABELS: Record<string, string> = {
-  tl_small: "L4",
-  tl_medium: "A10G",
-  tl_large: "A100-80GB",
-};
 
 // approximate char width at 7px Azeret Mono
 const CHAR_W = 4.5;

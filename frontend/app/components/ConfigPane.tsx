@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "@/app/lib/auth-client";
+import { TIER_LABELS } from "../lib/tiers";
 
 type ModelInfo = {
   id: string;
@@ -27,11 +28,6 @@ type ConfigPaneProps = {
 
 const DEFAULT_PROMPT = "The capital of France is Paris. The capital of Germany is";
 
-const TIER_LABELS: Record<string, string> = {
-  tl_small: "L4",
-  tl_medium: "A10G",
-  tl_large: "A100-80GB",
-};
 
 export default function ConfigPane({
   isOpen,

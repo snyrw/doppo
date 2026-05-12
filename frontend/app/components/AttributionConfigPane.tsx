@@ -18,13 +18,14 @@ type CustomValidation = {
   reason: string;
 };
 
-type DlaConfigPaneProps = {
+type AttributionConfigPaneProps = {
   isOpen: boolean;
   availableModels: ModelInfo[];
   modelsLoading: boolean;
   onSubmit: (config: {
     modelName: string;
-    prompt: string;
+    cleanPrompt: string;
+    corruptedPrompt: string;
     gpuTier?: string;
     targetPosition: number | "last";
     targetToken: string | null;
@@ -32,19 +33,20 @@ type DlaConfigPaneProps = {
   onClose: () => void;
 };
 
-const DEFAULT_PROMPT = "The capital of France is Paris. The capital of Germany is";
+const DEFAULT_CLEAN_PROMPT = "When Mary and John went to the store, John gave a drink to";
+const DEFAULT_CORRUPTED_PROMPT = "When Mary and John went to the store, Mary gave a drink to";
 
-
-export default function DlaConfigPane({
+export default function AttributionConfigPane({
   isOpen,
   availableModels,
   modelsLoading,
   onSubmit,
   onClose,
-}: DlaConfigPaneProps) {
+}: AttributionConfigPaneProps) {
   const { data: session } = useSession();
   const [selectedModel, setSelectedModel] = useState("");
-  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
+  const [cleanPrompt, setCleanPrompt] = useState(DEFAULT_CLEAN_PROMPT);
+  const [corruptedPrompt, setCorruptedPrompt] = useState(DEFAULT_CORRUPTED_PROMPT);
   const [customRepoId, setCustomRepoId] = useState("");
   const [customValidation, setCustomValidation] = useState<CustomValidation | null>(null);
   const [customValidating, setCustomValidating] = useState(false);
@@ -61,7 +63,8 @@ export default function DlaConfigPane({
 
   const doReset = () => {
     setSelectedModel(availableModels[0]?.id ?? "");
-    setPrompt(DEFAULT_PROMPT);
+    setCleanPrompt(DEFAULT_CLEAN_PROMPT);
+    setCorruptedPrompt(DEFAULT_CORRUPTED_PROMPT);
     setCustomRepoId("");
     setCustomValidation(null);
     setCustomValidating(false);
@@ -111,10 +114,10 @@ export default function DlaConfigPane({
   };
 
   const usingCustom = customRepoId.trim() !== "";
-  const modelOk = usingCustom ? (customValidation?.valid === true) : selectedModel !== "";
+  const modelOk = usingCustom ? customValidation?.valid === true : selectedModel !== "";
   const positionOk = positionMode === "last" || (customPosition.trim() !== "" && !isNaN(parseInt(customPosition)));
   const tokenOk = tokenMode === "auto" || customToken.trim() !== "";
-  const canRun = modelOk && positionOk && tokenOk;
+  const canRun = modelOk && positionOk && tokenOk && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "";
 
   const selectedGpuTier = usingCustom
     ? (customValidation?.gpu_tier ?? null)
@@ -129,7 +132,7 @@ export default function DlaConfigPane({
       : (availableModels.find(m => m.id === selectedModel)?.gpu_tier ?? undefined);
     const targetPosition: number | "last" = positionMode === "last" ? "last" : parseInt(customPosition);
     const targetToken: string | null = tokenMode === "auto" ? null : customToken.trim();
-    onSubmit({ modelName, prompt, gpuTier, targetPosition, targetToken });
+    onSubmit({ modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, targetToken });
     doReset();
   };
 
@@ -158,7 +161,7 @@ export default function DlaConfigPane({
         position: "absolute",
         top: "calc(100% + 6px)",
         left: 0,
-        width: 380,
+        width: 400,
         zIndex: 30,
         display: "flex",
         flexDirection: "column",
@@ -182,32 +185,20 @@ export default function DlaConfigPane({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* DLA icon: a small attribution-style bar chart */}
+          {/* Attribution icon: diverging arrows */}
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.5, color: "var(--color-text-muted)" }}>
-            <rect x="1" y="7" width="3" height="8" rx="0.5" stroke="currentColor" strokeWidth="1" />
-            <rect x="6" y="3" width="3" height="12" rx="0.5" stroke="currentColor" strokeWidth="1" />
-            <rect x="11" y="9" width="3" height="6" rx="0.5" stroke="currentColor" strokeWidth="1" />
-            <line x1="0" y1="15.5" x2="16" y2="15.5" stroke="currentColor" strokeWidth="0.75" />
+            <path d="M8 2v12M4 5l4-3 4 3M4 11l4 3 4-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", letterSpacing: "0.01em" }}>
-            New DLA
+            New Attribution
           </span>
         </div>
         <button
           onClick={handleClose}
           style={{
-            width: 24,
-            height: 24,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 4,
-            border: "none",
-            background: "transparent",
-            color: "var(--color-text-muted)",
-            cursor: "pointer",
-            fontSize: 16,
-            lineHeight: 1,
+            width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center",
+            borderRadius: 4, border: "none", background: "transparent",
+            color: "var(--color-text-muted)", cursor: "pointer", fontSize: 16, lineHeight: 1,
             transition: "background 120ms, color 120ms",
           }}
           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text)"; }}
@@ -228,7 +219,7 @@ export default function DlaConfigPane({
           {modelsLoading ? (
             <div style={{ fontSize: 12, color: "var(--color-text-muted)", padding: "12px 0" }}>Loading models…</div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, maxHeight: 260, overflowY: "auto", paddingRight: 2 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, maxHeight: 200, overflowY: "auto", paddingRight: 2 }}>
               {availableModels.map(m => {
                 const isSelected = selectedModel === m.id && !usingCustom;
                 return (
@@ -238,15 +229,11 @@ export default function DlaConfigPane({
                     title={m.description}
                     style={{
                       border: `1.5px solid ${isSelected ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                      borderRadius: 7,
-                      padding: "8px 9px",
+                      borderRadius: 7, padding: "8px 9px",
                       background: isSelected ? "var(--color-surface-border)" : "var(--color-card)",
-                      cursor: "pointer",
-                      textAlign: "left",
+                      cursor: "pointer", textAlign: "left",
                       transition: "border-color 120ms, background 120ms",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 3,
+                      display: "flex", flexDirection: "column", gap: 3,
                     }}
                     onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-accent)"; }}
                     onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-card-border)"; }}
@@ -258,14 +245,10 @@ export default function DlaConfigPane({
                       {m.description}
                     </span>
                     {m.requires_hf_token && (
-                      <span style={{ fontSize: 9, color: "var(--color-text-muted)", marginTop: 1, letterSpacing: "0.02em" }}>
-                        HF token required
-                      </span>
+                      <span style={{ fontSize: 9, color: "var(--color-text-muted)", marginTop: 1, letterSpacing: "0.02em" }}>HF token required</span>
                     )}
                     {!session && m.gpu_tier !== "tl_small" && (
-                      <span style={{ fontSize: 9, color: "#d97706", marginTop: 1, letterSpacing: "0.02em" }}>
-                        Sign in to run
-                      </span>
+                      <span style={{ fontSize: 9, color: "#d97706", marginTop: 1, letterSpacing: "0.02em" }}>Sign in to run</span>
                     )}
                   </button>
                 );
@@ -294,15 +277,10 @@ export default function DlaConfigPane({
               onChange={e => handleCustomRepoChange(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && customRepoId.trim()) validateCustomRepo(); }}
               style={{
-                flex: 1,
-                border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                borderRadius: 6,
-                padding: "6px 8px",
-                fontSize: 11,
+                flex: 1, border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                borderRadius: 6, padding: "6px 8px", fontSize: 11,
                 fontFamily: "var(--font-azeret-mono), monospace",
-                color: "var(--color-text)",
-                background: "var(--color-bg)",
-                outline: "none",
+                color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
                 transition: "border-color 120ms",
               }}
             />
@@ -310,16 +288,11 @@ export default function DlaConfigPane({
               onClick={validateCustomRepo}
               disabled={!customRepoId.trim() || customValidating}
               style={{
-                border: "1px solid var(--color-card-border)",
-                borderRadius: 6,
-                padding: "6px 10px",
-                fontSize: 11,
-                background: "var(--color-surface-border)",
-                color: "var(--color-text-muted)",
+                border: "1px solid var(--color-card-border)", borderRadius: 6, padding: "6px 10px",
+                fontSize: 11, background: "var(--color-surface-border)", color: "var(--color-text-muted)",
                 cursor: (!customRepoId.trim() || customValidating) ? "not-allowed" : "pointer",
                 opacity: (!customRepoId.trim() || customValidating) ? 0.5 : 1,
-                whiteSpace: "nowrap",
-                transition: "background 120ms",
+                whiteSpace: "nowrap", transition: "background 120ms",
               }}
             >
               {customValidating ? "…" : "Validate"}
@@ -334,84 +307,75 @@ export default function DlaConfigPane({
           )}
         </div>
 
-        {/* Prompt */}
-        <div style={{ marginBottom: 20 }}>
+        {/* Prompts */}
+        <div style={{ marginBottom: 16 }}>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
-            Prompt
+            Reference Prompt
           </label>
           <textarea
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            rows={5}
+            value={cleanPrompt}
+            onChange={e => setCleanPrompt(e.target.value)}
+            rows={3}
+            placeholder="Where the behavior you want to explain occurs"
             style={{
-              width: "100%",
-              border: "1px solid var(--color-card-border)",
-              borderRadius: 6,
-              padding: "8px 10px",
-              fontSize: 13,
-              color: "var(--color-text)",
-              background: "var(--color-bg)",
-              resize: "vertical",
-              outline: "none",
-              fontFamily: "inherit",
-              lineHeight: 1.5,
-              boxSizing: "border-box",
+              width: "100%", border: "1px solid var(--color-card-border)", borderRadius: 6,
+              padding: "8px 10px", fontSize: 12, color: "var(--color-text)",
+              background: "var(--color-bg)", resize: "vertical", outline: "none",
+              fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
             }}
           />
         </div>
 
-        {/* Analysis target section */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
+            Counterfactual Prompt
+          </label>
+          <textarea
+            value={corruptedPrompt}
+            onChange={e => setCorruptedPrompt(e.target.value)}
+            rows={3}
+            placeholder="A variation that changes the behavior"
+            style={{
+              width: "100%", border: "1px solid var(--color-card-border)", borderRadius: 6,
+              padding: "8px 10px", fontSize: 12, color: "var(--color-text)",
+              background: "var(--color-bg)", resize: "vertical", outline: "none",
+              fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
+            }}
+          />
+          <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
+            Attribution patching scores each component by how much its activation change (reference → counterfactual) points toward the target token.{" "}
+            <em>Verify top K</em> on the result card then runs causal activation patches on the top candidates to confirm.
+          </p>
+        </div>
+
+        {/* Analysis target */}
         <div style={{ borderTop: "1px solid var(--color-surface-border)", paddingTop: 16, marginBottom: 4 }}>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 12 }}>
             Analysis Target
           </label>
 
-          {/* Position */}
           <div style={{ marginBottom: 14 }}>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>
-              Position
-            </span>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>Position</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <label style={radioStyle}>
-                <input
-                  type="radio"
-                  name="dla-position"
-                  checked={positionMode === "last"}
-                  onChange={() => setPositionMode("last")}
-                  style={radioInputStyle}
-                />
+                <input type="radio" name="attr-position" checked={positionMode === "last"} onChange={() => setPositionMode("last")} style={radioInputStyle} />
                 Last token
-                <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>
-                  — next-token prediction (most common)
-                </span>
+                <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>— next-token prediction (most common)</span>
               </label>
               <label style={{ ...radioStyle, alignItems: "flex-start" }}>
-                <input
-                  type="radio"
-                  name="dla-position"
-                  checked={positionMode === "custom"}
-                  onChange={() => setPositionMode("custom")}
-                  style={{ ...radioInputStyle, marginTop: 2 }}
-                />
+                <input type="radio" name="attr-position" checked={positionMode === "custom"} onChange={() => setPositionMode("custom")} style={{ ...radioInputStyle, marginTop: 2 }} />
                 <span>Token index</span>
                 <input
-                  type="number"
-                  min={0}
-                  placeholder="e.g. 3"
+                  type="number" min={0} placeholder="e.g. 3"
                   value={customPosition}
                   onFocus={() => setPositionMode("custom")}
                   onChange={e => { setPositionMode("custom"); setCustomPosition(e.target.value); }}
                   style={{
-                    width: 72,
-                    marginLeft: 6,
+                    width: 72, marginLeft: 6,
                     border: `1px solid ${positionMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                    borderRadius: 5,
-                    padding: "3px 6px",
-                    fontSize: 11,
+                    borderRadius: 5, padding: "3px 6px", fontSize: 11,
                     fontFamily: "var(--font-azeret-mono), monospace",
-                    color: "var(--color-text)",
-                    background: "var(--color-bg)",
-                    outline: "none",
+                    color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
                     transition: "border-color 120ms",
                   }}
                 />
@@ -419,51 +383,28 @@ export default function DlaConfigPane({
             </div>
           </div>
 
-          {/* Target token */}
           <div>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>
-              Target token
-            </span>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>Target token</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <label style={radioStyle}>
-                <input
-                  type="radio"
-                  name="dla-token"
-                  checked={tokenMode === "auto"}
-                  onChange={() => setTokenMode("auto")}
-                  style={radioInputStyle}
-                />
+                <input type="radio" name="attr-token" checked={tokenMode === "auto"} onChange={() => setTokenMode("auto")} style={radioInputStyle} />
                 Top prediction
-                <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>
-                  — attribute the model&apos;s most likely next token
-                </span>
+                <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>— attribute the model&apos;s most likely next token</span>
               </label>
               <label style={{ ...radioStyle, alignItems: "flex-start" }}>
-                <input
-                  type="radio"
-                  name="dla-token"
-                  checked={tokenMode === "custom"}
-                  onChange={() => setTokenMode("custom")}
-                  style={{ ...radioInputStyle, marginTop: 2 }}
-                />
+                <input type="radio" name="attr-token" checked={tokenMode === "custom"} onChange={() => setTokenMode("custom")} style={{ ...radioInputStyle, marginTop: 2 }} />
                 <span style={{ flexShrink: 0 }}>Specify</span>
                 <input
-                  type="text"
-                  placeholder={`e.g. " Paris"`}
+                  type="text" placeholder={`e.g. " Mary"`}
                   value={customToken}
                   onFocus={() => setTokenMode("custom")}
                   onChange={e => { setTokenMode("custom"); setCustomToken(e.target.value); }}
                   style={{
-                    flex: 1,
-                    marginLeft: 6,
+                    flex: 1, marginLeft: 6,
                     border: `1px solid ${tokenMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                    borderRadius: 5,
-                    padding: "3px 6px",
-                    fontSize: 11,
+                    borderRadius: 5, padding: "3px 6px", fontSize: 11,
                     fontFamily: "var(--font-azeret-mono), monospace",
-                    color: "var(--color-text)",
-                    background: "var(--color-bg)",
-                    outline: "none",
+                    color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
                     transition: "border-color 120ms",
                   }}
                 />
@@ -484,22 +425,17 @@ export default function DlaConfigPane({
           onClick={handleRun}
           disabled={!canRun || isLockedByAuth}
           style={{
-            width: "100%",
-            padding: "10px 0",
-            borderRadius: 6,
-            border: "none",
+            width: "100%", padding: "10px 0", borderRadius: 6, border: "none",
             background: (!canRun || isLockedByAuth) ? "var(--color-surface-border)" : "var(--color-accent)",
             color: (!canRun || isLockedByAuth) ? "var(--color-text-muted)" : "var(--color-accent-fg)",
-            fontSize: 13,
-            fontWeight: 600,
+            fontSize: 13, fontWeight: 600,
             cursor: (!canRun || isLockedByAuth) ? "not-allowed" : "pointer",
-            letterSpacing: "0.02em",
-            transition: "background 150ms",
+            letterSpacing: "0.02em", transition: "background 150ms",
           }}
           onMouseEnter={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
           onMouseLeave={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
         >
-          {isLockedByAuth ? "Sign in to run →" : "Run DLA →"}
+          {isLockedByAuth ? "Sign in to run →" : "Run Attribution →"}
         </button>
       </div>
     </div>

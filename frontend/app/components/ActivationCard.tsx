@@ -1,0 +1,311 @@
+"use client";
+
+import React from "react";
+import { interpolateColorDivergent } from "../lib/palette";
+import { TIER_LABELS } from "../lib/tiers";
+
+export type VerifiedComponent = {
+  layer: number;
+  head: number;
+  component_type: string;
+  attribution_score: number;
+  actual_effect: number;
+};
+
+export type ActivationPatchResult = {
+  total_diff: number;
+  components: VerifiedComponent[];
+};
+
+export type ActivationCardData = {
+  id: string;
+  cardType: "activation";
+  status: "loading" | "result" | "error";
+  modelName: string;
+  cleanPrompt: string;
+  k: number;
+  parentAttributionId: string;
+  data: ActivationPatchResult | null;
+  error: string | null;
+  position: { x: number; y: number };
+  gpuTier?: string;
+  startedAt?: number;
+  loadingStage?: string;
+};
+
+type ActivationCardProps = {
+  card: ActivationCardData;
+  ref?: React.Ref<HTMLDivElement>;
+  onStartDrag: (e: React.PointerEvent<HTMLDivElement>, cardId: string, pos: { x: number; y: number }) => void;
+  onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
+  onRemove: (id: string) => void;
+};
+
+function formatElapsed(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function getStageLabel(stage: string | undefined, elapsedMs: number): string {
+  if (!stage) return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
+  if (stage.startsWith("patching_")) {
+    const match = stage.match(/patching_(\d+)_of_(\d+)/);
+    if (match) return `Verifying component ${match[1]} of ${match[2]}`;
+  }
+  const labels: Record<string, string> = {
+    tokenizing: "Tokenizing…",
+    preparing: "Caching counterfactual activations",
+    computing_effects: "Normalizing effects",
+  };
+  return labels[stage] ?? "Processing…";
+}
+
+function matchLabel(effect: number): { text: string; color: string; bg: string; border: string } {
+  if (effect > 0.7) return { text: "Strong", color: "#16a34a", bg: "rgba(22,163,74,0.08)", border: "rgba(22,163,74,0.25)" };
+  if (effect > 0.3) return { text: "Partial", color: "#d97706", bg: "rgba(217,119,6,0.08)", border: "rgba(217,119,6,0.25)" };
+  return { text: "Weak", color: "#dc2626", bg: "rgba(220,38,38,0.08)", border: "rgba(220,38,38,0.25)" };
+}
+
+function spearmanCorrelation(xs: number[], ys: number[]): number {
+  if (xs.length < 2) return 0;
+  const rank = (arr: number[]) => {
+    const sorted = [...arr].map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v);
+    const ranks = new Array(arr.length);
+    sorted.forEach(({ i }, r) => { ranks[i] = r + 1; });
+    return ranks;
+  };
+  const rx = rank(xs);
+  const ry = rank(ys);
+  const n = xs.length;
+  const d2 = rx.reduce((s, r, i) => s + (r - ry[i]) ** 2, 0);
+  return 1 - (6 * d2) / (n * (n * n - 1));
+}
+
+export default function ActivationCard({
+  card,
+  ref,
+  onStartDrag,
+  onDragMove,
+  onDragEnd,
+  onRemove,
+}: ActivationCardProps) {
+  const [elapsedMs, setElapsedMs] = React.useState(0);
+  const [headerHovered, setHeaderHovered] = React.useState(false);
+
+  React.useEffect(() => {
+    if (card.status !== "loading") return;
+    const start = card.startedAt ?? Date.now();
+    setElapsedMs(Date.now() - start);
+    const id = setInterval(() => setElapsedMs(Date.now() - start), 1000);
+    return () => clearInterval(id);
+  }, [card.status, card.startedAt]);
+
+  const spearman = React.useMemo(() => {
+    if (!card.data) return null;
+    const { components } = card.data;
+    if (components.length < 2) return null;
+    return spearmanCorrelation(
+      components.map(c => c.attribution_score),
+      components.map(c => c.actual_effect)
+    );
+  }, [card.data]);
+
+  const attrAbsMax = React.useMemo(() => {
+    if (!card.data) return 1;
+    return Math.max(1e-9, ...card.data.components.map(c => Math.abs(c.attribution_score)));
+  }, [card.data]);
+
+  return (
+    <div
+      ref={ref}
+      data-card-id={card.id}
+      style={{
+        position: "absolute",
+        left: card.position.x,
+        top: card.position.y,
+        zIndex: 10,
+        width: 300,
+        background: "var(--color-card)",
+        borderRadius: 8,
+        border: "1px solid var(--color-card-border)",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      {/* Hover popup */}
+      {headerHovered && (
+        <div style={{
+          position: "absolute", bottom: "calc(100% + 6px)", left: 0,
+          background: "var(--color-card)", border: "1px solid var(--color-card-border)",
+          borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+          padding: "10px 12px", zIndex: 100, pointerEvents: "none",
+          minWidth: 200, maxWidth: 300,
+        }}>
+          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-all" }}>
+            {card.modelName}
+          </p>
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-word" }}>
+            {card.cleanPrompt}
+          </p>
+          <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
+            {card.gpuTier && (
+              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+                {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
+              </span>
+            )}
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+              Activation Patch
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div
+        onPointerDown={e => onStartDrag(e, card.id, card.position)}
+        onPointerMove={onDragMove}
+        onPointerUp={onDragEnd}
+        onMouseEnter={() => setHeaderHovered(true)}
+        onMouseLeave={() => setHeaderHovered(false)}
+        style={{
+          padding: "7px 10px", borderBottom: "1px solid var(--color-surface-border)",
+          display: "flex", alignItems: "center", gap: 6,
+          cursor: "grab", userSelect: "none", flexShrink: 0,
+          borderRadius: "8px 8px 0 0",
+        }}
+      >
+        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
+          <circle cx="2" cy="2" r="1.2" fill="currentColor" />
+          <circle cx="6" cy="2" r="1.2" fill="currentColor" />
+          <circle cx="2" cy="6" r="1.2" fill="currentColor" />
+          <circle cx="6" cy="6" r="1.2" fill="currentColor" />
+          <circle cx="2" cy="10" r="1.2" fill="currentColor" />
+          <circle cx="6" cy="10" r="1.2" fill="currentColor" />
+        </svg>
+        <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0 }}>
+          Activation Patch
+        </span>
+        <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          top {card.k}
+        </span>
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={() => onRemove(card.id)}
+          style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Loading */}
+      {card.status === "loading" && (
+        <div style={{ display: "flex", flexDirection: "column", padding: "12px 14px", gap: 10, minHeight: 110 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            {card.gpuTier ? (
+              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+                {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
+              </span>
+            ) : <span />}
+            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
+              {formatElapsed(elapsedMs)}
+            </span>
+          </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <div style={{ width: 20, height: 20, border: "2px solid var(--color-surface-border)", borderTopColor: "var(--color-accent)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+            <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
+              {getStageLabel(card.loadingStage, elapsedMs)}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Error */}
+      {card.status === "error" && (
+        <div style={{ padding: "12px 14px" }}>
+          <p style={{ fontSize: 11, color: "#dc2626" }}>✗ {card.error ?? "Unknown error"}</p>
+        </div>
+      )}
+
+      {/* Result */}
+      {card.status === "result" && card.data && (
+        <>
+          {/* Column headers */}
+          <div style={{ display: "flex", alignItems: "center", padding: "6px 10px 4px", gap: 6, borderBottom: "1px solid var(--color-surface-border)" }}>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", width: 52, flexShrink: 0 }}>Component</span>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", flex: 1 }}>Attribution</span>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", flex: 1 }}>Effect</span>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", width: 44, flexShrink: 0, textAlign: "right" }}>Match</span>
+          </div>
+
+          {/* Rows */}
+          <div style={{ overflow: "auto" }}>
+            {card.data.components.map((comp, i) => {
+              const match = matchLabel(comp.actual_effect);
+              const attrColor = interpolateColorDivergent("rdbu", comp.attribution_score, attrAbsMax);
+              const attrFrac = Math.abs(comp.attribution_score) / attrAbsMax;
+              const effectFrac = Math.max(0, Math.min(1, comp.actual_effect));
+              const label = comp.component_type === "attn_head"
+                ? `L${comp.layer}·H${comp.head}`
+                : `L${comp.layer}·MLP`;
+              const tooltip = `${label}: attribution ${comp.attribution_score >= 0 ? "+" : ""}${comp.attribution_score.toFixed(3)}, effect ${(comp.actual_effect * 100).toFixed(1)}%`;
+
+              return (
+                <div
+                  key={i}
+                  title={tooltip}
+                  style={{
+                    display: "flex", alignItems: "center", padding: "5px 10px", gap: 6,
+                    borderBottom: "1px solid var(--color-surface-border)",
+                  }}
+                >
+                  {/* Component label */}
+                  <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text)", width: 52, flexShrink: 0, fontWeight: 600 }}>
+                    {label}
+                  </span>
+
+                  {/* Attribution bar */}
+                  <div style={{ flex: 1, height: 8, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ width: `${attrFrac * 100}%`, height: "100%", background: attrColor, borderRadius: 2 }} />
+                  </div>
+
+                  {/* Effect bar */}
+                  <div style={{ flex: 1, height: 8, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ width: `${effectFrac * 100}%`, height: "100%", background: "#16a34a", borderRadius: 2, opacity: 0.7 + effectFrac * 0.3 }} />
+                  </div>
+
+                  {/* Match badge */}
+                  <span style={{
+                    fontSize: 8, fontWeight: 700, letterSpacing: "0.04em",
+                    color: match.color, background: match.bg,
+                    border: `1px solid ${match.border}`,
+                    borderRadius: 3, padding: "1px 4px",
+                    width: 44, textAlign: "center", flexShrink: 0,
+                  }}>
+                    {match.text}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Footer: Spearman correlation */}
+          {spearman !== null && (
+            <div style={{ padding: "7px 10px", borderTop: "1px solid var(--color-surface-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 9, color: "var(--color-text-muted)" }}>
+                Spearman ρ (attribution vs effect)
+              </span>
+              <span style={{ fontSize: 10, fontFamily: "var(--font-azeret-mono), monospace", fontWeight: 600, color: Math.abs(spearman) > 0.6 ? "#16a34a" : "var(--color-text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                {spearman >= 0 ? "+" : ""}{spearman.toFixed(2)}
+              </span>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

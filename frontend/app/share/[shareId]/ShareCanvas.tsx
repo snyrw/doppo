@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import SandboxCanvas from "../../components/SandboxCanvas";
-import type { LensCardData } from "../../components/LensCard";
-import type { DlaCardData } from "../../components/DlaCard";
+import SandboxCanvas, { type AnyCard } from "../../components/SandboxCanvas";
 
 type CanvasState = { panOffset: { x: number; y: number }; zoom: number };
 
@@ -11,7 +9,7 @@ export default function ShareCanvas({
   cards,
   canvas,
 }: {
-  cards: (LensCardData | DlaCardData)[];
+  cards: AnyCard[];
   canvas: CanvasState;
 }) {
   const [canvasState, setCanvasState] = useState(canvas);
@@ -23,6 +21,7 @@ export default function ShareCanvas({
       onCanvasChange={setCanvasState}
       onMoveCard={() => {}}
       onRemoveCard={() => {}}
+      onVerifyTopK={() => {}}
     />
   );
 }

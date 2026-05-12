@@ -4,22 +4,32 @@ import React from "react";
 import { interpolateColorDivergent, getContrastColor } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
 
-export type DlaData = {
-  target_token: string;
-  target_position: number;
-  y_labels: string[];     // ["L0","L1",...] one per layer
-  x_labels: string[];     // ["H0","H1",...] one per head
-  layer_dla: number[];    // [n_layers] signed floats
-  head_dla: number[][];   // [n_layers][n_heads] signed floats
+export type TopKComponent = {
+  layer: number;
+  head: number;
+  component_type: "attn_head" | "mlp";
+  attribution_score: number;
 };
 
-export type DlaCardData = {
+export type AttributionData = {
+  target_token: string;
+  target_token_idx: number;
+  target_position: number;
+  y_labels: string[];
+  x_labels: string[];
+  layer_attribution: number[];
+  head_attribution: number[][];
+  top_k_components: TopKComponent[];
+};
+
+export type AttributionCardData = {
   id: string;
-  cardType: "dla";
+  cardType: "attribution";
   status: "loading" | "result" | "error";
   modelName: string;
-  prompt: string;
-  data: DlaData | null;
+  cleanPrompt: string;
+  corruptedPrompt: string;
+  data: AttributionData | null;
   error: string | null;
   position: { x: number; y: number };
   gpuTier?: string;
@@ -27,23 +37,27 @@ export type DlaCardData = {
   loadingStage?: string;
   targetPosition: number | "last";
   targetToken: string | null;
+  verifyStatus?: "idle" | "loading" | "done";
+  verifyK?: number;
+  verifyCardId?: string;
 };
 
-type DlaCardProps = {
-  card: DlaCardData;
+type AttributionCardProps = {
+  card: AttributionCardData;
   ref?: React.Ref<HTMLDivElement>;
   onStartDrag: (e: React.PointerEvent<HTMLDivElement>, cardId: string, pos: { x: number; y: number }) => void;
   onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
+  onVerifyTopK: (cardId: string, k: number) => void;
 };
-
 
 const COL_GAP = 2;
 const Y_LABEL_W = 28;
 const LAYER_CELL_H = 14;
 const HEAD_CELL_SIZE = 14;
 const LAYER_BAR_W = 160;
+const K_OPTIONS = [5, 10, 20] as const;
 
 function formatElapsed(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -53,22 +67,25 @@ function formatElapsed(ms: number): string {
 
 function getStageLabel(stage: string | undefined, elapsedMs: number): string {
   switch (stage) {
-    case "tokenizing":   return "Tokenizing…";
-    case "forward_pass": return "Running forward pass";
-    case "computing":    return "Computing attributions";
+    case "tokenizing":               return "Tokenizing…";
+    case "clean_forward_pass":       return "Running reference forward pass";
+    case "corrupted_forward_backward": return "Running counterfactual pass + backward";
+    case "computing_attribution":    return "Computing attributions";
   }
   return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
 }
 
-export default function DlaCard({
+export default function AttributionCard({
   card,
   ref,
   onStartDrag,
   onDragMove,
   onDragEnd,
   onRemove,
-}: DlaCardProps) {
-  const [view, setView] = React.useState<"layer" | "head">("layer");
+  onVerifyTopK,
+}: AttributionCardProps) {
+  const [view, setView] = React.useState<"layer" | "head">("head");
+  const [selectedK, setSelectedK] = React.useState<5 | 10 | 20>(10);
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
 
@@ -82,21 +99,22 @@ export default function DlaCard({
 
   const canToggle = card.status === "result" && card.data != null;
 
-  // Compute the symmetric max for rdbu anchoring
   const absMax = React.useMemo(() => {
     if (!card.data) return 1;
     if (view === "layer") {
-      return Math.max(1e-9, ...card.data.layer_dla.map(Math.abs));
+      return Math.max(1e-9, ...card.data.layer_attribution.map(Math.abs));
     }
-    return Math.max(1e-9, ...card.data.head_dla.flatMap(row => row.map(Math.abs)));
+    return Math.max(1e-9, ...card.data.head_attribution.flatMap(row => row.map(Math.abs)));
   }, [card.data, view]);
 
-  // Card width: layer view is fixed narrow; head view expands with n_heads
   const cardWidth = React.useMemo(() => {
     if (!card.data || card.status !== "result") return 280;
-    if (view === "layer") return Y_LABEL_W + LAYER_BAR_W + 48 + 12; // label + bar + value text + padding
+    if (view === "layer") return Y_LABEL_W + LAYER_BAR_W + 48 + 12;
     return Y_LABEL_W + (HEAD_CELL_SIZE + COL_GAP) * card.data.x_labels.length + 12;
   }, [card.data, card.status, view]);
+
+  const isVerifying = card.verifyStatus === "loading";
+  const isVerified = card.verifyStatus === "done";
 
   return (
     <div
@@ -120,36 +138,26 @@ export default function DlaCard({
     >
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(3px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
       {/* Hover popup */}
       {headerHovered && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "calc(100% + 6px)",
-            left: 0,
-            background: "var(--color-card)",
-            border: "1px solid var(--color-card-border)",
-            borderRadius: 8,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-            padding: "10px 12px",
-            zIndex: 100,
-            pointerEvents: "none",
-            minWidth: 200,
-            maxWidth: 320,
-            animation: "fadeUp 120ms ease-out",
-          }}
-        >
+        <div style={{
+          position: "absolute", bottom: "calc(100% + 6px)", left: 0,
+          background: "var(--color-card)", border: "1px solid var(--color-card-border)",
+          borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+          padding: "10px 12px", zIndex: 100, pointerEvents: "none",
+          minWidth: 220, maxWidth: 340, animation: "fadeUp 120ms ease-out",
+        }}>
           <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-word" }}>
-            {card.prompt}
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 2px", lineHeight: 1.5, fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-word" }}>
+            <span style={{ opacity: 0.6 }}>ref: </span>{card.cleanPrompt}
+          </p>
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-word" }}>
+            <span style={{ opacity: 0.6 }}>∼: </span>{card.corruptedPrompt}
           </p>
           <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
             {card.gpuTier && (
@@ -158,13 +166,13 @@ export default function DlaCard({
               </span>
             )}
             <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
-              DLA
+              Attribution
             </span>
           </div>
         </div>
       )}
 
-      {/* Drag handle / header */}
+      {/* Header */}
       <div
         onPointerDown={e => onStartDrag(e, card.id, card.position)}
         onPointerMove={onDragMove}
@@ -172,17 +180,10 @@ export default function DlaCard({
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
         style={{
-          padding: "7px 10px",
-          borderBottom: "1px solid var(--color-surface-border)",
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          cursor: "grab",
-          userSelect: "none",
-          flexShrink: 0,
-          borderRadius: "8px 8px 0 0",
-          minWidth: 0,
-          overflow: "hidden",
+          padding: "7px 10px", borderBottom: "1px solid var(--color-surface-border)",
+          display: "flex", alignItems: "center", gap: 6,
+          cursor: "grab", userSelect: "none", flexShrink: 0,
+          borderRadius: "8px 8px 0 0", minWidth: 0, overflow: "hidden",
         }}
       >
         <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
@@ -197,24 +198,18 @@ export default function DlaCard({
           {card.modelName}
         </span>
         <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {card.prompt}
+          {card.cleanPrompt}
         </span>
 
-        {/* Resolved target token badge */}
+        {/* Target token badge */}
         {card.data?.target_token && (
           <span
             onPointerDown={e => e.stopPropagation()}
             style={{
-              fontSize: 9,
-              fontFamily: "var(--font-azeret-mono), monospace",
-              fontWeight: 600,
-              color: "var(--color-accent)",
-              background: "var(--color-surface-border)",
-              border: "1px solid var(--color-card-border)",
-              borderRadius: 3,
-              padding: "1px 5px",
-              flexShrink: 0,
-              whiteSpace: "nowrap",
+              fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", fontWeight: 600,
+              color: "var(--color-accent)", background: "var(--color-surface-border)",
+              border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px",
+              flexShrink: 0, whiteSpace: "nowrap",
             }}
           >
             → {JSON.stringify(card.data.target_token)}
@@ -232,19 +227,72 @@ export default function DlaCard({
                 key={v}
                 onClick={() => setView(v)}
                 style={{
-                  fontSize: 9,
-                  padding: "2px 6px",
+                  fontSize: 9, padding: "2px 6px",
                   background: view === v ? "var(--color-accent)" : "transparent",
                   color: view === v ? "var(--color-accent-fg)" : "var(--color-text-muted)",
-                  border: "none",
-                  cursor: "pointer",
-                  lineHeight: 1.4,
-                  textTransform: "capitalize",
+                  border: "none", cursor: "pointer", lineHeight: 1.4, textTransform: "capitalize",
                 }}
               >
                 {v}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Verify top K controls */}
+        {canToggle && (
+          <div onPointerDown={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+            {/* K pill group */}
+            {!isVerified && (
+              <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
+                {K_OPTIONS.map(k => (
+                  <button
+                    key={k}
+                    onClick={() => setSelectedK(k)}
+                    style={{
+                      fontSize: 9, padding: "2px 5px",
+                      background: selectedK === k ? "var(--color-surface-border)" : "transparent",
+                      color: selectedK === k ? "var(--color-text)" : "var(--color-text-muted)",
+                      border: "none", cursor: "pointer", lineHeight: 1.4,
+                    }}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {isVerified ? (
+              <span style={{
+                fontSize: 9, fontWeight: 600, color: "#16a34a",
+                background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.25)",
+                borderRadius: 3, padding: "2px 6px", whiteSpace: "nowrap",
+              }}>
+                ✓ Verified
+              </span>
+            ) : (
+              <button
+                onClick={() => onVerifyTopK(card.id, selectedK)}
+                disabled={isVerifying}
+                style={{
+                  fontSize: 9, fontWeight: 600, padding: "2px 7px",
+                  background: isVerifying ? "var(--color-surface-border)" : "var(--color-accent)",
+                  color: isVerifying ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+                  border: "none", borderRadius: 4, cursor: isVerifying ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+                  transition: "background 120ms",
+                }}
+              >
+                {isVerifying ? (
+                  <>
+                    <div style={{ width: 8, height: 8, border: "1.5px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                    Verifying…
+                  </>
+                ) : (
+                  `Verify top ${selectedK} →`
+                )}
+              </button>
+            )}
           </div>
         )}
 
@@ -305,11 +353,11 @@ export default function DlaCard({
   );
 }
 
-function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
+function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) {
   return (
     <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
       {data.y_labels.map((label, i) => {
-        const val = data.layer_dla[i];
+        const val = data.layer_attribution[i];
         const color = interpolateColorDivergent("rdbu", val, absMax);
         const barFrac = Math.abs(val) / absMax;
         const isPositive = val >= 0;
@@ -317,17 +365,13 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
 
         return (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-            {/* Layer label */}
             <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
               {label}
             </div>
-
-            {/* Diverging bar: negative fills left half, positive fills right half */}
             <div
               title={tooltip}
               style={{ width: LAYER_BAR_W, height: LAYER_CELL_H, flexShrink: 0, display: "flex", alignItems: "stretch", borderRadius: 2, overflow: "hidden", background: "var(--color-surface-border)", position: "relative" }}
             >
-              {/* Center line */}
               <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "var(--color-card-border)", zIndex: 1 }} />
               {isPositive ? (
                 <>
@@ -342,8 +386,6 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
                 </>
               )}
             </div>
-
-            {/* Value label */}
             <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
               {val >= 0 ? "+" : ""}{val.toFixed(2)}
             </span>
@@ -354,55 +396,40 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
   );
 }
 
-function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
+function HeadView({ data, absMax }: { data: AttributionData; absMax: number }) {
   return (
     <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
-      {/* X-axis: head labels */}
       <div style={{ display: "flex", gap: COL_GAP }}>
         <div style={{ width: Y_LABEL_W, flexShrink: 0 }} />
         {data.x_labels.map((h, i) => (
           <div
             key={i}
             style={{
-              width: HEAD_CELL_SIZE,
-              flexShrink: 0,
-              fontSize: 7,
-              textAlign: "center",
-              fontFamily: "var(--font-azeret-mono), monospace",
-              color: "var(--color-text-muted)",
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              textOverflow: "ellipsis",
-              paddingBottom: 2,
+              width: HEAD_CELL_SIZE, flexShrink: 0, fontSize: 7, textAlign: "center",
+              fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)",
+              overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", paddingBottom: 2,
             }}
           >
             {h}
           </div>
         ))}
       </div>
-
-      {/* Heatmap rows */}
       {data.y_labels.map((label, li) => (
         <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
           <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
             {label}
           </div>
-          {data.head_dla[li].map((val, hi) => {
+          {data.head_attribution[li].map((val, hi) => {
             const color = interpolateColorDivergent("rdbu", val, absMax);
-            const contrastColor = getContrastColor("rdbu", (val + absMax) / (2 * absMax));
             const tooltip = `${label} H${hi}: ${val >= 0 ? "+" : ""}${val.toFixed(3)}`;
             return (
               <div
                 key={hi}
                 title={tooltip}
                 style={{
-                  width: HEAD_CELL_SIZE,
-                  height: HEAD_CELL_SIZE,
-                  flexShrink: 0,
-                  backgroundColor: color,
-                  border: "0.5px solid var(--color-surface-border)",
-                  borderRadius: 2,
-                  boxSizing: "border-box",
+                  width: HEAD_CELL_SIZE, height: HEAD_CELL_SIZE, flexShrink: 0,
+                  backgroundColor: color, border: "0.5px solid var(--color-surface-border)",
+                  borderRadius: 2, boxSizing: "border-box",
                 }}
               />
             );
