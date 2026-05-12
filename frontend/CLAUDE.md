@@ -18,6 +18,17 @@ TL 3.0 supports ~9,000 models out of the box, so any standard HF model can be lo
 
 **Multi-GPU is not supported.** `TransformerBridge` does not support `device_map="auto"`. Models requiring multiple GPUs (typically >30B params) cannot be loaded. These are rejected at validation time.
 
+### DLA / component attribution in TL3
+
+`hook_result` (per-head post-W_O output) does **not** exist in TL3. Compute it manually from `hook_z` and `W_O`:
+```python
+z = cache[f"blocks.{layer}.attn.hook_z"][0, pos, :, :].float()  # [n_heads, d_head]
+head_results = torch.einsum("hd,hdm->hm", z, model.W_O[layer].float())  # [n_heads, d_model]
+```
+Use full string hook names — tuple shorthand (`cache["attn_out", layer]`) is gone: use `cache[f"blocks.{layer}.hook_attn_out"]`, `cache[f"blocks.{layer}.hook_mlp_out"]`, `cache[f"blocks.{layer}.hook_resid_post"]`.
+
+`to_single_token()` is gone — use `model.to_tokens(token, prepend_bos=False)[0, 0]`.
+
 ### Model loading (backend/main.py)
 
 `FEATURED_MODELS` is editorial curation for the frontend — it is **not a gate** on what can run. Any valid HF model ID is accepted by `run-lens`. Featured entries have explicit `gpu_tier` values; custom models get their tier auto-detected.
@@ -41,11 +52,18 @@ The model selection UI has two mutually exclusive modes:
 
 `/api/validate-model` returns `{valid, gpu_tier, reason}`. The `gpu_tier` is shown in the success label (`✓ Valid — A10G`). There is no PEFT-specific UI path.
 
+### Sandbox card types
+
+`LensCardData` (in `LensCard.tsx`) carries `cardType?: "logit-lens"` — optional so old saved projects without the field still render correctly. `DlaCardData` (in `DlaCard.tsx`) carries `cardType: "dla"` as a required discriminant. `SandboxCanvas` accepts `(LensCardData | DlaCardData)[]` and branches on `card.cardType === "dla"`. When restoring cards from the DB, discriminate on `cardType` and cast explicitly — don't rely on spreading `SerializedCard` directly into a typed card.
+
+`SerializedCard.data` in `actions.ts` is `Record<string, unknown>` — never a concrete heatmap or DLA type — because the DB stores jsonb and doesn't care about shape.
+
 ### API contract
 
 `/api/models` → `{ id, display_name, description, requires_hf_token }[]`
 `/api/validate-model` → `{ valid, gpu_tier, reason }`
 `/api/run-lens` → `{ x_labels, y_labels, heatmap_data }`
+`/api/run-dla` → `{ target_token, target_position, y_labels, x_labels, layer_dla, head_dla }`
 
 ---
 
@@ -59,9 +77,9 @@ The model selection UI has two mutually exclusive modes:
 - `app/lib/auth.ts` — BetterAuth server config (Google + GitHub + email/password)
 - `app/lib/auth-client.ts` — exports `useSession`, `signIn`, `signOut`, `signUp`
 - `app/lib/r2.ts` — Cloudflare R2 helpers: `putHeatmap(key, data)` / `getHeatmap(key)`
-- `app/lib/palette.ts` — four heatmap palettes; `interpolateColor(palette, prob)` is the canonical color function
+- `app/lib/palette.ts` — four heatmap palettes; `interpolateColor(palette, prob)` for unsigned [0,1] values; `interpolateColorDivergent(palette, value, absMax)` for signed DLA values (rdbu anchored at zero)
 - `app/hooks/usePalette.ts` — reads `localStorage` + listens for `palettechange` custom events; returns current `PaletteName`
-- `app/components/` — `SandboxCanvas`, `LensCard`, `ConfigPane`, `Navbar`, `AuthModal`, `ProjectSearch`, `HeroSpecimen`
+- `app/components/` — `SandboxCanvas`, `LensCard`, `DlaCard`, `ConfigPane`, `DlaConfigPane`, `Navbar`, `AuthModal`, `ProjectSearch`, `HeroSpecimen`
 - `app/hooks/` — `useCanvasPan`, `useCardDrag`, `usePalette`
 - `app/share/[shareId]/` — `page.tsx` (server, fetches via `loadPublicProject`) + `ShareCanvas.tsx` (client, wraps `SandboxCanvas` with noop callbacks)
 
