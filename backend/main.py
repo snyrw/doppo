@@ -3,7 +3,7 @@ import modal
 
 app = modal.App("logitlensviz")
 
-model_volume = modal.Volume.from_name("model-weights-vol", create_if_missing=True)
+model_volume = modal.Volume.from_name("model-weights-vol-v2", create_if_missing=True, version=2)
 hf_secret = modal.Secret.from_name("huggingface-secret")
 
 VOLUME_MOUNT = "/model-cache"
