@@ -81,6 +81,13 @@ export function interpolateColor(palette: PaletteName, prob: number): string {
   return `rgb(${r},${g},${b})`;
 }
 
+// For signed DLA values: maps value ∈ [-absMax, +absMax] to [0,1] anchored at 0.5 (neutral).
+// Negative → blue end of rdbu, positive → red end.
+export function interpolateColorDivergent(palette: PaletteName, value: number, absMax: number): string {
+  const t = absMax === 0 ? 0.5 : Math.max(0, Math.min(1, (value + absMax) / (2 * absMax)));
+  return interpolateColor(palette, t);
+}
+
 export function getContrastColor(palette: PaletteName, prob: number): string {
   if (palette === "warm-mono") {
     return prob > 0.55 ? "#ecebe4" : "#1c1c1c";

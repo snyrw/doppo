@@ -4,9 +4,11 @@ import { useState, useEffect, useReducer, useRef, useCallback, Suspense } from "
 import { useSearchParams, useRouter } from "next/navigation";
 import SandboxCanvas from "../components/SandboxCanvas";
 import ConfigPane from "../components/ConfigPane";
+import DlaConfigPane from "../components/DlaConfigPane";
 import Navbar from "../components/Navbar";
 import { ProjectSearch } from "../components/ProjectSearch";
 import type { LensCardData } from "../components/LensCard";
+import type { DlaCardData, DlaData } from "../components/DlaCard";
 import { useSession } from "../lib/auth-client";
 import {
   createProject,
@@ -39,19 +41,20 @@ type CanvasState = {
 };
 
 type AppState = {
-  lensCards: LensCardData[];
+  lensCards: (LensCardData | DlaCardData)[];
   canvas: CanvasState;
 };
 
 type AppAction =
-  | { type: "ADD_CARD"; card: LensCardData }
+  | { type: "ADD_CARD"; card: LensCardData | DlaCardData }
   | { type: "CARD_RESOLVED"; id: string; data: HeatmapData }
+  | { type: "DLA_CARD_RESOLVED"; id: string; data: DlaData }
   | { type: "CARD_ERRORED"; id: string; error: string }
   | { type: "CARD_STAGE"; id: string; stage: string }
   | { type: "MOVE_CARD"; id: string; position: { x: number; y: number } }
   | { type: "REMOVE_CARD"; id: string }
   | { type: "SET_CANVAS"; canvas: CanvasState }
-  | { type: "LOAD_PROJECT"; cards: LensCardData[]; canvas: CanvasState }
+  | { type: "LOAD_PROJECT"; cards: (LensCardData | DlaCardData)[]; canvas: CanvasState }
   | { type: "RESET_CANVAS" };
 
 const CARD_COL_WIDTH = 360;
@@ -80,7 +83,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
-          c.id === action.id ? { ...c, status: "result", data: action.data } : c
+          c.id === action.id && c.cardType !== "dla" ? { ...c, status: "result", data: action.data } : c
+        ),
+      };
+    case "DLA_CARD_RESOLVED":
+      return {
+        ...state,
+        lensCards: state.lensCards.map(c =>
+          c.id === action.id && c.cardType === "dla" ? { ...c, status: "result", data: action.data } : c
         ),
       };
     case "CARD_ERRORED":
@@ -117,10 +127,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
+function serializeCard(c: LensCardData | DlaCardData) {
+  if (c.cardType === "dla") {
+    return { id: c.id, cardType: "dla" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken };
+  }
+  return { id: c.id, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier };
+}
+
 function Projects() {
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
+  const [addOpen, setAddOpen] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
+  const [dlaOpen, setDlaOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -131,7 +150,7 @@ function Projects() {
   const [shareCopied, setShareCopied] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
-  const configRef = useRef<HTMLDivElement>(null);
+  const addRef = useRef<HTMLDivElement>(null);
   const projectsRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const [state, dispatch] = useReducer(appReducer, initialState);
@@ -141,17 +160,19 @@ function Projects() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  // Close config popover on outside click
+  // Close add dropdown + sub-panes on outside click
   useEffect(() => {
-    if (!configOpen) return;
+    if (!addOpen && !configOpen && !dlaOpen) return;
     function handleClickOutside(e: MouseEvent) {
-      if (configRef.current && !configRef.current.contains(e.target as Node)) {
+      if (addRef.current && !addRef.current.contains(e.target as Node)) {
+        setAddOpen(false);
         setConfigOpen(false);
+        setDlaOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [configOpen]);
+  }, [addOpen, configOpen, dlaOpen]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -179,11 +200,11 @@ function Projects() {
     try {
       const result = await loadProject(id);
       if (!result) { router.replace("/projects"); return; }
-      const lensCards: LensCardData[] = result.cards.map(c => ({
-        ...c,
-        status: "result" as const,
-        error: null,
-      }));
+      const lensCards: (LensCardData | DlaCardData)[] = result.cards.map(c =>
+        c.cardType === "dla"
+          ? ({ ...c, cardType: "dla" as const, status: "result" as const, error: null } as DlaCardData)
+          : ({ ...c, cardType: "logit-lens" as const, status: "result" as const, error: null } as LensCardData)
+      );
       setProjectName(result.name);
       setShareId(result.shareId);
       dispatch({ type: "LOAD_PROJECT", cards: lensCards, canvas: result.canvas });
@@ -240,6 +261,7 @@ function Projects() {
     const id = crypto.randomUUID();
     const card: LensCardData = {
       id,
+      cardType: "logit-lens",
       status: "loading",
       modelName,
       prompt,
@@ -290,8 +312,86 @@ function Projects() {
                 if (pid) {
                   const existingResult = stateRef.current.lensCards
                     .filter(c => c.status === "result")
-                    .map(c => ({ id: c.id, modelName: c.modelName, prompt: c.prompt, data: c.data!, position: c.position, gpuTier: c.gpuTier }));
-                  updateProject(pid, [...existingResult, { id, modelName, prompt, data: event.data, position: card.position, gpuTier }], stateRef.current.canvas)
+                    .map(serializeCard);
+                  updateProject(pid, [...existingResult, { id, modelName, prompt, data: event.data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas)
+                    .catch(console.error);
+                }
+              } else if (event.stage === "error") {
+                dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
+              } else {
+                dispatch({ type: "CARD_STAGE", id, stage: event.stage });
+              }
+            } catch { /* malformed chunk */ }
+          }
+        }
+      })
+      .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
+  };
+
+  const handleAddDla = ({ modelName, prompt, gpuTier, targetPosition, targetToken }: {
+    modelName: string; prompt: string; gpuTier?: string;
+    targetPosition: number | "last"; targetToken: string | null;
+  }) => {
+    setDlaOpen(false);
+
+    const id = crypto.randomUUID();
+    const card: DlaCardData = {
+      id,
+      cardType: "dla",
+      status: "loading",
+      modelName,
+      prompt,
+      data: null,
+      error: null,
+      position: autoArrangePos(state.lensCards.length),
+      gpuTier,
+      startedAt: Date.now(),
+      targetPosition,
+      targetToken,
+    };
+
+    dispatch({ type: "ADD_CARD", card });
+
+    fetch("/api/run-dla", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, modelName, gpuTier, targetPosition, targetToken }),
+    })
+      .then(async (response) => {
+        if (!response.ok || !response.body) {
+          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
+          const message = response.status === 401
+            ? (err.error ?? "Sign in to use medium and large models")
+            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
+          dispatch({ type: "CARD_ERRORED", id, error: message });
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? "";
+
+          for (const part of parts) {
+            const line = part.split("\n").find(l => l.startsWith("data: "));
+            if (!line) continue;
+            try {
+              const event = JSON.parse(line.slice(6)) as { stage: string; data?: DlaData; error?: string };
+              if (event.stage === "done" && event.data) {
+                dispatch({ type: "DLA_CARD_RESOLVED", id, data: event.data });
+                const pid = projectIdRef.current;
+                if (pid) {
+                  const existingResult = stateRef.current.lensCards
+                    .filter(c => c.status === "result")
+                    .map(serializeCard);
+                  updateProject(pid, [...existingResult, { id, cardType: "dla" as const, modelName, prompt, data: event.data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken }], stateRef.current.canvas)
                     .catch(console.error);
                 }
               } else if (event.stage === "error") {
@@ -322,25 +422,14 @@ function Projects() {
     setProjectName(trimmed);
     setNameEditing(false);
     if (!projectId) return;
-    const resultCards = state.lensCards
-      .filter(c => c.status === "result")
-      .map(c => ({ id: c.id, modelName: c.modelName, prompt: c.prompt, data: c.data!, position: c.position, gpuTier: c.gpuTier }));
+    const resultCards = state.lensCards.filter(c => c.status === "result").map(serializeCard);
     updateProject(projectId, resultCards, state.canvas, trimmed).catch(console.error);
   }
 
   async function handleDuplicate() {
     if (!session?.user) return;
     setProjectsOpen(false);
-    const resultCards = state.lensCards
-      .filter(c => c.status === "result")
-      .map(({ id, modelName, prompt, data, position, gpuTier }) => ({
-        id,
-        modelName,
-        prompt,
-        data: data!,
-        position,
-        gpuTier,
-      }));
+    const resultCards = state.lensCards.filter(c => c.status === "result").map(serializeCard);
     const { id } = await duplicateProject(resultCards, state.canvas);
     setProjectId(id);
     router.replace(`/projects?id=${id}`);
@@ -399,11 +488,12 @@ function Projects() {
       <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
         {/* Floating buttons — top-left, over the canvas */}
         <div style={{ position: "absolute", top: 12, left: 12, zIndex: 35, display: "flex", gap: 8, alignItems: "center" }}>
-          <div ref={configRef} style={{ position: "relative" }}>
+          <div ref={addRef} style={{ position: "relative" }}>
+            {/* "Add +" button */}
             <button
-              onClick={() => setConfigOpen(o => !o)}
+              onClick={() => { setAddOpen(o => !o); setConfigOpen(false); setDlaOpen(false); }}
               style={{
-                background: configOpen ? "var(--color-accent-hover)" : "var(--color-accent)",
+                background: (addOpen || configOpen || dlaOpen) ? "var(--color-accent-hover)" : "var(--color-accent)",
                 color: "var(--color-accent-fg)",
                 border: "none",
                 borderRadius: 6,
@@ -418,22 +508,64 @@ function Projects() {
                 gap: 6,
                 letterSpacing: "0.01em",
               }}
-              onMouseEnter={e => {
-                if (!configOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)";
-              }}
-              onMouseLeave={e => {
-                if (!configOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)";
-              }}
+              onMouseEnter={e => { if (!addOpen && !configOpen && !dlaOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+              onMouseLeave={e => { if (!addOpen && !configOpen && !dlaOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
             >
               <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
-              Add Lens
+              Add
             </button>
+
+            {/* Dropdown — choose Logit Lens or DLA */}
+            {addOpen && (
+              <div style={{
+                position: "absolute",
+                top: "calc(100% + 6px)",
+                left: 0,
+                background: "var(--color-card)",
+                border: "1px solid var(--color-card-border)",
+                borderRadius: 6,
+                boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+                display: "flex",
+                flexDirection: "column",
+                minWidth: 160,
+                zIndex: 31,
+                animation: "cfgDropIn 140ms ease-out",
+              }}>
+                <style>{`@keyframes cfgDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+                <button
+                  onClick={() => { setAddOpen(false); setConfigOpen(true); setDlaOpen(false); }}
+                  style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: "6px 6px 0 0", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                >
+                  <span>Logit Lens</span>
+                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Layer-by-layer predictions</span>
+                </button>
+                <button
+                  onClick={() => { setAddOpen(false); setDlaOpen(true); setConfigOpen(false); }}
+                  style={{ background: "var(--color-card)", border: "none", borderRadius: "0 0 6px 6px", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                >
+                  <span>DLA</span>
+                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Direct attribution per component</span>
+                </button>
+              </div>
+            )}
+
             <ConfigPane
               isOpen={configOpen}
               availableModels={availableModels}
               modelsLoading={modelsLoading}
               onSubmit={handleAddLens}
               onClose={() => setConfigOpen(false)}
+            />
+            <DlaConfigPane
+              isOpen={dlaOpen}
+              availableModels={availableModels}
+              modelsLoading={modelsLoading}
+              onSubmit={handleAddDla}
+              onClose={() => setDlaOpen(false)}
             />
           </div>
 

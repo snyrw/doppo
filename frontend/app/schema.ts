@@ -15,6 +15,23 @@ export const heatmapCache = pgTable(
   ]
 );
 
+export const dlaCache = pgTable(
+  "dla_cache",
+  {
+    id: text("id").primaryKey(),
+    modelName: text("model_name").notNull(),
+    prompt: text("prompt").notNull(),
+    targetPosition: text("target_position").notNull(),
+    targetToken: text("target_token").notNull(),
+    r2Key: text("r2_key"),
+    createdAt: timestamp("created_at").defaultNow(),
+    lastAccessedAt: timestamp("last_accessed_at"),
+  },
+  (table) => [
+    index("dla_prompt_model_idx").on(table.modelName, table.prompt, table.targetPosition, table.targetToken),
+  ]
+);
+
 // BetterAuth required tables
 export const user = pgTable("user", {
   id: text("id").primaryKey(),

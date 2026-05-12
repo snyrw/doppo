@@ -311,6 +311,69 @@ class _TLBase:
         torch.cuda.empty_cache()
 
     @modal.method()
+    def run_dla(self, prompt: str, target_position: int | str = "last", target_token: str | None = None):
+        import json
+        import torch
+
+        yield json.dumps({"stage": "tokenizing"})
+        tokens = self.model.to_tokens(prompt)
+        pos = int(tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
+
+        yield json.dumps({"stage": "forward_pass"})
+        _, cache = self.model.run_with_cache(tokens)
+
+        yield json.dumps({"stage": "computing"})
+
+        n_layers = self.model.cfg.n_layers
+        n_heads = self.model.cfg.n_heads
+
+        # Resolve target token: argmax of final logits or user-specified string.
+        # TL3: use full string hook names; to_single_token() is gone — tokenize directly.
+        if target_token is None:
+            final_resid = cache[f"blocks.{n_layers - 1}.hook_resid_post"]  # [batch, seq, d_model]
+            final_logits = self.model.unembed(self.model.ln_final(final_resid))
+            target_idx = int(final_logits[0, pos].argmax())
+        else:
+            ids = self.model.to_tokens(target_token, prepend_bos=False)
+            target_idx = int(ids[0, 0])
+        resolved_token = self.model.tokenizer.decode([target_idx])
+
+        # Logit direction: W_U column for the target token → [d_model]
+        logit_dir = self.model.W_U[:, target_idx].float()
+
+        # Head-level DLA: [n_layers][n_heads]
+        # TL3 exposes hook_z (pre-W_O, shape [batch, seq, n_heads, d_head]) but not
+        # hook_result (post-W_O per head). Compute head results manually: z @ W_O.
+        W_O = self.model.W_O  # [n_layers, n_heads, d_head, d_model]
+        head_dla = []
+        for layer in range(n_layers):
+            z = cache[f"blocks.{layer}.attn.hook_z"][0, pos, :, :].float()  # [n_heads, d_head]
+            head_results = torch.einsum("hd,hdm->hm", z, W_O[layer].float())  # [n_heads, d_model]
+            head_dla.append((head_results @ logit_dir).cpu().tolist())
+
+        # Layer-level DLA: attn_out + mlp_out per layer
+        layer_dla = []
+        for layer in range(n_layers):
+            attn_out = cache[f"blocks.{layer}.hook_attn_out"][0, pos].float()  # [d_model]
+            mlp_out = cache[f"blocks.{layer}.hook_mlp_out"][0, pos].float()    # [d_model]
+            layer_dla.append(float((attn_out + mlp_out) @ logit_dir))
+
+        y_labels = [f"L{i}" for i in range(n_layers)]
+        x_labels = [f"H{i}" for i in range(n_heads)]
+
+        yield json.dumps({
+            "stage": "done",
+            "data": {
+                "target_token": resolved_token,
+                "target_position": pos,
+                "y_labels": y_labels,
+                "x_labels": x_labels,
+                "layer_dla": layer_dla,
+                "head_dla": head_dla,
+            },
+        })
+
+    @modal.method()
     def run_logit_lens(self, prompt: str, top_k: int = 5):
         import json
         import torch
@@ -402,6 +465,12 @@ def api():
         model_name: str
         top_k: int = 5
 
+    class DlaRequest(BaseModel):
+        prompt: str
+        model_name: str
+        target_position: int | str = "last"
+        target_token: str | None = None
+
     class ValidateModelRequest(BaseModel):
         repo_id: str
 
@@ -446,6 +515,33 @@ def api():
             try:
                 async for chunk in cls(model_id=model_id).run_logit_lens.remote_gen.aio(
                     request.prompt, request.top_k
+                ):
+                    yield f"data: {chunk}\n\n"
+            except Exception as e:
+                safe = str(e).replace("\\", "\\\\").replace('"', '\\"')
+                yield f'data: {{"stage":"error","error":"{safe}"}}\n\n'
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+    @web_app.post("/api/run-dla-stream")
+    async def run_dla_stream(request: DlaRequest):
+        from fastapi.responses import StreamingResponse
+
+        entry = FEATURED_MODELS.get(request.model_name)
+        if entry is None:
+            validation = validate_hf_repo(request.model_name, hf_token=hf_token)
+            if not validation["valid"]:
+                raise HTTPException(status_code=400, detail=validation["reason"])
+            cls = _TIER_TO_CLS[validation["gpu_tier"]]
+            model_id = request.model_name
+        else:
+            cls = _TIER_TO_CLS[entry["gpu_tier"]]
+            model_id = entry["model_id"]
+
+        async def event_stream():
+            try:
+                async for chunk in cls(model_id=model_id).run_dla.remote_gen.aio(
+                    request.prompt, request.target_position, request.target_token
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:

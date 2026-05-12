@@ -3,6 +3,7 @@ import { loadPublicProject } from "../../actions";
 import Navbar from "../../components/Navbar";
 import ShareCanvas from "./ShareCanvas";
 import type { LensCardData } from "../../components/LensCard";
+import type { DlaCardData } from "../../components/DlaCard";
 
 export default async function SharePage({
   params,
@@ -13,11 +14,11 @@ export default async function SharePage({
   const project = await loadPublicProject(shareId);
   if (!project) notFound();
 
-  const cards: LensCardData[] = project.cards.map(c => ({
-    ...c,
-    status: "result" as const,
-    error: null,
-  }));
+  const cards: (LensCardData | DlaCardData)[] = project.cards.map(c =>
+    c.cardType === "dla"
+      ? ({ ...c, cardType: "dla" as const, status: "result" as const, error: null } as DlaCardData)
+      : ({ ...c, cardType: "logit-lens" as const, status: "result" as const, error: null } as LensCardData)
+  );
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>

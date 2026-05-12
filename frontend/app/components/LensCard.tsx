@@ -14,6 +14,7 @@ type HeatmapData = {
 
 export type LensCardData = {
   id: string;
+  cardType?: "logit-lens";
   status: "loading" | "result" | "error";
   modelName: string;
   prompt: string;

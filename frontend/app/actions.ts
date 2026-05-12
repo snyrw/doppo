@@ -60,11 +60,14 @@ type HeatmapData = {
 
 type SerializedCard = {
   id: string;
+  cardType?: string;
   modelName: string;
   prompt: string;
-  data: HeatmapData;
+  data: Record<string, unknown>;
   position: { x: number; y: number };
   gpuTier?: string;
+  targetPosition?: number | "last";
+  targetToken?: string | null;
 };
 
 type CanvasState = {

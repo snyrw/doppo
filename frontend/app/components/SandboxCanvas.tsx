@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback } from "react";
 import SnapGrid from "./SnapGrid";
 import LensCard, { type LensCardData } from "./LensCard";
+import DlaCard, { type DlaCardData } from "./DlaCard";
 import { useCanvasPan } from "../hooks/useCanvasPan";
 import { useCardDrag } from "../hooks/useCardDrag";
 
@@ -15,7 +16,7 @@ type CanvasState = {
 };
 
 type SandboxCanvasProps = {
-  cards: LensCardData[];
+  cards: (LensCardData | DlaCardData)[];
   canvasState: CanvasState;
   onCanvasChange: (state: CanvasState) => void;
   onMoveCard: (id: string, pos: { x: number; y: number }) => void;
@@ -112,17 +113,29 @@ export default function SandboxCanvas({
       >
         <SnapGrid isDragging={isDragging} />
 
-        {cards.map(card => (
-          <LensCard
-            key={card.id}
-            card={card}
-            ref={setCardRef(card.id)}
-            onStartDrag={startDrag}
-            onDragMove={onDragMove}
-            onDragEnd={onDragEnd}
-            onRemove={onRemoveCard}
-          />
-        ))}
+        {cards.map(card =>
+          card.cardType === "dla" ? (
+            <DlaCard
+              key={card.id}
+              card={card}
+              ref={setCardRef(card.id)}
+              onStartDrag={startDrag}
+              onDragMove={onDragMove}
+              onDragEnd={onDragEnd}
+              onRemove={onRemoveCard}
+            />
+          ) : (
+            <LensCard
+              key={card.id}
+              card={card}
+              ref={setCardRef(card.id)}
+              onStartDrag={startDrag}
+              onDragMove={onDragMove}
+              onDragEnd={onDragEnd}
+              onRemove={onRemoveCard}
+            />
+          )
+        )}
       </div>
 
       {/* Empty state */}
