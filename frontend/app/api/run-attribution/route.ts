@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createHash } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/app/db";
 import { attributionCache } from "@/app/schema";
 import { auth } from "@/app/lib/auth";
@@ -34,7 +34,7 @@ async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<strin
 }
 
 export async function POST(request: NextRequest) {
-  const { cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetToken } =
+  const { cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken } =
     (await request.json()) as {
       cleanPrompt: string;
       corruptedPrompt: string;
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       gpuTier?: string;
       targetPosition: number | "last";
       targetToken: string | null;
+      contrastiveToken: string | null;
     };
 
   if (gpuTier !== "tl_small") {
@@ -55,30 +56,23 @@ export async function POST(request: NextRequest) {
   }
 
   const resolvedToken = targetToken ?? "__auto__";
+  const resolvedContrastive = contrastiveToken ?? "__none__";
   const resolvedPosition = String(targetPosition);
   const cacheKey = createHash("sha256")
-    .update(`${modelName}:${cleanPrompt}:${corruptedPrompt}:${resolvedPosition}:${resolvedToken}`)
+    .update(`${modelName}:${cleanPrompt}:${corruptedPrompt}:${resolvedPosition}:${resolvedToken}:${resolvedContrastive}`)
     .digest("hex");
 
   const cached = await db
-    .select({ id: attributionCache.id, r2Key: attributionCache.r2Key })
+    .select({ r2Key: attributionCache.r2Key })
     .from(attributionCache)
-    .where(
-      and(
-        eq(attributionCache.modelName, modelName),
-        eq(attributionCache.prompt, cleanPrompt),
-        eq(attributionCache.corruptedPrompt, corruptedPrompt),
-        eq(attributionCache.targetPosition, resolvedPosition),
-        eq(attributionCache.targetToken, resolvedToken),
-      )
-    )
+    .where(eq(attributionCache.id, cacheKey))
     .limit(1);
 
   if (cached.length > 0 && cached[0].r2Key) {
     const data = await getHeatmap(cached[0].r2Key);
     db.update(attributionCache)
       .set({ lastAccessedAt: new Date() })
-      .where(eq(attributionCache.id, cached[0].id))
+      .where(eq(attributionCache.id, cacheKey))
       .catch(console.error);
     return new Response(`data: ${JSON.stringify({ stage: "done", data })}\n\n`, { headers: SSE_HEADERS });
   }
@@ -94,6 +88,7 @@ export async function POST(request: NextRequest) {
         model_name: modelName,
         target_position: targetPosition,
         target_token: targetToken,
+        contrastive_token: contrastiveToken ?? null,
       }),
     }
   ).catch((err: unknown) => {

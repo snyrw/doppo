@@ -7,7 +7,12 @@ model_volume = modal.Volume.from_name("model-weights-vol-v2", create_if_missing=
 hf_secret = modal.Secret.from_name("huggingface-secret")
 
 VOLUME_MOUNT = "/model-cache"
-_HF_CACHE_ENV = {"HF_HOME": f"{VOLUME_MOUNT}/hf_home", "TRANSFORMERS_CACHE": f"{VOLUME_MOUNT}/hf_home"}
+_HF_CACHE_ENV = {
+    "HF_HOME": f"{VOLUME_MOUNT}/hf_home",
+    "TRANSFORMERS_CACHE": f"{VOLUME_MOUNT}/hf_home",
+    # Reduces fragmentation-induced OOM on nearly-full GPUs.
+    "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True",
+}
 
 # TransformerBridge wraps native HuggingFace implementations, so one image covers all models.
 tl_image = (
@@ -340,7 +345,7 @@ class _TLBase:
         torch.cuda.empty_cache()
 
     @modal.method()
-    def run_dla(self, prompt: str, target_position: int | str = "last", target_token: str | None = None):
+    def run_dla(self, prompt: str, target_position: int | str = "last", target_token: str | None = None, contrastive_token: str | None = None):
         import json
         import torch
 
@@ -356,10 +361,9 @@ class _TLBase:
         n_layers = self.model.cfg.n_layers
         n_heads = self.model.cfg.n_heads
 
-        # Resolve target token: argmax of final logits or user-specified string.
-        # TL3: use full string hook names; to_single_token() is gone — tokenize directly.
+        # Resolve target token.
         if target_token is None:
-            final_resid = cache[f"blocks.{n_layers - 1}.hook_resid_post"]  # [batch, seq, d_model]
+            final_resid = cache[f"blocks.{n_layers - 1}.hook_resid_post"]
             final_logits = self.model.unembed(self.model.ln_final(final_resid))
             target_idx = int(final_logits[0, pos].argmax())
         else:
@@ -367,12 +371,26 @@ class _TLBase:
             target_idx = int(ids[0, 0])
         resolved_token = self.model.tokenizer.decode([target_idx])
 
-        # Logit direction: W_U column for the target token → [d_model]
-        logit_dir = self.model.W_U[:, target_idx].float()
+        # Resolve contrastive token.
+        contrastive_idx: int | None = None
+        resolved_contrastive: str | None = None
+        if contrastive_token is not None:
+            ids = self.model.to_tokens(contrastive_token, prepend_bos=False)
+            contrastive_idx = int(ids[0, 0])
+            resolved_contrastive = self.model.tokenizer.decode([contrastive_idx])
+
+        # Logit direction: W_U[:,target] or W_U[:,target] - W_U[:,contrastive].
+        if contrastive_idx is not None:
+            logit_dir = (self.model.W_U[:, target_idx] - self.model.W_U[:, contrastive_idx]).float()
+        else:
+            logit_dir = self.model.W_U[:, target_idx].float()
+
+        # Embedding contribution: residual stream before block 0 = token embed + pos embed
+        # (for RoPE models the positional information lives in attention, not the residual stream,
+        # so hook_resid_pre at block 0 is simply W_E[token] — still the correct starting point).
+        embed_dla = float(cache["blocks.0.hook_resid_pre"][0, pos].float() @ logit_dir)
 
         # Head-level DLA: [n_layers][n_heads]
-        # TL3 exposes hook_z (pre-W_O, shape [batch, seq, n_heads, d_head]) but not
-        # hook_result (post-W_O per head). Compute head results manually: z @ W_O.
         W_O = self.model.W_O  # [n_layers, n_heads, d_head, d_model]
         head_dla = []
         for layer in range(n_layers):
@@ -380,12 +398,18 @@ class _TLBase:
             head_results = torch.einsum("hd,hdm->hm", z, W_O[layer].float())  # [n_heads, d_model]
             head_dla.append((head_results @ logit_dir).cpu().tolist())
 
-        # Layer-level DLA: attn_out + mlp_out per layer
+        # Layer-level DLA: attn and MLP reported separately and as combined sum.
         layer_dla = []
+        layer_attn_dla = []
+        layer_mlp_dla = []
         for layer in range(n_layers):
-            attn_out = cache[f"blocks.{layer}.hook_attn_out"][0, pos].float()  # [d_model]
-            mlp_out = cache[f"blocks.{layer}.hook_mlp_out"][0, pos].float()    # [d_model]
-            layer_dla.append(float((attn_out + mlp_out) @ logit_dir))
+            attn_out = cache[f"blocks.{layer}.hook_attn_out"][0, pos].float()
+            mlp_out = cache[f"blocks.{layer}.hook_mlp_out"][0, pos].float()
+            attn_val = float(attn_out @ logit_dir)
+            mlp_val = float(mlp_out @ logit_dir)
+            layer_attn_dla.append(attn_val)
+            layer_mlp_dla.append(mlp_val)
+            layer_dla.append(attn_val + mlp_val)
 
         y_labels = [f"L{i}" for i in range(n_layers)]
         x_labels = [f"H{i}" for i in range(n_heads)]
@@ -394,10 +418,14 @@ class _TLBase:
             "stage": "done",
             "data": {
                 "target_token": resolved_token,
+                "contrastive_token": resolved_contrastive,
                 "target_position": pos,
                 "y_labels": y_labels,
                 "x_labels": x_labels,
+                "embed_dla": embed_dla,
                 "layer_dla": layer_dla,
+                "layer_attn_dla": layer_attn_dla,
+                "layer_mlp_dla": layer_mlp_dla,
                 "head_dla": head_dla,
             },
         })
@@ -409,6 +437,7 @@ class _TLBase:
         corrupted_prompt: str,
         target_position: int | str = "last",
         target_token: str | None = None,
+        contrastive_token: str | None = None,
         top_n: int = 30,
     ):
         import json
@@ -422,24 +451,48 @@ class _TLBase:
         n_layers = self.model.cfg.n_layers
         n_heads = self.model.cfg.n_heads
 
-        # Resolve target token from clean run
+        # Resolve target/contrastive tokens via a plain forward pass (no cache overhead).
         yield json.dumps({"stage": "clean_forward_pass"})
         with torch.no_grad():
-            _, clean_cache = self.model.run_with_cache(clean_tokens)
-
-        if target_token is None:
-            final_resid = clean_cache[f"blocks.{n_layers - 1}.hook_resid_post"]
-            final_logits = self.model.unembed(self.model.ln_final(final_resid))
-            target_idx = int(final_logits[0, pos].argmax())
-        else:
-            ids = self.model.to_tokens(target_token, prepend_bos=False)
-            target_idx = int(ids[0, 0])
+            if target_token is None:
+                clean_logits = self.model(clean_tokens)
+                target_idx = int(clean_logits[0, pos].argmax())
+                del clean_logits
+            else:
+                ids = self.model.to_tokens(target_token, prepend_bos=False)
+                target_idx = int(ids[0, 0])
         resolved_token = self.model.tokenizer.decode([target_idx])
 
-        # Corrupted forward pass with gradients — proper first-order Taylor attribution.
-        # Hooks save each activation and call retain_grad() so .grad is populated
-        # after metric.backward(). torch.enable_grad() overrides the global
-        # set_grad_enabled(False) set in load_model.
+        contrastive_idx: int | None = None
+        resolved_contrastive: str | None = None
+        if contrastive_token is not None:
+            ids = self.model.to_tokens(contrastive_token, prepend_bos=False)
+            contrastive_idx = int(ids[0, 0])
+            resolved_contrastive = self.model.tokenizer.decode([contrastive_idx])
+
+        # Clean cache — only the three activation types needed for diffs.
+        # Filtered to avoid storing all TL3 intermediates for a 27-70B model.
+        needed_hooks: set[str] = {
+            f"blocks.{L}.{suffix}"
+            for L in range(n_layers)
+            for suffix in ("attn.hook_z", "hook_attn_out", "hook_mlp_out")
+        }
+        with torch.no_grad():
+            _, clean_cache = self.model.run_with_cache(
+                clean_tokens,
+                names_filter=lambda name: name in needed_hooks,
+            )
+
+        # Extract only the [pos] slice for each activation and move to CPU immediately.
+        # This frees the GPU tensors before the expensive backward pass.
+        clean_z_cpu    = [clean_cache[f"blocks.{L}.attn.hook_z"][0, pos].float().cpu()    for L in range(n_layers)]
+        clean_attn_cpu = [clean_cache[f"blocks.{L}.hook_attn_out"][0, pos].float().cpu()  for L in range(n_layers)]
+        clean_mlp_cpu  = [clean_cache[f"blocks.{L}.hook_mlp_out"][0, pos].float().cpu()   for L in range(n_layers)]
+        del clean_cache
+        torch.cuda.empty_cache()
+
+        # Corrupted forward pass with gradients — first-order Taylor attribution.
+        # torch.enable_grad() overrides the global set_grad_enabled(False) from load_model.
         yield json.dumps({"stage": "corrupted_forward_backward"})
 
         corrupted_z: dict[int, torch.Tensor] = {}
@@ -461,8 +514,40 @@ class _TLBase:
 
         with torch.enable_grad():
             logits_corrupted = self.model.run_with_hooks(corrupted_tokens, fwd_hooks=fwd_hooks)
-            metric = logits_corrupted[0, pos, target_idx]
+            if contrastive_idx is not None:
+                metric = logits_corrupted[0, pos, target_idx] - logits_corrupted[0, pos, contrastive_idx]
+            else:
+                metric = logits_corrupted[0, pos, target_idx]
             metric.backward()
+
+        # Move gradients and corrupted activations to CPU before the computation loop,
+        # then free all GPU tensors. Attribution math on CPU is negligible time.
+        grad_z_cpu    = {}
+        grad_attn_cpu = {}
+        grad_mlp_cpu  = {}
+        corrupted_z_cpu    = {}
+        corrupted_attn_cpu = {}
+        corrupted_mlp_cpu  = {}
+
+        for L in range(n_layers):
+            if corrupted_z[L].grad is None:
+                raise RuntimeError(
+                    f"hook_z gradient is None at layer {L}. "
+                    "The TL3 bridge may be detaching activations — cannot compute attribution."
+                )
+            if corrupted_attn_out[L].grad is None or corrupted_mlp_out[L].grad is None:
+                raise RuntimeError(
+                    f"hook_attn_out or hook_mlp_out gradient is None at layer {L}."
+                )
+            grad_z_cpu[L]    = corrupted_z[L].grad[0, pos].float().cpu()
+            grad_attn_cpu[L] = corrupted_attn_out[L].grad[0, pos].float().cpu()
+            grad_mlp_cpu[L]  = corrupted_mlp_out[L].grad[0, pos].float().cpu()
+            corrupted_z_cpu[L]    = corrupted_z[L][0, pos].float().cpu()
+            corrupted_attn_cpu[L] = corrupted_attn_out[L][0, pos].float().cpu()
+            corrupted_mlp_cpu[L]  = corrupted_mlp_out[L][0, pos].float().cpu()
+
+        del logits_corrupted, metric, corrupted_z, corrupted_attn_out, corrupted_mlp_out
+        torch.cuda.empty_cache()
 
         yield json.dumps({"stage": "computing_attribution"})
 
@@ -470,20 +555,10 @@ class _TLBase:
         head_attribution: list[list[float]] = []
 
         for L in range(n_layers):
-            z_grad = corrupted_z[L].grad
-            if z_grad is None:
-                raise RuntimeError(
-                    f"hook_z gradient is None at layer {L}. "
-                    "The TL3 bridge may be detaching activations — cannot compute attribution."
-                )
-            clean_z_L = clean_cache[f"blocks.{L}.attn.hook_z"][0, pos].float()     # [n_heads, d_head]
-            corrupted_z_L = corrupted_z[L][0, pos].float()
-            grad_z_L = z_grad[0, pos].float()
-
             row: list[float] = []
             for H in range(n_heads):
-                z_diff = clean_z_L[H] - corrupted_z_L[H]   # [d_head]
-                attr = float((z_diff * grad_z_L[H]).sum())
+                z_diff = clean_z_cpu[L][H] - corrupted_z_cpu[L][H]
+                attr = float((z_diff * grad_z_cpu[L][H]).sum())
                 row.append(attr)
                 all_components.append({
                     "layer": L,
@@ -495,30 +570,16 @@ class _TLBase:
 
         layer_attribution: list[float] = []
         for L in range(n_layers):
-            attn_grad = corrupted_attn_out[L].grad
-            mlp_grad = corrupted_mlp_out[L].grad
-            if attn_grad is None or mlp_grad is None:
-                raise RuntimeError(
-                    f"hook_attn_out or hook_mlp_out gradient is None at layer {L}."
-                )
-            attn_diff = (
-                clean_cache[f"blocks.{L}.hook_attn_out"][0, pos].float()
-                - corrupted_attn_out[L][0, pos].float()
-            )
-            mlp_diff = (
-                clean_cache[f"blocks.{L}.hook_mlp_out"][0, pos].float()
-                - corrupted_mlp_out[L][0, pos].float()
-            )
-            layer_attr = float(
-                (attn_diff * corrupted_attn_out[L].grad[0, pos].float()).sum()
-                + (mlp_diff * corrupted_mlp_out[L].grad[0, pos].float()).sum()
-            )
-            layer_attribution.append(layer_attr)
+            attn_diff = clean_attn_cpu[L] - corrupted_attn_cpu[L]
+            mlp_diff  = clean_mlp_cpu[L]  - corrupted_mlp_cpu[L]
+            layer_attribution.append(float(
+                (attn_diff * grad_attn_cpu[L]).sum() + (mlp_diff * grad_mlp_cpu[L]).sum()
+            ))
             all_components.append({
                 "layer": L,
                 "head": -1,
                 "component_type": "mlp",
-                "attribution_score": float((mlp_diff * mlp_grad[0, pos].float()).sum()),
+                "attribution_score": float((mlp_diff * grad_mlp_cpu[L]).sum()),
             })
 
         all_components.sort(key=lambda c: abs(c["attribution_score"]), reverse=True)
@@ -529,6 +590,8 @@ class _TLBase:
             "data": {
                 "target_token": resolved_token,
                 "target_token_idx": target_idx,
+                "contrastive_token": resolved_contrastive,
+                "contrastive_token_idx": contrastive_idx,
                 "target_position": pos,
                 "y_labels": [f"L{i}" for i in range(n_layers)],
                 "x_labels": [f"H{i}" for i in range(n_heads)],
@@ -545,6 +608,7 @@ class _TLBase:
         corrupted_prompt: str,
         target_position: int | str = "last",
         target_token_idx: int = 0,
+        contrastive_token_idx: int | None = None,
         components: list[dict] | None = None,
         k: int = 10,
     ):
@@ -569,15 +633,28 @@ class _TLBase:
             else:
                 hook_names.add(f"blocks.{L}.hook_mlp_out")
 
+        def _metric(logits) -> float:
+            val = logits[0, pos, target_token_idx]
+            if contrastive_token_idx is not None:
+                val = val - logits[0, pos, contrastive_token_idx]
+            return float(val)
+
         yield json.dumps({"stage": "preparing"})
+        device = clean_tokens.device
         with torch.no_grad():
             _, corrupted_cache = self.model.run_with_cache(
                 corrupted_tokens,
                 names_filter=lambda name: name in hook_names,
             )
-            clean_metric = float(self.model(clean_tokens)[0, pos, target_token_idx])
-            corrupted_metric = float(self.model(corrupted_tokens)[0, pos, target_token_idx])
+            clean_metric = _metric(self.model(clean_tokens))
+            corrupted_metric = _metric(self.model(corrupted_tokens))
         total_diff = max(abs(clean_metric - corrupted_metric), 1e-8)
+
+        # CPU-offload the corrupted cache so it doesn't compete with the k patching
+        # forward passes for the limited headroom above model weights.
+        corrupted_cache_cpu = {name: corrupted_cache[name].cpu() for name in hook_names}
+        del corrupted_cache
+        torch.cuda.empty_cache()
 
         results: list[dict] = []
         for i, comp in enumerate(top_components):
@@ -585,7 +662,7 @@ class _TLBase:
             H = comp.get("head", -1)
 
             if comp["component_type"] == "attn_head":
-                corrupted_z_val = corrupted_cache[f"blocks.{L}.attn.hook_z"][:, :, H, :].clone()
+                corrupted_z_val = corrupted_cache_cpu[f"blocks.{L}.attn.hook_z"][:, :, H, :].to(device)
 
                 def make_head_hook(cached_z, head_idx):
                     def _fn(value, hook):
@@ -596,7 +673,7 @@ class _TLBase:
                 hook_fn = make_head_hook(corrupted_z_val, H)
                 hook_name = f"blocks.{L}.attn.hook_z"
             else:
-                corrupted_mlp_val = corrupted_cache[f"blocks.{L}.hook_mlp_out"].clone()
+                corrupted_mlp_val = corrupted_cache_cpu[f"blocks.{L}.hook_mlp_out"].to(device)
 
                 def make_mlp_hook(cached_mlp):
                     def _fn(value, hook):
@@ -611,7 +688,7 @@ class _TLBase:
                     clean_tokens,
                     fwd_hooks=[(hook_name, hook_fn)],
                 )
-            patched_metric = float(patched_logits[0, pos, target_token_idx])
+            patched_metric = _metric(patched_logits)
             actual_effect = (clean_metric - patched_metric) / total_diff
 
             results.append({
@@ -667,6 +744,16 @@ class _TLBase:
             for li in range(n_layers)
         ]
 
+        # KL divergence from final layer's distribution at each (layer, position).
+        # KL(P_layer || P_final) = sum(P_layer * log(P_layer / P_final))
+        eps = 1e-10
+        final_probs = pred_probs[-1].float()  # [n_pos, vocab]
+        kl_data = []
+        for li in range(n_layers):
+            p_layer = pred_probs[li].float()  # [n_pos, vocab]
+            kl_row = (p_layer * (torch.log(p_layer + eps) - torch.log(final_probs + eps))).sum(dim=-1)
+            kl_data.append(kl_row.cpu().tolist())
+
         yield json.dumps({
             "stage": "done",
             "data": {
@@ -675,6 +762,7 @@ class _TLBase:
                 "heatmap_data": gathered_probs.float().cpu().tolist(),
                 "topk_tokens": topk_token_strings,
                 "topk_probs": topk_vals.float().cpu().tolist(),
+                "kl_data": kl_data,
             },
         })
 
@@ -708,6 +796,21 @@ _TIER_TO_CLS = {
     "tl_xlarge": TransformerLensXLarge,
 }
 
+_TIER_ORDER = ["tl_small", "tl_medium", "tl_large", "tl_xlarge"]
+
+def _bump_tier(tier: str) -> str:
+    """Return the next GPU tier up for memory-intensive ops (attribution, activation patch).
+
+    Backward passes retain intermediate activations for all layers, requiring
+    significantly more headroom than a forward-only run. One tier up is enough:
+      tl_small  (L4, 24 GB)   → tl_medium (A10G, 24 GB)
+      tl_medium (A10G, 24 GB) → tl_large  (A100-80GB, 80 GB)
+      tl_large  (A100-80GB)   → tl_xlarge (H200, 141 GB)
+      tl_xlarge (H200)        → tl_xlarge (ceiling, no tier above)
+    """
+    idx = _TIER_ORDER.index(tier)
+    return _TIER_ORDER[min(idx + 1, len(_TIER_ORDER) - 1)]
+
 
 @app.function(image=web_image, secrets=[hf_secret])
 @modal.concurrent(max_inputs=50)
@@ -736,6 +839,7 @@ def api():
         model_name: str
         target_position: int | str = "last"
         target_token: str | None = None
+        contrastive_token: str | None = None
 
     class AttributionRequest(BaseModel):
         prompt: str            # clean prompt
@@ -743,6 +847,7 @@ def api():
         model_name: str
         target_position: int | str = "last"
         target_token: str | None = None
+        contrastive_token: str | None = None
 
     class ActivationPatchRequest(BaseModel):
         prompt: str            # clean prompt
@@ -750,6 +855,7 @@ def api():
         model_name: str
         target_position: int | str = "last"
         target_token_idx: int
+        contrastive_token_idx: int | None = None
         components: list[dict]
         k: int
 
@@ -823,7 +929,7 @@ def api():
         async def event_stream():
             try:
                 async for chunk in cls(model_id=model_id).run_dla.remote_gen.aio(
-                    request.prompt, request.target_position, request.target_token
+                    request.prompt, request.target_position, request.target_token, request.contrastive_token
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:
@@ -841,10 +947,10 @@ def api():
             validation = validate_hf_repo(request.model_name, hf_token=hf_token)
             if not validation["valid"]:
                 raise HTTPException(status_code=400, detail=validation["reason"])
-            cls = _TIER_TO_CLS[validation["gpu_tier"]]
+            cls = _TIER_TO_CLS[_bump_tier(validation["gpu_tier"])]
             model_id = request.model_name
         else:
-            cls = _TIER_TO_CLS[entry["gpu_tier"]]
+            cls = _TIER_TO_CLS[_bump_tier(entry["gpu_tier"])]
             model_id = entry["model_id"]
 
         async def event_stream():
@@ -854,6 +960,7 @@ def api():
                     request.corrupted_prompt,
                     request.target_position,
                     request.target_token,
+                    request.contrastive_token,
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:
@@ -871,10 +978,10 @@ def api():
             validation = validate_hf_repo(request.model_name, hf_token=hf_token)
             if not validation["valid"]:
                 raise HTTPException(status_code=400, detail=validation["reason"])
-            cls = _TIER_TO_CLS[validation["gpu_tier"]]
+            cls = _TIER_TO_CLS[_bump_tier(validation["gpu_tier"])]
             model_id = request.model_name
         else:
-            cls = _TIER_TO_CLS[entry["gpu_tier"]]
+            cls = _TIER_TO_CLS[_bump_tier(entry["gpu_tier"])]
             model_id = entry["model_id"]
 
         async def event_stream():
@@ -884,6 +991,7 @@ def api():
                     request.corrupted_prompt,
                     request.target_position,
                     request.target_token_idx,
+                    request.contrastive_token_idx,
                     request.components,
                     request.k,
                 ):

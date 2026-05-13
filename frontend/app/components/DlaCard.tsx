@@ -6,11 +6,15 @@ import { TIER_LABELS } from "../lib/tiers";
 
 export type DlaData = {
   target_token: string;
+  contrastive_token: string | null;
   target_position: number;
-  y_labels: string[];     // ["L0","L1",...] one per layer
-  x_labels: string[];     // ["H0","H1",...] one per head
-  layer_dla: number[];    // [n_layers] signed floats
-  head_dla: number[][];   // [n_layers][n_heads] signed floats
+  y_labels: string[];         // ["L0","L1",...] one per layer
+  x_labels: string[];         // ["H0","H1",...] one per head
+  embed_dla: number;          // combined token + positional embedding contribution
+  layer_dla: number[];        // [n_layers] combined attn+mlp
+  layer_attn_dla: number[];   // [n_layers] attention only
+  layer_mlp_dla: number[];    // [n_layers] MLP only
+  head_dla: number[][];       // [n_layers][n_heads] signed floats
 };
 
 export type DlaCardData = {
@@ -27,6 +31,7 @@ export type DlaCardData = {
   loadingStage?: string;
   targetPosition: number | "last";
   targetToken: string | null;
+  contrastiveToken: string | null;
 };
 
 type DlaCardProps = {
@@ -86,15 +91,26 @@ export default function DlaCard({
   const absMax = React.useMemo(() => {
     if (!card.data) return 1;
     if (view === "layer") {
-      return Math.max(1e-9, ...card.data.layer_dla.map(Math.abs));
+      const vals = [
+        ...card.data.layer_attn_dla ?? [],
+        ...card.data.layer_mlp_dla ?? [],
+        card.data.embed_dla ?? 0,
+      ];
+      return Math.max(1e-9, ...vals.map(Math.abs));
     }
     return Math.max(1e-9, ...card.data.head_dla.flatMap(row => row.map(Math.abs)));
   }, [card.data, view]);
 
-  // Card width: layer view is fixed narrow; head view expands with n_heads
+  // Card width: layer view fixed; head view expands with n_heads
   const cardWidth = React.useMemo(() => {
     if (!card.data || card.status !== "result") return 280;
-    if (view === "layer") return Y_LABEL_W + LAYER_BAR_W + 48 + 12; // label + bar + value text + padding
+    if (view === "layer") {
+      // split view: two half-bars + 4px gap; single view: one full bar
+      const barArea = card.data.layer_attn_dla != null
+        ? HALF_BAR_W + 4 + HALF_BAR_W
+        : LAYER_BAR_W;
+      return Y_LABEL_W + barArea + 48 + 12;
+    }
     return Y_LABEL_W + (HEAD_CELL_SIZE + COL_GAP) * card.data.x_labels.length + 12;
   }, [card.data, card.status, view]);
 
@@ -164,7 +180,7 @@ export default function DlaCard({
         </div>
       )}
 
-      {/* Drag handle / header */}
+      {/* Header */}
       <div
         onPointerDown={e => onStartDrag(e, card.id, card.position)}
         onPointerMove={onDragMove}
@@ -172,89 +188,83 @@ export default function DlaCard({
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
         style={{
-          padding: "7px 10px",
           borderBottom: "1px solid var(--color-surface-border)",
           display: "flex",
-          alignItems: "center",
-          gap: 6,
-          cursor: "grab",
-          userSelect: "none",
+          flexDirection: "column",
           flexShrink: 0,
           borderRadius: "8px 8px 0 0",
-          minWidth: 0,
-          overflow: "hidden",
+          cursor: "grab",
+          userSelect: "none",
         }}
       >
-        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
-          <circle cx="2" cy="2" r="1.2" fill="currentColor" />
-          <circle cx="6" cy="2" r="1.2" fill="currentColor" />
-          <circle cx="2" cy="6" r="1.2" fill="currentColor" />
-          <circle cx="6" cy="6" r="1.2" fill="currentColor" />
-          <circle cx="2" cy="10" r="1.2" fill="currentColor" />
-          <circle cx="6" cy="10" r="1.2" fill="currentColor" />
-        </svg>
-        <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {card.modelName}
-        </span>
-        <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {card.prompt}
-        </span>
-
-        {/* Resolved target token badge */}
-        {card.data?.target_token && (
-          <span
-            onPointerDown={e => e.stopPropagation()}
-            style={{
-              fontSize: 9,
-              fontFamily: "var(--font-azeret-mono), monospace",
-              fontWeight: 600,
-              color: "var(--color-accent)",
-              background: "var(--color-surface-border)",
-              border: "1px solid var(--color-card-border)",
-              borderRadius: 3,
-              padding: "1px 5px",
-              flexShrink: 0,
-              whiteSpace: "nowrap",
-            }}
-          >
-            → {JSON.stringify(card.data.target_token)}
+        {/* Row 1: drag strip */}
+        <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
+          <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
+            <circle cx="2" cy="2" r="1.2" fill="currentColor" />
+            <circle cx="6" cy="2" r="1.2" fill="currentColor" />
+            <circle cx="2" cy="6" r="1.2" fill="currentColor" />
+            <circle cx="6" cy="6" r="1.2" fill="currentColor" />
+            <circle cx="2" cy="10" r="1.2" fill="currentColor" />
+            <circle cx="6" cy="10" r="1.2" fill="currentColor" />
+          </svg>
+          <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {card.modelName}
           </span>
-        )}
+          <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {card.prompt}
+          </span>
+          <button
+            onPointerDown={e => e.stopPropagation()}
+            onClick={() => onRemove(card.id)}
+            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+          >
+            ×
+          </button>
+        </div>
 
-        {/* Layer / Head toggle */}
+        {/* Row 2: controls (result only) */}
         {canToggle && (
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}
+            style={{
+              padding: "4px 10px",
+              borderTop: "1px solid var(--color-surface-border)",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
           >
-            {(["layer", "head"] as const).map(v => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                style={{
-                  fontSize: 9,
-                  padding: "2px 6px",
-                  background: view === v ? "var(--color-accent)" : "transparent",
-                  color: view === v ? "var(--color-accent-fg)" : "var(--color-text-muted)",
-                  border: "none",
-                  cursor: "pointer",
-                  lineHeight: 1.4,
-                  textTransform: "capitalize",
-                }}
-              >
-                {v}
-              </button>
-            ))}
+            {card.data?.target_token && (
+              <span style={{
+                fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", fontWeight: 600,
+                color: "var(--color-accent)", background: "var(--color-surface-border)",
+                border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px",
+                whiteSpace: "nowrap",
+              }}>
+                {card.data.contrastive_token
+                  ? `${JSON.stringify(card.data.target_token)} vs ${JSON.stringify(card.data.contrastive_token)}`
+                  : `→ ${JSON.stringify(card.data.target_token)}`}
+              </span>
+            )}
+            <div style={{ flex: 1 }} />
+            <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
+              {(["layer", "head"] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  style={{
+                    fontSize: 9, padding: "2px 6px",
+                    background: view === v ? "var(--color-accent)" : "transparent",
+                    color: view === v ? "var(--color-accent-fg)" : "var(--color-text-muted)",
+                    border: "none", cursor: "pointer", lineHeight: 1.4, textTransform: "capitalize",
+                  }}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
           </div>
         )}
-
-        <button
-          onPointerDown={e => e.stopPropagation()}
-          onClick={() => onRemove(card.id)}
-          style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
-        >
-          ×
-        </button>
       </div>
 
       {/* Loading */}
@@ -305,47 +315,103 @@ export default function DlaCard({
   );
 }
 
+function DivergingBar({ val, absMax, width = LAYER_BAR_W, height = LAYER_CELL_H, tooltip }: {
+  val: number; absMax: number; width?: number; height?: number; tooltip?: string;
+}) {
+  const color = interpolateColorDivergent("rdbu", val, absMax);
+  const barFrac = Math.abs(val) / absMax;
+  const isPositive = val >= 0;
+  return (
+    <div
+      title={tooltip}
+      style={{ width, height, flexShrink: 0, display: "flex", alignItems: "stretch", borderRadius: 2, overflow: "hidden", background: "var(--color-surface-border)", position: "relative" }}
+    >
+      <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "var(--color-card-border)", zIndex: 1 }} />
+      {isPositive ? (
+        <>
+          <div style={{ width: "50%" }} />
+          <div style={{ width: `${barFrac * 50}%`, background: color, borderRadius: "0 2px 2px 0" }} />
+        </>
+      ) : (
+        <>
+          <div style={{ flex: 1 }} />
+          <div style={{ width: `${barFrac * 50}%`, background: color, borderRadius: "2px 0 0 2px", alignSelf: "stretch" }} />
+          <div style={{ width: "50%" }} />
+        </>
+      )}
+    </div>
+  );
+}
+
+const HALF_BAR_W = Math.floor(LAYER_BAR_W / 2) - 2;
+
 function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
+  const hasAttnMlp = data.layer_attn_dla != null && data.layer_mlp_dla != null;
+
   return (
     <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
+      {/* Column header when split view is active */}
+      {hasAttnMlp && (
+        <div style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
+          <div style={{ width: Y_LABEL_W, flexShrink: 0 }} />
+          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", letterSpacing: "0.04em" }}>Attn</span>
+          <div style={{ width: 4, flexShrink: 0 }} />
+          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", letterSpacing: "0.04em" }}>MLP</span>
+          <div style={{ width: 44, flexShrink: 0 }} />
+        </div>
+      )}
+
+      {/* Embed row */}
+      {data.embed_dla != null && (
+        <div style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
+          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)", fontStyle: "italic" }}>
+            emb
+          </div>
+          {hasAttnMlp ? (
+            <>
+              <DivergingBar val={data.embed_dla} absMax={absMax} width={LAYER_BAR_W + 4} tooltip={`Embed: ${data.embed_dla >= 0 ? "+" : ""}${data.embed_dla.toFixed(3)}`} />
+              <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+                {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
+              </span>
+            </>
+          ) : (
+            <>
+              <DivergingBar val={data.embed_dla} absMax={absMax} tooltip={`Embed: ${data.embed_dla >= 0 ? "+" : ""}${data.embed_dla.toFixed(3)}`} />
+              <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+                {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
+              </span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Per-layer rows */}
       {data.y_labels.map((label, i) => {
-        const val = data.layer_dla[i];
-        const color = interpolateColorDivergent("rdbu", val, absMax);
-        const barFrac = Math.abs(val) / absMax;
-        const isPositive = val >= 0;
-        const tooltip = `${label}: ${val >= 0 ? "+" : ""}${val.toFixed(3)}`;
+        const combined = data.layer_dla[i];
+        const attnVal = hasAttnMlp ? data.layer_attn_dla[i] : null;
+        const mlpVal = hasAttnMlp ? data.layer_mlp_dla[i] : null;
+        const tooltip = hasAttnMlp
+          ? `${label}: attn ${attnVal! >= 0 ? "+" : ""}${attnVal!.toFixed(3)}, MLP ${mlpVal! >= 0 ? "+" : ""}${mlpVal!.toFixed(3)}, total ${combined >= 0 ? "+" : ""}${combined.toFixed(3)}`
+          : `${label}: ${combined >= 0 ? "+" : ""}${combined.toFixed(3)}`;
 
         return (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-            {/* Layer label */}
             <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
               {label}
             </div>
 
-            {/* Diverging bar: negative fills left half, positive fills right half */}
-            <div
-              title={tooltip}
-              style={{ width: LAYER_BAR_W, height: LAYER_CELL_H, flexShrink: 0, display: "flex", alignItems: "stretch", borderRadius: 2, overflow: "hidden", background: "var(--color-surface-border)", position: "relative" }}
-            >
-              {/* Center line */}
-              <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "var(--color-card-border)", zIndex: 1 }} />
-              {isPositive ? (
-                <>
-                  <div style={{ width: "50%" }} />
-                  <div style={{ width: `${barFrac * 50}%`, background: color, borderRadius: "0 2px 2px 0" }} />
-                </>
-              ) : (
-                <>
-                  <div style={{ flex: 1 }} />
-                  <div style={{ width: `${barFrac * 50}%`, background: color, borderRadius: "2px 0 0 2px", alignSelf: "stretch" }} />
-                  <div style={{ width: "50%" }} />
-                </>
-              )}
-            </div>
+            {hasAttnMlp ? (
+              <>
+                <DivergingBar val={attnVal!} absMax={absMax} width={HALF_BAR_W} tooltip={tooltip} />
+                <div style={{ width: 4, flexShrink: 0 }} />
+                <DivergingBar val={mlpVal!} absMax={absMax} width={HALF_BAR_W} tooltip={tooltip} />
+              </>
+            ) : (
+              <DivergingBar val={combined} absMax={absMax} tooltip={tooltip} />
+            )}
 
-            {/* Value label */}
             <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
-              {val >= 0 ? "+" : ""}{val.toFixed(2)}
+              {combined >= 0 ? "+" : ""}{combined.toFixed(2)}
             </span>
           </div>
         );

@@ -11,6 +11,7 @@ type HeatmapData = {
   heatmap_data: number[][];
   topk_tokens?: string[][][];
   topk_probs?: number[][][];
+  kl_data?: number[][];
 };
 
 export type LensCardData = {
@@ -74,7 +75,7 @@ export default function LensCard({
   onRemove,
 }: LensCardProps) {
   const palette = usePalette();
-  const [mode, setMode] = React.useState<"prob" | "tokens">("prob");
+  const [mode, setMode] = React.useState<"prob" | "tokens" | "kl">("prob");
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [pinnedCol, setPinnedCol] = React.useState<number | null>(null);
   const [activeLayer, setActiveLayer] = React.useState(0);
@@ -94,6 +95,7 @@ export default function LensCard({
 
   const canToggle = card.status === "result" && card.data?.topk_tokens != null;
   const canPin = card.status === "result" && card.data?.topk_tokens != null;
+  const hasKl = card.data?.kl_data != null;
   const cellWidth = card.data ? computeCellWidth(card.data.x_labels) : 24;
   const rowGap = mode === "tokens" && card.data?.topk_tokens != null ? 2 : 0;
   // 6px padding on each side of the heatmap body; COL_GAP between every flex child
@@ -339,7 +341,7 @@ export default function LensCard({
             onPointerDown={e => e.stopPropagation()}
             style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}
           >
-            {(["prob", "tokens"] as const).map(m => (
+            {(["prob", "tokens", ...(hasKl ? ["kl"] : [])] as ("prob" | "tokens" | "kl")[]).map(m => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
@@ -353,7 +355,7 @@ export default function LensCard({
                   lineHeight: 1.4,
                 }}
               >
-                {m === "prob" ? "Prob" : "Tokens"}
+                {m === "prob" ? "Prob" : m === "tokens" ? "Tokens" : "KL"}
               </button>
             ))}
           </div>
@@ -445,8 +447,15 @@ export default function LensCard({
               ))}
             </div>
 
-            {/* Heatmap rows */}
-            {card.data.y_labels.map((layerName, yIndex) => (
+            {/* Heatmap rows — inTokensMode/inKlMode/klMax computed once outside the cell loops */}
+            {card.data.y_labels.map((layerName, yIndex) => {
+              const inTokensMode = mode === "tokens" && card.data!.topk_tokens != null;
+              const inKlMode = mode === "kl" && card.data!.kl_data != null;
+              const klMax = inKlMode
+                ? Math.min(Math.max(...card.data!.kl_data![yIndex], 1e-6), 5)
+                : 1;
+              const cellHeight = inTokensMode ? 20 : 12;
+              return (
               <div
                 key={layerName}
                 style={{ display: "flex", alignItems: "center", gap: COL_GAP }}
@@ -466,14 +475,17 @@ export default function LensCard({
                   {String(yIndex)}
                 </div>
                 {card.data!.heatmap_data[yIndex].map((prob, xIndex) => {
-                  const inTokensMode = mode === "tokens" && card.data!.topk_tokens != null;
                   const topProb = inTokensMode ? card.data!.topk_probs![yIndex][xIndex][0] : prob;
                   const topToken = inTokensMode ? card.data!.topk_tokens![yIndex][xIndex][0] : null;
-                  const cellHeight = inTokensMode ? 20 : 12;
                   const isPinned = pinnedCol === xIndex;
                   const isActivePinnedCell = isPinned && activeLayer === yIndex;
 
-                  const tooltipText = inTokensMode
+                  const klVal = inKlMode ? card.data!.kl_data![yIndex][xIndex] : null;
+                  const klNorm = klVal !== null ? Math.min(klVal / klMax, 1) : 0;
+
+                  const tooltipText = inKlMode
+                    ? `Token: ${card.data!.x_labels[xIndex]}\nLayer: ${yIndex}\nKL from final: ${klVal!.toFixed(3)} nats`
+                    : inTokensMode
                     ? `Top predictions at "${card.data!.x_labels[xIndex]}", layer ${yIndex}:\n${
                         card.data!.topk_tokens![yIndex][xIndex]
                           .map((t, i) => `${(card.data!.topk_probs![yIndex][xIndex][i] * 100).toFixed(1)}%  ${JSON.stringify(t)}`)
@@ -481,7 +493,9 @@ export default function LensCard({
                       }`
                     : `Token: ${card.data!.x_labels[xIndex]}\nLayer: ${yIndex}\nProb: ${(prob * 100).toFixed(2)}%`;
 
-                  const cellBg = interpolateColor(palette, topProb);
+                  const cellBg = inKlMode
+                    ? interpolateColor(palette, klNorm)
+                    : interpolateColor(palette, topProb);
                   const cellBorder = isActivePinnedCell
                     ? "1.5px solid var(--color-accent)"
                     : isPinned
@@ -525,7 +539,8 @@ export default function LensCard({
                   );
                 })}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

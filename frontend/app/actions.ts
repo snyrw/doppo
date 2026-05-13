@@ -68,6 +68,7 @@ type SerializedCard = {
   gpuTier?: string;
   targetPosition?: number | "last";
   targetToken?: string | null;
+  contrastiveToken?: string | null;
   corruptedPrompt?: string;       // attribution cards
   parentAttributionId?: string;   // activation cards
 };

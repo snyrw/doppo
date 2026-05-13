@@ -172,10 +172,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
 function serializeCard(c: AnyCard) {
   if (c.cardType === "dla") {
-    return { id: c.id, cardType: "dla" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken };
+    return { id: c.id, cardType: "dla" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, contrastiveToken: c.contrastiveToken };
   }
   if (c.cardType === "attribution") {
-    return { id: c.id, cardType: "attribution" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken };
+    return { id: c.id, cardType: "attribution" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, contrastiveToken: c.contrastiveToken };
   }
   if (c.cardType === "activation") {
     return { id: c.id, cardType: "activation" as const, modelName: c.modelName, prompt: c.cleanPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, parentAttributionId: c.parentAttributionId };
@@ -258,13 +258,14 @@ function Projects() {
       if (!result) { router.replace("/projects"); return; }
       const lensCards: AnyCard[] = result.cards.map(c => {
         if (c.cardType === "dla") {
-          return { ...c, cardType: "dla" as const, status: "result" as const, error: null } as DlaCardData;
+          return { ...c, cardType: "dla" as const, status: "result" as const, error: null, contrastiveToken: c.contrastiveToken ?? null } as DlaCardData;
         }
         if (c.cardType === "attribution") {
           return {
             ...c, cardType: "attribution" as const, status: "result" as const, error: null,
             cleanPrompt: c.prompt, corruptedPrompt: c.corruptedPrompt ?? "",
             targetPosition: c.targetPosition ?? "last", targetToken: c.targetToken ?? null,
+            contrastiveToken: c.contrastiveToken ?? null,
             verifyStatus: "idle" as const,
           } as unknown as AttributionCardData;
         }
@@ -400,9 +401,9 @@ function Projects() {
       .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
   };
 
-  const handleAddDla = ({ modelName, prompt, gpuTier, targetPosition, targetToken }: {
+  const handleAddDla = ({ modelName, prompt, gpuTier, targetPosition, targetToken, contrastiveToken }: {
     modelName: string; prompt: string; gpuTier?: string;
-    targetPosition: number | "last"; targetToken: string | null;
+    targetPosition: number | "last"; targetToken: string | null; contrastiveToken: string | null;
   }) => {
     setDlaOpen(false);
 
@@ -420,6 +421,7 @@ function Projects() {
       startedAt: Date.now(),
       targetPosition,
       targetToken,
+      contrastiveToken,
     };
 
     dispatch({ type: "ADD_CARD", card });
@@ -427,7 +429,7 @@ function Projects() {
     fetch("/api/run-dla", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, modelName, gpuTier, targetPosition, targetToken }),
+      body: JSON.stringify({ prompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken }),
     })
       .then(async (response) => {
         if (!response.ok || !response.body) {
@@ -463,7 +465,7 @@ function Projects() {
                   const existingResult = stateRef.current.lensCards
                     .filter(c => c.status === "result")
                     .map(serializeCard);
-                  updateProject(pid, [...existingResult, { id, cardType: "dla" as const, modelName, prompt, data: event.data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken }], stateRef.current.canvas)
+                  updateProject(pid, [...existingResult, { id, cardType: "dla" as const, modelName, prompt, data: event.data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas)
                     .catch(console.error);
                 }
               } else if (event.stage === "error") {
@@ -478,9 +480,9 @@ function Projects() {
       .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
   };
 
-  const handleAddAttribution = ({ modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, targetToken }: {
+  const handleAddAttribution = ({ modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, targetToken, contrastiveToken }: {
     modelName: string; cleanPrompt: string; corruptedPrompt: string; gpuTier?: string;
-    targetPosition: number | "last"; targetToken: string | null;
+    targetPosition: number | "last"; targetToken: string | null; contrastiveToken: string | null;
   }) => {
     setAttributionOpen(false);
 
@@ -499,6 +501,7 @@ function Projects() {
       startedAt: Date.now(),
       targetPosition,
       targetToken,
+      contrastiveToken,
       verifyStatus: "idle",
     };
 
@@ -507,7 +510,7 @@ function Projects() {
     fetch("/api/run-attribution", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetToken }),
+      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken }),
     })
       .then(async (response) => {
         if (!response.ok || !response.body) {
@@ -539,7 +542,7 @@ function Projects() {
                 const pid = projectIdRef.current;
                 if (pid) {
                   const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-                  updateProject(pid, [...existingResult, { id, cardType: "attribution" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: event.data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken }], stateRef.current.canvas).catch(console.error);
+                  updateProject(pid, [...existingResult, { id, cardType: "attribution" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: event.data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
                 }
               } else if (event.stage === "error") {
                 dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
@@ -578,6 +581,7 @@ function Projects() {
 
     const components = attrCard.data.top_k_components;
     const targetTokenIdx = attrCard.data.target_token_idx;
+    const contrastiveTokenIdx = attrCard.data.contrastive_token_idx ?? null;
 
     fetch("/api/run-activation-patch", {
       method: "POST",
@@ -589,6 +593,7 @@ function Projects() {
         gpuTier: attrCard.gpuTier,
         targetPosition: attrCard.targetPosition,
         targetTokenIdx,
+        contrastiveTokenIdx,
         components,
         k,
       }),

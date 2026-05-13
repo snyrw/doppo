@@ -14,6 +14,8 @@ export type TopKComponent = {
 export type AttributionData = {
   target_token: string;
   target_token_idx: number;
+  contrastive_token: string | null;
+  contrastive_token_idx: number | null;
   target_position: number;
   y_labels: string[];
   x_labels: string[];
@@ -37,6 +39,7 @@ export type AttributionCardData = {
   loadingStage?: string;
   targetPosition: number | "last";
   targetToken: string | null;
+  contrastiveToken: string | null;
   verifyStatus?: "idle" | "loading" | "done";
   verifyK?: number;
   verifyCardId?: string;
@@ -180,88 +183,100 @@ export default function AttributionCard({
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
         style={{
-          padding: "7px 10px", borderBottom: "1px solid var(--color-surface-border)",
-          display: "flex", alignItems: "center", gap: 6,
-          cursor: "grab", userSelect: "none", flexShrink: 0,
-          borderRadius: "8px 8px 0 0", minWidth: 0, overflow: "hidden",
+          borderBottom: "1px solid var(--color-surface-border)",
+          display: "flex",
+          flexDirection: "column",
+          flexShrink: 0,
+          borderRadius: "8px 8px 0 0",
+          cursor: "grab",
+          userSelect: "none",
         }}
       >
-        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
-          <circle cx="2" cy="2" r="1.2" fill="currentColor" />
-          <circle cx="6" cy="2" r="1.2" fill="currentColor" />
-          <circle cx="2" cy="6" r="1.2" fill="currentColor" />
-          <circle cx="6" cy="6" r="1.2" fill="currentColor" />
-          <circle cx="2" cy="10" r="1.2" fill="currentColor" />
-          <circle cx="6" cy="10" r="1.2" fill="currentColor" />
-        </svg>
-        <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {card.modelName}
-        </span>
-        <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {card.cleanPrompt}
-        </span>
-
-        {/* Target token badge */}
-        {card.data?.target_token && (
-          <span
-            onPointerDown={e => e.stopPropagation()}
-            style={{
-              fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", fontWeight: 600,
-              color: "var(--color-accent)", background: "var(--color-surface-border)",
-              border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px",
-              flexShrink: 0, whiteSpace: "nowrap",
-            }}
-          >
-            → {JSON.stringify(card.data.target_token)}
+        {/* Row 1: drag strip */}
+        <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
+          <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
+            <circle cx="2" cy="2" r="1.2" fill="currentColor" />
+            <circle cx="6" cy="2" r="1.2" fill="currentColor" />
+            <circle cx="2" cy="6" r="1.2" fill="currentColor" />
+            <circle cx="6" cy="6" r="1.2" fill="currentColor" />
+            <circle cx="2" cy="10" r="1.2" fill="currentColor" />
+            <circle cx="6" cy="10" r="1.2" fill="currentColor" />
+          </svg>
+          <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {card.modelName}
           </span>
-        )}
+          <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {card.cleanPrompt}
+          </span>
+          <button
+            onPointerDown={e => e.stopPropagation()}
+            onClick={() => onRemove(card.id)}
+            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+          >
+            ×
+          </button>
+        </div>
 
-        {/* Layer / Head toggle */}
+        {/* Row 2: token badge + view toggle (result only) */}
         {canToggle && (
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}
+            style={{
+              padding: "4px 10px",
+              borderTop: "1px solid var(--color-surface-border)",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
           >
-            {(["layer", "head"] as const).map(v => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                style={{
-                  fontSize: 9, padding: "2px 6px",
-                  background: view === v ? "var(--color-accent)" : "transparent",
-                  color: view === v ? "var(--color-accent-fg)" : "var(--color-text-muted)",
-                  border: "none", cursor: "pointer", lineHeight: 1.4, textTransform: "capitalize",
-                }}
-              >
-                {v}
-              </button>
-            ))}
+            {card.data?.target_token && (
+              <span style={{
+                fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", fontWeight: 600,
+                color: "var(--color-accent)", background: "var(--color-surface-border)",
+                border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px",
+                whiteSpace: "nowrap",
+              }}>
+                {card.data.contrastive_token
+                  ? `${JSON.stringify(card.data.target_token)} vs ${JSON.stringify(card.data.contrastive_token)}`
+                  : `→ ${JSON.stringify(card.data.target_token)}`}
+              </span>
+            )}
+            <div style={{ flex: 1 }} />
+            <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
+              {(["layer", "head"] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  style={{
+                    fontSize: 9, padding: "2px 6px",
+                    background: view === v ? "var(--color-accent)" : "transparent",
+                    color: view === v ? "var(--color-accent-fg)" : "var(--color-text-muted)",
+                    border: "none", cursor: "pointer", lineHeight: 1.4, textTransform: "capitalize",
+                  }}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Verify top K controls */}
+        {/* Row 3: verify controls (result only) */}
         {canToggle && (
-          <div onPointerDown={e => e.stopPropagation()} style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-            {/* K pill group */}
-            {!isVerified && (
-              <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
-                {K_OPTIONS.map(k => (
-                  <button
-                    key={k}
-                    onClick={() => setSelectedK(k)}
-                    style={{
-                      fontSize: 9, padding: "2px 5px",
-                      background: selectedK === k ? "var(--color-surface-border)" : "transparent",
-                      color: selectedK === k ? "var(--color-text)" : "var(--color-text-muted)",
-                      border: "none", cursor: "pointer", lineHeight: 1.4,
-                    }}
-                  >
-                    {k}
-                  </button>
-                ))}
-              </div>
-            )}
-
+          <div
+            onPointerDown={e => e.stopPropagation()}
+            style={{
+              padding: "4px 10px",
+              borderTop: "1px solid var(--color-surface-border)",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+              Verify top-K
+            </span>
+            <div style={{ flex: 1 }} />
             {isVerified ? (
               <span style={{
                 fontSize: 9, fontWeight: 600, color: "#16a34a",
@@ -271,38 +286,48 @@ export default function AttributionCard({
                 ✓ Verified
               </span>
             ) : (
-              <button
-                onClick={() => onVerifyTopK(card.id, selectedK)}
-                disabled={isVerifying}
-                style={{
-                  fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                  background: isVerifying ? "var(--color-surface-border)" : "var(--color-accent)",
-                  color: isVerifying ? "var(--color-text-muted)" : "var(--color-accent-fg)",
-                  border: "none", borderRadius: 4, cursor: isVerifying ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
-                  transition: "background 120ms",
-                }}
-              >
-                {isVerifying ? (
-                  <>
-                    <div style={{ width: 8, height: 8, border: "1.5px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                    Verifying…
-                  </>
-                ) : (
-                  `Verify top ${selectedK} →`
-                )}
-              </button>
+              <>
+                <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
+                  {K_OPTIONS.map(k => (
+                    <button
+                      key={k}
+                      onClick={() => setSelectedK(k)}
+                      style={{
+                        fontSize: 9, padding: "2px 5px",
+                        background: selectedK === k ? "var(--color-surface-border)" : "transparent",
+                        color: selectedK === k ? "var(--color-text)" : "var(--color-text-muted)",
+                        border: "none", cursor: "pointer", lineHeight: 1.4,
+                      }}
+                    >
+                      {k}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => onVerifyTopK(card.id, selectedK)}
+                  disabled={isVerifying}
+                  style={{
+                    fontSize: 9, fontWeight: 600, padding: "2px 7px",
+                    background: isVerifying ? "var(--color-surface-border)" : "var(--color-accent)",
+                    color: isVerifying ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+                    border: "none", borderRadius: 4, cursor: isVerifying ? "not-allowed" : "pointer",
+                    display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+                    transition: "background 120ms",
+                  }}
+                >
+                  {isVerifying ? (
+                    <>
+                      <div style={{ width: 8, height: 8, border: "1.5px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                      Verifying…
+                    </>
+                  ) : (
+                    `Verify →`
+                  )}
+                </button>
+              </>
             )}
           </div>
         )}
-
-        <button
-          onPointerDown={e => e.stopPropagation()}
-          onClick={() => onRemove(card.id)}
-          style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
-        >
-          ×
-        </button>
       </div>
 
       {/* Loading */}

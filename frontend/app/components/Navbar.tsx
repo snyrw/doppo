@@ -128,7 +128,7 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
             letterSpacing: "-0.01em",
           }}
         >
-          logitlensviz
+          SomethingLens
         </span>
       </Link>
 

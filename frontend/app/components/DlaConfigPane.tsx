@@ -28,6 +28,7 @@ type DlaConfigPaneProps = {
     gpuTier?: string;
     targetPosition: number | "last";
     targetToken: string | null;
+    contrastiveToken: string | null;
   }) => void;
   onClose: () => void;
 };
@@ -52,6 +53,7 @@ export default function DlaConfigPane({
   const [customPosition, setCustomPosition] = useState("");
   const [tokenMode, setTokenMode] = useState<"auto" | "custom">("auto");
   const [customToken, setCustomToken] = useState("");
+  const [contrastiveToken, setContrastiveToken] = useState("");
 
   useEffect(() => {
     if (selectedModel === "" && availableModels.length > 0 && customRepoId === "") {
@@ -69,6 +71,7 @@ export default function DlaConfigPane({
     setCustomPosition("");
     setTokenMode("auto");
     setCustomToken("");
+    setContrastiveToken("");
   };
 
   const handleClose = () => {
@@ -129,7 +132,8 @@ export default function DlaConfigPane({
       : (availableModels.find(m => m.id === selectedModel)?.gpu_tier ?? undefined);
     const targetPosition: number | "last" = positionMode === "last" ? "last" : parseInt(customPosition);
     const targetToken: string | null = tokenMode === "auto" ? null : customToken.trim();
-    onSubmit({ modelName, prompt, gpuTier, targetPosition, targetToken });
+    const contrastiveTokenVal: string | null = contrastiveToken.trim() || null;
+    onSubmit({ modelName, prompt, gpuTier, targetPosition, targetToken, contrastiveToken: contrastiveTokenVal });
     doReset();
   };
 
@@ -423,7 +427,7 @@ export default function DlaConfigPane({
           </div>
 
           {/* Target token */}
-          <div>
+          <div style={{ marginBottom: 14 }}>
             <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>
               Target token
             </span>
@@ -472,6 +476,36 @@ export default function DlaConfigPane({
                 />
               </label>
             </div>
+          </div>
+
+          {/* Contrastive token (optional) */}
+          <div>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 4 }}>
+              Contrastive token
+              <span style={{ fontSize: 10, fontWeight: 400, color: "var(--color-text-muted)", marginLeft: 6 }}>optional</span>
+            </span>
+            <input
+              type="text"
+              placeholder={`e.g. " Berlin" — enables logit difference`}
+              value={contrastiveToken}
+              onChange={e => setContrastiveToken(e.target.value)}
+              style={{
+                width: "100%",
+                border: `1px solid ${contrastiveToken.trim() ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                borderRadius: 5,
+                padding: "4px 8px",
+                fontSize: 11,
+                fontFamily: "var(--font-azeret-mono), monospace",
+                color: "var(--color-text)",
+                background: "var(--color-bg)",
+                outline: "none",
+                transition: "border-color 120ms",
+                boxSizing: "border-box",
+              }}
+            />
+            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+              When set, uses logit difference (target − contrastive) as the attribution direction — the standard metric for contrastive tasks like IOI.
+            </p>
           </div>
         </div>
       </div>

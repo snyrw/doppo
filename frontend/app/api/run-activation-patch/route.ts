@@ -29,7 +29,7 @@ async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<strin
 }
 
 export async function POST(request: NextRequest) {
-  const { cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetTokenIdx, components, k } =
+  const { cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetTokenIdx, contrastiveTokenIdx, components, k } =
     (await request.json()) as {
       cleanPrompt: string;
       corruptedPrompt: string;
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       gpuTier?: string;
       targetPosition: number | "last";
       targetTokenIdx: number;
+      contrastiveTokenIdx: number | null;
       components: object[];
       k: number;
     };
@@ -62,6 +63,7 @@ export async function POST(request: NextRequest) {
         model_name: modelName,
         target_position: targetPosition,
         target_token_idx: targetTokenIdx,
+        contrastive_token_idx: contrastiveTokenIdx ?? null,
         components,
         k,
       }),

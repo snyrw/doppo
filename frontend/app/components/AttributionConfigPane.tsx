@@ -29,6 +29,7 @@ type AttributionConfigPaneProps = {
     gpuTier?: string;
     targetPosition: number | "last";
     targetToken: string | null;
+    contrastiveToken: string | null;
   }) => void;
   onClose: () => void;
 };
@@ -54,6 +55,7 @@ export default function AttributionConfigPane({
   const [customPosition, setCustomPosition] = useState("");
   const [tokenMode, setTokenMode] = useState<"auto" | "custom">("auto");
   const [customToken, setCustomToken] = useState("");
+  const [contrastiveToken, setContrastiveToken] = useState("");
 
   useEffect(() => {
     if (selectedModel === "" && availableModels.length > 0 && customRepoId === "") {
@@ -72,6 +74,7 @@ export default function AttributionConfigPane({
     setCustomPosition("");
     setTokenMode("auto");
     setCustomToken("");
+    setContrastiveToken("");
   };
 
   const handleClose = () => {
@@ -132,7 +135,8 @@ export default function AttributionConfigPane({
       : (availableModels.find(m => m.id === selectedModel)?.gpu_tier ?? undefined);
     const targetPosition: number | "last" = positionMode === "last" ? "last" : parseInt(customPosition);
     const targetToken: string | null = tokenMode === "auto" ? null : customToken.trim();
-    onSubmit({ modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, targetToken });
+    const contrastiveTokenVal: string | null = contrastiveToken.trim() || null;
+    onSubmit({ modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, targetToken, contrastiveToken: contrastiveTokenVal });
     doReset();
   };
 
@@ -312,9 +316,14 @@ export default function AttributionConfigPane({
 
         {/* Prompts */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
-            Reference Prompt
-          </label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+            <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+              Reference Prompt
+            </label>
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+              {cleanPrompt.trim() ? cleanPrompt.trim().split(/\s+/).length : 0}w
+            </span>
+          </div>
           <textarea
             value={cleanPrompt}
             onChange={e => setCleanPrompt(e.target.value)}
@@ -330,9 +339,14 @@ export default function AttributionConfigPane({
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
-            Counterfactual Prompt
-          </label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+            <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+              Counterfactual Prompt
+            </label>
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+              {corruptedPrompt.trim() ? corruptedPrompt.trim().split(/\s+/).length : 0}w
+            </span>
+          </div>
           <textarea
             value={corruptedPrompt}
             onChange={e => setCorruptedPrompt(e.target.value)}
@@ -345,6 +359,16 @@ export default function AttributionConfigPane({
               fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
             }}
           />
+          {/* Token count mismatch warning */}
+          {(() => {
+            const cw = cleanPrompt.trim().split(/\s+/).length;
+            const rw = corruptedPrompt.trim().split(/\s+/).length;
+            return cleanPrompt.trim() && corruptedPrompt.trim() && cw !== rw ? (
+              <p style={{ margin: "6px 0 0", fontSize: 10, color: "#d97706", lineHeight: 1.5 }}>
+                ⚠ Word counts differ ({cw} vs {rw}). Patching works best when prompts tokenize to the same length — consider using a minimal substitution (e.g. swap one name).
+              </p>
+            ) : null;
+          })()}
           <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
             Attribution patching scores each component by how much its activation change (reference → counterfactual) points toward the target token.{" "}
             <em>Verify top K</em> on the result card then runs causal activation patches on the top candidates to confirm.
@@ -386,7 +410,7 @@ export default function AttributionConfigPane({
             </div>
           </div>
 
-          <div>
+          <div style={{ marginBottom: 14 }}>
             <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>Target token</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <label style={radioStyle}>
@@ -413,6 +437,31 @@ export default function AttributionConfigPane({
                 />
               </label>
             </div>
+          </div>
+
+          {/* Contrastive token (optional) */}
+          <div>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 4 }}>
+              Contrastive token
+              <span style={{ fontSize: 10, fontWeight: 400, color: "var(--color-text-muted)", marginLeft: 6 }}>optional</span>
+            </span>
+            <input
+              type="text"
+              placeholder={`e.g. " John" — enables logit difference`}
+              value={contrastiveToken}
+              onChange={e => setContrastiveToken(e.target.value)}
+              style={{
+                width: "100%",
+                border: `1px solid ${contrastiveToken.trim() ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                borderRadius: 5, padding: "4px 8px", fontSize: 11,
+                fontFamily: "var(--font-azeret-mono), monospace",
+                color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
+                transition: "border-color 120ms", boxSizing: "border-box",
+              }}
+            />
+            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+              When set, the gradient metric becomes logit(target) − logit(contrastive). Recommended for IOI-style tasks.
+            </p>
           </div>
         </div>
       </div>
