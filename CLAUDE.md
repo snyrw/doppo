@@ -20,6 +20,8 @@ TL 3.0 supports ~9,000 models out of the box, so any standard HF model can be lo
 
 ### DLA / component attribution in TL3
 
+**Attribution patching top-K workflow is intentional.** Neel Nanda's attribution patching post explicitly recommends "find the top N attribution patches, then check with actual activation patching" as the primary workflow. The full [layer × position] residual sweep is expensive and not the recommended default for this tool.
+
 `hook_result` (per-head post-W_O output) does **not** exist in TL3. Compute it manually from `hook_z` and `W_O`:
 ```python
 z = cache[f"blocks.{layer}.attn.hook_z"][0, pos, :, :].float()  # [n_heads, d_head]
@@ -28,6 +30,10 @@ head_results = torch.einsum("hd,hdm->hm", z, model.W_O[layer].float())  # [n_hea
 Use full string hook names — tuple shorthand (`cache["attn_out", layer]`) is gone: use `cache[f"blocks.{layer}.hook_attn_out"]`, `cache[f"blocks.{layer}.hook_mlp_out"]`, `cache[f"blocks.{layer}.hook_resid_post"]`.
 
 `to_single_token()` is gone — use `model.to_tokens(token, prepend_bos=False)[0, 0]`.
+
+`W_pos` and `W_E` do **not** exist on `TransformerBridge`. To get the combined embedding contribution (token + positional), use `cache["blocks.0.hook_resid_pre"][0, pos]` — this is the residual stream entering block 0, which equals `W_E[token] + W_pos[pos]` for absolute positional models and `W_E[token]` for RoPE models (Llama, Qwen, Gemma). `W_U` and `W_O` *do* work as direct attributes.
+
+**Local venv is TL 2.18.0, not 3.0.** `TransformerBridge` only runs on Modal. Don't try to introspect it locally — `model_bridge` module won't import.
 
 ### Hook callbacks in `run_with_hooks`
 
@@ -43,10 +49,12 @@ def _fn(value, hook):   # 'hook' name is required
 `FEATURED_MODELS` is editorial curation for the frontend — it is **not a gate** on what can run. Any valid HF model ID is accepted by `run-lens`. Featured entries have explicit `gpu_tier` values; custom models get their tier auto-detected.
 
 **GPU tiers:**
-- `tl_small` → L4 (< 4B params)
-- `tl_medium` → A10G (4–12B params)
-- `tl_large` → A100-80GB (12–38B params; A100-80GB fits ~38B in bfloat16)
-- `tl_xlarge` → H200 (38–70B params; 141 GB VRAM fits 70B in bfloat16)
+- `tl_small` → L4 (< 4B params; 24 GB, $0.80/hr)
+- `tl_medium` → L40S (4–10B params; 48 GB, $1.95/hr) — **not A10G**: L4 and A10G both have 24 GB, so the old small→medium attribution bump was a VRAM no-op; L40S doubles it
+- `tl_large` → A100-80GB (10–25B params; 80 GB, $2.50/hr)
+- `tl_xlarge` → H200 (25–70B params; 141 GB, $4.54/hr)
+
+Attribution backward passes need ~2–3× model weights in working VRAM (autograd graph retains activations). This is why tier ceilings are conservative and `_bump_tier` must provide a genuine VRAM increase. 27B+ models are `tl_xlarge` because their attribution backward (~108–135 GB) was too close to H200's 141 GB limit when bumped from `tl_large`.
 
 **B200 is not supported** — requires PyTorch 2.7+; current image pins `torch==2.6.0`.
 
@@ -146,6 +154,8 @@ if (!session?.user) throw new Error("Unauthorized");
 
 `/api/run-lens` checks the `heatmap_cache` table before forwarding to Modal. Cache key = SHA-256 of `modelName:prompt`. Hits are served from Cloudflare R2 via `getHeatmap(r2Key)`; misses call Modal, then write to R2 + insert a `heatmap_cache` row.
 
+**DLA and attribution cache lookups use `eq(table.id, cacheKey)` only** — not a multi-field WHERE clause. The hash ID already incorporates all relevant fields (model, prompt, position, token, contrastive token). This avoids needing schema migrations when new cache dimensions are added.
+
 ### SSE streaming (`/api/run-lens`)
 
 The route streams Server-Sent Events from Modal. Event shape: `data: { stage, data?, error? }`. `stage` is `"done"` (with `data`), `"error"` (with `error`), or a descriptive loading string. Client splits on `\n\n`, finds `data: ` lines, and JSON-parses each chunk.
@@ -222,4 +232,4 @@ GPU snapshots (`enable_memory_snapshot=True` + `experimental_options={"enable_gp
 
 ### Timeouts
 
-`_TL_LARGE_KWARGS` overrides `timeout=1200` for `TransformerLensLarge` and `TransformerLensXLarge`. Small/medium stay at 600. The split exists because 12–70B models can take 10–20 min to download to the volume on first cold start.
+`_TL_LARGE_KWARGS` overrides `timeout=1200` for `TransformerLensLarge` and `TransformerLensXLarge`. Small/medium stay at 600. The split exists because 10–70B models can take 10–20 min to download to the volume on first cold start.
