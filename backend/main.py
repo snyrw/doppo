@@ -30,9 +30,9 @@ tl_image = (
 
 # gpu_tier drives which Modal class handles a model.
 # tl_small  → L4         (< 4B, GPT-2 family + sub-4B instruct models)
-# tl_medium → A10G       (4–12B models)
-# tl_large  → A100-80GB  (12–38B models; A100 fits ~38B in bfloat16)
-# tl_xlarge → H200       (38–70B models; H200 141GB fits 70B in bfloat16)
+# tl_medium → L40S       (4–10B models; 48 GB gives ample headroom for attribution backward passes)
+# tl_large  → A100-80GB  (10–25B models; A100 fits ~25B comfortably in bfloat16)
+# tl_xlarge → H200       (25–70B models; H200 141 GB fits 70B in bfloat16)
 FEATURED_MODELS: dict[str, dict] = {
     # ── GPT-2 ────────────────────────────────────────────────────────────────
     "gpt2-small": {
@@ -140,10 +140,10 @@ FEATURED_MODELS: dict[str, dict] = {
     },
     "google/gemma-3-27b-it": {
         "display_name": "Gemma 3 (27B)",
-        "description": "Google's largest single-GPU model. 62 layers on an A100-80GB.",
+        "description": "Google's largest single-GPU model. 62 layers on H200.",
         "model_id": "google/gemma-3-27b-it",
         "requires_hf_token": True,
-        "gpu_tier": "tl_large",
+        "gpu_tier": "tl_xlarge",
     },
     "google/gemma-2-2b-it": {
         "display_name": "Gemma 2 (2B)",
@@ -164,15 +164,15 @@ FEATURED_MODELS: dict[str, dict] = {
         "description": "46 layers, 27B params. Largest Gemma 2 on a single GPU.",
         "model_id": "google/gemma-2-27b-it",
         "requires_hf_token": True,
-        "gpu_tier": "tl_large",
+        "gpu_tier": "tl_xlarge",
     },
     # ── XL tier (H200) ───────────────────────────────────────────────────────
     "Qwen/Qwen3-30B": {
         "display_name": "Qwen3 (32B)",
-        "description": "Qwen3 mid-range at 32B params. Fits on A100-80GB with comfortable headroom.",
+        "description": "Qwen3 mid-range at 32B params. Runs on H200 for safe attribution headroom.",
         "model_id": "Qwen/Qwen3-30B",
         "requires_hf_token": False,
-        "gpu_tier": "tl_large",  # 32B < 38B A100 ceiling
+        "gpu_tier": "tl_xlarge",
     },
     "meta-llama/Llama-3.3-70B-Instruct": {
         "display_name": "Llama 3.3 Instruct (70B)",
@@ -195,31 +195,33 @@ def _detect_gpu_tier(config: dict) -> str:
 
     Tiers:
       tl_small  → L4         (< 4B)
-      tl_medium → A10G       (4–12B)
-      tl_large  → A100-80GB  (12–38B; A100-80GB fits ~38B in bfloat16)
-      tl_xlarge → H200       (38–70B; H200 141GB fits 70B in bfloat16)
+      tl_medium → L40S       (4–10B; 48 GB gives backward-pass headroom for attribution)
+      tl_large  → A100-80GB  (10–25B; A100-80GB fits ~25B comfortably in bfloat16)
+      tl_xlarge → H200       (25–70B; H200 141 GB fits 70B in bfloat16)
     """
     num_params = config.get("num_parameters")
     if isinstance(num_params, (int, float)):
         if num_params < 4e9:
             return "tl_small"
-        if num_params < 12e9:
+        if num_params < 10e9:
             return "tl_medium"
-        if num_params < 38e9:
+        if num_params < 25e9:
             return "tl_large"
         if num_params < 70e9:
             return "tl_xlarge"
         return None  # exceeds single-GPU limit (~70B)
 
     # Proxy: num_hidden_layers × hidden_size scales predictably with model size.
+    # Thresholds calibrated against known models: GPT-2 XL=76K, Llama3-8B=131K,
+    # Qwen3-14B=205K, Gemma3-27B=333K, Llama3.3-70B=655K.
     layers = config.get("num_hidden_layers", 0)
     hidden = config.get("hidden_size", 0)
     proxy = layers * hidden
-    if proxy and proxy < 100_000:
+    if proxy and proxy < 90_000:
         return "tl_small"
-    if proxy and proxy < 200_000:
+    if proxy and proxy < 165_000:
         return "tl_medium"
-    if proxy and proxy < 400_000:
+    if proxy and proxy < 300_000:
         return "tl_large"
     if proxy and proxy < 700_000:
         return "tl_xlarge"
@@ -304,7 +306,7 @@ _SHARED_CLS_KWARGS = dict(
 # All classes use a single GPU, so GPU snapshots are safe across the board.
 _TL_KWARGS = dict(image=tl_image, experimental_options={"enable_gpu_snapshot": True}, **_SHARED_CLS_KWARGS)
 
-# Large/XL models (12–70B) can take 10–20 min to download on first cold start.
+# Large/XL models (10–70B) can take 10–20 min to download on first cold start.
 _TL_LARGE_KWARGS = {**_TL_KWARGS, "timeout": 1200}
 
 
@@ -772,7 +774,7 @@ class TransformerLensSmall(_TLBase):
     model_id: str = modal.parameter()
 
 
-@app.cls(gpu="A10G", **_TL_KWARGS)
+@app.cls(gpu="L40S", **_TL_KWARGS)
 class TransformerLensMedium(_TLBase):
     model_id: str = modal.parameter()
 
@@ -803,10 +805,10 @@ def _bump_tier(tier: str) -> str:
 
     Backward passes retain intermediate activations for all layers, requiring
     significantly more headroom than a forward-only run. One tier up is enough:
-      tl_small  (L4, 24 GB)   → tl_medium (A10G, 24 GB)
-      tl_medium (A10G, 24 GB) → tl_large  (A100-80GB, 80 GB)
-      tl_large  (A100-80GB)   → tl_xlarge (H200, 141 GB)
-      tl_xlarge (H200)        → tl_xlarge (ceiling, no tier above)
+      tl_small  (L4, 24 GB)    → tl_medium (L40S, 48 GB)   — 2× VRAM, safe for ≤4B backward
+      tl_medium (L40S, 48 GB)  → tl_large  (A100-80GB, 80 GB)
+      tl_large  (A100-80GB)    → tl_xlarge (H200, 141 GB)
+      tl_xlarge (H200)         → tl_xlarge (ceiling, no tier above)
     """
     idx = _TIER_ORDER.index(tier)
     return _TIER_ORDER[min(idx + 1, len(_TIER_ORDER) - 1)]
