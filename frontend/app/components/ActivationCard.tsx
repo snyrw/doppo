@@ -243,7 +243,7 @@ export default function ActivationCard({
           </div>
 
           {/* Rows */}
-          <div style={{ overflow: "auto" }}>
+          <div style={{ overflow: "auto", background: "var(--color-card)" }}>
             {card.data.components.map((comp, i) => {
               const match = matchLabel(comp.actual_effect);
               const attrColor = interpolateColorDivergent("rdbu", comp.attribution_score, attrAbsMax);

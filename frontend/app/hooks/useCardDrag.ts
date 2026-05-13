@@ -2,7 +2,8 @@
 
 import { useRef, useState, useCallback } from "react";
 
-const GRID_SIZE = 40;
+const GRID_SIZE = 20;
+const CARD_GAP = 6; // minimum pixel gap maintained between cards
 
 type Position = { x: number; y: number };
 
@@ -15,9 +16,65 @@ type DragState = {
 
 type UseCardDragOptions = {
   getCurrentZoom: () => number;
-  onCommit: (cardId: string, snappedPos: Position) => void;
+  onCommit: (cardId: string, pos: Position) => void;
   cardRefs: React.RefObject<Map<string, HTMLDivElement>>;
 };
+
+/**
+ * Pushes (x, y) out of any overlapping cards using iterative AABB separation.
+ * Chooses the minimum-displacement axis at each overlap.
+ */
+function resolveCollisions(
+  draggedId: string,
+  x: number,
+  y: number,
+  cardRefs: Map<string, HTMLDivElement>
+): Position {
+  const draggedEl = cardRefs.get(draggedId);
+  if (!draggedEl) return { x, y };
+
+  const dw = draggedEl.offsetWidth;
+  const dh = draggedEl.offsetHeight;
+
+  for (let iter = 0; iter < 8; iter++) {
+    let anyOverlap = false;
+
+    for (const [id, el] of cardRefs) {
+      if (id === draggedId) continue;
+
+      const bx = parseFloat(el.style.left) || 0;
+      const by = parseFloat(el.style.top) || 0;
+      const bw = el.offsetWidth;
+      const bh = el.offsetHeight;
+
+      // AABB overlap test with gap
+      if (
+        x < bx + bw + CARD_GAP &&
+        x + dw + CARD_GAP > bx &&
+        y < by + bh + CARD_GAP &&
+        y + dh + CARD_GAP > by
+      ) {
+        anyOverlap = true;
+
+        // Amount to push in each direction to clear the gap
+        const pushRight = bx + bw + CARD_GAP - x;
+        const pushLeft  = x + dw + CARD_GAP - bx;
+        const pushDown  = by + bh + CARD_GAP - y;
+        const pushUp    = y + dh + CARD_GAP - by;
+
+        const min = Math.min(pushRight, pushLeft, pushDown, pushUp);
+        if      (min === pushRight) x += pushRight;
+        else if (min === pushLeft)  x -= pushLeft;
+        else if (min === pushDown)  y += pushDown;
+        else                        y -= pushUp;
+      }
+    }
+
+    if (!anyOverlap) break;
+  }
+
+  return { x, y };
+}
 
 export function useCardDrag({ getCurrentZoom, onCommit, cardRefs }: UseCardDragOptions) {
   const dragStateRef = useRef<DragState | null>(null);
@@ -52,10 +109,12 @@ export function useCardDrag({ getCurrentZoom, onCommit, cardRefs }: UseCardDragO
     const rawX = drag.startCardPos.x + (e.clientX - drag.startPointer.x) / zoom;
     const rawY = drag.startCardPos.y + (e.clientY - drag.startPointer.y) / zoom;
 
+    const resolved = resolveCollisions(drag.cardId, rawX, rawY, cardRefs.current!);
+
     const cardEl = cardRefs.current?.get(drag.cardId);
     if (cardEl) {
-      cardEl.style.left = `${rawX}px`;
-      cardEl.style.top = `${rawY}px`;
+      cardEl.style.left = `${resolved.x}px`;
+      cardEl.style.top  = `${resolved.y}px`;
     }
   }, [getCurrentZoom, cardRefs]);
 
@@ -69,17 +128,19 @@ export function useCardDrag({ getCurrentZoom, onCommit, cardRefs }: UseCardDragO
     const rawX = drag.startCardPos.x + (e.clientX - drag.startPointer.x) / zoom;
     const rawY = drag.startCardPos.y + (e.clientY - drag.startPointer.y) / zoom;
 
+    // Snap to grid first, then resolve any collisions the snap may have introduced
     const snappedX = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
     const snappedY = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
+    const finalPos = resolveCollisions(drag.cardId, snappedX, snappedY, cardRefs.current!);
 
     const cardEl = cardRefs.current?.get(drag.cardId);
     if (cardEl) {
-      cardEl.style.left = `${snappedX}px`;
-      cardEl.style.top = `${snappedY}px`;
+      cardEl.style.left  = `${finalPos.x}px`;
+      cardEl.style.top   = `${finalPos.y}px`;
       cardEl.style.zIndex = "10";
     }
 
-    onCommitRef.current(drag.cardId, { x: snappedX, y: snappedY });
+    onCommitRef.current(drag.cardId, finalPos);
     dragStateRef.current = null;
     setIsDragging(false);
   }, [getCurrentZoom, cardRefs]);

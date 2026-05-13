@@ -123,9 +123,12 @@ export default function ConfigPane({
         top: "calc(100% + 6px)",
         left: 0,
         width: 380,
+        maxWidth: "min(380px, calc(100vw - 24px))",
+        maxHeight: "calc(100vh - 100px)",
         zIndex: 30,
         display: "flex",
         flexDirection: "column",
+        overflow: "hidden",
         background: "var(--color-card)",
         border: "1px solid var(--color-card-border)",
         borderRadius: 8,
@@ -182,7 +185,7 @@ export default function ConfigPane({
         </div>
 
         {/* Form body */}
-        <div style={{ overflowY: "auto", maxHeight: "calc(100vh - 180px)", padding: "16px" }}>
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
 
           {/* Featured models */}
           <div style={{ marginBottom: 20 }}>

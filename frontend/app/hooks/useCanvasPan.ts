@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
 
 export type PanOffset = { x: number; y: number };
 
@@ -12,11 +12,10 @@ type UseCanvasPanOptions = {
 export function useCanvasPan({ onPanChange, getCurrentPan }: UseCanvasPanOptions) {
   const isPanningRef = useRef(false);
   const panStartRef = useRef<{ px: number; py: number } | null>(null);
-  const bgRef = useRef<HTMLDivElement | null>(null);
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    // Only pan when clicking directly on the background, not on cards
-    if (e.target !== e.currentTarget) return;
+    // Only left-click pans. Card headers call stopPropagation so they never reach here.
+    if (e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     isPanningRef.current = true;
     const pan = getCurrentPan();
@@ -42,7 +41,6 @@ export function useCanvasPan({ onPanChange, getCurrentPan }: UseCanvasPanOptions
   }, []);
 
   return {
-    bgRef,
     panHandlers: { onPointerDown, onPointerMove, onPointerUp },
     isPanningRef,
   };

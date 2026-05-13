@@ -74,6 +74,14 @@ Attribution payload (`/api/run-attribution` done event) includes both `target_to
 
 `SerializedCard.data` in `actions.ts` is `Record<string, unknown>` — never a concrete heatmap or DLA type — because the DB stores jsonb and doesn't care about shape. Cast through `unknown` when restoring typed card data from DB.
 
+### Canvas interaction invariants
+
+`useCanvasPan` fires on any left-click on the canvas viewport. The only thing preventing pan from triggering over a card is `e.stopPropagation()` on `onPointerDown`. Every interactive element inside a card (drag handle, buttons, toggles, clickable cells) **must** call `e.stopPropagation()` on `onPointerDown`, or the click will bubble to the viewport and start an unintended pan.
+
+`renderCard()` in `SandboxCanvas` passes `sharedProps` without `key`; the `key={card.id}` prop must be placed directly on each JSX element — spreading `key` via a props object is a React error.
+
+`overflow: auto` containers inside card components need an explicit `background: "var(--color-card)"` — without it some browsers render a white paint layer independent of the parent's background.
+
 ### API contract
 
 `/api/models` → `{ id, display_name, description, requires_hf_token }[]`
@@ -195,3 +203,23 @@ Used for per-card PNG export. Two required workarounds:
 ### Dropdown submenus
 
 A dropdown with `overflow: hidden` clips `position: absolute` children even when correctly positioned. For fly-out submenus: set the dropdown to `overflow: visible` and add `borderRadius` to the first (`"6px 6px 0 0"`) and last (`"0 0 6px 6px"`) items instead.
+
+---
+
+## Modal / infrastructure notes
+
+### Volumes
+
+The volume uses `version=2` (`modal.Volume.from_name("model-weights-vol-v2", create_if_missing=True, version=2)`). v1 is the default and has a 500K inode hard limit; v2 removes it.
+
+`modal volume ls` reports directory sizes as metadata bytes, not recursive content. To verify model weights exist: `modal volume ls model-weights-vol-v2 /hf_home/hub/models--<org>--<model>/blobs` — real safetensor shards will show GB-scale sizes there.
+
+No explicit `volume.commit()` is needed: Modal runs background commits every few seconds and a final commit on container shutdown.
+
+### GPU snapshots
+
+GPU snapshots (`enable_memory_snapshot=True` + `experimental_options={"enable_gpu_snapshot": True}` + `@modal.enter(snap=True)`) do not survive `modal serve` hot-reloads — every file save restarts containers and resets snapshots. They are only meaningful after `modal deploy`.
+
+### Timeouts
+
+`_TL_LARGE_KWARGS` overrides `timeout=1200` for `TransformerLensLarge` and `TransformerLensXLarge`. Small/medium stay at 600. The split exists because 12–70B models can take 10–20 min to download to the volume on first cold start.

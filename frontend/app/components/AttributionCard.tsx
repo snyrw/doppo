@@ -341,7 +341,7 @@ export default function AttributionCard({
 
       {/* Result */}
       {card.status === "result" && card.data && (
-        <div style={{ overflow: "auto", padding: 6 }}>
+        <div style={{ overflow: "auto", padding: 6, background: "var(--color-card)" }}>
           {view === "layer" ? (
             <LayerView data={card.data} absMax={absMax} />
           ) : (

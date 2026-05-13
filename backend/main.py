@@ -299,6 +299,9 @@ _SHARED_CLS_KWARGS = dict(
 # All classes use a single GPU, so GPU snapshots are safe across the board.
 _TL_KWARGS = dict(image=tl_image, experimental_options={"enable_gpu_snapshot": True}, **_SHARED_CLS_KWARGS)
 
+# Large/XL models (12–70B) can take 10–20 min to download on first cold start.
+_TL_LARGE_KWARGS = {**_TL_KWARGS, "timeout": 1200}
+
 
 # ── Shared inference helper ───────────────────────────────────────────────────
 
@@ -686,12 +689,12 @@ class TransformerLensMedium(_TLBase):
     model_id: str = modal.parameter()
 
 
-@app.cls(gpu="A100-80GB", **_TL_KWARGS)
+@app.cls(gpu="A100-80GB", **_TL_LARGE_KWARGS)
 class TransformerLensLarge(_TLBase):
     model_id: str = modal.parameter()
 
 
-@app.cls(gpu="H200", **_TL_KWARGS)
+@app.cls(gpu="H200", **_TL_LARGE_KWARGS)
 class TransformerLensXLarge(_TLBase):
     model_id: str = modal.parameter()
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
-import SnapGrid from "./SnapGrid";
 import LensCard, { type LensCardData } from "./LensCard";
 import DlaCard, { type DlaCardData } from "./DlaCard";
 import AttributionCard, { type AttributionCardData } from "./AttributionCard";
@@ -40,18 +39,15 @@ export default function SandboxCanvas({
   const worldRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // Keep a ref to current canvas state for use inside event handlers
   const stateRef = useRef(canvasState);
   stateRef.current = canvasState;
 
-  // Card drag
   const { startDrag, onDragMove, onDragEnd, isDragging } = useCardDrag({
     getCurrentZoom: () => stateRef.current.zoom,
     onCommit: onMoveCard,
     cardRefs,
   });
 
-  // Canvas pan
   const { panHandlers } = useCanvasPan({
     onPanChange: (offset) => {
       onCanvasChange({ ...stateRef.current, panOffset: offset });
@@ -59,7 +55,7 @@ export default function SandboxCanvas({
     getCurrentPan: () => stateRef.current.panOffset,
   });
 
-  // Wheel zoom — must be imperative to use { passive: false }
+  // Smooth wheel zoom — imperative to use { passive: false }
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
@@ -67,25 +63,32 @@ export default function SandboxCanvas({
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const { zoom, panOffset } = stateRef.current;
-      const rect = el.getBoundingClientRect();
 
-      const factor = e.deltaY < 0 ? 1.1 : 0.9;
-      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
-
-      // Focal-point correction: keep the point under the cursor fixed in canvas space
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-      const canvasX = (mouseX - panOffset.x) / zoom;
-      const canvasY = (mouseY - panOffset.y) / zoom;
-      const newPanX = mouseX - canvasX * newZoom;
-      const newPanY = mouseY - canvasY * newZoom;
-
-      onCanvasChange({ zoom: newZoom, panOffset: { x: newPanX, y: newPanY } });
+      if (e.ctrlKey) {
+        // Pinch gesture — zoom keeping canvas point under cursor fixed
+        const rect = el.getBoundingClientRect();
+        const factor = Math.exp(-e.deltaY * 0.01);
+        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        const canvasX = (mouseX - panOffset.x) / zoom;
+        const canvasY = (mouseY - panOffset.y) / zoom;
+        onCanvasChange({
+          zoom: newZoom,
+          panOffset: { x: mouseX - canvasX * newZoom, y: mouseY - canvasY * newZoom },
+        });
+      } else {
+        // Two-finger swipe — pan
+        onCanvasChange({
+          zoom,
+          panOffset: { x: panOffset.x - e.deltaX, y: panOffset.y - e.deltaY },
+        });
+      }
     };
 
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, []); // empty — reads state via stateRef, registers once
+  }, []); // reads state via stateRef, registers once
 
   const setCardRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
     if (el) cardRefs.current.set(id, el);
@@ -96,7 +99,6 @@ export default function SandboxCanvas({
 
   function renderCard(card: AnyCard) {
     const sharedProps = {
-      key: card.id,
       ref: setCardRef(card.id),
       onStartDrag: startDrag,
       onDragMove,
@@ -105,13 +107,13 @@ export default function SandboxCanvas({
     };
     switch (card.cardType) {
       case "dla":
-        return <DlaCard {...sharedProps} card={card} />;
+        return <DlaCard key={card.id} {...sharedProps} card={card} />;
       case "attribution":
-        return <AttributionCard {...sharedProps} card={card} onVerifyTopK={onVerifyTopK} />;
+        return <AttributionCard key={card.id} {...sharedProps} card={card} onVerifyTopK={onVerifyTopK} />;
       case "activation":
-        return <ActivationCard {...sharedProps} card={card} />;
+        return <ActivationCard key={card.id} {...sharedProps} card={card} />;
       default:
-        return <LensCard {...sharedProps} card={card as LensCardData} />;
+        return <LensCard key={card.id} {...sharedProps} card={card as LensCardData} />;
     }
   }
 
@@ -123,7 +125,7 @@ export default function SandboxCanvas({
         overflow: "hidden",
         position: "relative",
         background: "var(--color-bg)",
-        cursor: isDragging ? "grabbing" : "default",
+        cursor: isDragging ? "grabbing" : "grab",
       }}
       {...panHandlers}
     >
@@ -138,7 +140,6 @@ export default function SandboxCanvas({
           height: 4000,
         }}
       >
-        <SnapGrid isDragging={isDragging} />
         {cards.map(renderCard)}
       </div>
 
@@ -167,16 +168,16 @@ export default function SandboxCanvas({
         </div>
       )}
 
-      {/* Zoom indicator */}
+      {/* Zoom level indicator */}
       {zoom !== 1 && (
         <div style={{
           position: "absolute",
           bottom: 12,
           right: 12,
           fontSize: 10,
-          color: "#9ca3af",
-          background: "rgba(255,255,255,0.8)",
-          border: "1px solid #e5e7eb",
+          color: "var(--color-text-muted)",
+          background: "var(--color-card)",
+          border: "1px solid var(--color-card-border)",
           borderRadius: 4,
           padding: "3px 7px",
           pointerEvents: "none",
