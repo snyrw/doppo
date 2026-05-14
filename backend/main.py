@@ -184,7 +184,8 @@ FEATURED_MODELS: dict[str, dict] = {
 }
 
 web_image = modal.Image.debian_slim(python_version="3.12").pip_install(
-    "fastapi[standard]", "pydantic", "huggingface_hub>=0.27"
+    "fastapi[standard]", "pydantic", "huggingface_hub>=0.27",
+    "transformers>=4.40",  # tokenizer-only, no torch needed here
 )
 
 def _detect_gpu_tier(config: dict) -> str:
@@ -1006,7 +1007,37 @@ def api():
     class ValidateModelRequest(BaseModel):
         repo_id: str
 
+    class TokenizeRequest(BaseModel):
+        model_name: str
+        text: str
+
     hf_token = os.environ.get("HF_TOKEN")
+    _tokenizer_cache: dict = {}
+
+    @web_app.post("/api/tokenize")
+    def tokenize_text(request: TokenizeRequest):
+        from transformers import AutoTokenizer
+
+        entry = FEATURED_MODELS.get(request.model_name)
+        hf_model_id = entry["model_id"] if entry else request.model_name
+        tok_token = hf_token if (entry is None or entry.get("requires_hf_token")) else None
+
+        if hf_model_id not in _tokenizer_cache:
+            _tokenizer_cache[hf_model_id] = AutoTokenizer.from_pretrained(
+                hf_model_id, token=tok_token
+            )
+
+        tokenizer = _tokenizer_cache[hf_model_id]
+        ids = tokenizer.encode(request.text, add_special_tokens=True)
+        special_ids = set(tokenizer.all_special_ids)
+        tokens = []
+        for i in ids:
+            text = tokenizer.decode([i], skip_special_tokens=False)
+            if not text and i in special_ids:
+                toks = tokenizer.convert_ids_to_tokens([i])
+                text = toks[0] if toks else f"[{i}]"
+            tokens.append({"text": text, "special": i in special_ids})
+        return {"tokens": tokens}
 
     @web_app.get("/api/models")
     def list_models():

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useSession } from "@/app/lib/auth-client";
 import { TIER_LABELS } from "../lib/tiers";
+import { useTokenPreview } from "../hooks/useTokenPreview";
+import TokenPreview from "./TokenPreview";
 
 type ModelInfo = {
   id: string;
@@ -112,6 +114,11 @@ export default function SteeringConfigPane({
   };
 
   const usingCustom = customRepoId.trim() !== "";
+  const activeModelId = usingCustom
+    ? (customValidation?.valid ? customRepoId.trim() : "")
+    : selectedModel;
+  const cleanPreview = useTokenPreview(activeModelId, cleanPrompt);
+  const corruptedPreview = useTokenPreview(activeModelId, corruptedPrompt);
   const modelOk = usingCustom ? customValidation?.valid === true : selectedModel !== "";
   const positionOk = positionMode === "last" || (customPosition.trim() !== "" && !isNaN(parseInt(customPosition)));
   const canRun = modelOk && positionOk && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "";
@@ -327,6 +334,7 @@ export default function SteeringConfigPane({
               fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
             }}
           />
+          <TokenPreview tokens={cleanPreview.tokens} loading={cleanPreview.loading} />
         </div>
 
         <div style={{ marginBottom: 20 }}>
@@ -350,10 +358,20 @@ export default function SteeringConfigPane({
               fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
             }}
           />
+          <TokenPreview tokens={corruptedPreview.tokens} loading={corruptedPreview.loading} />
           {(() => {
+            const cleanToks = cleanPreview.tokens?.length;
+            const corruptedToks = corruptedPreview.tokens?.length;
+            if (cleanToks != null && corruptedToks != null && cleanToks !== corruptedToks) {
+              return (
+                <p style={{ margin: "6px 0 0", fontSize: 10, color: "#d97706", lineHeight: 1.5 }}>
+                  ⚠ Token counts differ ({cleanToks} vs {corruptedToks}). For best results use a minimal substitution (e.g. swap one name).
+                </p>
+              );
+            }
             const cw = cleanPrompt.trim().split(/\s+/).length;
             const rw = corruptedPrompt.trim().split(/\s+/).length;
-            return cleanPrompt.trim() && corruptedPrompt.trim() && cw !== rw ? (
+            return cleanToks == null && cleanPrompt.trim() && corruptedPrompt.trim() && cw !== rw ? (
               <p style={{ margin: "6px 0 0", fontSize: 10, color: "#d97706", lineHeight: 1.5 }}>
                 ⚠ Word counts differ ({cw} vs {rw}). For best results use a minimal substitution (e.g. swap one name).
               </p>

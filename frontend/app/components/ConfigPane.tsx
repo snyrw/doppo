@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useSession } from "@/app/lib/auth-client";
 import { TIER_LABELS } from "../lib/tiers";
+import { useTokenPreview } from "../hooks/useTokenPreview";
+import TokenPreview from "./TokenPreview";
 
 type ModelInfo = {
   id: string;
@@ -42,6 +44,12 @@ export default function ConfigPane({
   const [customRepoId, setCustomRepoId] = useState("");
   const [customValidation, setCustomValidation] = useState<CustomValidation | null>(null);
   const [customValidating, setCustomValidating] = useState(false);
+
+  const usingCustom = customRepoId.trim() !== "";
+  const activeModelId = usingCustom
+    ? (customValidation?.valid ? customRepoId.trim() : "")
+    : selectedModel;
+  const tokenPreview = useTokenPreview(activeModelId, prompt);
 
   useEffect(() => {
     if (selectedModel === "" && availableModels.length > 0 && customRepoId === "") {
@@ -96,7 +104,6 @@ export default function ConfigPane({
     }
   };
 
-  const usingCustom = customRepoId.trim() !== "";
   const canRun = usingCustom ? (customValidation?.valid === true) : selectedModel !== "";
 
   const selectedGpuTier = usingCustom
@@ -343,6 +350,7 @@ export default function ConfigPane({
                 boxSizing: "border-box",
               }}
             />
+            <TokenPreview tokens={tokenPreview.tokens} loading={tokenPreview.loading} />
           </div>
         </div>
 

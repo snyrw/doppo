@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useSession } from "@/app/lib/auth-client";
 import { TIER_LABELS } from "../lib/tiers";
+import { useTokenPreview } from "../hooks/useTokenPreview";
+import TokenPreview from "./TokenPreview";
 
 type ModelInfo = {
   id: string;
@@ -114,6 +116,12 @@ export default function DlaConfigPane({
   };
 
   const usingCustom = customRepoId.trim() !== "";
+  const activeModelId = usingCustom
+    ? (customValidation?.valid ? customRepoId.trim() : "")
+    : selectedModel;
+  const tokenPreview = useTokenPreview(activeModelId, prompt);
+  const targetTokenPreview = useTokenPreview(activeModelId, tokenMode === "custom" ? customToken : "");
+  const contrastivePreview = useTokenPreview(activeModelId, contrastiveToken);
   const modelOk = usingCustom ? (customValidation?.valid === true) : selectedModel !== "";
   const positionOk = positionMode === "last" || (customPosition.trim() !== "" && !isNaN(parseInt(customPosition)));
   const tokenOk = tokenMode === "auto" || customToken.trim() !== "";
@@ -131,8 +139,8 @@ export default function DlaConfigPane({
       ? (customValidation?.gpu_tier ?? undefined)
       : (availableModels.find(m => m.id === selectedModel)?.gpu_tier ?? undefined);
     const targetPosition: number | "last" = positionMode === "last" ? "last" : parseInt(customPosition);
-    const targetToken: string | null = tokenMode === "auto" ? null : customToken.trim();
-    const contrastiveTokenVal: string | null = contrastiveToken.trim() || null;
+    const targetToken: string | null = tokenMode === "auto" ? null : (customToken || null);
+    const contrastiveTokenVal: string | null = contrastiveToken || null;
     onSubmit({ modelName, prompt, gpuTier, targetPosition, targetToken, contrastiveToken: contrastiveTokenVal });
     doReset();
   };
@@ -365,6 +373,7 @@ export default function DlaConfigPane({
               boxSizing: "border-box",
             }}
           />
+          <TokenPreview tokens={tokenPreview.tokens} loading={tokenPreview.loading} />
         </div>
 
         {/* Analysis target section */}
@@ -476,6 +485,16 @@ export default function DlaConfigPane({
                 />
               </label>
             </div>
+            {tokenMode === "custom" && (targetTokenPreview.tokens || targetTokenPreview.loading) && (
+              <div style={{ marginLeft: 22, marginTop: 2 }}>
+                <TokenPreview tokens={targetTokenPreview.tokens} loading={targetTokenPreview.loading} />
+                {targetTokenPreview.tokens && targetTokenPreview.tokens.length > 1 && (
+                  <p style={{ margin: "3px 0 0", fontSize: 10, color: "#d97706" }}>
+                    ⚠ Multi-token — only the first will be used. Try adding a leading space (e.g. &ldquo;{" " + customToken.trim()}&rdquo;).
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Contrastive token (optional) */}
@@ -503,6 +522,16 @@ export default function DlaConfigPane({
                 boxSizing: "border-box",
               }}
             />
+            {(contrastivePreview.tokens || contrastivePreview.loading) && (
+              <div style={{ marginTop: 2 }}>
+                <TokenPreview tokens={contrastivePreview.tokens} loading={contrastivePreview.loading} />
+                {contrastivePreview.tokens && contrastivePreview.tokens.length > 1 && (
+                  <p style={{ margin: "3px 0 0", fontSize: 10, color: "#d97706" }}>
+                    ⚠ Multi-token — only the first will be used. Try adding a leading space (e.g. &ldquo;{" " + contrastiveToken.trim()}&rdquo;).
+                  </p>
+                )}
+              </div>
+            )}
             <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
               When set, uses logit difference (target − contrastive) as the attribution direction — the standard metric for contrastive tasks like IOI.
             </p>
