@@ -6,6 +6,7 @@ import SandboxCanvas from "../components/SandboxCanvas";
 import ConfigPane from "../components/ConfigPane";
 import DlaConfigPane from "../components/DlaConfigPane";
 import AttributionConfigPane from "../components/AttributionConfigPane";
+import SteeringConfigPane from "../components/SteeringConfigPane";
 import Navbar from "../components/Navbar";
 import { ProjectSearch } from "../components/ProjectSearch";
 import type { LensCardData } from "../components/LensCard";
@@ -67,7 +68,8 @@ type AppAction =
   | { type: "LOAD_PROJECT"; cards: AnyCard[]; canvas: CanvasState }
   | { type: "RESET_CANVAS" }
   | { type: "STEERING_CARD_TOKEN"; id: string; token: string }
-  | { type: "STEERING_CARD_RESOLVED"; id: string; data: SteeringResult };
+  | { type: "STEERING_CARD_RESOLVED"; id: string; data: SteeringResult }
+  | { type: "STEERING_CARD_RERUN"; id: string; alpha: number };
 
 const CARD_COL_WIDTH = 360;
 const CARD_ROW_HEIGHT = 320;
@@ -176,6 +178,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
             ? { ...c, status: "result" as const, data: action.data, streamingText: undefined } : c
         ),
       };
+    case "STEERING_CARD_RERUN":
+      return {
+        ...state,
+        lensCards: state.lensCards.map(c =>
+          c.id === action.id && c.cardType === "steering"
+            ? { ...c, status: "loading" as const, data: null, error: null, streamingText: undefined, alpha: action.alpha, startedAt: Date.now() } : c
+        ),
+      };
     case "REMOVE_CARD":
       return { ...state, lensCards: state.lensCards.filter(c => c.id !== action.id) };
     case "SET_CANVAS":
@@ -217,6 +227,7 @@ function Projects() {
   const [configOpen, setConfigOpen] = useState(false);
   const [dlaOpen, setDlaOpen] = useState(false);
   const [attributionOpen, setAttributionOpen] = useState(false);
+  const [steeringOpen, setSteeringOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -239,18 +250,19 @@ function Projects() {
 
   // Close add dropdown + sub-panes on outside click
   useEffect(() => {
-    if (!addOpen && !configOpen && !dlaOpen && !attributionOpen) return;
+    if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen) return;
     function handleClickOutside(e: MouseEvent) {
       if (addRef.current && !addRef.current.contains(e.target as Node)) {
         setAddOpen(false);
         setConfigOpen(false);
         setDlaOpen(false);
         setAttributionOpen(false);
+        setSteeringOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [addOpen, configOpen, dlaOpen, attributionOpen]);
+  }, [addOpen, configOpen, dlaOpen, attributionOpen, steeringOpen]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -788,6 +800,143 @@ function Projects() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleRerunSteering = useCallback((cardId: string, newAlpha: number) => {
+    const card = stateRef.current.lensCards.find(c => c.id === cardId && c.cardType === "steering") as SteeringCardData | undefined;
+    if (!card) return;
+    dispatch({ type: "STEERING_CARD_RERUN", id: cardId, alpha: newAlpha });
+    const { modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, components } = card;
+    fetch("/api/run-steering", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, components, alpha: newAlpha, nTokens: card.nTokens }),
+    })
+      .then(async (response) => {
+        if (!response.ok || !response.body) {
+          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
+          const message = response.status === 401
+            ? (err.error ?? "Sign in to use medium and large models")
+            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
+          dispatch({ type: "CARD_ERRORED", id: cardId, error: message });
+          return;
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? "";
+          for (const part of parts) {
+            const line = part.split("\n").find(l => l.startsWith("data: "));
+            if (!line) continue;
+            try {
+              const event = JSON.parse(line.slice(6)) as { stage: string; data?: SteeringResult & { token?: string }; error?: string };
+              if (event.stage === "token" && event.data?.token !== undefined) {
+                dispatch({ type: "STEERING_CARD_TOKEN", id: cardId, token: event.data.token });
+              } else if (event.stage === "done" && event.data) {
+                dispatch({ type: "STEERING_CARD_RESOLVED", id: cardId, data: event.data as SteeringResult });
+                const pid = projectIdRef.current;
+                if (pid) {
+                  const updatedCards = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+                  updateProject(pid, updatedCards, stateRef.current.canvas).catch(console.error);
+                }
+              } else if (event.stage === "error") {
+                dispatch({ type: "CARD_ERRORED", id: cardId, error: event.error ?? "Unknown error" });
+              } else {
+                dispatch({ type: "CARD_STAGE", id: cardId, stage: event.stage });
+              }
+            } catch { /* malformed chunk */ }
+          }
+        }
+      })
+      .catch(err => dispatch({ type: "CARD_ERRORED", id: cardId, error: err instanceof Error ? err.message : "Unknown error" }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAddStandaloneSteer = useCallback(({ modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, injectionLayer }: {
+    modelName: string;
+    cleanPrompt: string;
+    corruptedPrompt: string;
+    gpuTier?: string;
+    targetPosition: number | "last";
+    injectionLayer: number;
+  }) => {
+    setSteeringOpen(false);
+    const components: SteeringComponent[] = [{ layer: injectionLayer, head: null, injectionType: "residual" }];
+    const steeringId = crypto.randomUUID();
+    const steeringCard: SteeringCardData = {
+      id: steeringId,
+      cardType: "steering",
+      status: "loading",
+      modelName,
+      cleanPrompt,
+      corruptedPrompt,
+      targetPosition,
+      targetToken: null,
+      components,
+      alpha: 1.0,
+      nTokens: 20,
+      parentCardId: "",
+      data: null,
+      error: null,
+      position: autoArrangePos(stateRef.current.lensCards.length),
+      gpuTier,
+      startedAt: Date.now(),
+    };
+    dispatch({ type: "ADD_CARD", card: steeringCard });
+
+    fetch("/api/run-steering", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 20 }),
+    })
+      .then(async (response) => {
+        if (!response.ok || !response.body) {
+          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
+          const message = response.status === 401
+            ? (err.error ?? "Sign in to use medium and large models")
+            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
+          dispatch({ type: "CARD_ERRORED", id: steeringId, error: message });
+          return;
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? "";
+          for (const part of parts) {
+            const line = part.split("\n").find(l => l.startsWith("data: "));
+            if (!line) continue;
+            try {
+              const event = JSON.parse(line.slice(6)) as { stage: string; data?: SteeringResult & { token?: string; index?: number }; error?: string };
+              if (event.stage === "token" && event.data?.token !== undefined) {
+                dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: event.data.token });
+              } else if (event.stage === "done" && event.data) {
+                dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: event.data as SteeringResult });
+                const pid = projectIdRef.current;
+                if (pid) {
+                  const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+                  updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: event.data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken: null, components, alpha: 1.0, nTokens: 20, parentCardId: "" }], stateRef.current.canvas).catch(console.error);
+                }
+              } else if (event.stage === "error") {
+                dispatch({ type: "CARD_ERRORED", id: steeringId, error: event.error ?? "Unknown error" });
+              } else {
+                dispatch({ type: "CARD_STAGE", id: steeringId, stage: event.stage });
+              }
+            } catch { /* malformed chunk */ }
+          }
+        }
+      })
+      .catch(err => dispatch({ type: "CARD_ERRORED", id: steeringId, error: err instanceof Error ? err.message : "Unknown error" }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleNew() {
     if (!session?.user) return;
     setProjectsOpen(false);
@@ -873,9 +1022,9 @@ function Projects() {
           <div ref={addRef} style={{ position: "relative" }}>
             {/* "Add +" button */}
             <button
-              onClick={() => { setAddOpen(o => !o); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); }}
+              onClick={() => { setAddOpen(o => !o); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); setSteeringOpen(false); }}
               style={{
-                background: (addOpen || configOpen || dlaOpen || attributionOpen) ? "var(--color-accent-hover)" : "var(--color-accent)",
+                background: (addOpen || configOpen || dlaOpen || attributionOpen || steeringOpen) ? "var(--color-accent-hover)" : "var(--color-accent)",
                 color: "var(--color-accent-fg)",
                 border: "none",
                 borderRadius: 6,
@@ -890,8 +1039,8 @@ function Projects() {
                 gap: 6,
                 letterSpacing: "0.01em",
               }}
-              onMouseEnter={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-              onMouseLeave={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+              onMouseEnter={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+              onMouseLeave={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
             >
               <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
               Add
@@ -915,7 +1064,7 @@ function Projects() {
               }}>
                 <style>{`@keyframes cfgDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
                 <button
-                  onClick={() => { setAddOpen(false); setConfigOpen(true); setDlaOpen(false); }}
+                  onClick={() => { setAddOpen(false); setConfigOpen(true); setDlaOpen(false); setAttributionOpen(false); setSteeringOpen(false); }}
                   style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: "6px 6px 0 0", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
@@ -924,7 +1073,7 @@ function Projects() {
                   <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Layer-by-layer predictions</span>
                 </button>
                 <button
-                  onClick={() => { setAddOpen(false); setDlaOpen(true); setConfigOpen(false); setAttributionOpen(false); }}
+                  onClick={() => { setAddOpen(false); setDlaOpen(true); setConfigOpen(false); setAttributionOpen(false); setSteeringOpen(false); }}
                   style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: 0, padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
@@ -933,13 +1082,22 @@ function Projects() {
                   <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Direct attribution per component</span>
                 </button>
                 <button
-                  onClick={() => { setAddOpen(false); setAttributionOpen(true); setConfigOpen(false); setDlaOpen(false); }}
-                  style={{ background: "var(--color-card)", border: "none", borderRadius: "0 0 6px 6px", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
+                  onClick={() => { setAddOpen(false); setAttributionOpen(true); setConfigOpen(false); setDlaOpen(false); setSteeringOpen(false); }}
+                  style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: 0, padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
                 >
                   <span>Attribution</span>
                   <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Map behavioral difference → verify causally</span>
+                </button>
+                <button
+                  onClick={() => { setAddOpen(false); setSteeringOpen(true); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); }}
+                  style={{ background: "var(--color-card)", border: "none", borderRadius: "0 0 6px 6px", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                >
+                  <span>Steer</span>
+                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>DIM vector injection from contrastive pair</span>
                 </button>
               </div>
             )}
@@ -964,6 +1122,13 @@ function Projects() {
               modelsLoading={modelsLoading}
               onSubmit={handleAddAttribution}
               onClose={() => setAttributionOpen(false)}
+            />
+            <SteeringConfigPane
+              isOpen={steeringOpen}
+              availableModels={availableModels}
+              modelsLoading={modelsLoading}
+              onSubmit={handleAddStandaloneSteer}
+              onClose={() => setSteeringOpen(false)}
             />
           </div>
 
@@ -1366,6 +1531,7 @@ function Projects() {
           onRemoveCard={id => dispatch({ type: "REMOVE_CARD", id })}
           onVerifyTopK={handleVerifyTopK}
           onSteerComponents={handleSteerComponents}
+          onRerunSteering={handleRerunSteering}
         />
 
       </div>

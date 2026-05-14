@@ -46,6 +46,7 @@ type SteeringCardProps = {
   onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
+  onRerun: (cardId: string, newAlpha: number) => void;
 };
 
 function formatElapsed(ms: number): string {
@@ -67,9 +68,14 @@ export default function SteeringCard({
   onDragMove,
   onDragEnd,
   onRemove,
+  onRerun,
 }: SteeringCardProps) {
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
+  const [localAlpha, setLocalAlpha] = React.useState(card.alpha);
+
+  // Sync local alpha if the card is re-run externally (alpha stored in card updates)
+  React.useEffect(() => { setLocalAlpha(card.alpha); }, [card.alpha]);
 
   React.useEffect(() => {
     if (card.status !== "loading") return;
@@ -171,13 +177,13 @@ export default function SteeringCard({
         </button>
       </div>
 
-      {/* Injection info row */}
+      {/* Injection info + alpha slider row */}
       <div
         onPointerDown={e => e.stopPropagation()}
         style={{
-          padding: "4px 10px",
+          padding: "5px 10px",
           borderBottom: "1px solid var(--color-surface-border)",
-          display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap",
+          display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
         }}
       >
         {card.components.map((c, i) => (
@@ -187,14 +193,37 @@ export default function SteeringCard({
               fontSize: 9, fontWeight: 600, fontFamily: "var(--font-azeret-mono), monospace",
               color: "var(--color-accent)", background: "var(--color-surface-border)",
               border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px",
+              flexShrink: 0,
             }}
           >
             {componentLabel(c)}
           </span>
         ))}
-        <span style={{ fontSize: 9, color: "var(--color-text-muted)", marginLeft: "auto" }}>
-          α={card.alpha}
-        </span>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", width: 36, textAlign: "right" }}>
+            α={localAlpha >= 0 ? localAlpha.toFixed(2) : localAlpha.toFixed(2)}
+          </span>
+          <input
+            type="range"
+            min={-3} max={3} step={0.25}
+            value={localAlpha}
+            onChange={e => setLocalAlpha(parseFloat(e.target.value))}
+            style={{ width: 80, accentColor: "var(--color-accent)", cursor: "pointer" }}
+          />
+          {card.status !== "loading" && localAlpha !== card.alpha && (
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => onRerun(card.id, localAlpha)}
+              style={{
+                fontSize: 9, fontWeight: 600, padding: "2px 7px",
+                background: "var(--color-accent)", color: "var(--color-accent-fg)",
+                border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
+              }}
+            >
+              Re-run →
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Loading */}

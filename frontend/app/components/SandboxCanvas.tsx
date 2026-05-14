@@ -27,6 +27,7 @@ type SandboxCanvasProps = {
   onRemoveCard: (id: string) => void;
   onVerifyTopK: (attributionCardId: string, k: number) => void;
   onSteerComponents: (sourceCardId: string, components: SteeringComponent[]) => void;
+  onRerunSteering: (cardId: string, newAlpha: number) => void;
 };
 
 export default function SandboxCanvas({
@@ -37,6 +38,7 @@ export default function SandboxCanvas({
   onRemoveCard,
   onVerifyTopK,
   onSteerComponents,
+  onRerunSteering,
 }: SandboxCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -116,7 +118,7 @@ export default function SandboxCanvas({
       case "activation":
         return <ActivationCard key={card.id} {...sharedProps} card={card} onSteerComponents={onSteerComponents} />;
       case "steering":
-        return <SteeringCard key={card.id} {...sharedProps} card={card} />;
+        return <SteeringCard key={card.id} {...sharedProps} card={card} onRerun={onRerunSteering} />;
       default:
         return <LensCard key={card.id} {...sharedProps} card={card as LensCardData} />;
     }

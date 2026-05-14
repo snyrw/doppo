@@ -739,9 +739,10 @@ class _TLBase:
             _, cache_corrupted = self.model.run_with_cache(corrupted_tokens)
 
             # Compute DIM vector for each component
+            n_layers = self.model.cfg.n_layers
             dim_vectors = []
             for comp in components:
-                L = comp["layer"]
+                L = comp["layer"] if comp["layer"] >= 0 else n_layers // 2
                 H = comp.get("head")
                 inj = comp.get("injection_type", "residual")
                 if inj == "attn_head" and H is not None:
@@ -764,26 +765,28 @@ class _TLBase:
             del cache_clean, cache_corrupted
             torch.cuda.empty_cache()
 
-            # Build hooks with factory functions to avoid Python late-binding closure bug
+            # Build hooks with factory functions to avoid Python late-binding closure bug.
+            # Cast dv to value.dtype inside each hook — DIM vectors are float32 but model
+            # activations are bfloat16 (loaded with dtype=torch.bfloat16).
             fwd_hooks = []
             for L, H, inj, dim_vec in dim_vectors:
                 if inj == "attn_head" and H is not None:
                     def make_attn_hook(dv, h, a):
                         def _fn(value, hook):
-                            value[:, :, h, :] = value[:, :, h, :] + a * dv
+                            value[:, :, h, :] = value[:, :, h, :] + a * dv.to(value.dtype)
                             return value
                         return _fn
                     fwd_hooks.append((f"blocks.{L}.attn.hook_z", make_attn_hook(dim_vec, H, alpha)))
                 elif inj == "mlp":
                     def make_mlp_hook(dv, a):
                         def _fn(value, hook):
-                            return value + a * dv
+                            return value + a * dv.to(value.dtype)
                         return _fn
                     fwd_hooks.append((f"blocks.{L}.hook_mlp_out", make_mlp_hook(dim_vec, alpha)))
                 else:
                     def make_resid_hook(dv, a):
                         def _fn(value, hook):
-                            return value + a * dv
+                            return value + a * dv.to(value.dtype)
                         return _fn
                     fwd_hooks.append((f"blocks.{L}.hook_resid_pre", make_resid_hook(dim_vec, alpha)))
 
