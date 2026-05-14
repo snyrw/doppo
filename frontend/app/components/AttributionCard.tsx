@@ -3,6 +3,7 @@
 import React from "react";
 import { interpolateColorDivergent, getContrastColor } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
+import type { SteeringComponent } from "./SteeringCard";
 
 export type TopKComponent = {
   layer: number;
@@ -53,6 +54,7 @@ type AttributionCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   onVerifyTopK: (cardId: string, k: number) => void;
+  onSteerComponents: (cardId: string, components: SteeringComponent[]) => void;
 };
 
 const COL_GAP = 2;
@@ -86,11 +88,13 @@ export default function AttributionCard({
   onDragEnd,
   onRemove,
   onVerifyTopK,
+  onSteerComponents,
 }: AttributionCardProps) {
   const [view, setView] = React.useState<"layer" | "head">("head");
   const [selectedK, setSelectedK] = React.useState<5 | 10 | 20>(10);
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
+  const [selectedComponents, setSelectedComponents] = React.useState<SteeringComponent[]>([]);
 
   React.useEffect(() => {
     if (card.status !== "loading") return;
@@ -115,6 +119,23 @@ export default function AttributionCard({
     if (view === "layer") return Y_LABEL_W + LAYER_BAR_W + 48 + 12;
     return Y_LABEL_W + (HEAD_CELL_SIZE + COL_GAP) * card.data.x_labels.length + 12;
   }, [card.data, card.status, view]);
+
+  const topLayer = React.useMemo(() => {
+    if (!card.data) return 0;
+    return card.data.layer_attribution.reduce(
+      (best, v, i, arr) => (Math.abs(v) > Math.abs(arr[best]) ? i : best),
+      0
+    );
+  }, [card.data]);
+
+  function toggleComponent(comp: SteeringComponent) {
+    setSelectedComponents(prev => {
+      const exists = prev.some(c => c.layer === comp.layer && c.head === comp.head);
+      return exists
+        ? prev.filter(c => !(c.layer === comp.layer && c.head === comp.head))
+        : [...prev, comp];
+    });
+  }
 
   const isVerifying = card.verifyStatus === "loading";
   const isVerified = card.verifyStatus === "done";
@@ -326,6 +347,33 @@ export default function AttributionCard({
                 </button>
               </>
             )}
+            {/* Steer buttons */}
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => onSteerComponents(card.id, [{ layer: topLayer, head: null, injectionType: "residual" }])}
+              style={{
+                fontSize: 9, fontWeight: 600, padding: "2px 7px",
+                background: "var(--color-accent)", color: "var(--color-accent-fg)",
+                border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
+                transition: "background 120ms",
+              }}
+            >
+              Steer →
+            </button>
+            {view === "head" && selectedComponents.length > 0 && (
+              <button
+                onPointerDown={e => e.stopPropagation()}
+                onClick={() => { onSteerComponents(card.id, selectedComponents); setSelectedComponents([]); }}
+                style={{
+                  fontSize: 9, fontWeight: 600, padding: "2px 7px",
+                  background: "var(--color-accent)", color: "var(--color-accent-fg)",
+                  border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
+                  transition: "background 120ms",
+                }}
+              >
+                Steer {selectedComponents.length} →
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -370,7 +418,7 @@ export default function AttributionCard({
           {view === "layer" ? (
             <LayerView data={card.data} absMax={absMax} />
           ) : (
-            <HeadView data={card.data} absMax={absMax} />
+            <HeadView data={card.data} absMax={absMax} selectedComponents={selectedComponents} onToggleComponent={toggleComponent} />
           )}
         </div>
       )}
@@ -421,7 +469,14 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
   );
 }
 
-function HeadView({ data, absMax }: { data: AttributionData; absMax: number }) {
+function HeadView({
+  data, absMax, selectedComponents, onToggleComponent,
+}: {
+  data: AttributionData;
+  absMax: number;
+  selectedComponents: SteeringComponent[];
+  onToggleComponent: (comp: SteeringComponent) => void;
+}) {
   return (
     <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
       <div style={{ display: "flex", gap: COL_GAP }}>
@@ -447,14 +502,20 @@ function HeadView({ data, absMax }: { data: AttributionData; absMax: number }) {
           {data.head_attribution[li].map((val, hi) => {
             const color = interpolateColorDivergent("rdbu", val, absMax);
             const tooltip = `${label} H${hi}: ${val >= 0 ? "+" : ""}${val.toFixed(3)}`;
+            const isSelected = selectedComponents.some(c => c.layer === li && c.head === hi);
             return (
               <div
                 key={hi}
                 title={tooltip}
+                onPointerDown={e => e.stopPropagation()}
+                onClick={() => onToggleComponent({ layer: li, head: hi, injectionType: "attn_head" })}
                 style={{
                   width: HEAD_CELL_SIZE, height: HEAD_CELL_SIZE, flexShrink: 0,
-                  backgroundColor: color, border: "0.5px solid var(--color-surface-border)",
-                  borderRadius: 2, boxSizing: "border-box",
+                  backgroundColor: color,
+                  border: isSelected ? "1.5px solid var(--color-text)" : "0.5px solid var(--color-surface-border)",
+                  borderRadius: 2, boxSizing: "border-box", cursor: "pointer",
+                  outline: isSelected ? "1px solid var(--color-accent)" : "none",
+                  outlineOffset: 1,
                 }}
               />
             );

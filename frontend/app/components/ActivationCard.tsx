@@ -3,6 +3,7 @@
 import React from "react";
 import { interpolateColorDivergent } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
+import type { SteeringComponent } from "./SteeringCard";
 
 export type VerifiedComponent = {
   layer: number;
@@ -40,6 +41,7 @@ type ActivationCardProps = {
   onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
+  onSteerComponents: (cardId: string, components: SteeringComponent[]) => void;
 };
 
 function formatElapsed(ms: number): string {
@@ -90,9 +92,11 @@ export default function ActivationCard({
   onDragMove,
   onDragEnd,
   onRemove,
+  onSteerComponents,
 }: ActivationCardProps) {
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
+  const [selectedComponents, setSelectedComponents] = React.useState<SteeringComponent[]>([]);
 
   React.useEffect(() => {
     if (card.status !== "loading") return;
@@ -254,13 +258,31 @@ export default function ActivationCard({
                 : `L${comp.layer}·MLP`;
               const tooltip = `${label}: attribution ${comp.attribution_score >= 0 ? "+" : ""}${comp.attribution_score.toFixed(3)}, effect ${(comp.actual_effect * 100).toFixed(1)}%`;
 
+              const steeringComp: SteeringComponent = {
+                layer: comp.layer,
+                head: comp.component_type === "attn_head" ? comp.head : null,
+                injectionType: comp.component_type === "attn_head" ? "attn_head" : "mlp",
+              };
+              const isSelected = selectedComponents.some(
+                c => c.layer === steeringComp.layer && c.head === steeringComp.head && c.injectionType === steeringComp.injectionType
+              );
+
               return (
                 <div
                   key={i}
                   title={tooltip}
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={() => setSelectedComponents(prev =>
+                    isSelected
+                      ? prev.filter(c => !(c.layer === steeringComp.layer && c.head === steeringComp.head && c.injectionType === steeringComp.injectionType))
+                      : [...prev, steeringComp]
+                  )}
                   style={{
                     display: "flex", alignItems: "center", padding: "5px 10px", gap: 6,
                     borderBottom: "1px solid var(--color-surface-border)",
+                    borderLeft: isSelected ? "3px solid var(--color-accent)" : "3px solid transparent",
+                    cursor: "pointer",
+                    transition: "border-color 100ms",
                   }}
                 >
                   {/* Component label */}
@@ -293,15 +315,25 @@ export default function ActivationCard({
             })}
           </div>
 
-          {/* Footer: Spearman correlation */}
-          {spearman !== null && (
-            <div style={{ padding: "7px 10px", borderTop: "1px solid var(--color-surface-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 9, color: "var(--color-text-muted)" }}>
-                Spearman ρ (attribution vs effect)
+          {/* Footer: Spearman correlation + Steer button */}
+          {(spearman !== null || selectedComponents.length > 0) && (
+            <div style={{ padding: "7px 10px", borderTop: "1px solid var(--color-surface-border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 9, color: "var(--color-text-muted)", flex: 1 }}>
+                {spearman !== null ? `Spearman ρ ${spearman >= 0 ? "+" : ""}${spearman.toFixed(2)}` : ""}
               </span>
-              <span style={{ fontSize: 10, fontFamily: "var(--font-azeret-mono), monospace", fontWeight: 600, color: Math.abs(spearman) > 0.6 ? "#16a34a" : "var(--color-text-muted)", fontVariantNumeric: "tabular-nums" }}>
-                {spearman >= 0 ? "+" : ""}{spearman.toFixed(2)}
-              </span>
+              {selectedComponents.length > 0 && (
+                <button
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={() => { onSteerComponents(card.id, selectedComponents); setSelectedComponents([]); }}
+                  style={{
+                    fontSize: 9, fontWeight: 600, padding: "2px 7px",
+                    background: "var(--color-accent)", color: "var(--color-accent-fg)",
+                    border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
+                  }}
+                >
+                  Steer {selectedComponents.length} →
+                </button>
+              )}
             </div>
           )}
         </>

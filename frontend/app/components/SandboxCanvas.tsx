@@ -5,6 +5,7 @@ import LensCard, { type LensCardData } from "./LensCard";
 import DlaCard, { type DlaCardData } from "./DlaCard";
 import AttributionCard, { type AttributionCardData } from "./AttributionCard";
 import ActivationCard, { type ActivationCardData } from "./ActivationCard";
+import SteeringCard, { type SteeringCardData, type SteeringComponent } from "./SteeringCard";
 import { useCanvasPan } from "../hooks/useCanvasPan";
 import { useCardDrag } from "../hooks/useCardDrag";
 
@@ -16,7 +17,7 @@ type CanvasState = {
   zoom: number;
 };
 
-export type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData;
+export type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData | SteeringCardData;
 
 type SandboxCanvasProps = {
   cards: AnyCard[];
@@ -25,6 +26,7 @@ type SandboxCanvasProps = {
   onMoveCard: (id: string, pos: { x: number; y: number }) => void;
   onRemoveCard: (id: string) => void;
   onVerifyTopK: (attributionCardId: string, k: number) => void;
+  onSteerComponents: (sourceCardId: string, components: SteeringComponent[]) => void;
 };
 
 export default function SandboxCanvas({
@@ -34,6 +36,7 @@ export default function SandboxCanvas({
   onMoveCard,
   onRemoveCard,
   onVerifyTopK,
+  onSteerComponents,
 }: SandboxCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -109,9 +112,11 @@ export default function SandboxCanvas({
       case "dla":
         return <DlaCard key={card.id} {...sharedProps} card={card} />;
       case "attribution":
-        return <AttributionCard key={card.id} {...sharedProps} card={card} onVerifyTopK={onVerifyTopK} />;
+        return <AttributionCard key={card.id} {...sharedProps} card={card} onVerifyTopK={onVerifyTopK} onSteerComponents={onSteerComponents} />;
       case "activation":
-        return <ActivationCard key={card.id} {...sharedProps} card={card} />;
+        return <ActivationCard key={card.id} {...sharedProps} card={card} onSteerComponents={onSteerComponents} />;
+      case "steering":
+        return <SteeringCard key={card.id} {...sharedProps} card={card} />;
       default:
         return <LensCard key={card.id} {...sharedProps} card={card as LensCardData} />;
     }

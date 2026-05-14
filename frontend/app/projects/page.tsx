@@ -12,6 +12,7 @@ import type { LensCardData } from "../components/LensCard";
 import type { DlaCardData, DlaData } from "../components/DlaCard";
 import type { AttributionCardData, AttributionData } from "../components/AttributionCard";
 import type { ActivationCardData, ActivationPatchResult } from "../components/ActivationCard";
+import type { SteeringCardData, SteeringResult, SteeringComponent } from "../components/SteeringCard";
 import { useSession } from "../lib/auth-client";
 import {
   createProject,
@@ -43,7 +44,7 @@ type CanvasState = {
   zoom: number;
 };
 
-type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData;
+type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData | SteeringCardData;
 
 type AppState = {
   lensCards: AnyCard[];
@@ -64,7 +65,9 @@ type AppAction =
   | { type: "REMOVE_CARD"; id: string }
   | { type: "SET_CANVAS"; canvas: CanvasState }
   | { type: "LOAD_PROJECT"; cards: AnyCard[]; canvas: CanvasState }
-  | { type: "RESET_CANVAS" };
+  | { type: "RESET_CANVAS" }
+  | { type: "STEERING_CARD_TOKEN"; id: string; token: string }
+  | { type: "STEERING_CARD_RESOLVED"; id: string; data: SteeringResult };
 
 const CARD_COL_WIDTH = 360;
 const CARD_ROW_HEIGHT = 320;
@@ -92,7 +95,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType !== "dla" && c.cardType !== "attribution" && c.cardType !== "activation"
+          c.id === action.id && c.cardType !== "dla" && c.cardType !== "attribution" && c.cardType !== "activation" && c.cardType !== "steering"
             ? { ...c, status: "result" as const, data: action.data } : c
         ),
       };
@@ -157,6 +160,22 @@ function appReducer(state: AppState, action: AppAction): AppState {
           c.id === action.id ? { ...c, loadingStage: action.stage } : c
         ),
       };
+    case "STEERING_CARD_TOKEN":
+      return {
+        ...state,
+        lensCards: state.lensCards.map(c =>
+          c.id === action.id && c.cardType === "steering"
+            ? { ...c, streamingText: (c.streamingText ?? "") + action.token } : c
+        ),
+      };
+    case "STEERING_CARD_RESOLVED":
+      return {
+        ...state,
+        lensCards: state.lensCards.map(c =>
+          c.id === action.id && c.cardType === "steering"
+            ? { ...c, status: "result" as const, data: action.data, streamingText: undefined } : c
+        ),
+      };
     case "REMOVE_CARD":
       return { ...state, lensCards: state.lensCards.filter(c => c.id !== action.id) };
     case "SET_CANVAS":
@@ -180,12 +199,15 @@ function serializeCard(c: AnyCard) {
   if (c.cardType === "activation") {
     return { id: c.id, cardType: "activation" as const, modelName: c.modelName, prompt: c.cleanPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, parentAttributionId: c.parentAttributionId };
   }
-  return { id: c.id, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier };
+  if (c.cardType === "steering") {
+    return { id: c.id, cardType: "steering" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, components: c.components, alpha: c.alpha, nTokens: c.nTokens, parentCardId: c.parentCardId };
+  }
+  return { id: c.id, modelName: c.modelName, prompt: (c as LensCardData | DlaCardData).prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier };
 }
 
 function getCardPrompt(c: AnyCard): string {
-  if (c.cardType === "attribution" || c.cardType === "activation") return c.cleanPrompt;
-  return c.prompt;
+  if (c.cardType === "attribution" || c.cardType === "activation" || c.cardType === "steering") return c.cleanPrompt;
+  return (c as LensCardData | DlaCardData).prompt;
 }
 
 function Projects() {
@@ -275,6 +297,17 @@ function Projects() {
             cleanPrompt: c.prompt, k: 10,
             parentAttributionId: c.parentAttributionId ?? "",
           } as unknown as ActivationCardData;
+        }
+        if (c.cardType === "steering") {
+          return {
+            ...c, cardType: "steering" as const, status: "result" as const, error: null,
+            cleanPrompt: c.prompt, corruptedPrompt: c.corruptedPrompt ?? "",
+            targetPosition: c.targetPosition ?? "last", targetToken: c.targetToken ?? null,
+            components: (c.components ?? []) as SteeringComponent[],
+            alpha: c.alpha ?? 1.0, nTokens: c.nTokens ?? 20,
+            parentCardId: c.parentCardId ?? "",
+            streamingText: undefined,
+          } as unknown as SteeringCardData;
         }
         return { ...c, cardType: "logit-lens" as const, status: "result" as const, error: null } as LensCardData;
       });
@@ -646,6 +679,114 @@ function Projects() {
         dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
       });
   };
+
+  const handleSteerComponents = useCallback((sourceCardId: string, components: SteeringComponent[]) => {
+    const sourceCard = stateRef.current.lensCards.find(c => c.id === sourceCardId);
+    if (!sourceCard) return;
+
+    let cleanPrompt: string;
+    let corruptedPrompt: string;
+    let targetPosition: number | "last";
+    let targetToken: string | null;
+    let modelName: string;
+    let gpuTier: string | undefined;
+
+    if (sourceCard.cardType === "attribution") {
+      cleanPrompt = sourceCard.cleanPrompt;
+      corruptedPrompt = sourceCard.corruptedPrompt;
+      targetPosition = sourceCard.targetPosition;
+      targetToken = sourceCard.targetToken;
+      modelName = sourceCard.modelName;
+      gpuTier = sourceCard.gpuTier;
+    } else if (sourceCard.cardType === "activation") {
+      const parentAttr = stateRef.current.lensCards.find(
+        c => c.id === sourceCard.parentAttributionId && c.cardType === "attribution"
+      ) as AttributionCardData | undefined;
+      if (!parentAttr) return;
+      cleanPrompt = sourceCard.cleanPrompt;
+      corruptedPrompt = parentAttr.corruptedPrompt;
+      targetPosition = parentAttr.targetPosition;
+      targetToken = parentAttr.targetToken;
+      modelName = sourceCard.modelName;
+      gpuTier = sourceCard.gpuTier;
+    } else {
+      return;
+    }
+
+    const steeringId = crypto.randomUUID();
+    const steeringCard: SteeringCardData = {
+      id: steeringId,
+      cardType: "steering",
+      status: "loading",
+      modelName,
+      cleanPrompt,
+      corruptedPrompt,
+      targetPosition,
+      targetToken,
+      components,
+      alpha: 1.0,
+      nTokens: 20,
+      parentCardId: sourceCardId,
+      data: null,
+      error: null,
+      position: { x: sourceCard.position.x + 440, y: sourceCard.position.y },
+      gpuTier,
+      startedAt: Date.now(),
+    };
+
+    dispatch({ type: "ADD_CARD", card: steeringCard });
+
+    fetch("/api/run-steering", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 20 }),
+    })
+      .then(async (response) => {
+        if (!response.ok || !response.body) {
+          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
+          const message = response.status === 401
+            ? (err.error ?? "Sign in to use medium and large models")
+            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
+          dispatch({ type: "CARD_ERRORED", id: steeringId, error: message });
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? "";
+          for (const part of parts) {
+            const line = part.split("\n").find(l => l.startsWith("data: "));
+            if (!line) continue;
+            try {
+              const event = JSON.parse(line.slice(6)) as { stage: string; data?: SteeringResult & { token?: string; index?: number }; error?: string };
+              if (event.stage === "token" && event.data?.token !== undefined) {
+                dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: event.data.token });
+              } else if (event.stage === "done" && event.data) {
+                dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: event.data as SteeringResult });
+                const pid = projectIdRef.current;
+                if (pid) {
+                  const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+                  updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: event.data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken, components, alpha: 1.0, nTokens: 20, parentCardId: sourceCardId }], stateRef.current.canvas).catch(console.error);
+                }
+              } else if (event.stage === "error") {
+                dispatch({ type: "CARD_ERRORED", id: steeringId, error: event.error ?? "Unknown error" });
+              } else {
+                dispatch({ type: "CARD_STAGE", id: steeringId, stage: event.stage });
+              }
+            } catch { /* malformed chunk */ }
+          }
+        }
+      })
+      .catch(err => dispatch({ type: "CARD_ERRORED", id: steeringId, error: err instanceof Error ? err.message : "Unknown error" }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleNew() {
     if (!session?.user) return;
@@ -1224,6 +1365,7 @@ function Projects() {
           onMoveCard={(id, position) => dispatch({ type: "MOVE_CARD", id, position })}
           onRemoveCard={id => dispatch({ type: "REMOVE_CARD", id })}
           onVerifyTopK={handleVerifyTopK}
+          onSteerComponents={handleSteerComponents}
         />
 
       </div>

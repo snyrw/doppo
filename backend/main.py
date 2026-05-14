@@ -713,6 +713,131 @@ class _TLBase:
         })
 
     @modal.method()
+    def run_steering(
+        self,
+        clean_prompt: str,
+        corrupted_prompt: str,
+        target_position: int | str = "last",
+        components: list[dict] | None = None,
+        alpha: float = 1.0,
+        n_tokens: int = 20,
+    ):
+        import json
+        import torch
+
+        if components is None:
+            components = []
+
+        yield json.dumps({"stage": "computing"})
+
+        with torch.no_grad():
+            clean_tokens = self.model.to_tokens(clean_prompt)
+            corrupted_tokens = self.model.to_tokens(corrupted_prompt)
+            pos = int(clean_tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
+
+            _, cache_clean = self.model.run_with_cache(clean_tokens)
+            _, cache_corrupted = self.model.run_with_cache(corrupted_tokens)
+
+            # Compute DIM vector for each component
+            dim_vectors = []
+            for comp in components:
+                L = comp["layer"]
+                H = comp.get("head")
+                inj = comp.get("injection_type", "residual")
+                if inj == "attn_head" and H is not None:
+                    v = (
+                        cache_clean[f"blocks.{L}.attn.hook_z"][0, pos, H, :].float()
+                        - cache_corrupted[f"blocks.{L}.attn.hook_z"][0, pos, H, :].float()
+                    )
+                elif inj == "mlp":
+                    v = (
+                        cache_clean[f"blocks.{L}.hook_mlp_out"][0, pos, :].float()
+                        - cache_corrupted[f"blocks.{L}.hook_mlp_out"][0, pos, :].float()
+                    )
+                else:
+                    v = (
+                        cache_clean[f"blocks.{L}.hook_resid_pre"][0, pos, :].float()
+                        - cache_corrupted[f"blocks.{L}.hook_resid_pre"][0, pos, :].float()
+                    )
+                dim_vectors.append((L, H, inj, v / (v.norm() + 1e-8)))
+
+            del cache_clean, cache_corrupted
+            torch.cuda.empty_cache()
+
+            # Build hooks with factory functions to avoid Python late-binding closure bug
+            fwd_hooks = []
+            for L, H, inj, dim_vec in dim_vectors:
+                if inj == "attn_head" and H is not None:
+                    def make_attn_hook(dv, h, a):
+                        def _fn(value, hook):
+                            value[:, :, h, :] = value[:, :, h, :] + a * dv
+                            return value
+                        return _fn
+                    fwd_hooks.append((f"blocks.{L}.attn.hook_z", make_attn_hook(dim_vec, H, alpha)))
+                elif inj == "mlp":
+                    def make_mlp_hook(dv, a):
+                        def _fn(value, hook):
+                            return value + a * dv
+                        return _fn
+                    fwd_hooks.append((f"blocks.{L}.hook_mlp_out", make_mlp_hook(dim_vec, alpha)))
+                else:
+                    def make_resid_hook(dv, a):
+                        def _fn(value, hook):
+                            return value + a * dv
+                        return _fn
+                    fwd_hooks.append((f"blocks.{L}.hook_resid_pre", make_resid_hook(dim_vec, alpha)))
+
+            # Baseline generation + top-K at target position
+            baseline_ids = clean_tokens.clone()
+            for _ in range(n_tokens):
+                logits = self.model(baseline_ids)
+                next_id = int(logits[0, -1].argmax())
+                baseline_ids = torch.cat(
+                    [baseline_ids, torch.tensor([[next_id]], device=baseline_ids.device)], dim=1
+                )
+            baseline_text = self.model.tokenizer.decode(baseline_ids[0, clean_tokens.shape[1]:].tolist())
+            baseline_logits = self.model(clean_tokens)
+            vals_b, ids_b = torch.topk(baseline_logits[0, pos].softmax(dim=-1), 5)
+            top_k_baseline = [
+                {"token": self.model.tokenizer.decode([int(t)]), "prob": float(p)}
+                for t, p in zip(ids_b.tolist(), vals_b.tolist())
+            ]
+
+            # Steered generation + streaming + top-K at target position
+            steered_ids = clean_tokens.clone()
+            for i in range(n_tokens):
+                logits = self.model.run_with_hooks(steered_ids, fwd_hooks=fwd_hooks)
+                next_id = int(logits[0, -1].argmax())
+                steered_ids = torch.cat(
+                    [steered_ids, torch.tensor([[next_id]], device=steered_ids.device)], dim=1
+                )
+                yield json.dumps({
+                    "stage": "token",
+                    "data": {"token": self.model.tokenizer.decode([next_id]), "index": i},
+                })
+            steered_text = self.model.tokenizer.decode(steered_ids[0, clean_tokens.shape[1]:].tolist())
+            steered_logits = self.model.run_with_hooks(clean_tokens, fwd_hooks=fwd_hooks)
+            vals_s, ids_s = torch.topk(steered_logits[0, pos].softmax(dim=-1), 5)
+            top_k_steered = [
+                {"token": self.model.tokenizer.decode([int(t)]), "prob": float(p)}
+                for t, p in zip(ids_s.tolist(), vals_s.tolist())
+            ]
+
+            target_id = int(baseline_logits[0, pos].argmax())
+            logit_diff = float(steered_logits[0, pos, target_id] - baseline_logits[0, pos, target_id])
+
+        yield json.dumps({
+            "stage": "done",
+            "data": {
+                "steered_text": steered_text,
+                "baseline_text": baseline_text,
+                "top_k_steered": top_k_steered,
+                "top_k_baseline": top_k_baseline,
+                "logit_diff": logit_diff,
+            },
+        })
+
+    @modal.method()
     def run_logit_lens(self, prompt: str, top_k: int = 5):
         import json
         import torch
@@ -861,6 +986,20 @@ def api():
         components: list[dict]
         k: int
 
+    class SteeringComponentRequest(BaseModel):
+        layer: int
+        head: int | None = None
+        injection_type: str = "residual"  # "attn_head" | "mlp" | "residual"
+
+    class SteeringRequest(BaseModel):
+        model_name: str
+        clean_prompt: str
+        corrupted_prompt: str
+        target_position: int | str = "last"
+        components: list[SteeringComponentRequest]
+        alpha: float = 1.0
+        n_tokens: int = 20
+
     class ValidateModelRequest(BaseModel):
         repo_id: str
 
@@ -996,6 +1135,38 @@ def api():
                     request.contrastive_token_idx,
                     request.components,
                     request.k,
+                ):
+                    yield f"data: {chunk}\n\n"
+            except Exception as e:
+                safe = str(e).replace("\\", "\\\\").replace('"', '\\"')
+                yield f'data: {{"stage":"error","error":"{safe}"}}\n\n'
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+    @web_app.post("/api/run-steering-stream")
+    async def run_steering_stream(request: SteeringRequest):
+        from fastapi.responses import StreamingResponse
+
+        entry = FEATURED_MODELS.get(request.model_name)
+        if entry is None:
+            validation = validate_hf_repo(request.model_name, hf_token=hf_token)
+            if not validation["valid"]:
+                raise HTTPException(status_code=400, detail=validation["reason"])
+            cls = _TIER_TO_CLS[validation["gpu_tier"]]
+            model_id = request.model_name
+        else:
+            cls = _TIER_TO_CLS[entry["gpu_tier"]]  # No _bump_tier — forward-pass only
+            model_id = entry["model_id"]
+
+        async def event_stream():
+            try:
+                async for chunk in cls(model_id=model_id).run_steering.remote_gen.aio(
+                    request.clean_prompt,
+                    request.corrupted_prompt,
+                    request.target_position,
+                    [c.model_dump() for c in request.components],
+                    request.alpha,
+                    request.n_tokens,
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:

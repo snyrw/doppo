@@ -71,6 +71,11 @@ type SerializedCard = {
   contrastiveToken?: string | null;
   corruptedPrompt?: string;       // attribution cards
   parentAttributionId?: string;   // activation cards
+  // steering cards
+  components?: Array<{ layer: number; head: number | null; injectionType: string }>;
+  alpha?: number;
+  nTokens?: number;
+  parentCardId?: string;
 };
 
 type CanvasState = {

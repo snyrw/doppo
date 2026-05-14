@@ -6,6 +6,7 @@ import type { LensCardData } from "../../components/LensCard";
 import type { DlaCardData } from "../../components/DlaCard";
 import type { AttributionCardData } from "../../components/AttributionCard";
 import type { ActivationCardData } from "../../components/ActivationCard";
+import type { SteeringCardData, SteeringComponent } from "../../components/SteeringCard";
 import type { AnyCard } from "../../components/SandboxCanvas";
 
 export default async function SharePage({
@@ -34,6 +35,17 @@ export default async function SharePage({
         ...c, cardType: "activation" as const, status: "result" as const, error: null,
         cleanPrompt: c.prompt, k: 10, parentAttributionId: c.parentAttributionId ?? "",
       } as unknown as ActivationCardData;
+    }
+    if (c.cardType === "steering") {
+      return {
+        ...c, cardType: "steering" as const, status: "result" as const, error: null,
+        cleanPrompt: c.prompt, corruptedPrompt: c.corruptedPrompt ?? "",
+        targetPosition: c.targetPosition ?? "last", targetToken: c.targetToken ?? null,
+        components: (c.components ?? []) as SteeringComponent[],
+        alpha: c.alpha ?? 1.0, nTokens: c.nTokens ?? 20,
+        parentCardId: c.parentCardId ?? "",
+        streamingText: undefined,
+      } as unknown as SteeringCardData;
     }
     return { ...c, cardType: "logit-lens" as const, status: "result" as const, error: null } as LensCardData;
   });
