@@ -31,7 +31,7 @@ Use full string hook names — tuple shorthand (`cache["attn_out", layer]`) is g
 
 `to_single_token()` is gone — use `model.to_tokens(token, prepend_bos=False)[0, 0]`.
 
-`W_pos` and `W_E` do **not** exist on `TransformerBridge`. To get the combined embedding contribution (token + positional), use `cache["blocks.0.hook_resid_pre"][0, pos]` — this is the residual stream entering block 0, which equals `W_E[token] + W_pos[pos]` for absolute positional models and `W_E[token]` for RoPE models (Llama, Qwen, Gemma). `W_U` and `W_O` *do* work as direct attributes.
+`W_pos` and `W_E` do **not** exist on `TransformerBridge`. To get the combined embedding contribution (token + positional), use `cache["blocks.0.hook_in"][0, pos]` — this is the residual stream entering block 0, which equals `W_E[token] + W_pos[pos]` for absolute positional models and `W_E[token]` for RoPE models (Llama, Qwen, Gemma). `W_U` and `W_O` *do* work as direct attributes.
 
 **Local venv is TL 2.18.0, not 3.0.** `TransformerBridge` only runs on Modal. Don't try to introspect it locally — `model_bridge` module won't import.
 
@@ -74,7 +74,7 @@ The model selection UI has two mutually exclusive modes:
 
 ### Sandbox card types
 
-Four card types exist: `"logit-lens"` (`LensCardData`), `"dla"` (`DlaCardData`), `"attribution"` (`AttributionCardData`), `"activation"` (`ActivationCardData`). The full union is `AnyCard`, exported from `SandboxCanvas.tsx`. `SandboxCanvas` uses a `renderCard(card)` switch on `cardType`; `ShareCanvas` passes a noop `onVerifyTopK`. When restoring cards from the DB, discriminate on `cardType` and cast explicitly — don't rely on spreading `SerializedCard` directly into a typed card.
+Four card types exist: `"logit-lens"` (`LensCardData`), `"dla"` (`DlaCardData`), `"attribution"` (`AttributionCardData`), `"activation"` (`ActivationCardData`). A fifth type, `"steering"` (`SteeringCardData`), holds DIM-vector steering results. `SteeringCardData` carries `nPairs` (defaults to 1 for old DB rows); always set it explicitly when constructing new cards. The full union is `AnyCard`, exported from `SandboxCanvas.tsx`. `SandboxCanvas` uses a `renderCard(card)` switch on `cardType`; `ShareCanvas` passes a noop `onVerifyTopK`. When restoring cards from the DB, discriminate on `cardType` and cast explicitly — don't rely on spreading `SerializedCard` directly into a typed card.
 
 `AttributionCardData` uses `cleanPrompt` / `corruptedPrompt` instead of a single `prompt` field. Use the `getCardPrompt(card)` helper in `page.tsx` for generic prompt access across all card types.
 
@@ -98,6 +98,8 @@ Attribution payload (`/api/run-attribution` done event) includes both `target_to
 `/api/run-dla` → `{ target_token, target_position, y_labels, x_labels, layer_dla, head_dla }`
 `/api/run-attribution` → `{ target_token, target_token_idx, target_position, y_labels, x_labels, layer_attribution, head_attribution, top_k_components }` — cached in `attribution_cache` table + R2
 `/api/run-activation-patch` → `{ total_diff, components[{layer, head, component_type, attribution_score, actual_effect}] }` — not cached (ephemeral)
+`/api/run-steering` → `{ steered_text, baseline_text, top_k_steered, top_k_baseline, logit_diff }` — not cached; accepts optional `extraPairs: [{clean, corrupted}]` for CAA-style multi-pair averaging
+`/api/generate-pairs` → `{ pairs: [{clean, corrupted}], n_requested }` — calls Claude Haiku to generate contrastive pairs; requires `ANTHROPIC_API_KEY` in `.env.local`
 
 ---
 
@@ -114,7 +116,7 @@ Attribution payload (`/api/run-attribution` done event) includes both `target_to
 - `app/lib/palette.ts` — four heatmap palettes; `interpolateColor(palette, prob)` for unsigned [0,1] values; `interpolateColorDivergent(palette, value, absMax)` for signed DLA values (rdbu anchored at zero)
 - `app/hooks/usePalette.ts` — reads `localStorage` + listens for `palettechange` custom events; returns current `PaletteName`
 - `app/lib/tiers.ts` — shared `TIER_LABELS` constant for all four GPU tiers; import here, never redefine inline
-- `app/components/` — `SandboxCanvas` (exports `AnyCard` union), `LensCard`, `DlaCard`, `AttributionCard`, `ActivationCard`, `ConfigPane`, `DlaConfigPane`, `AttributionConfigPane`, `Navbar`, `AuthModal`, `ProjectSearch`, `HeroSpecimen`
+- `app/components/` — `SandboxCanvas` (exports `AnyCard` union), `LensCard`, `DlaCard`, `AttributionCard`, `ActivationCard`, `SteeringCard`, `ConfigPane`, `DlaConfigPane`, `AttributionConfigPane`, `SteeringConfigPane`, `Navbar`, `AuthModal`, `ProjectSearch`, `HeroSpecimen`. `SteeringConfigPane` has a Quick (single pair) / Research (multi-pair with LLM generation) mode toggle.
 - `app/hooks/` — `useCanvasPan`, `useCardDrag`, `usePalette`
 - `app/share/[shareId]/` — `page.tsx` (server, fetches via `loadPublicProject`) + `ShareCanvas.tsx` (client, wraps `SandboxCanvas` with noop callbacks)
 
@@ -155,6 +157,20 @@ if (!session?.user) throw new Error("Unauthorized");
 `/api/run-lens` checks the `heatmap_cache` table before forwarding to Modal. Cache key = SHA-256 of `modelName:prompt`. Hits are served from Cloudflare R2 via `getHeatmap(r2Key)`; misses call Modal, then write to R2 + insert a `heatmap_cache` row.
 
 **DLA and attribution cache lookups use `eq(table.id, cacheKey)` only** — not a multi-field WHERE clause. The hash ID already incorporates all relevant fields (model, prompt, position, token, contrastive token). This avoids needing schema migrations when new cache dimensions are added.
+
+### Steering / DIM vectors
+
+`run_steering` in `main.py` computes a difference-in-means vector per component, accumulated across all pairs then averaged: `avg_v / (avg_v.norm() + 1e-8)`. Primary `clean_prompt`/`corrupted_prompt` always count as pair 1; `extra_pairs` are appended. Generate `cap - 1` extra pairs so total = cap (seed occupies slot 1).
+
+**DIM extraction position for free-form pairs:** Use `cp_pos = clean_len - 1` and `rp_pos = corrupted_len - 1` independently — each sequence's own last token. Never use `min_len - 1` as a shared index; it pulls a mid-sequence position from the longer prompt instead of its pre-generation state. LLM-generated pairs routinely tokenize to different lengths even with semantically matched words.
+
+**Tier pair caps for `/api/generate-pairs`:** tl_small=40, tl_medium=25, tl_large=15, tl_xlarge=10. These must stay in sync between `generate-pairs/route.ts` (`TIER_CAPS`) and `SteeringConfigPane.tsx` (`TIER_PAIR_CAPS`).
+
+**Generation in `run_steering` uses temperature sampling + repetition penalty** — `temperature` (default 1.0) and `repetition_penalty` (default 1.3, HF-style: divide positive logits / multiply negative for already-generated tokens only) are fields on `SteeringRequest` and params on `run_steering`. The `_next_token` closure captures both; set `temperature <= 0` to get argmax. Both baseline and steered loops track a `*_generated` list and call `_next_token`.
+
+**Three steering fetch paths in `page.tsx` must stay in sync** when the `/api/run-steering` payload changes: `handleSteerComponents` (from attribution/activation cards, uses hardcoded defaults), `handleRerunSteering` (alpha slider re-run), and `handleAddStandaloneSteer` (standalone config pane).
+
+**`SerializedCard` in `actions.ts` is the DB serialization boundary** — new fields on `SteeringCardData` (or any card type) must also be added as optional to `SerializedCard`, or TypeScript errors surface at `updateProject` call sites rather than at the type definition. Add `?? default` in the DB restore block in `page.tsx` for backward compat with old rows.
 
 ### SSE streaming (`/api/run-lens`)
 

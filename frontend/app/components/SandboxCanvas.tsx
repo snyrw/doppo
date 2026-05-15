@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState, useLayoutEffect } from "react";
 import LensCard, { type LensCardData } from "./LensCard";
 import DlaCard, { type DlaCardData } from "./DlaCard";
 import AttributionCard, { type AttributionCardData } from "./AttributionCard";
@@ -44,33 +44,56 @@ export default function SandboxCanvas({
   const worldRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  const stateRef = useRef(canvasState);
-  stateRef.current = canvasState;
+  // localStateRef is the single source of truth for the current visual canvas state.
+  // It's updated by both useLayoutEffect (on React commits) and imperative gesture handlers,
+  // so it's always current even during active pan/zoom before the commit dispatch fires.
+  const localStateRef = useRef(canvasState);
+  const onCanvasChangeRef = useRef(onCanvasChange);
+  onCanvasChangeRef.current = onCanvasChange;
+  const [displayZoom, setDisplayZoom] = useState(canvasState.zoom);
 
   const { startDrag, onDragMove, onDragEnd, isDragging } = useCardDrag({
-    getCurrentZoom: () => stateRef.current.zoom,
+    getCurrentZoom: () => localStateRef.current.zoom,
     onCommit: onMoveCard,
     cardRefs,
   });
 
   const { panHandlers } = useCanvasPan({
-    onPanChange: (offset) => {
-      onCanvasChange({ ...stateRef.current, panOffset: offset });
+    getWorldEl: () => worldRef.current,
+    getState: () => localStateRef.current,
+    onCommit: (panOffset) => {
+      const next = { ...localStateRef.current, panOffset };
+      localStateRef.current = next;
+      onCanvasChangeRef.current(next);
     },
-    getCurrentPan: () => stateRef.current.panOffset,
   });
 
-  // Smooth wheel zoom — imperative to use { passive: false }
+  // Sync committed React state → DOM. canvasState only changes on explicit commits
+  // (pan end, scroll settle, LOAD_PROJECT), never during an active gesture, so this
+  // never fights the imperative updates made during pan/zoom.
+  useLayoutEffect(() => {
+    localStateRef.current = canvasState;
+    if (worldRef.current) {
+      worldRef.current.style.transform = `translate(${canvasState.panOffset.x}px, ${canvasState.panOffset.y}px) scale(${canvasState.zoom})`;
+    }
+    setDisplayZoom(canvasState.zoom);
+  }, [canvasState]);
+
+  // Smooth wheel zoom/pan — must be { passive: false } to call preventDefault.
+  // Applies transforms directly to the DOM; debounces the React state commit so
+  // wheel events don't trigger full re-renders on every scroll tick.
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
 
+    let commitTimer: ReturnType<typeof setTimeout> | null = null;
+
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const { zoom, panOffset } = stateRef.current;
+      const { zoom, panOffset } = localStateRef.current;
+      let newState: CanvasState;
 
       if (e.ctrlKey) {
-        // Pinch gesture — zoom keeping canvas point under cursor fixed
         const rect = el.getBoundingClientRect();
         const factor = Math.exp(-e.deltaY * 0.01);
         const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
@@ -78,29 +101,40 @@ export default function SandboxCanvas({
         const mouseY = e.clientY - rect.top;
         const canvasX = (mouseX - panOffset.x) / zoom;
         const canvasY = (mouseY - panOffset.y) / zoom;
-        onCanvasChange({
+        newState = {
           zoom: newZoom,
           panOffset: { x: mouseX - canvasX * newZoom, y: mouseY - canvasY * newZoom },
-        });
+        };
       } else {
-        // Two-finger swipe — pan
-        onCanvasChange({
+        newState = {
           zoom,
           panOffset: { x: panOffset.x - e.deltaX, y: panOffset.y - e.deltaY },
-        });
+        };
       }
+
+      localStateRef.current = newState;
+      if (worldRef.current) {
+        worldRef.current.style.transform = `translate(${newState.panOffset.x}px, ${newState.panOffset.y}px) scale(${newState.zoom})`;
+      }
+      setDisplayZoom(newState.zoom);
+
+      if (commitTimer) clearTimeout(commitTimer);
+      commitTimer = setTimeout(() => {
+        onCanvasChangeRef.current(localStateRef.current);
+      }, 150);
     };
 
     el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []); // reads state via stateRef, registers once
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      if (commitTimer) clearTimeout(commitTimer);
+    };
+  }, []); // stable: all state read via refs, registered once
 
   const setCardRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
     if (el) cardRefs.current.set(id, el);
     else cardRefs.current.delete(id);
   }, []);
-
-  const { panOffset, zoom } = canvasState;
 
   function renderCard(card: AnyCard) {
     const sharedProps = {
@@ -142,7 +176,9 @@ export default function SandboxCanvas({
         style={{
           position: "absolute",
           transformOrigin: "0 0",
-          transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+          // Transform is managed imperatively via useLayoutEffect and gesture handlers.
+          // This static placeholder prevents React from clearing the property on re-renders.
+          transform: "translate(0px, 0px) scale(1)",
           width: 4000,
           height: 4000,
         }}
@@ -162,21 +198,12 @@ export default function SandboxCanvas({
           gap: 10,
           pointerEvents: "none",
         }}>
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style={{ opacity: 0.15 }}>
-            <circle cx="20" cy="20" r="18" stroke="#374151" strokeWidth="1.5" />
-            <circle cx="20" cy="20" r="10" stroke="#374151" strokeWidth="1.5" />
-            <circle cx="20" cy="20" r="2" fill="#374151" />
-            <line x1="20" y1="2" x2="20" y2="8" stroke="#374151" strokeWidth="1.5" />
-            <line x1="20" y1="32" x2="20" y2="38" stroke="#374151" strokeWidth="1.5" />
-            <line x1="2" y1="20" x2="8" y2="20" stroke="#374151" strokeWidth="1.5" />
-            <line x1="32" y1="20" x2="38" y2="20" stroke="#374151" strokeWidth="1.5" />
-          </svg>
-          <p style={{ fontSize: 13, color: "#9ca3af" }}>Add a lens to get started</p>
+          <p style={{ fontSize: 13, color: "#9ca3af" }}>Add a card to get started</p>
         </div>
       )}
 
       {/* Zoom level indicator */}
-      {zoom !== 1 && (
+      {displayZoom !== 1 && (
         <div style={{
           position: "absolute",
           bottom: 12,
@@ -190,7 +217,7 @@ export default function SandboxCanvas({
           pointerEvents: "none",
           fontVariantNumeric: "tabular-nums",
         }}>
-          {Math.round(zoom * 100)}%
+          {Math.round(displayZoom * 100)}%
         </div>
       )}
     </div>

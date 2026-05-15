@@ -201,10 +201,6 @@ export default function AttributionConfigPane({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* Attribution icon: diverging arrows */}
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.5, color: "var(--color-text-muted)" }}>
-            <path d="M8 2v12M4 5l4-3 4 3M4 11l4 3 4-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", letterSpacing: "0.01em" }}>
             New Attribution
           </span>

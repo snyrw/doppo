@@ -66,7 +66,7 @@ function getStageLabel(stage: string | undefined, elapsedMs: number): string {
   return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
 }
 
-export default function LensCard({
+function LensCard({
   card,
   ref,
   onStartDrag,
@@ -547,3 +547,5 @@ export default function LensCard({
     </div>
   );
 }
+
+export default React.memo(LensCard);

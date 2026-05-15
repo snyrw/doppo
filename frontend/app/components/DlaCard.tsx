@@ -65,7 +65,7 @@ function getStageLabel(stage: string | undefined, elapsedMs: number): string {
   return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
 }
 
-export default function DlaCard({
+function DlaCard({
   card,
   ref,
   onStartDrag,
@@ -478,3 +478,5 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
     </div>
   );
 }
+
+export default React.memo(DlaCard);

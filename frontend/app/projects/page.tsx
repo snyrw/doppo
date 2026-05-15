@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useReducer, useRef, useCallback, Suspense } from "react";
+import { useState, useEffect, useReducer, useRef, useCallback, startTransition, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SandboxCanvas from "../components/SandboxCanvas";
 import ConfigPane from "../components/ConfigPane";
@@ -210,7 +210,7 @@ function serializeCard(c: AnyCard) {
     return { id: c.id, cardType: "activation" as const, modelName: c.modelName, prompt: c.cleanPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, parentAttributionId: c.parentAttributionId };
   }
   if (c.cardType === "steering") {
-    return { id: c.id, cardType: "steering" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, components: c.components, alpha: c.alpha, nTokens: c.nTokens, parentCardId: c.parentCardId };
+    return { id: c.id, cardType: "steering" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, generationPrompt: c.generationPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, components: c.components, alpha: c.alpha, nTokens: c.nTokens, nPairs: c.nPairs, extraPairs: c.extraPairs ?? [], parentCardId: c.parentCardId };
   }
   return { id: c.id, modelName: c.modelName, prompt: (c as LensCardData | DlaCardData).prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier };
 }
@@ -314,9 +314,11 @@ function Projects() {
           return {
             ...c, cardType: "steering" as const, status: "result" as const, error: null,
             cleanPrompt: c.prompt, corruptedPrompt: c.corruptedPrompt ?? "",
+            generationPrompt: c.generationPrompt ?? "",
             targetPosition: c.targetPosition ?? "last", targetToken: c.targetToken ?? null,
             components: (c.components ?? []) as SteeringComponent[],
-            alpha: c.alpha ?? 1.0, nTokens: c.nTokens ?? 20,
+            alpha: c.alpha ?? 1.0, temperature: c.temperature ?? 1.0, repetitionPenalty: c.repetitionPenalty ?? 1.3, nTokens: c.nTokens ?? 50, nPairs: c.nPairs ?? 1,
+            extraPairs: c.extraPairs ?? [],
             parentCardId: c.parentCardId ?? "",
             streamingText: undefined,
           } as unknown as SteeringCardData;
@@ -733,11 +735,16 @@ function Projects() {
       modelName,
       cleanPrompt,
       corruptedPrompt,
+      generationPrompt: undefined,
       targetPosition,
       targetToken,
       components,
       alpha: 1.0,
-      nTokens: 20,
+      temperature: 1.0,
+      repetitionPenalty: 1.3,
+      nTokens: 50,
+      nPairs: 1,
+      extraPairs: [],
       parentCardId: sourceCardId,
       data: null,
       error: null,
@@ -751,7 +758,7 @@ function Projects() {
     fetch("/api/run-steering", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 20 }),
+      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 50, temperature: 1.0, repetitionPenalty: 1.3 }),
     })
       .then(async (response) => {
         if (!response.ok || !response.body) {
@@ -779,13 +786,13 @@ function Projects() {
             try {
               const event = JSON.parse(line.slice(6)) as { stage: string; data?: SteeringResult & { token?: string; index?: number }; error?: string };
               if (event.stage === "token" && event.data?.token !== undefined) {
-                dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: event.data.token });
+                startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: event.data!.token! }));
               } else if (event.stage === "done" && event.data) {
                 dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: event.data as SteeringResult });
                 const pid = projectIdRef.current;
                 if (pid) {
                   const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-                  updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: event.data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken, components, alpha: 1.0, nTokens: 20, parentCardId: sourceCardId }], stateRef.current.canvas).catch(console.error);
+                  updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: event.data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken, components, alpha: 1.0, temperature: 1.0, repetitionPenalty: 1.3, nTokens: 50, nPairs: 1, extraPairs: [], parentCardId: sourceCardId }], stateRef.current.canvas).catch(console.error);
                 }
               } else if (event.stage === "error") {
                 dispatch({ type: "CARD_ERRORED", id: steeringId, error: event.error ?? "Unknown error" });
@@ -802,13 +809,13 @@ function Projects() {
 
   const handleRerunSteering = useCallback((cardId: string, newAlpha: number) => {
     const card = stateRef.current.lensCards.find(c => c.id === cardId && c.cardType === "steering") as SteeringCardData | undefined;
-    if (!card) return;
+    if (!card || card.status === "loading") return;
     dispatch({ type: "STEERING_CARD_RERUN", id: cardId, alpha: newAlpha });
-    const { modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, components } = card;
+    const { modelName, cleanPrompt, corruptedPrompt, generationPrompt, gpuTier, targetPosition, components, temperature, repetitionPenalty, extraPairs } = card;
     fetch("/api/run-steering", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, components, alpha: newAlpha, nTokens: card.nTokens }),
+      body: JSON.stringify({ cleanPrompt, corruptedPrompt, generationPrompt, modelName, gpuTier, targetPosition, components, alpha: newAlpha, nTokens: card.nTokens, temperature, repetitionPenalty, extraPairs: extraPairs?.length ? extraPairs : null }),
     })
       .then(async (response) => {
         if (!response.ok || !response.body) {
@@ -834,7 +841,7 @@ function Projects() {
             try {
               const event = JSON.parse(line.slice(6)) as { stage: string; data?: SteeringResult & { token?: string }; error?: string };
               if (event.stage === "token" && event.data?.token !== undefined) {
-                dispatch({ type: "STEERING_CARD_TOKEN", id: cardId, token: event.data.token });
+                startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: cardId, token: event.data!.token! }));
               } else if (event.stage === "done" && event.data) {
                 dispatch({ type: "STEERING_CARD_RESOLVED", id: cardId, data: event.data as SteeringResult });
                 const pid = projectIdRef.current;
@@ -855,16 +862,21 @@ function Projects() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleAddStandaloneSteer = useCallback(({ modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, injectionLayer }: {
+  const handleAddStandaloneSteer = useCallback(({ modelName, cleanPrompt, corruptedPrompt, generationPrompt, gpuTier, targetPosition, injectionLayer, extraPairs, temperature, repetitionPenalty }: {
     modelName: string;
     cleanPrompt: string;
     corruptedPrompt: string;
+    generationPrompt: string;
     gpuTier?: string;
     targetPosition: number | "last";
     injectionLayer: number;
+    extraPairs?: Array<{ clean: string; corrupted: string }>;
+    temperature: number;
+    repetitionPenalty: number;
   }) => {
     setSteeringOpen(false);
     const components: SteeringComponent[] = [{ layer: injectionLayer, head: null, injectionType: "residual" }];
+    const nPairs = 1 + (extraPairs?.length ?? 0);
     const steeringId = crypto.randomUUID();
     const steeringCard: SteeringCardData = {
       id: steeringId,
@@ -873,11 +885,16 @@ function Projects() {
       modelName,
       cleanPrompt,
       corruptedPrompt,
+      generationPrompt,
       targetPosition,
       targetToken: null,
       components,
       alpha: 1.0,
-      nTokens: 20,
+      temperature,
+      repetitionPenalty,
+      nTokens: 50,
+      nPairs,
+      extraPairs: extraPairs ?? [],
       parentCardId: "",
       data: null,
       error: null,
@@ -890,7 +907,7 @@ function Projects() {
     fetch("/api/run-steering", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 20 }),
+      body: JSON.stringify({ cleanPrompt, corruptedPrompt, generationPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 50, extraPairs: extraPairs ?? null, temperature, repetitionPenalty }),
     })
       .then(async (response) => {
         if (!response.ok || !response.body) {
@@ -916,13 +933,13 @@ function Projects() {
             try {
               const event = JSON.parse(line.slice(6)) as { stage: string; data?: SteeringResult & { token?: string; index?: number }; error?: string };
               if (event.stage === "token" && event.data?.token !== undefined) {
-                dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: event.data.token });
+                startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: event.data!.token! }));
               } else if (event.stage === "done" && event.data) {
                 dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: event.data as SteeringResult });
                 const pid = projectIdRef.current;
                 if (pid) {
                   const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-                  updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: event.data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken: null, components, alpha: 1.0, nTokens: 20, parentCardId: "" }], stateRef.current.canvas).catch(console.error);
+                  updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, generationPrompt, data: event.data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken: null, components, alpha: 1.0, temperature, repetitionPenalty, nTokens: 50, nPairs, extraPairs: extraPairs ?? [], parentCardId: "" }], stateRef.current.canvas).catch(console.error);
                 }
               } else if (event.stage === "error") {
                 dispatch({ type: "CARD_ERRORED", id: steeringId, error: event.error ?? "Unknown error" });

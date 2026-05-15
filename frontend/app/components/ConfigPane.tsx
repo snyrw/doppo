@@ -155,14 +155,6 @@ export default function ConfigPane({
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.5, color: "var(--color-text-muted)" }}>
-              <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1" />
-              <circle cx="8" cy="8" r="3.5" stroke="currentColor" strokeWidth="1" />
-              <line x1="8" y1="1" x2="8" y2="2.5" stroke="currentColor" strokeWidth="1" />
-              <line x1="8" y1="13.5" x2="8" y2="15" stroke="currentColor" strokeWidth="1" />
-              <line x1="1" y1="8" x2="2.5" y2="8" stroke="currentColor" strokeWidth="1" />
-              <line x1="13.5" y1="8" x2="15" y2="8" stroke="currentColor" strokeWidth="1" />
-            </svg>
             <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", letterSpacing: "0.01em" }}>
               New Lens
             </span>
@@ -247,11 +239,6 @@ export default function ConfigPane({
                       }}>
                         {m.description}
                       </span>
-                      {m.requires_hf_token && (
-                        <span style={{ fontSize: 9, color: "var(--color-text-muted)", marginTop: 1, letterSpacing: "0.02em" }}>
-                          HF token required
-                        </span>
-                      )}
                       {!session && m.gpu_tier !== "tl_small" && (
                         <span style={{ fontSize: 9, color: "#d97706", marginTop: 1, letterSpacing: "0.02em" }}>
                           Sign in to run

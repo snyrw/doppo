@@ -24,11 +24,16 @@ export type SteeringCardData = {
   modelName: string;
   cleanPrompt: string;
   corruptedPrompt: string;
+  generationPrompt?: string;
   targetPosition: number | "last";
   targetToken: string | null;
   components: SteeringComponent[];
   alpha: number;
+  temperature: number;
+  repetitionPenalty: number;
   nTokens: number;
+  nPairs: number;
+  extraPairs?: Array<{ clean: string; corrupted: string }>;
   parentCardId: string;
   data: SteeringResult | null;
   error: string | null;
@@ -61,7 +66,7 @@ function componentLabel(c: SteeringComponent): string {
   return `L${c.layer}·residual`;
 }
 
-export default function SteeringCard({
+function SteeringCard({
   card,
   ref,
   onStartDrag,
@@ -73,9 +78,13 @@ export default function SteeringCard({
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
   const [localAlpha, setLocalAlpha] = React.useState(card.alpha);
+  const [debouncing, setDebouncing] = React.useState(false);
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync local alpha if the card is re-run externally (alpha stored in card updates)
+  // Sync local alpha if the card is re-run externally (alpha stored in card updates).
   React.useEffect(() => { setLocalAlpha(card.alpha); }, [card.alpha]);
+  // Cancel any pending debounce on unmount.
+  React.useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   React.useEffect(() => {
     if (card.status !== "loading") return;
@@ -121,11 +130,20 @@ export default function SteeringCard({
           <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "8px 0 3px" }}>
+            DIM pair
+          </p>
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-word" }}>
             clean: {card.cleanPrompt}
           </p>
           <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "3px 0 0", lineHeight: 1.5, fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-word" }}>
             corrupted: {card.corruptedPrompt}
+          </p>
+          <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "8px 0 3px" }}>
+            generation prompt
+          </p>
+          <p style={{ fontSize: 10, color: "var(--color-text)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-word" }}>
+            {card.generationPrompt && card.generationPrompt.trim() !== "" ? card.generationPrompt : <span style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>↳ defaults to clean prompt</span>}
           </p>
           <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
             {card.gpuTier && (
@@ -135,6 +153,9 @@ export default function SteeringCard({
             )}
             <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
               Steering
+            </span>
+            <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+              T={card.temperature.toFixed(1)}  rep={card.repetitionPenalty.toFixed(2)}
             </span>
           </div>
         </div>
@@ -165,6 +186,11 @@ export default function SteeringCard({
         <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0 }}>
           Steering
         </span>
+        {card.nPairs > 1 && (
+          <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.05em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px", flexShrink: 0 }}>
+            {card.nPairs}p
+          </span>
+        )}
         <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {card.components.map(componentLabel).join(" + ") || "residual"}
         </span>
@@ -207,13 +233,33 @@ export default function SteeringCard({
             type="range"
             min={-3} max={3} step={0.25}
             value={localAlpha}
-            onChange={e => setLocalAlpha(parseFloat(e.target.value))}
+            onChange={e => {
+              const val = parseFloat(e.target.value);
+              setLocalAlpha(val);
+              if (debounceRef.current) clearTimeout(debounceRef.current);
+              if (card.status !== "loading") {
+                setDebouncing(true);
+                debounceRef.current = setTimeout(() => {
+                  debounceRef.current = null;
+                  setDebouncing(false);
+                  onRerun(card.id, val);
+                }, 2000);
+              }
+            }}
             style={{ width: 80, accentColor: "var(--color-accent)", cursor: "pointer" }}
           />
+          {debouncing && (
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", userSelect: "none" }}>⋯</span>
+          )}
           {card.status !== "loading" && localAlpha !== card.alpha && (
             <button
               onPointerDown={e => e.stopPropagation()}
-              onClick={() => onRerun(card.id, localAlpha)}
+              onClick={() => {
+                if (debounceRef.current) clearTimeout(debounceRef.current);
+                debounceRef.current = null;
+                setDebouncing(false);
+                onRerun(card.id, localAlpha);
+              }}
               style={{
                 fontSize: 9, fontWeight: 600, padding: "2px 7px",
                 background: "var(--color-accent)", color: "var(--color-accent-fg)",
@@ -370,3 +416,5 @@ export default function SteeringCard({
     </div>
   );
 }
+
+export default React.memo(SteeringCard);

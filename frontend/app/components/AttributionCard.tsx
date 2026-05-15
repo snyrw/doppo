@@ -80,7 +80,7 @@ function getStageLabel(stage: string | undefined, elapsedMs: number): string {
   return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
 }
 
-export default function AttributionCard({
+function AttributionCard({
   card,
   ref,
   onStartDrag,
@@ -525,3 +525,5 @@ function HeadView({
     </div>
   );
 }
+
+export default React.memo(AttributionCard);

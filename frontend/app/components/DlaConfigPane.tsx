@@ -197,13 +197,6 @@ export default function DlaConfigPane({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {/* DLA icon: a small attribution-style bar chart */}
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.5, color: "var(--color-text-muted)" }}>
-            <rect x="1" y="7" width="3" height="8" rx="0.5" stroke="currentColor" strokeWidth="1" />
-            <rect x="6" y="3" width="3" height="12" rx="0.5" stroke="currentColor" strokeWidth="1" />
-            <rect x="11" y="9" width="3" height="6" rx="0.5" stroke="currentColor" strokeWidth="1" />
-            <line x1="0" y1="15.5" x2="16" y2="15.5" stroke="currentColor" strokeWidth="0.75" />
-          </svg>
           <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", letterSpacing: "0.01em" }}>
             New DLA
           </span>

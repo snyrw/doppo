@@ -37,28 +37,28 @@ FEATURED_MODELS: dict[str, dict] = {
     # ── GPT-2 ────────────────────────────────────────────────────────────────
     "gpt2-small": {
         "display_name": "GPT-2 Small",
-        "description": "The classic 12-layer baseline. Fast cold starts, great for first experiments.",
+        "description": "OpenAI · 12 layers · 117M params",
         "model_id": "openai-community/gpt2",
         "requires_hf_token": False,
         "gpu_tier": "tl_small",
     },
     "gpt2-medium": {
         "display_name": "GPT-2 Medium",
-        "description": "24 layers, 345M params. More depth than Small without much extra cost.",
+        "description": "OpenAI · 24 layers · 345M params",
         "model_id": "openai-community/gpt2-medium",
         "requires_hf_token": False,
         "gpu_tier": "tl_small",
     },
     "gpt2-large": {
         "display_name": "GPT-2 Large",
-        "description": "36 layers, 762M params. Mid-range GPT-2 variant.",
+        "description": "OpenAI · 36 layers · 762M params",
         "model_id": "openai-community/gpt2-large",
         "requires_hf_token": False,
         "gpu_tier": "tl_small",
     },
     "gpt2-xl": {
         "display_name": "GPT-2 XL",
-        "description": "48 layers, 1.5B params. The largest GPT-2 variant.",
+        "description": "OpenAI · 48 layers · 1.5B params",
         "model_id": "openai-community/gpt2-xl",
         "requires_hf_token": False,
         "gpu_tier": "tl_small",
@@ -66,21 +66,21 @@ FEATURED_MODELS: dict[str, dict] = {
     # ── Llama 3 ──────────────────────────────────────────────────────────────
     "meta-llama/Meta-Llama-3-8B": {
         "display_name": "Llama 3 (8B)",
-        "description": "Meta's 8B base model. 32 layers, strong general-purpose representations.",
+        "description": "Meta · 32 layers · 8K ctx",
         "model_id": "meta-llama/Meta-Llama-3-8B",
         "requires_hf_token": True,
         "gpu_tier": "tl_medium",
     },
     "meta-llama/Llama-3.2-3B-Instruct": {
         "display_name": "Llama 3.2 Instruct (3B)",
-        "description": "Compact 3B instruction-tuned model. Fits on L4, fast turnaround.",
+        "description": "Meta · 28 layers · 128K ctx",
         "model_id": "meta-llama/Llama-3.2-3B-Instruct",
         "requires_hf_token": True,
         "gpu_tier": "tl_small",
     },
     "meta-llama/Meta-Llama-3.1-8B-Instruct": {
         "display_name": "Llama 3.1 Instruct (8B)",
-        "description": "8B instruction-tuned variant with improved following behavior.",
+        "description": "Meta · 32 layers · 128K ctx",
         "model_id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
         "requires_hf_token": True,
         "gpu_tier": "tl_medium",
@@ -90,35 +90,35 @@ FEATURED_MODELS: dict[str, dict] = {
     # ── Qwen ─────────────────────────────────────────────────────────────────
     "Qwen/Qwen2.5-7B": {
         "display_name": "Qwen 2.5 (7B)",
-        "description": "Alibaba's 7B base model with strong multilingual representations.",
+        "description": "Alibaba · 28 layers · 128K ctx",
         "model_id": "Qwen/Qwen2.5-7B",
         "requires_hf_token": False,
         "gpu_tier": "tl_medium",
     },
     "Qwen/Qwen2.5-7B-Instruct": {
         "display_name": "Qwen 2.5 Instruct (7B)",
-        "description": "Instruction-tuned Qwen 2.5. Useful for comparing base vs. fine-tuned internals.",
+        "description": "Alibaba · 28 layers · 128K ctx",
         "model_id": "Qwen/Qwen2.5-7B-Instruct",
         "requires_hf_token": False,
         "gpu_tier": "tl_medium",
     },
     "Qwen/Qwen3-0.6B": {
         "display_name": "Qwen3 (0.6B)",
-        "description": "Smallest supported model. Near-instant results, ideal for quick iteration.",
+        "description": "Alibaba · 28 layers · 32K ctx",
         "model_id": "Qwen/Qwen3-0.6B",
         "requires_hf_token": False,
         "gpu_tier": "tl_small",
     },
     "Qwen/Qwen3-8B": {
         "display_name": "Qwen3 (8B)",
-        "description": "Latest Qwen generation at 8B. Competitive with Llama 3 class models.",
+        "description": "Alibaba · 36 layers · 128K ctx",
         "model_id": "Qwen/Qwen3-8B",
         "requires_hf_token": False,
         "gpu_tier": "tl_medium",
     },
     "Qwen/Qwen3-14B": {
         "display_name": "Qwen3 (14B)",
-        "description": "40 layers, 14B params. Largest Qwen3 on a single A100.",
+        "description": "Alibaba · 40 layers · 128K ctx",
         "model_id": "Qwen/Qwen3-14B",
         "requires_hf_token": False,
         "gpu_tier": "tl_large",
@@ -126,42 +126,42 @@ FEATURED_MODELS: dict[str, dict] = {
     # ── Gemma ────────────────────────────────────────────────────────────────
     "google/gemma-3-1b-it": {
         "display_name": "Gemma 3 (1B)",
-        "description": "Google's smallest Gemma 3. Fast and instruction-tuned.",
+        "description": "Google · 18 layers · 32K ctx",
         "model_id": "google/gemma-3-1b-it",
         "requires_hf_token": True,
         "gpu_tier": "tl_small",
     },
     "google/gemma-3-4b-it": {
         "display_name": "Gemma 3 (4B)",
-        "description": "4B instruction-tuned Gemma 3. Good balance of speed and capability.",
+        "description": "Google · 34 layers · 128K ctx",
         "model_id": "google/gemma-3-4b-it",
         "requires_hf_token": True,
         "gpu_tier": "tl_small",
     },
     "google/gemma-3-27b-it": {
         "display_name": "Gemma 3 (27B)",
-        "description": "Google's largest single-GPU model. 62 layers on H200.",
+        "description": "Google · 62 layers · 128K ctx",
         "model_id": "google/gemma-3-27b-it",
         "requires_hf_token": True,
         "gpu_tier": "tl_xlarge",
     },
     "google/gemma-2-2b-it": {
         "display_name": "Gemma 2 (2B)",
-        "description": "Compact 2B Gemma 2. Quick results with decent layer depth.",
+        "description": "Google · 26 layers · 8K ctx",
         "model_id": "google/gemma-2-2b-it",
         "requires_hf_token": True,
         "gpu_tier": "tl_small",
     },
     "google/gemma-2-9b-it": {
         "display_name": "Gemma 2 (9B)",
-        "description": "9B Gemma 2 with 42 layers. Strong representations for interpretability.",
+        "description": "Google · 42 layers · 8K ctx",
         "model_id": "google/gemma-2-9b-it",
         "requires_hf_token": True,
         "gpu_tier": "tl_medium",
     },
     "google/gemma-2-27b-it": {
         "display_name": "Gemma 2 (27B)",
-        "description": "46 layers, 27B params. Largest Gemma 2 on a single GPU.",
+        "description": "Google · 46 layers · 8K ctx",
         "model_id": "google/gemma-2-27b-it",
         "requires_hf_token": True,
         "gpu_tier": "tl_xlarge",
@@ -169,14 +169,14 @@ FEATURED_MODELS: dict[str, dict] = {
     # ── XL tier (H200) ───────────────────────────────────────────────────────
     "Qwen/Qwen3-30B": {
         "display_name": "Qwen3 (32B)",
-        "description": "Qwen3 mid-range at 32B params. Runs on H200 for safe attribution headroom.",
+        "description": "Alibaba · 64 layers · 128K ctx",
         "model_id": "Qwen/Qwen3-30B",
         "requires_hf_token": False,
         "gpu_tier": "tl_xlarge",
     },
     "meta-llama/Llama-3.3-70B-Instruct": {
         "display_name": "Llama 3.3 Instruct (70B)",
-        "description": "Meta's flagship 70B on a single H200. Re-enabled with single-GPU support.",
+        "description": "Meta · 80 layers · 128K ctx",
         "model_id": "meta-llama/Llama-3.3-70B-Instruct",
         "requires_hf_token": True,
         "gpu_tier": "tl_xlarge",
@@ -258,14 +258,18 @@ def validate_hf_repo(repo_id: str, hf_token: str | None) -> dict:
             "LoRA/PEFT adapters are not supported — upload the merged full-weight model instead."
         )
 
-    has_pickle = any(f.endswith(".bin") or f.endswith(".pt") for f in files)
-    if has_pickle:
-        return _invalid("Repository contains pickle (.bin/.pt) files, which are unsafe to load.")
-
     has_safetensors = any(
         f.endswith(".safetensors") or f.endswith(".safetensors.index.json")
         for f in files
     )
+    has_pickle_only = not has_safetensors and any(
+        f.endswith(".bin") or f.endswith(".pt") for f in files
+    )
+    if has_pickle_only:
+        return _invalid(
+            "Repository contains only pickle (.bin/.pt) weights, which are unsafe to load. "
+            "Re-upload in safetensors format."
+        )
     if not has_safetensors:
         return _invalid("No safetensors weights found. Only the safetensors format is supported.")
 
@@ -278,7 +282,17 @@ def validate_hf_repo(repo_id: str, hf_token: str | None) -> dict:
             if config.get("trust_remote_code"):
                 return _invalid("Model config sets trust_remote_code=True, which is not allowed.")
             if "auto_map" in config:
-                return _invalid("Model config contains auto_map with custom code classes, which is not allowed.")
+                # auto_map is safe when values are bare class names resolved from transformers.
+                # A dotted path that doesn't start with "transformers." signals a custom module
+                # (e.g. "modeling_foo.FooModel") that could execute arbitrary code at import time.
+                custom_module = [
+                    v for v in config["auto_map"].values()
+                    if isinstance(v, str) and "." in v and not v.startswith("transformers.")
+                ]
+                if custom_module:
+                    return _invalid(
+                        "Model config uses auto_map with custom module paths, which is not allowed."
+                    )
             detected = _detect_gpu_tier(config)
             if detected is None:
                 return _invalid(
@@ -299,16 +313,25 @@ def validate_hf_repo(repo_id: str, hf_token: str | None) -> dict:
 _SHARED_CLS_KWARGS = dict(
     secrets=[hf_secret],
     volumes={VOLUME_MOUNT: model_volume},
-    timeout=600,
-    scaledown_window=60,
     enable_memory_snapshot=True,
 )
 
 # All classes use a single GPU, so GPU snapshots are safe across the board.
-_TL_KWARGS = dict(image=tl_image, experimental_options={"enable_gpu_snapshot": True}, **_SHARED_CLS_KWARGS)
+# scaledown_window is tiered: idle billing on H200 ($4.54/hr) is 6× more
+# expensive than on L4 ($0.80/hr), so expensive tiers cut off idle faster.
+_TL_KWARGS = dict(
+    image=tl_image,
+    experimental_options={"enable_gpu_snapshot": True},
+    timeout=600,
+    scaledown_window=30,   # L4 / L40S — cheap enough to hold warm briefly
+    **_SHARED_CLS_KWARGS,
+)
 
 # Large/XL models (10–70B) can take 10–20 min to download on first cold start.
-_TL_LARGE_KWARGS = {**_TL_KWARGS, "timeout": 1200}
+_TL_LARGE_KWARGS = {**_TL_KWARGS, "timeout": 1200, "scaledown_window": 15}   # A100-80GB
+
+# H200 is the priciest tier; cut idle time aggressively.
+_TL_XLARGE_KWARGS = {**_TL_LARGE_KWARGS, "scaledown_window": 10}             # H200
 
 
 # ── Shared inference helper ───────────────────────────────────────────────────
@@ -390,8 +413,8 @@ class _TLBase:
 
         # Embedding contribution: residual stream before block 0 = token embed + pos embed
         # (for RoPE models the positional information lives in attention, not the residual stream,
-        # so hook_resid_pre at block 0 is simply W_E[token] — still the correct starting point).
-        embed_dla = float(cache["blocks.0.hook_resid_pre"][0, pos].float() @ logit_dir)
+        # so hook_in at block 0 is simply W_E[token] — still the correct starting point).
+        embed_dla = float(cache["blocks.0.hook_in"][0, pos].float() @ logit_dir)
 
         # Head-level DLA: [n_layers][n_heads]
         W_O = self.model.W_O  # [n_layers, n_heads, d_head, d_model]
@@ -721,7 +744,11 @@ class _TLBase:
         target_position: int | str = "last",
         components: list[dict] | None = None,
         alpha: float = 1.0,
-        n_tokens: int = 20,
+        n_tokens: int = 50,
+        extra_pairs: list[dict] | None = None,
+        temperature: float = 1.0,
+        repetition_penalty: float = 1.3,
+        generation_prompt: str | None = None,
     ):
         import json
         import torch
@@ -731,40 +758,99 @@ class _TLBase:
 
         yield json.dumps({"stage": "computing"})
 
+        # Apply chat template for instruct-tuned models so generation is in-distribution.
+        # Base models (GPT-2, Qwen base, etc.) have no chat_template and get text as-is.
+        def _fmt(text: str) -> str:
+            tmpl = getattr(self.model.tokenizer, "chat_template", None)
+            if tmpl is not None:
+                return self.model.tokenizer.apply_chat_template(
+                    [{"role": "user", "content": text}],
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            return text
+
         with torch.no_grad():
-            clean_tokens = self.model.to_tokens(clean_prompt)
-            corrupted_tokens = self.model.to_tokens(corrupted_prompt)
-            pos = int(clean_tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
-
-            _, cache_clean = self.model.run_with_cache(clean_tokens)
-            _, cache_corrupted = self.model.run_with_cache(corrupted_tokens)
-
-            # Compute DIM vector for each component
+            gen_prompt_resolved = generation_prompt if generation_prompt else clean_prompt
+            gen_tokens = self.model.to_tokens(_fmt(gen_prompt_resolved))
             n_layers = self.model.cfg.n_layers
+
+            # Full pair list: primary pair + any extra CAA-mode pairs.
+            all_pairs = [{"clean": clean_prompt, "corrupted": corrupted_prompt}]
+            if extra_pairs:
+                all_pairs.extend(extra_pairs)
+
+            # Accumulate unnormalized DIM vectors across all pairs, then average.
+            # Each component gets its own accumulator tensor (initialized on first pair).
+            comp_accumulators: list[torch.Tensor | None] = [None] * len(components)
+
+            # Pre-compute the set of hook names needed so run_with_cache only stores
+            # the activations we actually read. Drops each forward pass's cache from
+            # ~64 MB to a few KB, making multi-pair runs fast.
+            _hook_set: set[str] = set()
+            for _comp in components:
+                _L = _comp["layer"] if _comp["layer"] >= 0 else n_layers // 2
+                _inj = _comp.get("injection_type", "residual")
+                if _inj == "attn_head" and _comp.get("head") is not None:
+                    _hook_set.add(f"blocks.{_L}.attn.hook_z")
+                elif _inj == "mlp":
+                    _hook_set.add(f"blocks.{_L}.hook_mlp_out")
+                else:
+                    _hook_set.add(f"blocks.{_L}.hook_in")
+            needed_hooks: list[str] = list(_hook_set)
+
+            for pair in all_pairs:
+                p_clean = self.model.to_tokens(_fmt(pair["clean"]))
+                p_corrupted = self.model.to_tokens(_fmt(pair["corrupted"]))
+
+                # Extract from each sequence's own last token independently.
+                # Using a shared min-length index would pull a mid-sequence position from
+                # the longer prompt instead of its pre-generation state (per IBM/ActAdd).
+                if target_position == "last":
+                    cp_pos = int(p_clean.shape[-1]) - 1
+                    rp_pos = int(p_corrupted.shape[-1]) - 1
+                else:
+                    cp_pos = min(int(target_position), int(p_clean.shape[-1]) - 1)
+                    rp_pos = min(int(target_position), int(p_corrupted.shape[-1]) - 1)
+
+                _, cache_clean = self.model.run_with_cache(p_clean, names_filter=needed_hooks)
+                _, cache_corrupted = self.model.run_with_cache(p_corrupted, names_filter=needed_hooks)
+
+                for ci, comp in enumerate(components):
+                    L = comp["layer"] if comp["layer"] >= 0 else n_layers // 2
+                    H = comp.get("head")
+                    inj = comp.get("injection_type", "residual")
+                    if inj == "attn_head" and H is not None:
+                        v = (
+                            cache_clean[f"blocks.{L}.attn.hook_z"][0, cp_pos, H, :].float()
+                            - cache_corrupted[f"blocks.{L}.attn.hook_z"][0, rp_pos, H, :].float()
+                        )
+                    elif inj == "mlp":
+                        v = (
+                            cache_clean[f"blocks.{L}.hook_mlp_out"][0, cp_pos, :].float()
+                            - cache_corrupted[f"blocks.{L}.hook_mlp_out"][0, rp_pos, :].float()
+                        )
+                    else:
+                        v = (
+                            cache_clean[f"blocks.{L}.hook_in"][0, cp_pos, :].float()
+                            - cache_corrupted[f"blocks.{L}.hook_in"][0, rp_pos, :].float()
+                        )
+                    comp_accumulators[ci] = v if comp_accumulators[ci] is None else comp_accumulators[ci] + v
+
+                del cache_clean, cache_corrupted
+
+            torch.cuda.empty_cache()
+
+            # Normalize the averaged vector for each component.
+            pos = int(gen_tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
+            n_pairs = len(all_pairs)
             dim_vectors = []
-            for comp in components:
+            for ci, comp in enumerate(components):
                 L = comp["layer"] if comp["layer"] >= 0 else n_layers // 2
                 H = comp.get("head")
                 inj = comp.get("injection_type", "residual")
-                if inj == "attn_head" and H is not None:
-                    v = (
-                        cache_clean[f"blocks.{L}.attn.hook_z"][0, pos, H, :].float()
-                        - cache_corrupted[f"blocks.{L}.attn.hook_z"][0, pos, H, :].float()
-                    )
-                elif inj == "mlp":
-                    v = (
-                        cache_clean[f"blocks.{L}.hook_mlp_out"][0, pos, :].float()
-                        - cache_corrupted[f"blocks.{L}.hook_mlp_out"][0, pos, :].float()
-                    )
-                else:
-                    v = (
-                        cache_clean[f"blocks.{L}.hook_resid_pre"][0, pos, :].float()
-                        - cache_corrupted[f"blocks.{L}.hook_resid_pre"][0, pos, :].float()
-                    )
-                dim_vectors.append((L, H, inj, v / (v.norm() + 1e-8)))
-
-            del cache_clean, cache_corrupted
-            torch.cuda.empty_cache()
+                avg_v = comp_accumulators[ci] / n_pairs
+                dim_vectors.append((L, H, inj, avg_v / (avg_v.norm() + 1e-8)))
 
             # Build hooks with factory functions to avoid Python late-binding closure bug.
             # Cast dv to value.dtype inside each hook — DIM vectors are float32 but model
@@ -789,18 +875,35 @@ class _TLBase:
                         def _fn(value, hook):
                             return value + a * dv.to(value.dtype)
                         return _fn
-                    fwd_hooks.append((f"blocks.{L}.hook_resid_pre", make_resid_hook(dim_vec, alpha)))
+                    fwd_hooks.append((f"blocks.{L}.hook_in", make_resid_hook(dim_vec, alpha)))
+
+            # Closure: apply repetition penalty to already-generated tokens, then sample.
+            # Penalizes only the generated portion to avoid interfering with deliberate
+            # repetition in the original prompt.
+            def _next_token(logits_row: torch.Tensor, generated: list[int]) -> int:
+                logits = logits_row.float().clone()
+                if repetition_penalty != 1.0:
+                    for tok_id in generated:
+                        if logits[tok_id] > 0:
+                            logits[tok_id] /= repetition_penalty
+                        else:
+                            logits[tok_id] *= repetition_penalty
+                if temperature <= 0.0:
+                    return int(logits.argmax())
+                return int(torch.multinomial((logits / temperature).softmax(dim=-1), 1).item())
 
             # Baseline generation + top-K at target position
-            baseline_ids = clean_tokens.clone()
+            baseline_ids = gen_tokens.clone()
+            baseline_generated: list[int] = []
             for _ in range(n_tokens):
                 logits = self.model(baseline_ids)
-                next_id = int(logits[0, -1].argmax())
+                next_id = _next_token(logits[0, -1], baseline_generated)
+                baseline_generated.append(next_id)
                 baseline_ids = torch.cat(
                     [baseline_ids, torch.tensor([[next_id]], device=baseline_ids.device)], dim=1
                 )
-            baseline_text = self.model.tokenizer.decode(baseline_ids[0, clean_tokens.shape[1]:].tolist())
-            baseline_logits = self.model(clean_tokens)
+            baseline_text = self.model.tokenizer.decode(baseline_ids[0, gen_tokens.shape[1]:].tolist())
+            baseline_logits = self.model(gen_tokens)
             vals_b, ids_b = torch.topk(baseline_logits[0, pos].softmax(dim=-1), 5)
             top_k_baseline = [
                 {"token": self.model.tokenizer.decode([int(t)]), "prob": float(p)}
@@ -808,10 +911,12 @@ class _TLBase:
             ]
 
             # Steered generation + streaming + top-K at target position
-            steered_ids = clean_tokens.clone()
+            steered_ids = gen_tokens.clone()
+            steered_generated: list[int] = []
             for i in range(n_tokens):
                 logits = self.model.run_with_hooks(steered_ids, fwd_hooks=fwd_hooks)
-                next_id = int(logits[0, -1].argmax())
+                next_id = _next_token(logits[0, -1], steered_generated)
+                steered_generated.append(next_id)
                 steered_ids = torch.cat(
                     [steered_ids, torch.tensor([[next_id]], device=steered_ids.device)], dim=1
                 )
@@ -819,8 +924,8 @@ class _TLBase:
                     "stage": "token",
                     "data": {"token": self.model.tokenizer.decode([next_id]), "index": i},
                 })
-            steered_text = self.model.tokenizer.decode(steered_ids[0, clean_tokens.shape[1]:].tolist())
-            steered_logits = self.model.run_with_hooks(clean_tokens, fwd_hooks=fwd_hooks)
+            steered_text = self.model.tokenizer.decode(steered_ids[0, gen_tokens.shape[1]:].tolist())
+            steered_logits = self.model.run_with_hooks(gen_tokens, fwd_hooks=fwd_hooks)
             vals_s, ids_s = torch.topk(steered_logits[0, pos].softmax(dim=-1), 5)
             top_k_steered = [
                 {"token": self.model.tokenizer.decode([int(t)]), "prob": float(p)}
@@ -913,7 +1018,7 @@ class TransformerLensLarge(_TLBase):
     model_id: str = modal.parameter()
 
 
-@app.cls(gpu="H200", **_TL_LARGE_KWARGS)
+@app.cls(gpu="H200", **_TL_XLARGE_KWARGS)
 class TransformerLensXLarge(_TLBase):
     model_id: str = modal.parameter()
 
@@ -999,10 +1104,14 @@ def api():
         model_name: str
         clean_prompt: str
         corrupted_prompt: str
+        generation_prompt: str | None = None  # separate probe prompt; falls back to clean_prompt
         target_position: int | str = "last"
         components: list[SteeringComponentRequest]
         alpha: float = 1.0
-        n_tokens: int = 20
+        n_tokens: int = 50
+        extra_pairs: list[dict] | None = None  # [{clean, corrupted}] for CAA-mode averaging
+        temperature: float = 1.0
+        repetition_penalty: float = 1.3
 
     class ValidateModelRequest(BaseModel):
         repo_id: str
@@ -1016,7 +1125,7 @@ def api():
 
     @web_app.post("/api/tokenize")
     def tokenize_text(request: TokenizeRequest):
-        from transformers import AutoTokenizer
+        from transformers.models.auto.tokenization_auto import AutoTokenizer
 
         entry = FEATURED_MODELS.get(request.model_name)
         hf_model_id = entry["model_id"] if entry else request.model_name
@@ -1201,6 +1310,10 @@ def api():
                     [c.model_dump() for c in request.components],
                     request.alpha,
                     request.n_tokens,
+                    request.extra_pairs,
+                    request.temperature,
+                    request.repetition_penalty,
+                    request.generation_prompt,
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:

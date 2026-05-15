@@ -74,8 +74,13 @@ type SerializedCard = {
   // steering cards
   components?: Array<{ layer: number; head: number | null; injectionType: string }>;
   alpha?: number;
+  temperature?: number;
+  repetitionPenalty?: number;
   nTokens?: number;
+  nPairs?: number;
+  extraPairs?: Array<{ clean: string; corrupted: string }>;
   parentCardId?: string;
+  generationPrompt?: string;
 };
 
 type CanvasState = {

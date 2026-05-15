@@ -85,7 +85,7 @@ function spearmanCorrelation(xs: number[], ys: number[]): number {
   return 1 - (6 * d2) / (n * (n * n - 1));
 }
 
-export default function ActivationCard({
+function ActivationCard({
   card,
   ref,
   onStartDrag,
@@ -341,3 +341,5 @@ export default function ActivationCard({
     </div>
   );
 }
+
+export default React.memo(ActivationCard);
