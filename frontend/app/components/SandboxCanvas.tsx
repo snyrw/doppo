@@ -6,6 +6,7 @@ import DlaCard, { type DlaCardData } from "./DlaCard";
 import AttributionCard, { type AttributionCardData } from "./AttributionCard";
 import ActivationCard, { type ActivationCardData } from "./ActivationCard";
 import SteeringCard, { type SteeringCardData, type SteeringComponent } from "./SteeringCard";
+import EntropyCard, { type EntropyCardData } from "./EntropyCard";
 import { useCanvasPan } from "../hooks/useCanvasPan";
 import { useCardDrag } from "../hooks/useCardDrag";
 
@@ -17,7 +18,7 @@ type CanvasState = {
   zoom: number;
 };
 
-export type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData | SteeringCardData;
+export type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData | SteeringCardData | EntropyCardData;
 
 type SandboxCanvasProps = {
   cards: AnyCard[];
@@ -28,6 +29,7 @@ type SandboxCanvasProps = {
   onVerifyTopK: (attributionCardId: string, k: number) => void;
   onSteerComponents: (sourceCardId: string, components: SteeringComponent[]) => void;
   onRerunSteering: (cardId: string, newAlpha: number) => void;
+  onSpawnEntropyCard: (lensCardId: string) => void;
 };
 
 export default function SandboxCanvas({
@@ -39,6 +41,7 @@ export default function SandboxCanvas({
   onVerifyTopK,
   onSteerComponents,
   onRerunSteering,
+  onSpawnEntropyCard,
 }: SandboxCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -153,8 +156,10 @@ export default function SandboxCanvas({
         return <ActivationCard key={card.id} {...sharedProps} card={card} onSteerComponents={onSteerComponents} />;
       case "steering":
         return <SteeringCard key={card.id} {...sharedProps} card={card} onRerun={onRerunSteering} />;
+      case "entropy":
+        return <EntropyCard key={card.id} {...sharedProps} card={card as EntropyCardData} />;
       default:
-        return <LensCard key={card.id} {...sharedProps} card={card as LensCardData} />;
+        return <LensCard key={card.id} {...sharedProps} card={card as LensCardData} onSpawnEntropy={() => onSpawnEntropyCard(card.id)} />;
     }
   }
 

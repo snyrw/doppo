@@ -24,7 +24,7 @@ type ConfigPaneProps = {
   isOpen: boolean;
   availableModels: ModelInfo[];
   modelsLoading: boolean;
-  onSubmit: (config: { modelName: string; prompt: string; gpuTier?: string }) => void;
+  onSubmit: (config: { modelName: string; prompt: string; gpuTier?: string; topK: number }) => void;
   onClose: () => void;
 };
 
@@ -44,6 +44,7 @@ export default function ConfigPane({
   const [customRepoId, setCustomRepoId] = useState("");
   const [customValidation, setCustomValidation] = useState<CustomValidation | null>(null);
   const [customValidating, setCustomValidating] = useState(false);
+  const [topK, setTopK] = useState(5);
 
   const usingCustom = customRepoId.trim() !== "";
   const activeModelId = usingCustom
@@ -117,7 +118,7 @@ export default function ConfigPane({
     const gpuTier = usingCustom
       ? (customValidation?.gpu_tier ?? undefined)
       : (availableModels.find(m => m.id === selectedModel)?.gpu_tier ?? undefined);
-    onSubmit({ modelName, prompt, gpuTier });
+    onSubmit({ modelName, prompt, gpuTier, topK });
     doReset();
   };
 
@@ -348,27 +349,51 @@ export default function ConfigPane({
               Sign in to run medium and large models
             </p>
           )}
-          <button
-            onClick={handleRun}
-            disabled={!canRun || isLockedByAuth}
-            style={{
-              width: "100%",
-              padding: "10px 0",
-              borderRadius: 6,
-              border: "none",
-              background: (!canRun || isLockedByAuth) ? "var(--color-surface-border)" : "var(--color-accent)",
-              color: (!canRun || isLockedByAuth) ? "var(--color-text-muted)" : "var(--color-accent-fg)",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: (!canRun || isLockedByAuth) ? "not-allowed" : "pointer",
-              letterSpacing: "0.02em",
-              transition: "background 150ms",
-            }}
-            onMouseEnter={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-            onMouseLeave={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
-          >
-            {isLockedByAuth ? "Sign in to run →" : "Run Lens →"}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Top-k stepper — controls how many tokens appear in the pinned panel */}
+            <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+              <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", whiteSpace: "nowrap" }}>
+                k
+              </span>
+              <button
+                onClick={() => setTopK(k => Math.max(1, k - 1))}
+                style={{ fontSize: 11, width: 18, height: 22, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, cursor: "pointer", color: "var(--color-text-muted)", padding: 0 }}
+              >
+                −
+              </button>
+              <span style={{ fontSize: 11, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text)", minWidth: 14, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+                {topK}
+              </span>
+              <button
+                onClick={() => setTopK(k => Math.min(10, k + 1))}
+                style={{ fontSize: 11, width: 18, height: 22, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, cursor: "pointer", color: "var(--color-text-muted)", padding: 0 }}
+              >
+                +
+              </button>
+            </div>
+
+            <button
+              onClick={handleRun}
+              disabled={!canRun || isLockedByAuth}
+              style={{
+                flex: 1,
+                padding: "10px 0",
+                borderRadius: 6,
+                border: "none",
+                background: (!canRun || isLockedByAuth) ? "var(--color-surface-border)" : "var(--color-accent)",
+                color: (!canRun || isLockedByAuth) ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: (!canRun || isLockedByAuth) ? "not-allowed" : "pointer",
+                letterSpacing: "0.02em",
+                transition: "background 150ms",
+              }}
+              onMouseEnter={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+              onMouseLeave={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+            >
+              {isLockedByAuth ? "Sign in to run →" : "Run Lens →"}
+            </button>
+          </div>
         </div>
     </div>
   );

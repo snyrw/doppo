@@ -66,6 +66,7 @@ type SerializedCard = {
   data: Record<string, unknown>;
   position: { x: number; y: number };
   gpuTier?: string;
+  topK?: number;                  // logit-lens cards
   targetPosition?: number | "last";
   targetToken?: string | null;
   contrastiveToken?: string | null;
@@ -81,6 +82,11 @@ type SerializedCard = {
   extraPairs?: Array<{ clean: string; corrupted: string }>;
   parentCardId?: string;
   generationPrompt?: string;
+  // entropy cards
+  parentLensId?: string;
+  entropyData?: number[][];
+  xLabels?: string[];
+  yLabels?: string[];
 };
 
 type CanvasState = {

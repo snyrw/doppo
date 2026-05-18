@@ -980,15 +980,25 @@ class _TLBase:
             for li in range(n_layers)
         ]
 
-        # KL divergence from final layer's distribution at each (layer, position).
-        # KL(P_layer || P_final) = sum(P_layer * log(P_layer / P_final))
+        # Per-layer metrics in a single pass: KL divergence from final layer,
+        # rank of the final layer's top-1 token, and Shannon entropy.
         eps = 1e-10
-        final_probs = pred_probs[-1].float()  # [n_pos, vocab]
-        kl_data = []
+        final_probs = pred_probs[-1].float()          # [n_pos, vocab]
+        final_top1_ids = final_probs.argmax(dim=-1)   # [n_pos]
+        pos_range = torch.arange(n_pos, device=pred_probs.device)
+        kl_data, rank_data, entropy_data = [], [], []
         for li in range(n_layers):
-            p_layer = pred_probs[li].float()  # [n_pos, vocab]
-            kl_row = (p_layer * (torch.log(p_layer + eps) - torch.log(final_probs + eps))).sum(dim=-1)
-            kl_data.append(kl_row.cpu().tolist())
+            p = pred_probs[li].float()  # [n_pos, vocab]
+            kl_data.append(
+                (p * (torch.log(p + eps) - torch.log(final_probs + eps))).sum(dim=-1).cpu().tolist()
+            )
+            target_p = p[pos_range, final_top1_ids]   # [n_pos]
+            rank_data.append(
+                (p > target_p.unsqueeze(-1)).sum(dim=-1).add(1).cpu().tolist()
+            )
+            entropy_data.append(
+                (-(p * torch.log(p + eps)).sum(dim=-1)).cpu().tolist()
+            )
 
         yield json.dumps({
             "stage": "done",
@@ -999,6 +1009,8 @@ class _TLBase:
                 "topk_tokens": topk_token_strings,
                 "topk_probs": topk_vals.float().cpu().tolist(),
                 "kl_data": kl_data,
+                "rank_data": rank_data,
+                "entropy_data": entropy_data,
             },
         })
 

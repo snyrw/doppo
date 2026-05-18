@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createHash } from "node:crypto";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/app/db";
 import { heatmapCache } from "@/app/schema";
 import { auth } from "@/app/lib/auth";
@@ -34,10 +34,11 @@ async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<strin
 }
 
 export async function POST(request: NextRequest) {
-  const { prompt, modelName, gpuTier } = (await request.json()) as {
+  const { prompt, modelName, gpuTier, topK } = (await request.json()) as {
     prompt: string;
     modelName: string;
     gpuTier?: string;
+    topK?: number;
   };
 
   if (gpuTier !== "tl_small") {
@@ -50,18 +51,21 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const resolvedTopK = topK ?? 5;
+  const id = createHash("sha256").update(`${modelName}:${prompt}:${resolvedTopK}`).digest("hex");
+
   // Cache hit — fetch blob from R2 and emit a single done event.
   const cached = await db
-    .select({ id: heatmapCache.id, r2Key: heatmapCache.r2Key })
+    .select({ r2Key: heatmapCache.r2Key })
     .from(heatmapCache)
-    .where(and(eq(heatmapCache.prompt, prompt), eq(heatmapCache.modelName, modelName)))
+    .where(eq(heatmapCache.id, id))
     .limit(1);
 
   if (cached.length > 0 && cached[0].r2Key) {
     const data = await getHeatmap(cached[0].r2Key);
     db.update(heatmapCache)
       .set({ lastAccessedAt: new Date() })
-      .where(eq(heatmapCache.id, cached[0].id))
+      .where(eq(heatmapCache.id, id))
       .catch(console.error);
     const payload = JSON.stringify({ stage: "done", data });
     return new Response(`data: ${payload}\n\n`, { headers: SSE_HEADERS });
@@ -73,7 +77,7 @@ export async function POST(request: NextRequest) {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, model_name: modelName }),
+      body: JSON.stringify({ prompt, model_name: modelName, top_k: resolvedTopK }),
     }
   ).catch((err: unknown) => {
     throw new Error(`Could not reach inference backend: ${err instanceof Error ? err.message : err}`);
@@ -116,7 +120,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (doneData) {
-      const id = createHash("sha256").update(`${modelName}:${prompt}`).digest("hex");
       try {
         await putHeatmap(id, doneData);
         await db

@@ -14,6 +14,7 @@ import type { DlaCardData, DlaData } from "../components/DlaCard";
 import type { AttributionCardData, AttributionData } from "../components/AttributionCard";
 import type { ActivationCardData, ActivationPatchResult } from "../components/ActivationCard";
 import type { SteeringCardData, SteeringResult, SteeringComponent } from "../components/SteeringCard";
+import type { EntropyCardData } from "../components/EntropyCard";
 import { useSession } from "../lib/auth-client";
 import {
   createProject,
@@ -38,6 +39,9 @@ type HeatmapData = {
   heatmap_data: number[][];
   topk_tokens?: string[][][];
   topk_probs?: number[][][];
+  kl_data?: number[][];
+  rank_data?: number[][];
+  entropy_data?: number[][];
 };
 
 type CanvasState = {
@@ -45,7 +49,7 @@ type CanvasState = {
   zoom: number;
 };
 
-type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData | SteeringCardData;
+type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData | SteeringCardData | EntropyCardData;
 
 type AppState = {
   lensCards: AnyCard[];
@@ -69,7 +73,8 @@ type AppAction =
   | { type: "RESET_CANVAS" }
   | { type: "STEERING_CARD_TOKEN"; id: string; token: string }
   | { type: "STEERING_CARD_RESOLVED"; id: string; data: SteeringResult }
-  | { type: "STEERING_CARD_RERUN"; id: string; alpha: number };
+  | { type: "STEERING_CARD_RERUN"; id: string; alpha: number }
+  | { type: "SPAWN_ENTROPY_CARD"; card: EntropyCardData };
 
 const CARD_COL_WIDTH = 360;
 const CARD_ROW_HEIGHT = 320;
@@ -97,10 +102,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType !== "dla" && c.cardType !== "attribution" && c.cardType !== "activation" && c.cardType !== "steering"
+          c.id === action.id && c.cardType !== "dla" && c.cardType !== "attribution" && c.cardType !== "activation" && c.cardType !== "steering" && c.cardType !== "entropy"
             ? { ...c, status: "result" as const, data: action.data } : c
         ),
       };
+    case "SPAWN_ENTROPY_CARD":
+      return { ...state, lensCards: [...state.lensCards, action.card] };
     case "DLA_CARD_RESOLVED":
       return {
         ...state,
@@ -145,7 +152,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
-          c.id === action.id ? { ...c, status: "error" as const, error: action.error } : c
+          c.id === action.id && c.cardType !== "entropy" ? { ...c, status: "error" as const, error: action.error } : c
         ),
       };
     case "MOVE_CARD":
@@ -212,7 +219,11 @@ function serializeCard(c: AnyCard) {
   if (c.cardType === "steering") {
     return { id: c.id, cardType: "steering" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, generationPrompt: c.generationPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, components: c.components, alpha: c.alpha, nTokens: c.nTokens, nPairs: c.nPairs, extraPairs: c.extraPairs ?? [], parentCardId: c.parentCardId };
   }
-  return { id: c.id, modelName: c.modelName, prompt: (c as LensCardData | DlaCardData).prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier };
+  if (c.cardType === "entropy") {
+    return { id: c.id, cardType: "entropy" as const, modelName: c.modelName, prompt: c.prompt, data: {} as Record<string, unknown>, position: c.position, parentLensId: c.parentLensId, entropyData: c.entropyData, xLabels: c.xLabels, yLabels: c.yLabels };
+  }
+  const lensCard = c as LensCardData;
+  return { id: lensCard.id, cardType: "logit-lens" as const, modelName: lensCard.modelName, prompt: lensCard.prompt, data: lensCard.data as Record<string, unknown>, position: lensCard.position, gpuTier: lensCard.gpuTier, topK: lensCard.topK };
 }
 
 function getCardPrompt(c: AnyCard): string {
@@ -323,7 +334,18 @@ function Projects() {
             streamingText: undefined,
           } as unknown as SteeringCardData;
         }
-        return { ...c, cardType: "logit-lens" as const, status: "result" as const, error: null } as LensCardData;
+        if (c.cardType === "entropy") {
+          return {
+            ...c,
+            cardType: "entropy" as const,
+            status: "result" as const,
+            parentLensId: c.parentLensId ?? "",
+            entropyData: (c.entropyData ?? []) as number[][],
+            xLabels: (c.xLabels ?? []) as string[],
+            yLabels: (c.yLabels ?? []) as string[],
+          } as EntropyCardData;
+        }
+        return { ...c, cardType: "logit-lens" as const, status: "result" as const, error: null, topK: c.topK ?? 5 } as LensCardData;
       });
       setProjectName(result.name);
       setShareId(result.shareId);
@@ -375,7 +397,7 @@ function Projects() {
       .finally(() => setModelsLoading(false));
   }, []);
 
-  const handleAddLens = ({ modelName, prompt, gpuTier }: { modelName: string; prompt: string; gpuTier?: string }) => {
+  const handleAddLens = ({ modelName, prompt, gpuTier, topK }: { modelName: string; prompt: string; gpuTier?: string; topK: number }) => {
     setConfigOpen(false);
 
     const id = crypto.randomUUID();
@@ -385,6 +407,7 @@ function Projects() {
       status: "loading",
       modelName,
       prompt,
+      topK,
       data: null,
       error: null,
       position: autoArrangePos(state.lensCards.length),
@@ -397,7 +420,7 @@ function Projects() {
     fetch("/api/run-lens", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, modelName, gpuTier }),
+      body: JSON.stringify({ prompt, modelName, gpuTier, topK }),
     })
       .then(async (response) => {
         if (!response.ok || !response.body) {
@@ -433,7 +456,7 @@ function Projects() {
                   const existingResult = stateRef.current.lensCards
                     .filter(c => c.status === "result")
                     .map(serializeCard);
-                  updateProject(pid, [...existingResult, { id, modelName, prompt, data: event.data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas)
+                  updateProject(pid, [...existingResult, { id, cardType: "logit-lens" as const, modelName, prompt, topK, data: event.data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas)
                     .catch(console.error);
                 }
               } else if (event.stage === "error") {
@@ -447,6 +470,33 @@ function Projects() {
       })
       .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
   };
+
+  const handleSpawnEntropyCard = useCallback((lensCardId: string) => {
+    const lensCard = stateRef.current.lensCards.find(c => c.id === lensCardId) as LensCardData | undefined;
+    if (!lensCard?.data?.entropy_data) return;
+
+    const entropyCard: EntropyCardData = {
+      id: crypto.randomUUID(),
+      cardType: "entropy",
+      status: "result",
+      modelName: lensCard.modelName,
+      prompt: lensCard.prompt,
+      position: { x: lensCard.position.x + 320, y: lensCard.position.y - 140 },
+      parentLensId: lensCardId,
+      entropyData: lensCard.data.entropy_data,
+      yLabels: lensCard.data.y_labels,
+      xLabels: lensCard.data.x_labels,
+    };
+
+    dispatch({ type: "SPAWN_ENTROPY_CARD", card: entropyCard });
+
+    const pid = projectIdRef.current;
+    if (pid) {
+      const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+      updateProject(pid, [...existingResult, { id: entropyCard.id, cardType: "entropy" as const, modelName: entropyCard.modelName, prompt: entropyCard.prompt, data: {}, position: entropyCard.position, parentLensId: lensCardId, entropyData: entropyCard.entropyData, xLabels: entropyCard.xLabels, yLabels: entropyCard.yLabels }], stateRef.current.canvas).catch(console.error);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAddDla = ({ modelName, prompt, gpuTier, targetPosition, targetToken, contrastiveToken }: {
     modelName: string; prompt: string; gpuTier?: string;
@@ -1549,6 +1599,7 @@ function Projects() {
           onVerifyTopK={handleVerifyTopK}
           onSteerComponents={handleSteerComponents}
           onRerunSteering={handleRerunSteering}
+          onSpawnEntropyCard={handleSpawnEntropyCard}
         />
 
       </div>

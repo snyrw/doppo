@@ -24,6 +24,7 @@ export default function ShareCanvas({
       onVerifyTopK={() => {}}
       onSteerComponents={() => {}}
       onRerunSteering={() => {}}
+      onSpawnEntropyCard={() => {}}
     />
   );
 }

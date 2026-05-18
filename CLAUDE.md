@@ -230,6 +230,16 @@ Used for per-card PNG export. Two required workarounds:
 
 A dropdown with `overflow: hidden` clips `position: absolute` children even when correctly positioned. For fly-out submenus: set the dropdown to `overflow: visible` and add `borderRadius` to the first (`"6px 6px 0 0"`) and last (`"0 0 6px 6px"`) items instead.
 
+### LensCard header clipping
+
+The LensCard header is a single `display: flex` row with `overflow: "hidden"`. Two known causes of visible clipping:
+
+1. **Hard-cut on narrow cards** — only the prompt span (`flex: 1; minWidth: 0`) can absorb excess width; everything else is `flexShrink: 0` (drag handle, model name span with no `max-width`, mode toggle up to 5 buttons, entropy spawn button, filter badge, layer settings trigger). On short-prompt cards the prompt span collapses to zero and the rightmost controls are silently cut off with no ellipsis or indicator.
+
+2. **Layer settings popover always clipped** — the "···" popover is `position: absolute; top: calc(100% + 4px)` inside a `position: relative` wrapper that lives *inside* the `overflow: "hidden"` header. CSS clips all absolutely-positioned descendants to the overflow container; the popover renders entirely outside the header's bounds and is therefore invisible. Fix: move the `position: relative` anchor to the card root (which has no overflow constraint), or lift the popover to portal level.
+
+Other card types (DLA, attribution, activation, steering) are not affected — their header wrapper elements do not have `overflow: hidden`; only inner text-only rows use it for ellipsis.
+
 ---
 
 ## Modal / infrastructure notes
