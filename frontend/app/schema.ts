@@ -83,6 +83,16 @@ export const userCallQuota = pgTable(
   (table) => [unique("user_quota_date_uniq").on(table.userId, table.date)]
 );
 
+export const anonIpQuota = pgTable(
+  "anon_ip_quota",
+  {
+    ipHash: text("ip_hash").notNull(),
+    date: text("date").notNull(), // YYYY-MM-DD UTC
+    callCount: integer("call_count").notNull().default(0),
+  },
+  (table) => [unique("anon_ip_quota_date_uniq").on(table.ipHash, table.date)]
+);
+
 // BetterAuth required tables
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
