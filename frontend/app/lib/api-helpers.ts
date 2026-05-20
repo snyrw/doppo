@@ -1,5 +1,6 @@
 import { auth } from "./auth";
 import { headers } from "next/headers";
+import { hashIp, checkAndIncrementAnonQuota } from "./ip-quota";
 export type { SSEEvent } from "./stream-sse";
 export { parseSSE } from "./stream-sse";
 
@@ -23,10 +24,20 @@ export function validateGpuTier(tier: unknown): tier is GpuTier {
 export type AuthResult = { userId: string } | Response;
 
 export async function requireAuth(gpuTier: string): Promise<AuthResult> {
+  const hdrs = await headers();
   if (gpuTier === "tl_small") {
+    const rawIp = hdrs.get("x-forwarded-for") ?? hdrs.get("cf-connecting-ip") ?? "unknown";
+    const ip = rawIp.split(",")[0].trim();
+    const quota = await checkAndIncrementAnonQuota(hashIp(ip));
+    if (!quota.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Daily limit reached. Sign in for more access." }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
+    }
     return { userId: "" };
   }
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await auth.api.getSession({ headers: hdrs });
   if (!session?.user) {
     return new Response("Unauthorized", { status: 401 });
   }
