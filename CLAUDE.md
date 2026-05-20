@@ -8,7 +8,7 @@ Stack: Next.js, FastAPI, TransformerLens 3.0, Modal (serverless GPU), Neon + Bet
 ```
 npm run dev                     # frontend: localhost:3000
 modal serve backend/main.py     # backend hot-reload (prints temp URL)
-modal deploy backend/main.py    # production — prints stable URL
+modal deploy backend/main.py    # production — prints stable URL (we are not in production yet)
 ```
 
 ## Behavioral rules
