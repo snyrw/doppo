@@ -71,9 +71,9 @@ For full setup instructions including database migrations and OAuth app configur
 | Tier | GPU | Model size |
 |---|---|---|
 | `tl_small` | L4 | < 4B params |
-| `tl_medium` | A10G | 4–12B params |
-| `tl_large` | A100-80GB | 12–38B params |
-| `tl_xlarge` | H200 | 38–70B params |
+| `tl_medium` | L40S | 4–10B params |
+| `tl_large` | A100-80GB | 10–25B params |
+| `tl_xlarge` | H200 | 25–70B params |
 
 Models above 70B are not supported. Multi-GPU is not supported.
 
