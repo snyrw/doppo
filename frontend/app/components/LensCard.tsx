@@ -77,6 +77,43 @@ function normRank(rank: number, maxRank: number): number {
   return Math.max(0, 1 - Math.log(rank) / Math.log(base));
 }
 
+function computeCellColorValue(
+  inRankMode: boolean, rank: number | null, maxRankInData: number,
+  inEntropyMode: boolean, entropy: number | null, maxEntropyInData: number,
+  inKlMode: boolean, klVal: number | null, klMax: number,
+  topProb: number
+): number {
+  if (inRankMode && rank !== null) return normRank(rank, maxRankInData);
+  if (inEntropyMode && entropy !== null) return entropy / maxEntropyInData;
+  if (inKlMode && klVal !== null) return Math.min(klVal / klMax, 1);
+  return topProb;
+}
+
+function computeCellTooltip(
+  inRankMode: boolean, rank: number | null,
+  inEntropyMode: boolean, entropy: number | null,
+  inKlMode: boolean, klVal: number | null,
+  inTokensMode: boolean,
+  xLabel: string, yIndex: number, prob: number,
+  topkTokens: string[][][] | undefined,
+  topkProbs: number[][][] | undefined,
+  xIndex: number
+): string {
+  if (inRankMode && rank !== null)
+    return `Token: ${xLabel}\nLayer: ${yIndex}\nRank of final top-1: ${rank}`;
+  if (inEntropyMode && entropy !== null)
+    return `Token: ${xLabel}\nLayer: ${yIndex}\nH = ${entropy.toFixed(3)} nats`;
+  if (inKlMode && klVal !== null)
+    return `Token: ${xLabel}\nLayer: ${yIndex}\nKL from final: ${klVal.toFixed(3)} nats`;
+  if (inTokensMode && topkTokens && topkProbs)
+    return `Top predictions at "${xLabel}", layer ${yIndex}:\n${
+      topkTokens[yIndex][xIndex]
+        .map((t, i) => `${(topkProbs[yIndex][xIndex][i] * 100).toFixed(1)}%  ${JSON.stringify(t)}`)
+        .join("\n")
+    }`;
+  return `Token: ${xLabel}\nLayer: ${yIndex}\nProb: ${(prob * 100).toFixed(2)}%`;
+}
+
 function LensCard({
   card,
   ref,
@@ -141,6 +178,10 @@ function LensCard({
   const hasRank = !!card.data?.rank_data;
   const hasEntropy = !!card.data?.entropy_data;
   const hasFilter = stride > 1 || layerRange !== null;
+  const inTokensMode = mode === "tokens" && canToggle;
+  const inKlMode = mode === "kl" && hasKl;
+  const inRankMode = mode === "rank" && hasRank;
+  const inEntropyMode = mode === "entropy" && hasEntropy;
   const cellWidth = card.data ? computeCellWidth(card.data.x_labels) : 24;
   const rowGap = mode === "tokens" && card.data?.topk_tokens != null ? 2 : 0;
 
@@ -504,10 +545,6 @@ function LensCard({
             {/* Heatmap rows (filtered by stride/range) */}
             {filteredIndices.map(yIndex => {
               const layerName = card.data!.y_labels[yIndex];
-              const inTokensMode = mode === "tokens" && card.data!.topk_tokens != null;
-              const inKlMode = mode === "kl" && card.data!.kl_data != null;
-              const inRankMode = mode === "rank" && card.data!.rank_data != null;
-              const inEntropyMode = mode === "entropy" && card.data!.entropy_data != null;
               const klMax = inKlMode ? Math.min(Math.max(...card.data!.kl_data![yIndex], 1e-6), 5) : 1;
               const cellHeight = inTokensMode ? 20 : 12;
 
@@ -541,16 +578,12 @@ function LensCard({
                     const entropy = inEntropyMode ? card.data!.entropy_data![yIndex][xIndex] : null;
                     const klVal = inKlMode ? card.data!.kl_data![yIndex][xIndex] : null;
 
-                    let cellColorValue: number;
-                    if (inRankMode && rank !== null) {
-                      cellColorValue = normRank(rank, maxRankInData);
-                    } else if (inEntropyMode && entropy !== null) {
-                      cellColorValue = entropy / maxEntropyInData;
-                    } else if (inKlMode && klVal !== null) {
-                      cellColorValue = Math.min(klVal / klMax, 1);
-                    } else {
-                      cellColorValue = topProb;
-                    }
+                    const cellColorValue = computeCellColorValue(
+                      inRankMode, rank, maxRankInData,
+                      inEntropyMode, entropy, maxEntropyInData,
+                      inKlMode, klVal, klMax,
+                      topProb
+                    );
 
                     const cellBg = interpolateColor(palette, cellColorValue);
                     const cellBorder = isActivePinnedCell
@@ -559,22 +592,15 @@ function LensCard({
                       ? "0.5px solid var(--color-card-border)"
                       : "0.5px solid var(--color-surface-border)";
 
-                    let tooltipText: string;
-                    if (inRankMode && rank !== null) {
-                      tooltipText = `Token: ${card.data!.x_labels[xIndex]}\nLayer: ${yIndex}\nRank of final top-1: ${rank}`;
-                    } else if (inEntropyMode && entropy !== null) {
-                      tooltipText = `Token: ${card.data!.x_labels[xIndex]}\nLayer: ${yIndex}\nH = ${entropy.toFixed(3)} nats`;
-                    } else if (inKlMode) {
-                      tooltipText = `Token: ${card.data!.x_labels[xIndex]}\nLayer: ${yIndex}\nKL from final: ${klVal!.toFixed(3)} nats`;
-                    } else if (inTokensMode) {
-                      tooltipText = `Top predictions at "${card.data!.x_labels[xIndex]}", layer ${yIndex}:\n${
-                        card.data!.topk_tokens![yIndex][xIndex]
-                          .map((t, i) => `${(card.data!.topk_probs![yIndex][xIndex][i] * 100).toFixed(1)}%  ${JSON.stringify(t)}`)
-                          .join("\n")
-                      }`;
-                    } else {
-                      tooltipText = `Token: ${card.data!.x_labels[xIndex]}\nLayer: ${yIndex}\nProb: ${(prob * 100).toFixed(2)}%`;
-                    }
+                    const tooltipText = computeCellTooltip(
+                      inRankMode, rank,
+                      inEntropyMode, entropy,
+                      inKlMode, klVal,
+                      inTokensMode,
+                      card.data!.x_labels[xIndex], yIndex, prob,
+                      card.data!.topk_tokens, card.data!.topk_probs,
+                      xIndex
+                    );
 
                     const showRankNumber = inRankMode && rank !== null && rank <= 50;
 
