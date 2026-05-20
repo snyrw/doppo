@@ -2,7 +2,7 @@
 
 import { useRef, useCallback } from "react";
 
-export type PanOffset = { x: number; y: number };
+type PanOffset = { x: number; y: number };
 
 type UseCanvasPanOptions = {
   getWorldEl: () => HTMLDivElement | null;

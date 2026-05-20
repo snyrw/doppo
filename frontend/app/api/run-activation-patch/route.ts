@@ -3,36 +3,15 @@ import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/app/db";
 import { activationPatchCache } from "@/app/schema";
-import { auth } from "@/app/lib/auth";
 import { putHeatmap, getHeatmap } from "@/app/lib/r2";
 import { checkAndIncrementQuota } from "@/app/lib/quota";
-
-const SSE_HEADERS = {
-  "Content-Type": "text/event-stream",
-  "Cache-Control": "no-cache",
-  "Connection": "keep-alive",
-};
-
-async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const parts = buffer.split("\n\n");
-      buffer = parts.pop() ?? "";
-      for (const part of parts) {
-        const line = part.split("\n").find((l) => l.startsWith("data: "));
-        if (line) yield line.slice(6);
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
+import {
+  SSE_HEADERS,
+  parseSSE,
+  requireAuth,
+  fetchUpstream,
+  validateGpuTier,
+} from "@/app/lib/api-helpers";
 
 export async function POST(request: NextRequest) {
   const {
@@ -57,16 +36,41 @@ export async function POST(request: NextRequest) {
     k: number;
   };
 
-  let session = null;
-  if (gpuTier !== "tl_small") {
-    session = await auth.api.getSession({ headers: request.headers });
-    if (!session) {
-      return new Response(
-        JSON.stringify({ error: "Sign in to access medium and large models" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      );
-    }
+  // Input validation
+  if (typeof modelName !== "string" || modelName.length < 1 || modelName.length > 200) {
+    return new Response(
+      JSON.stringify({ error: "modelName must be a string between 1 and 200 characters" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
   }
+  if (typeof cleanPrompt !== "string" || cleanPrompt.length < 1 || cleanPrompt.length > 8000) {
+    return new Response(
+      JSON.stringify({ error: "cleanPrompt must be a non-empty string of at most 8000 characters" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (
+    typeof corruptedPrompt !== "string" ||
+    corruptedPrompt.length < 1 ||
+    corruptedPrompt.length > 8000
+  ) {
+    return new Response(
+      JSON.stringify({
+        error: "corruptedPrompt must be a non-empty string of at most 8000 characters",
+      }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (!validateGpuTier(gpuTier)) {
+    return new Response(
+      JSON.stringify({ error: "gpuTier must be one of: tl_small, tl_medium, tl_large, tl_xlarge" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const authResult = await requireAuth(gpuTier);
+  if (!("userId" in authResult)) return authResult;
+  const userId = authResult.userId;
 
   const resolvedPosition = String(targetPosition);
   const resolvedContrastive = String(contrastiveTokenIdx ?? "null");
@@ -100,8 +104,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Cache miss — check quota before spinning up a GPU container.
-  if (session?.user) {
-    const { allowed, count } = await checkAndIncrementQuota(session.user.id);
+  if (userId) {
+    const { allowed, count } = await checkAndIncrementQuota(userId);
     if (!allowed) {
       return new Response(
         JSON.stringify({
@@ -112,36 +116,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const upstream = await fetch(
+  const upstreamResult = await fetchUpstream(
     `${process.env.NEXT_PUBLIC_API_URL}/api/run-activation-patch-stream`,
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: cleanPrompt,
-        corrupted_prompt: corruptedPrompt,
-        model_name: modelName,
-        target_position: targetPosition,
-        target_token_idx: targetTokenIdx,
-        contrastive_token_idx: contrastiveTokenIdx ?? null,
-        components,
-        k,
-      }),
+      prompt: cleanPrompt,
+      corrupted_prompt: corruptedPrompt,
+      model_name: modelName,
+      target_position: targetPosition,
+      target_token_idx: targetTokenIdx,
+      contrastive_token_idx: contrastiveTokenIdx ?? null,
+      components,
+      k,
     }
-  ).catch((err: unknown) => {
-    throw new Error(
-      `Could not reach inference backend: ${err instanceof Error ? err.message : err}`
-    );
-  });
-
-  if (!upstream.ok || !upstream.body) {
-    const errData = (await upstream.json().catch(() => ({}))) as { detail?: string };
-    const detail = errData.detail ?? `Upstream error ${upstream.status}`;
-    return new Response(
-      `data: ${JSON.stringify({ stage: "error", error: detail })}\n\n`,
-      { headers: SSE_HEADERS }
-    );
-  }
+  );
+  if (!upstreamResult.ok) return upstreamResult.errorResponse;
 
   const encoder = new TextEncoder();
   let doneData: unknown = null;
@@ -151,14 +139,9 @@ export async function POST(request: NextRequest) {
 
   (async () => {
     try {
-      for await (const eventData of parseSSE(upstream.body!)) {
-        await writer.write(encoder.encode(`data: ${eventData}\n\n`));
-        try {
-          const event = JSON.parse(eventData) as { stage: string; data?: unknown };
-          if (event.stage === "done") doneData = event.data;
-        } catch {
-          // Malformed chunk — skip.
-        }
+      for await (const event of parseSSE(upstreamResult.response.body!)) {
+        await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        if (event.stage === "done") doneData = event.data;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

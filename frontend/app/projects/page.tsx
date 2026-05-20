@@ -16,6 +16,7 @@ import type { ActivationCardData, ActivationPatchResult } from "../components/Ac
 import type { SteeringCardData, SteeringResult, SteeringComponent } from "../components/SteeringCard";
 import type { EntropyCardData } from "../components/EntropyCard";
 import { useSession } from "../lib/auth-client";
+import { readSSEStream } from "../lib/stream-sse";
 import {
   createProject,
   duplicateProject,
@@ -432,39 +433,22 @@ function Projects() {
           return;
         }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const parts = buffer.split("\n\n");
-          buffer = parts.pop() ?? "";
-
-          for (const part of parts) {
-            const line = part.split("\n").find(l => l.startsWith("data: "));
-            if (!line) continue;
-            try {
-              const event = JSON.parse(line.slice(6)) as { stage: string; data?: HeatmapData; error?: string };
-              if (event.stage === "done" && event.data) {
-                dispatch({ type: "CARD_RESOLVED", id, data: event.data });
-                const pid = projectIdRef.current;
-                if (pid) {
-                  const existingResult = stateRef.current.lensCards
-                    .filter(c => c.status === "result")
-                    .map(serializeCard);
-                  updateProject(pid, [...existingResult, { id, cardType: "logit-lens" as const, modelName, prompt, topK, data: event.data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas)
-                    .catch(console.error);
-                }
-              } else if (event.stage === "error") {
-                dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
-              } else {
-                dispatch({ type: "CARD_STAGE", id, stage: event.stage });
-              }
-            } catch { /* malformed chunk */ }
+        for await (const event of readSSEStream(response)) {
+          if (event.stage === "done" && event.data) {
+            const data = event.data as HeatmapData;
+            dispatch({ type: "CARD_RESOLVED", id, data });
+            const pid = projectIdRef.current;
+            if (pid) {
+              const existingResult = stateRef.current.lensCards
+                .filter(c => c.status === "result")
+                .map(serializeCard);
+              updateProject(pid, [...existingResult, { id, cardType: "logit-lens" as const, modelName, prompt, topK, data: data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas)
+                .catch(console.error);
+            }
+          } else if (event.stage === "error") {
+            dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
+          } else {
+            dispatch({ type: "CARD_STAGE", id, stage: event.stage });
           }
         }
       })
@@ -538,39 +522,22 @@ function Projects() {
           return;
         }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const parts = buffer.split("\n\n");
-          buffer = parts.pop() ?? "";
-
-          for (const part of parts) {
-            const line = part.split("\n").find(l => l.startsWith("data: "));
-            if (!line) continue;
-            try {
-              const event = JSON.parse(line.slice(6)) as { stage: string; data?: DlaData; error?: string };
-              if (event.stage === "done" && event.data) {
-                dispatch({ type: "DLA_CARD_RESOLVED", id, data: event.data });
-                const pid = projectIdRef.current;
-                if (pid) {
-                  const existingResult = stateRef.current.lensCards
-                    .filter(c => c.status === "result")
-                    .map(serializeCard);
-                  updateProject(pid, [...existingResult, { id, cardType: "dla" as const, modelName, prompt, data: event.data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas)
-                    .catch(console.error);
-                }
-              } else if (event.stage === "error") {
-                dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
-              } else {
-                dispatch({ type: "CARD_STAGE", id, stage: event.stage });
-              }
-            } catch { /* malformed chunk */ }
+        for await (const event of readSSEStream(response)) {
+          if (event.stage === "done" && event.data) {
+            const data = event.data as DlaData;
+            dispatch({ type: "DLA_CARD_RESOLVED", id, data });
+            const pid = projectIdRef.current;
+            if (pid) {
+              const existingResult = stateRef.current.lensCards
+                .filter(c => c.status === "result")
+                .map(serializeCard);
+              updateProject(pid, [...existingResult, { id, cardType: "dla" as const, modelName, prompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas)
+                .catch(console.error);
+            }
+          } else if (event.stage === "error") {
+            dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
+          } else {
+            dispatch({ type: "CARD_STAGE", id, stage: event.stage });
           }
         }
       })
@@ -619,34 +586,19 @@ function Projects() {
           return;
         }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const parts = buffer.split("\n\n");
-          buffer = parts.pop() ?? "";
-          for (const part of parts) {
-            const line = part.split("\n").find(l => l.startsWith("data: "));
-            if (!line) continue;
-            try {
-              const event = JSON.parse(line.slice(6)) as { stage: string; data?: AttributionData; error?: string };
-              if (event.stage === "done" && event.data) {
-                dispatch({ type: "ATTRIBUTION_CARD_RESOLVED", id, data: event.data });
-                const pid = projectIdRef.current;
-                if (pid) {
-                  const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-                  updateProject(pid, [...existingResult, { id, cardType: "attribution" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: event.data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
-                }
-              } else if (event.stage === "error") {
-                dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
-              } else {
-                dispatch({ type: "CARD_STAGE", id, stage: event.stage });
-              }
-            } catch { /* malformed chunk */ }
+        for await (const event of readSSEStream(response)) {
+          if (event.stage === "done" && event.data) {
+            const data = event.data as AttributionData;
+            dispatch({ type: "ATTRIBUTION_CARD_RESOLVED", id, data });
+            const pid = projectIdRef.current;
+            if (pid) {
+              const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+              updateProject(pid, [...existingResult, { id, cardType: "attribution" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
+            }
+          } else if (event.stage === "error") {
+            dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
+          } else {
+            dispatch({ type: "CARD_STAGE", id, stage: event.stage });
           }
         }
       })
@@ -706,35 +658,20 @@ function Projects() {
           return;
         }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const parts = buffer.split("\n\n");
-          buffer = parts.pop() ?? "";
-          for (const part of parts) {
-            const line = part.split("\n").find(l => l.startsWith("data: "));
-            if (!line) continue;
-            try {
-              const event = JSON.parse(line.slice(6)) as { stage: string; data?: ActivationPatchResult; error?: string };
-              if (event.stage === "done" && event.data) {
-                dispatch({ type: "ACTIVATION_CARD_RESOLVED", id: activationId, data: event.data, parentAttributionId: attributionCardId });
-                const pid = projectIdRef.current;
-                if (pid) {
-                  const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-                  updateProject(pid, [...existingResult, { id: activationId, cardType: "activation" as const, modelName: attrCard.modelName, prompt: attrCard.cleanPrompt, data: event.data as Record<string, unknown>, position: activationCard.position, gpuTier: attrCard.gpuTier, parentAttributionId: attributionCardId }], stateRef.current.canvas).catch(console.error);
-                }
-              } else if (event.stage === "error") {
-                dispatch({ type: "CARD_ERRORED", id: activationId, error: event.error ?? "Unknown error" });
-                dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
-              } else {
-                dispatch({ type: "CARD_STAGE", id: activationId, stage: event.stage });
-              }
-            } catch { /* malformed chunk */ }
+        for await (const event of readSSEStream(response)) {
+          if (event.stage === "done" && event.data) {
+            const data = event.data as ActivationPatchResult;
+            dispatch({ type: "ACTIVATION_CARD_RESOLVED", id: activationId, data, parentAttributionId: attributionCardId });
+            const pid = projectIdRef.current;
+            if (pid) {
+              const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+              updateProject(pid, [...existingResult, { id: activationId, cardType: "activation" as const, modelName: attrCard.modelName, prompt: attrCard.cleanPrompt, data: data as Record<string, unknown>, position: activationCard.position, gpuTier: attrCard.gpuTier, parentAttributionId: attributionCardId }], stateRef.current.canvas).catch(console.error);
+            }
+          } else if (event.stage === "error") {
+            dispatch({ type: "CARD_ERRORED", id: activationId, error: event.error ?? "Unknown error" });
+            dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
+          } else {
+            dispatch({ type: "CARD_STAGE", id: activationId, stage: event.stage });
           }
         }
       })
@@ -820,36 +757,21 @@ function Projects() {
           return;
         }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const parts = buffer.split("\n\n");
-          buffer = parts.pop() ?? "";
-          for (const part of parts) {
-            const line = part.split("\n").find(l => l.startsWith("data: "));
-            if (!line) continue;
-            try {
-              const event = JSON.parse(line.slice(6)) as { stage: string; data?: SteeringResult & { token?: string; index?: number }; error?: string };
-              if (event.stage === "token" && event.data?.token !== undefined) {
-                startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: event.data!.token! }));
-              } else if (event.stage === "done" && event.data) {
-                dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: event.data as SteeringResult });
-                const pid = projectIdRef.current;
-                if (pid) {
-                  const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-                  updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: event.data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken, components, alpha: 1.0, temperature: 1.0, repetitionPenalty: 1.3, nTokens: 50, nPairs: 1, extraPairs: [], parentCardId: sourceCardId }], stateRef.current.canvas).catch(console.error);
-                }
-              } else if (event.stage === "error") {
-                dispatch({ type: "CARD_ERRORED", id: steeringId, error: event.error ?? "Unknown error" });
-              } else {
-                dispatch({ type: "CARD_STAGE", id: steeringId, stage: event.stage });
-              }
-            } catch { /* malformed chunk */ }
+        for await (const event of readSSEStream(response)) {
+          const evData = event.data as (SteeringResult & { token?: string; index?: number }) | undefined;
+          if (event.stage === "token" && evData?.token !== undefined) {
+            startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: evData.token! }));
+          } else if (event.stage === "done" && evData) {
+            dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: evData as SteeringResult });
+            const pid = projectIdRef.current;
+            if (pid) {
+              const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+              updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: evData as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken, components, alpha: 1.0, temperature: 1.0, repetitionPenalty: 1.3, nTokens: 50, nPairs: 1, extraPairs: [], parentCardId: sourceCardId }], stateRef.current.canvas).catch(console.error);
+            }
+          } else if (event.stage === "error") {
+            dispatch({ type: "CARD_ERRORED", id: steeringId, error: event.error ?? "Unknown error" });
+          } else {
+            dispatch({ type: "CARD_STAGE", id: steeringId, stage: event.stage });
           }
         }
       })
@@ -876,35 +798,21 @@ function Projects() {
           dispatch({ type: "CARD_ERRORED", id: cardId, error: message });
           return;
         }
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const parts = buffer.split("\n\n");
-          buffer = parts.pop() ?? "";
-          for (const part of parts) {
-            const line = part.split("\n").find(l => l.startsWith("data: "));
-            if (!line) continue;
-            try {
-              const event = JSON.parse(line.slice(6)) as { stage: string; data?: SteeringResult & { token?: string }; error?: string };
-              if (event.stage === "token" && event.data?.token !== undefined) {
-                startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: cardId, token: event.data!.token! }));
-              } else if (event.stage === "done" && event.data) {
-                dispatch({ type: "STEERING_CARD_RESOLVED", id: cardId, data: event.data as SteeringResult });
-                const pid = projectIdRef.current;
-                if (pid) {
-                  const updatedCards = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-                  updateProject(pid, updatedCards, stateRef.current.canvas).catch(console.error);
-                }
-              } else if (event.stage === "error") {
-                dispatch({ type: "CARD_ERRORED", id: cardId, error: event.error ?? "Unknown error" });
-              } else {
-                dispatch({ type: "CARD_STAGE", id: cardId, stage: event.stage });
-              }
-            } catch { /* malformed chunk */ }
+        for await (const event of readSSEStream(response)) {
+          const evData = event.data as (SteeringResult & { token?: string }) | undefined;
+          if (event.stage === "token" && evData?.token !== undefined) {
+            startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: cardId, token: evData.token! }));
+          } else if (event.stage === "done" && evData) {
+            dispatch({ type: "STEERING_CARD_RESOLVED", id: cardId, data: evData as SteeringResult });
+            const pid = projectIdRef.current;
+            if (pid) {
+              const updatedCards = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+              updateProject(pid, updatedCards, stateRef.current.canvas).catch(console.error);
+            }
+          } else if (event.stage === "error") {
+            dispatch({ type: "CARD_ERRORED", id: cardId, error: event.error ?? "Unknown error" });
+          } else {
+            dispatch({ type: "CARD_STAGE", id: cardId, stage: event.stage });
           }
         }
       })
@@ -968,35 +876,21 @@ function Projects() {
           dispatch({ type: "CARD_ERRORED", id: steeringId, error: message });
           return;
         }
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const parts = buffer.split("\n\n");
-          buffer = parts.pop() ?? "";
-          for (const part of parts) {
-            const line = part.split("\n").find(l => l.startsWith("data: "));
-            if (!line) continue;
-            try {
-              const event = JSON.parse(line.slice(6)) as { stage: string; data?: SteeringResult & { token?: string; index?: number }; error?: string };
-              if (event.stage === "token" && event.data?.token !== undefined) {
-                startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: event.data!.token! }));
-              } else if (event.stage === "done" && event.data) {
-                dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: event.data as SteeringResult });
-                const pid = projectIdRef.current;
-                if (pid) {
-                  const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-                  updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, generationPrompt, data: event.data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken: null, components, alpha: 1.0, temperature, repetitionPenalty, nTokens: 50, nPairs, extraPairs: extraPairs ?? [], parentCardId: "" }], stateRef.current.canvas).catch(console.error);
-                }
-              } else if (event.stage === "error") {
-                dispatch({ type: "CARD_ERRORED", id: steeringId, error: event.error ?? "Unknown error" });
-              } else {
-                dispatch({ type: "CARD_STAGE", id: steeringId, stage: event.stage });
-              }
-            } catch { /* malformed chunk */ }
+        for await (const event of readSSEStream(response)) {
+          const evData = event.data as (SteeringResult & { token?: string; index?: number }) | undefined;
+          if (event.stage === "token" && evData?.token !== undefined) {
+            startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: evData.token! }));
+          } else if (event.stage === "done" && evData) {
+            dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: evData as SteeringResult });
+            const pid = projectIdRef.current;
+            if (pid) {
+              const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+              updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, generationPrompt, data: evData as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken: null, components, alpha: 1.0, temperature, repetitionPenalty, nTokens: 50, nPairs, extraPairs: extraPairs ?? [], parentCardId: "" }], stateRef.current.canvas).catch(console.error);
+            }
+          } else if (event.stage === "error") {
+            dispatch({ type: "CARD_ERRORED", id: steeringId, error: event.error ?? "Unknown error" });
+          } else {
+            dispatch({ type: "CARD_STAGE", id: steeringId, stage: event.stage });
           }
         }
       })

@@ -3,55 +3,48 @@ import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/app/db";
 import { dlaCache } from "@/app/schema";
-import { auth } from "@/app/lib/auth";
 import { putHeatmap, getHeatmap } from "@/app/lib/r2";
-
-const SSE_HEADERS = {
-  "Content-Type": "text/event-stream",
-  "Cache-Control": "no-cache",
-  "Connection": "keep-alive",
-};
-
-async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const parts = buffer.split("\n\n");
-      buffer = parts.pop() ?? "";
-      for (const part of parts) {
-        const line = part.split("\n").find((l) => l.startsWith("data: "));
-        if (line) yield line.slice(6);
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
+import {
+  SSE_HEADERS,
+  parseSSE,
+  requireAuth,
+  fetchUpstream,
+  validateGpuTier,
+} from "@/app/lib/api-helpers";
 
 export async function POST(request: NextRequest) {
-  const { prompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken } = (await request.json()) as {
-    prompt: string;
-    modelName: string;
-    gpuTier?: string;
-    targetPosition: number | "last";
-    targetToken: string | null;
-    contrastiveToken: string | null;
-  };
+  const { prompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken } =
+    (await request.json()) as {
+      prompt: string;
+      modelName: string;
+      gpuTier?: string;
+      targetPosition: number | "last";
+      targetToken: string | null;
+      contrastiveToken: string | null;
+    };
 
-  if (gpuTier !== "tl_small") {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session) {
-      return new Response(
-        JSON.stringify({ error: "Sign in to access medium and large models" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      );
-    }
+  // Input validation
+  if (typeof modelName !== "string" || modelName.length < 1 || modelName.length > 200) {
+    return new Response(
+      JSON.stringify({ error: "modelName must be a string between 1 and 200 characters" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
   }
+  if (typeof prompt !== "string" || prompt.length < 1 || prompt.length > 8000) {
+    return new Response(
+      JSON.stringify({ error: "prompt must be a non-empty string of at most 8000 characters" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (!validateGpuTier(gpuTier)) {
+    return new Response(
+      JSON.stringify({ error: "gpuTier must be one of: tl_small, tl_medium, tl_large, tl_xlarge" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const authResult = await requireAuth(gpuTier);
+  if (!("userId" in authResult)) return authResult;
 
   // Cache key includes all parameters. Look up by hash only — avoids needing
   // a contrastive_token column in the DB schema.
@@ -78,31 +71,17 @@ export async function POST(request: NextRequest) {
     return new Response(`data: ${payload}\n\n`, { headers: SSE_HEADERS });
   }
 
-  const upstream = await fetch(
+  const upstreamResult = await fetchUpstream(
     `${process.env.NEXT_PUBLIC_API_URL}/api/run-dla-stream`,
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt,
-        model_name: modelName,
-        target_position: targetPosition,
-        target_token: targetToken,
-        contrastive_token: contrastiveToken ?? null,
-      }),
+      prompt,
+      model_name: modelName,
+      target_position: targetPosition,
+      target_token: targetToken,
+      contrastive_token: contrastiveToken ?? null,
     }
-  ).catch((err: unknown) => {
-    throw new Error(`Could not reach inference backend: ${err instanceof Error ? err.message : err}`);
-  });
-
-  if (!upstream.ok || !upstream.body) {
-    const errData = await upstream.json().catch(() => ({})) as { detail?: string };
-    const detail = errData.detail ?? `Upstream error ${upstream.status}`;
-    return new Response(
-      `data: ${JSON.stringify({ stage: "error", error: detail })}\n\n`,
-      { headers: SSE_HEADERS }
-    );
-  }
+  );
+  if (!upstreamResult.ok) return upstreamResult.errorResponse;
 
   const encoder = new TextEncoder();
   let doneData: unknown = null;
@@ -112,14 +91,9 @@ export async function POST(request: NextRequest) {
 
   (async () => {
     try {
-      for await (const eventData of parseSSE(upstream.body!)) {
-        await writer.write(encoder.encode(`data: ${eventData}\n\n`));
-        try {
-          const event = JSON.parse(eventData) as { stage: string; data?: unknown };
-          if (event.stage === "done") doneData = event.data;
-        } catch {
-          // Malformed chunk — skip.
-        }
+      for await (const event of parseSSE(upstreamResult.response.body!)) {
+        await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        if (event.stage === "done") doneData = event.data;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

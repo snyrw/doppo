@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 
 export type Token = { text: string; special: boolean };
 
-export type TokenPreviewState = {
+type TokenPreviewState = {
   tokens: Token[] | null;
   loading: boolean;
 };

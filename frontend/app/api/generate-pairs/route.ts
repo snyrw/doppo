@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { auth } from "@/app/lib/auth";
 import { headers } from "next/headers";
+import { validateGpuTier } from "@/app/lib/api-helpers";
 
 // Tier-scaled caps matching compute cost: more pairs on cheap GPUs, fewer on expensive ones.
 const TIER_CAPS: Record<string, number> = {
@@ -35,15 +36,57 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Sign in to generate pairs" }, { status: 401 });
   }
 
-  const { concept, primaryClean, primaryCorrupted, gpuTier } = (await request.json()) as {
-    concept: string;
-    primaryClean: string;
-    primaryCorrupted: string;
-    gpuTier?: string;
-  };
+  const { concept, primaryClean, primaryCorrupted, gpuTier, nPairs } =
+    (await request.json()) as {
+      concept: string;
+      primaryClean: string;
+      primaryCorrupted: string;
+      gpuTier?: string;
+      nPairs?: number;
+    };
 
-  if (!concept?.trim()) {
-    return NextResponse.json({ error: "concept is required" }, { status: 400 });
+  // Input validation
+  if (typeof concept !== "string" || concept.trim().length === 0 || concept.length > 500) {
+    return new Response(
+      JSON.stringify({ error: "concept must be a non-empty string of at most 500 characters" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (!validateGpuTier(gpuTier)) {
+    return new Response(
+      JSON.stringify({ error: "gpuTier must be one of: tl_small, tl_medium, tl_large, tl_xlarge" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (
+    typeof primaryClean !== "string" ||
+    primaryClean.length < 1 ||
+    primaryClean.length > 2000
+  ) {
+    return new Response(
+      JSON.stringify({
+        error: "primaryClean must be a non-empty string of at most 2000 characters",
+      }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (
+    typeof primaryCorrupted !== "string" ||
+    primaryCorrupted.length < 1 ||
+    primaryCorrupted.length > 2000
+  ) {
+    return new Response(
+      JSON.stringify({
+        error: "primaryCorrupted must be a non-empty string of at most 2000 characters",
+      }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (nPairs !== undefined && (!Number.isInteger(nPairs) || nPairs < 1 || nPairs > 40)) {
+    return new Response(
+      JSON.stringify({ error: "nPairs must be an integer between 1 and 40" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;

@@ -1,5 +1,11 @@
+import json
 import os
 import modal
+
+
+def _sse_error(e: Exception) -> str:
+    """Format an SSE error event with properly escaped JSON."""
+    return f"data: {json.dumps({'stage': 'error', 'error': str(e)})}\n\n"
 
 app = modal.App("logitlensviz")
 
@@ -377,7 +383,7 @@ class _TLBase:
 
         yield json.dumps({"stage": "tokenizing"})
         tokens = self.model.to_tokens(prompt)
-        pos = int(tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
+        pos = _resolve_pos(tokens, target_position)
 
         yield json.dumps({"stage": "forward_pass"})
         _, cache = self.model.run_with_cache(tokens)
@@ -472,7 +478,7 @@ class _TLBase:
         yield json.dumps({"stage": "tokenizing"})
         clean_tokens = self.model.to_tokens(clean_prompt)
         corrupted_tokens = self.model.to_tokens(corrupted_prompt)
-        pos = int(clean_tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
+        pos = _resolve_pos(clean_tokens, target_position)
 
         n_layers = self.model.cfg.n_layers
         n_heads = self.model.cfg.n_heads
@@ -647,8 +653,17 @@ class _TLBase:
         yield json.dumps({"stage": "tokenizing"})
         clean_tokens = self.model.to_tokens(clean_prompt)
         corrupted_tokens = self.model.to_tokens(corrupted_prompt)
-        pos = int(clean_tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
+        pos = _resolve_pos(clean_tokens, target_position)
         top_components = components[:k]
+
+        # Validate component layer/head indices against model architecture.
+        for comp in top_components:
+            layer = comp["layer"]
+            head = comp.get("head")
+            if not (0 <= layer < self.model.cfg.n_layers):
+                raise ValueError(f"layer {layer} out of range (model has {self.model.cfg.n_layers} layers)")
+            if head is not None and head >= 0 and not (0 <= head < self.model.cfg.n_heads):
+                raise ValueError(f"head {head} out of range (model has {self.model.cfg.n_heads} heads)")
 
         # Build set of hook names needed for corrupted cache
         hook_names: set[str] = set()
@@ -780,6 +795,15 @@ class _TLBase:
             if extra_pairs:
                 all_pairs.extend(extra_pairs)
 
+            # Validate component layer/head indices against model architecture.
+            for comp in components:
+                layer = comp["layer"] if comp["layer"] >= 0 else n_layers // 2
+                head = comp.get("head")
+                if not (0 <= layer < self.model.cfg.n_layers):
+                    raise ValueError(f"layer {layer} out of range (model has {self.model.cfg.n_layers} layers)")
+                if head is not None and not (0 <= head < self.model.cfg.n_heads):
+                    raise ValueError(f"head {head} out of range (model has {self.model.cfg.n_heads} heads)")
+
             # Accumulate unnormalized DIM vectors across all pairs, then average.
             # Each component gets its own accumulator tensor (initialized on first pair).
             comp_accumulators: list[torch.Tensor | None] = [None] * len(components)
@@ -842,7 +866,7 @@ class _TLBase:
             torch.cuda.empty_cache()
 
             # Normalize the averaged vector for each component.
-            pos = int(gen_tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
+            pos = _resolve_pos(gen_tokens, target_position)
             n_pairs = len(all_pairs)
             dim_vectors = []
             for ci, comp in enumerate(components):
@@ -1060,13 +1084,40 @@ def _bump_tier(tier: str) -> str:
     return _TIER_ORDER[min(idx + 1, len(_TIER_ORDER) - 1)]
 
 
+def _resolve_model(model_name: str, bump: bool = False, hf_token: str | None = None):
+    """Resolve a model name to a (ModalClass, hf_model_id) pair.
+
+    Looks up FEATURED_MODELS first; falls back to validate_hf_repo for arbitrary HF IDs.
+    Raises HTTPException(400) if the model is invalid.
+    """
+    from fastapi import HTTPException
+    entry = FEATURED_MODELS.get(model_name)
+    if entry is None:
+        validation = validate_hf_repo(model_name, hf_token=hf_token)
+        if not validation["valid"]:
+            raise HTTPException(status_code=400, detail=validation["reason"])
+        tier = validation["gpu_tier"]
+        resolved_id = model_name
+    else:
+        tier = entry["gpu_tier"]
+        resolved_id = entry["model_id"]
+    if bump:
+        tier = _bump_tier(tier)
+    return _TIER_TO_CLS[tier], resolved_id
+
+
+def _resolve_pos(tokens, target_position: int | str) -> int:
+    """Resolve target_position ('last' or an int string/int) to an absolute token index."""
+    return int(tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
+
+
 @app.function(image=web_image, secrets=[hf_secret])
 @modal.concurrent(max_inputs=50)
 @modal.asgi_app()
 def api():
     from fastapi import FastAPI, HTTPException
     from fastapi.middleware.cors import CORSMiddleware
-    from pydantic import BaseModel
+    from pydantic import BaseModel, Field
 
     web_app = FastAPI()
     web_app.add_middleware(
@@ -1080,7 +1131,7 @@ def api():
     class LogitLensRequest(BaseModel):
         prompt: str
         model_name: str
-        top_k: int = 5
+        top_k: int = Field(default=5, ge=1, le=100)
 
     class DlaRequest(BaseModel):
         prompt: str
@@ -1096,16 +1147,17 @@ def api():
         target_position: int | str = "last"
         target_token: str | None = None
         contrastive_token: str | None = None
+        top_n: int = Field(default=30, ge=1, le=200)
 
     class ActivationPatchRequest(BaseModel):
         prompt: str            # clean prompt
         corrupted_prompt: str
         model_name: str
         target_position: int | str = "last"
-        target_token_idx: int
-        contrastive_token_idx: int | None = None
+        target_token_idx: int = Field(..., ge=0)
+        contrastive_token_idx: int | None = Field(default=None, ge=0)
         components: list[dict]
-        k: int
+        k: int = Field(default=10, ge=1, le=100)
 
     class SteeringComponentRequest(BaseModel):
         layer: int
@@ -1119,11 +1171,11 @@ def api():
         generation_prompt: str | None = None  # separate probe prompt; falls back to clean_prompt
         target_position: int | str = "last"
         components: list[SteeringComponentRequest]
-        alpha: float = 1.0
-        n_tokens: int = 50
+        alpha: float = Field(default=1.0, ge=-100.0, le=100.0)
+        n_tokens: int = Field(default=50, ge=1, le=500)
         extra_pairs: list[dict] | None = None  # [{clean, corrupted}] for CAA-mode averaging
-        temperature: float = 1.0
-        repetition_penalty: float = 1.3
+        temperature: float = Field(default=1.0, ge=0.0, le=5.0)
+        repetition_penalty: float = Field(default=1.3, ge=0.5, le=5.0)
 
     class ValidateModelRequest(BaseModel):
         repo_id: str
@@ -1184,16 +1236,7 @@ def api():
     async def run_logit_lens_stream(request: LogitLensRequest):
         from fastapi.responses import StreamingResponse
 
-        entry = FEATURED_MODELS.get(request.model_name)
-        if entry is None:
-            validation = validate_hf_repo(request.model_name, hf_token=hf_token)
-            if not validation["valid"]:
-                raise HTTPException(status_code=400, detail=validation["reason"])
-            cls = _TIER_TO_CLS[validation["gpu_tier"]]
-            model_id = request.model_name
-        else:
-            cls = _TIER_TO_CLS[entry["gpu_tier"]]
-            model_id = entry["model_id"]
+        cls, model_id = _resolve_model(request.model_name, bump=False, hf_token=hf_token)
 
         async def event_stream():
             try:
@@ -1202,8 +1245,7 @@ def api():
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:
-                safe = str(e).replace("\\", "\\\\").replace('"', '\\"')
-                yield f'data: {{"stage":"error","error":"{safe}"}}\n\n'
+                yield _sse_error(e)
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -1211,16 +1253,7 @@ def api():
     async def run_dla_stream(request: DlaRequest):
         from fastapi.responses import StreamingResponse
 
-        entry = FEATURED_MODELS.get(request.model_name)
-        if entry is None:
-            validation = validate_hf_repo(request.model_name, hf_token=hf_token)
-            if not validation["valid"]:
-                raise HTTPException(status_code=400, detail=validation["reason"])
-            cls = _TIER_TO_CLS[validation["gpu_tier"]]
-            model_id = request.model_name
-        else:
-            cls = _TIER_TO_CLS[entry["gpu_tier"]]
-            model_id = entry["model_id"]
+        cls, model_id = _resolve_model(request.model_name, bump=False, hf_token=hf_token)
 
         async def event_stream():
             try:
@@ -1229,8 +1262,7 @@ def api():
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:
-                safe = str(e).replace("\\", "\\\\").replace('"', '\\"')
-                yield f'data: {{"stage":"error","error":"{safe}"}}\n\n'
+                yield _sse_error(e)
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -1238,16 +1270,7 @@ def api():
     async def run_attribution_stream(request: AttributionRequest):
         from fastapi.responses import StreamingResponse
 
-        entry = FEATURED_MODELS.get(request.model_name)
-        if entry is None:
-            validation = validate_hf_repo(request.model_name, hf_token=hf_token)
-            if not validation["valid"]:
-                raise HTTPException(status_code=400, detail=validation["reason"])
-            cls = _TIER_TO_CLS[_bump_tier(validation["gpu_tier"])]
-            model_id = request.model_name
-        else:
-            cls = _TIER_TO_CLS[_bump_tier(entry["gpu_tier"])]
-            model_id = entry["model_id"]
+        cls, model_id = _resolve_model(request.model_name, bump=True, hf_token=hf_token)
 
         async def event_stream():
             try:
@@ -1257,11 +1280,11 @@ def api():
                     request.target_position,
                     request.target_token,
                     request.contrastive_token,
+                    request.top_n,
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:
-                safe = str(e).replace("\\", "\\\\").replace('"', '\\"')
-                yield f'data: {{"stage":"error","error":"{safe}"}}\n\n'
+                yield _sse_error(e)
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -1269,16 +1292,7 @@ def api():
     async def run_activation_patch_stream(request: ActivationPatchRequest):
         from fastapi.responses import StreamingResponse
 
-        entry = FEATURED_MODELS.get(request.model_name)
-        if entry is None:
-            validation = validate_hf_repo(request.model_name, hf_token=hf_token)
-            if not validation["valid"]:
-                raise HTTPException(status_code=400, detail=validation["reason"])
-            cls = _TIER_TO_CLS[_bump_tier(validation["gpu_tier"])]
-            model_id = request.model_name
-        else:
-            cls = _TIER_TO_CLS[_bump_tier(entry["gpu_tier"])]
-            model_id = entry["model_id"]
+        cls, model_id = _resolve_model(request.model_name, bump=True, hf_token=hf_token)
 
         async def event_stream():
             try:
@@ -1293,8 +1307,7 @@ def api():
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:
-                safe = str(e).replace("\\", "\\\\").replace('"', '\\"')
-                yield f'data: {{"stage":"error","error":"{safe}"}}\n\n'
+                yield _sse_error(e)
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -1302,16 +1315,7 @@ def api():
     async def run_steering_stream(request: SteeringRequest):
         from fastapi.responses import StreamingResponse
 
-        entry = FEATURED_MODELS.get(request.model_name)
-        if entry is None:
-            validation = validate_hf_repo(request.model_name, hf_token=hf_token)
-            if not validation["valid"]:
-                raise HTTPException(status_code=400, detail=validation["reason"])
-            cls = _TIER_TO_CLS[validation["gpu_tier"]]
-            model_id = request.model_name
-        else:
-            cls = _TIER_TO_CLS[entry["gpu_tier"]]  # No _bump_tier — forward-pass only
-            model_id = entry["model_id"]
+        cls, model_id = _resolve_model(request.model_name, bump=False, hf_token=hf_token)  # forward-pass only
 
         async def event_stream():
             try:
@@ -1329,8 +1333,7 @@ def api():
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:
-                safe = str(e).replace("\\", "\\\\").replace('"', '\\"')
-                yield f'data: {{"stage":"error","error":"{safe}"}}\n\n'
+                yield _sse_error(e)
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 

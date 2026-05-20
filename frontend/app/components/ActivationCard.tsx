@@ -4,6 +4,7 @@ import React from "react";
 import { interpolateColorDivergent } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
 import type { SteeringComponent } from "./SteeringCard";
+import { CardDragHandle, CardErrorState } from "./CardShell";
 
 export type VerifiedComponent = {
   layer: number;
@@ -183,14 +184,7 @@ function ActivationCard({
           borderRadius: "8px 8px 0 0",
         }}
       >
-        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
-          <circle cx="2" cy="2" r="1.2" fill="currentColor" />
-          <circle cx="6" cy="2" r="1.2" fill="currentColor" />
-          <circle cx="2" cy="6" r="1.2" fill="currentColor" />
-          <circle cx="6" cy="6" r="1.2" fill="currentColor" />
-          <circle cx="2" cy="10" r="1.2" fill="currentColor" />
-          <circle cx="6" cy="10" r="1.2" fill="currentColor" />
-        </svg>
+        <CardDragHandle />
         <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0 }}>
           Activation Patch
         </span>
@@ -229,11 +223,7 @@ function ActivationCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && (
-        <div style={{ padding: "12px 14px" }}>
-          <p style={{ fontSize: 11, color: "#dc2626" }}>✗ {card.error ?? "Unknown error"}</p>
-        </div>
-      )}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (

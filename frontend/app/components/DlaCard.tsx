@@ -3,6 +3,7 @@
 import React from "react";
 import { interpolateColorDivergent, getContrastColor } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
+import { CardDragHandle, CardLoadingState, CardErrorState } from "./CardShell";
 
 export type DlaData = {
   target_token: string;
@@ -199,14 +200,7 @@ function DlaCard({
       >
         {/* Row 1: drag strip */}
         <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
-          <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
-            <circle cx="2" cy="2" r="1.2" fill="currentColor" />
-            <circle cx="6" cy="2" r="1.2" fill="currentColor" />
-            <circle cx="2" cy="6" r="1.2" fill="currentColor" />
-            <circle cx="6" cy="6" r="1.2" fill="currentColor" />
-            <circle cx="2" cy="10" r="1.2" fill="currentColor" />
-            <circle cx="6" cy="10" r="1.2" fill="currentColor" />
-          </svg>
+          <CardDragHandle />
           <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {card.modelName}
           </span>
@@ -280,26 +274,16 @@ function DlaCard({
               {formatElapsed(elapsedMs)}
             </span>
           </div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <div style={{ width: 20, height: 20, border: "2px solid var(--color-surface-border)", borderTopColor: "var(--color-accent)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-            <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
-              {getStageLabel(card.loadingStage, elapsedMs)}
-            </p>
-          </div>
-          {!card.loadingStage && elapsedMs > 30_000 && (
-            <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: 0, textAlign: "center", lineHeight: 1.5 }}>
-              First run warms the GPU container — large models can take up to 2 min.
-            </p>
-          )}
+          <CardLoadingState
+            stage={getStageLabel(card.loadingStage, elapsedMs)}
+            elapsed={elapsedMs}
+            warmup={!card.loadingStage && elapsedMs > 30_000}
+          />
         </div>
       )}
 
       {/* Error */}
-      {card.status === "error" && (
-        <div style={{ padding: "12px 14px" }}>
-          <p style={{ fontSize: 11, color: "#dc2626" }}>✗ {card.error ?? "Unknown error"}</p>
-        </div>
-      )}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (

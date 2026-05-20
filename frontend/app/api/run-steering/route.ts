@@ -3,36 +3,15 @@ import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/app/db";
 import { steeringCache } from "@/app/schema";
-import { auth } from "@/app/lib/auth";
 import { putHeatmap, getHeatmap } from "@/app/lib/r2";
 import { checkAndIncrementQuota } from "@/app/lib/quota";
-
-const SSE_HEADERS = {
-  "Content-Type": "text/event-stream",
-  "Cache-Control": "no-cache",
-  "Connection": "keep-alive",
-};
-
-async function* parseSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const parts = buffer.split("\n\n");
-      buffer = parts.pop() ?? "";
-      for (const part of parts) {
-        const line = part.split("\n").find((l) => l.startsWith("data: "));
-        if (line) yield line.slice(6);
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
+import {
+  SSE_HEADERS,
+  parseSSE,
+  requireAuth,
+  fetchUpstream,
+  validateGpuTier,
+} from "@/app/lib/api-helpers";
 
 export async function POST(request: NextRequest) {
   const {
@@ -45,6 +24,7 @@ export async function POST(request: NextRequest) {
     components,
     alpha,
     nTokens,
+    nPairs,
     extraPairs,
     temperature,
     repetitionPenalty,
@@ -58,21 +38,72 @@ export async function POST(request: NextRequest) {
     components: Array<{ layer: number; head: number | null; injectionType: string }>;
     alpha: number;
     nTokens: number;
+    nPairs?: number;
     extraPairs?: Array<{ clean: string; corrupted: string }>;
     temperature?: number;
     repetitionPenalty?: number;
   };
 
-  let session = null;
-  if (gpuTier !== "tl_small") {
-    session = await auth.api.getSession({ headers: request.headers });
-    if (!session) {
-      return new Response(
-        JSON.stringify({ error: "Sign in to access medium and large models" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      );
-    }
+  // Input validation
+  if (typeof modelName !== "string" || modelName.length < 1 || modelName.length > 200) {
+    return new Response(
+      JSON.stringify({ error: "modelName must be a string between 1 and 200 characters" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
   }
+  if (typeof cleanPrompt !== "string" || cleanPrompt.length < 1 || cleanPrompt.length > 8000) {
+    return new Response(
+      JSON.stringify({ error: "cleanPrompt must be a non-empty string of at most 8000 characters" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (
+    typeof corruptedPrompt !== "string" ||
+    corruptedPrompt.length < 1 ||
+    corruptedPrompt.length > 8000
+  ) {
+    return new Response(
+      JSON.stringify({
+        error: "corruptedPrompt must be a non-empty string of at most 8000 characters",
+      }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (!validateGpuTier(gpuTier)) {
+    return new Response(
+      JSON.stringify({ error: "gpuTier must be one of: tl_small, tl_medium, tl_large, tl_xlarge" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (!Number.isInteger(nTokens) || nTokens < 1 || nTokens > 500) {
+    return new Response(
+      JSON.stringify({ error: "nTokens must be an integer between 1 and 500" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (typeof alpha !== "number" || alpha < -100 || alpha > 100) {
+    return new Response(
+      JSON.stringify({ error: "alpha must be a number between -100 and 100" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  const resolvedTemperature = temperature ?? 1.0;
+  if (typeof resolvedTemperature !== "number" || resolvedTemperature < 0 || resolvedTemperature > 5) {
+    return new Response(
+      JSON.stringify({ error: "temperature must be a number between 0 and 5" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  if (nPairs !== undefined && (!Number.isInteger(nPairs) || nPairs < 1 || nPairs > 40)) {
+    return new Response(
+      JSON.stringify({ error: "nPairs must be an integer between 1 and 40" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const authResult = await requireAuth(gpuTier);
+  if (!("userId" in authResult)) return authResult;
+  const userId = authResult.userId;
 
   // Normalise arrays so the cache key is order-independent for semantically
   // commutative inputs. Components are summed; extra_pairs are averaged —
@@ -84,7 +115,6 @@ export async function POST(request: NextRequest) {
     ? [...extraPairs].sort((a, b) => (a.clean + a.corrupted).localeCompare(b.clean + b.corrupted))
     : [];
   const resolvedPosition = String(targetPosition);
-  const resolvedTemp = temperature ?? 1.0;
   const resolvedRep = repetitionPenalty ?? 1.3;
 
   const cacheKey = createHash("sha256")
@@ -96,7 +126,7 @@ export async function POST(request: NextRequest) {
     .update(JSON.stringify(sortedComponents))
     .update(String(alpha))
     .update(String(nTokens))
-    .update(String(resolvedTemp))
+    .update(String(resolvedTemperature))
     .update(String(resolvedRep))
     .update(JSON.stringify(sortedExtraPairs))
     .digest("hex");
@@ -119,8 +149,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Cache miss — check quota before spinning up a GPU container.
-  if (session?.user) {
-    const { allowed, count } = await checkAndIncrementQuota(session.user.id);
+  if (userId) {
+    const { allowed, count } = await checkAndIncrementQuota(userId);
     if (!allowed) {
       return new Response(
         JSON.stringify({
@@ -131,43 +161,27 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const upstream = await fetch(
+  const upstreamResult = await fetchUpstream(
     `${process.env.NEXT_PUBLIC_API_URL}/api/run-steering-stream`,
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model_name: modelName,
-        clean_prompt: cleanPrompt,
-        corrupted_prompt: corruptedPrompt,
-        generation_prompt: generationPrompt ?? null,
-        target_position: targetPosition,
-        components: components.map((c) => ({
-          layer: c.layer,
-          head: c.head,
-          injection_type: c.injectionType,
-        })),
-        alpha,
-        n_tokens: nTokens,
-        extra_pairs: extraPairs ?? null,
-        temperature: resolvedTemp,
-        repetition_penalty: resolvedRep,
-      }),
+      model_name: modelName,
+      clean_prompt: cleanPrompt,
+      corrupted_prompt: corruptedPrompt,
+      generation_prompt: generationPrompt ?? null,
+      target_position: targetPosition,
+      components: components.map((c) => ({
+        layer: c.layer,
+        head: c.head,
+        injection_type: c.injectionType,
+      })),
+      alpha,
+      n_tokens: nTokens,
+      extra_pairs: extraPairs ?? null,
+      temperature: resolvedTemperature,
+      repetition_penalty: resolvedRep,
     }
-  ).catch((err: unknown) => {
-    throw new Error(
-      `Could not reach inference backend: ${err instanceof Error ? err.message : err}`
-    );
-  });
-
-  if (!upstream.ok || !upstream.body) {
-    const errData = (await upstream.json().catch(() => ({}))) as { detail?: string };
-    const detail = errData.detail ?? `Upstream error ${upstream.status}`;
-    return new Response(
-      `data: ${JSON.stringify({ stage: "error", error: detail })}\n\n`,
-      { headers: SSE_HEADERS }
-    );
-  }
+  );
+  if (!upstreamResult.ok) return upstreamResult.errorResponse;
 
   const encoder = new TextEncoder();
   let doneData: unknown = null;
@@ -177,14 +191,9 @@ export async function POST(request: NextRequest) {
 
   (async () => {
     try {
-      for await (const eventData of parseSSE(upstream.body!)) {
-        await writer.write(encoder.encode(`data: ${eventData}\n\n`));
-        try {
-          const event = JSON.parse(eventData) as { stage: string; data?: unknown };
-          if (event.stage === "done") doneData = event.data;
-        } catch {
-          // Malformed chunk — skip.
-        }
+      for await (const event of parseSSE(upstreamResult.response.body!)) {
+        await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        if (event.stage === "done") doneData = event.data;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
