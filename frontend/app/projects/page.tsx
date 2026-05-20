@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useReducer, useRef, useCallback, startTransition, Suspense } from "react";
+import { useState, useEffect, useReducer, useRef, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SandboxCanvas from "../components/SandboxCanvas";
 import ConfigPane from "../components/ConfigPane";
@@ -10,13 +10,12 @@ import SteeringConfigPane from "../components/SteeringConfigPane";
 import Navbar from "../components/Navbar";
 import { ProjectSearch } from "../components/ProjectSearch";
 import type { LensCardData } from "../components/LensCard";
-import type { DlaCardData, DlaData } from "../components/DlaCard";
-import type { AttributionCardData, AttributionData } from "../components/AttributionCard";
-import type { ActivationCardData, ActivationPatchResult } from "../components/ActivationCard";
-import type { SteeringCardData, SteeringResult, SteeringComponent } from "../components/SteeringCard";
+import type { DlaCardData } from "../components/DlaCard";
+import type { AttributionCardData } from "../components/AttributionCard";
+import type { ActivationCardData } from "../components/ActivationCard";
+import type { SteeringCardData, SteeringComponent } from "../components/SteeringCard";
 import type { EntropyCardData } from "../components/EntropyCard";
 import { useSession } from "../lib/auth-client";
-import { readSSEStream } from "../lib/stream-sse";
 import {
   createProject,
   duplicateProject,
@@ -25,6 +24,10 @@ import {
   updateProject,
   setProjectShare,
 } from "../actions";
+import { useSSEHandlers } from "./hooks/useSSEHandlers";
+import { useSteeringHandlers } from "./hooks/useSteeringHandlers";
+import type { AppAction, AppState, AnyCard } from "./types";
+import { serializeCard, getCardPrompt } from "./helpers";
 
 type ModelInfo = {
   id: string;
@@ -33,62 +36,6 @@ type ModelInfo = {
   requires_hf_token: boolean;
   gpu_tier: string;
 };
-
-type HeatmapData = {
-  x_labels: string[];
-  y_labels: string[];
-  heatmap_data: number[][];
-  topk_tokens?: string[][][];
-  topk_probs?: number[][][];
-  kl_data?: number[][];
-  rank_data?: number[][];
-  entropy_data?: number[][];
-};
-
-type CanvasState = {
-  panOffset: { x: number; y: number };
-  zoom: number;
-};
-
-type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData | SteeringCardData | EntropyCardData;
-
-type AppState = {
-  lensCards: AnyCard[];
-  canvas: CanvasState;
-};
-
-type AppAction =
-  | { type: "ADD_CARD"; card: AnyCard }
-  | { type: "CARD_RESOLVED"; id: string; data: HeatmapData }
-  | { type: "DLA_CARD_RESOLVED"; id: string; data: DlaData }
-  | { type: "ATTRIBUTION_CARD_RESOLVED"; id: string; data: AttributionData }
-  | { type: "ACTIVATION_CARD_RESOLVED"; id: string; data: ActivationPatchResult; parentAttributionId: string }
-  | { type: "ATTRIBUTION_VERIFY_STARTED"; id: string; k: number; verifyCardId: string }
-  | { type: "ATTRIBUTION_VERIFY_DONE"; id: string }
-  | { type: "CARD_ERRORED"; id: string; error: string }
-  | { type: "CARD_STAGE"; id: string; stage: string }
-  | { type: "MOVE_CARD"; id: string; position: { x: number; y: number } }
-  | { type: "REMOVE_CARD"; id: string }
-  | { type: "SET_CANVAS"; canvas: CanvasState }
-  | { type: "LOAD_PROJECT"; cards: AnyCard[]; canvas: CanvasState }
-  | { type: "RESET_CANVAS" }
-  | { type: "STEERING_CARD_TOKEN"; id: string; token: string }
-  | { type: "STEERING_CARD_RESOLVED"; id: string; data: SteeringResult }
-  | { type: "STEERING_CARD_RERUN"; id: string; alpha: number }
-  | { type: "SPAWN_ENTROPY_CARD"; card: EntropyCardData };
-
-const CARD_COL_WIDTH = 360;
-const CARD_ROW_HEIGHT = 320;
-const GRID_MARGIN = 40;
-
-function autoArrangePos(index: number): { x: number; y: number } {
-  const col = index % 3;
-  const row = Math.floor(index / 3);
-  return {
-    x: GRID_MARGIN + col * (CARD_COL_WIDTH + GRID_MARGIN),
-    y: GRID_MARGIN + row * (CARD_ROW_HEIGHT + GRID_MARGIN),
-  };
-}
 
 const initialState: AppState = {
   lensCards: [],
@@ -207,31 +154,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-function serializeCard(c: AnyCard) {
-  if (c.cardType === "dla") {
-    return { id: c.id, cardType: "dla" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, contrastiveToken: c.contrastiveToken };
-  }
-  if (c.cardType === "attribution") {
-    return { id: c.id, cardType: "attribution" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, contrastiveToken: c.contrastiveToken };
-  }
-  if (c.cardType === "activation") {
-    return { id: c.id, cardType: "activation" as const, modelName: c.modelName, prompt: c.cleanPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, parentAttributionId: c.parentAttributionId };
-  }
-  if (c.cardType === "steering") {
-    return { id: c.id, cardType: "steering" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, generationPrompt: c.generationPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, components: c.components, alpha: c.alpha, nTokens: c.nTokens, nPairs: c.nPairs, extraPairs: c.extraPairs ?? [], parentCardId: c.parentCardId };
-  }
-  if (c.cardType === "entropy") {
-    return { id: c.id, cardType: "entropy" as const, modelName: c.modelName, prompt: c.prompt, data: {} as Record<string, unknown>, position: c.position, parentLensId: c.parentLensId, entropyData: c.entropyData, xLabels: c.xLabels, yLabels: c.yLabels };
-  }
-  const lensCard = c as LensCardData;
-  return { id: lensCard.id, cardType: "logit-lens" as const, modelName: lensCard.modelName, prompt: lensCard.prompt, data: lensCard.data as Record<string, unknown>, position: lensCard.position, gpuTier: lensCard.gpuTier, topK: lensCard.topK };
-}
-
-function getCardPrompt(c: AnyCard): string {
-  if (c.cardType === "attribution" || c.cardType === "activation" || c.cardType === "steering") return c.cleanPrompt;
-  return (c as LensCardData | DlaCardData).prompt;
-}
-
 function Projects() {
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
@@ -259,6 +181,8 @@ function Projects() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session } = useSession();
+  const sseHandlers = useSSEHandlers({ dispatch, projectIdRef, stateRef });
+  const steeringHandlers = useSteeringHandlers({ dispatch, projectIdRef, stateRef });
 
   // Close add dropdown + sub-panes on outside click
   useEffect(() => {
@@ -398,505 +322,33 @@ function Projects() {
       .finally(() => setModelsLoading(false));
   }, []);
 
-  const handleAddLens = ({ modelName, prompt, gpuTier, topK }: { modelName: string; prompt: string; gpuTier?: string; topK: number }) => {
+  const handleAddLens = (args: Parameters<typeof sseHandlers.addLens>[0]) => {
     setConfigOpen(false);
-
-    const id = crypto.randomUUID();
-    const card: LensCardData = {
-      id,
-      cardType: "logit-lens",
-      status: "loading",
-      modelName,
-      prompt,
-      topK,
-      data: null,
-      error: null,
-      position: autoArrangePos(state.lensCards.length),
-      gpuTier,
-      startedAt: Date.now(),
-    };
-
-    dispatch({ type: "ADD_CARD", card });
-
-    fetch("/api/run-lens", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, modelName, gpuTier, topK }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const message = response.status === 401
-            ? (err.error ?? "Sign in to use medium and large models")
-            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
-          dispatch({ type: "CARD_ERRORED", id, error: message });
-          return;
-        }
-
-        for await (const event of readSSEStream(response)) {
-          if (event.stage === "done" && event.data) {
-            const data = event.data as HeatmapData;
-            dispatch({ type: "CARD_RESOLVED", id, data });
-            const pid = projectIdRef.current;
-            if (pid) {
-              const existingResult = stateRef.current.lensCards
-                .filter(c => c.status === "result")
-                .map(serializeCard);
-              updateProject(pid, [...existingResult, { id, cardType: "logit-lens" as const, modelName, prompt, topK, data: data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas)
-                .catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
-          } else {
-            dispatch({ type: "CARD_STAGE", id, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
+    sseHandlers.addLens(args);
   };
 
-  const handleSpawnEntropyCard = useCallback((lensCardId: string) => {
-    const lensCard = stateRef.current.lensCards.find(c => c.id === lensCardId) as LensCardData | undefined;
-    if (!lensCard?.data?.entropy_data) return;
+  const handleSpawnEntropyCard = sseHandlers.spawnEntropyCard;
 
-    const entropyCard: EntropyCardData = {
-      id: crypto.randomUUID(),
-      cardType: "entropy",
-      status: "result",
-      modelName: lensCard.modelName,
-      prompt: lensCard.prompt,
-      position: { x: lensCard.position.x + 320, y: lensCard.position.y - 140 },
-      parentLensId: lensCardId,
-      entropyData: lensCard.data.entropy_data,
-      yLabels: lensCard.data.y_labels,
-      xLabels: lensCard.data.x_labels,
-    };
-
-    dispatch({ type: "SPAWN_ENTROPY_CARD", card: entropyCard });
-
-    const pid = projectIdRef.current;
-    if (pid) {
-      const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-      updateProject(pid, [...existingResult, { id: entropyCard.id, cardType: "entropy" as const, modelName: entropyCard.modelName, prompt: entropyCard.prompt, data: {}, position: entropyCard.position, parentLensId: lensCardId, entropyData: entropyCard.entropyData, xLabels: entropyCard.xLabels, yLabels: entropyCard.yLabels }], stateRef.current.canvas).catch(console.error);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleAddDla = ({ modelName, prompt, gpuTier, targetPosition, targetToken, contrastiveToken }: {
-    modelName: string; prompt: string; gpuTier?: string;
-    targetPosition: number | "last"; targetToken: string | null; contrastiveToken: string | null;
-  }) => {
+  const handleAddDla = (args: Parameters<typeof sseHandlers.addDla>[0]) => {
     setDlaOpen(false);
-
-    const id = crypto.randomUUID();
-    const card: DlaCardData = {
-      id,
-      cardType: "dla",
-      status: "loading",
-      modelName,
-      prompt,
-      data: null,
-      error: null,
-      position: autoArrangePos(state.lensCards.length),
-      gpuTier,
-      startedAt: Date.now(),
-      targetPosition,
-      targetToken,
-      contrastiveToken,
-    };
-
-    dispatch({ type: "ADD_CARD", card });
-
-    fetch("/api/run-dla", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const message = response.status === 401
-            ? (err.error ?? "Sign in to use medium and large models")
-            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
-          dispatch({ type: "CARD_ERRORED", id, error: message });
-          return;
-        }
-
-        for await (const event of readSSEStream(response)) {
-          if (event.stage === "done" && event.data) {
-            const data = event.data as DlaData;
-            dispatch({ type: "DLA_CARD_RESOLVED", id, data });
-            const pid = projectIdRef.current;
-            if (pid) {
-              const existingResult = stateRef.current.lensCards
-                .filter(c => c.status === "result")
-                .map(serializeCard);
-              updateProject(pid, [...existingResult, { id, cardType: "dla" as const, modelName, prompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas)
-                .catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
-          } else {
-            dispatch({ type: "CARD_STAGE", id, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
+    sseHandlers.addDla(args);
   };
 
-  const handleAddAttribution = ({ modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, targetToken, contrastiveToken }: {
-    modelName: string; cleanPrompt: string; corruptedPrompt: string; gpuTier?: string;
-    targetPosition: number | "last"; targetToken: string | null; contrastiveToken: string | null;
-  }) => {
+  const handleAddAttribution = (args: Parameters<typeof sseHandlers.addAttribution>[0]) => {
     setAttributionOpen(false);
-
-    const id = crypto.randomUUID();
-    const card: AttributionCardData = {
-      id,
-      cardType: "attribution",
-      status: "loading",
-      modelName,
-      cleanPrompt,
-      corruptedPrompt,
-      data: null,
-      error: null,
-      position: autoArrangePos(stateRef.current.lensCards.length),
-      gpuTier,
-      startedAt: Date.now(),
-      targetPosition,
-      targetToken,
-      contrastiveToken,
-      verifyStatus: "idle",
-    };
-
-    dispatch({ type: "ADD_CARD", card });
-
-    fetch("/api/run-attribution", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const message = response.status === 401
-            ? (err.error ?? "Sign in to use medium and large models")
-            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
-          dispatch({ type: "CARD_ERRORED", id, error: message });
-          return;
-        }
-
-        for await (const event of readSSEStream(response)) {
-          if (event.stage === "done" && event.data) {
-            const data = event.data as AttributionData;
-            dispatch({ type: "ATTRIBUTION_CARD_RESOLVED", id, data });
-            const pid = projectIdRef.current;
-            if (pid) {
-              const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-              updateProject(pid, [...existingResult, { id, cardType: "attribution" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
-          } else {
-            dispatch({ type: "CARD_STAGE", id, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
+    sseHandlers.addAttribution(args);
   };
 
-  const handleVerifyTopK = (attributionCardId: string, k: number) => {
-    const attrCard = stateRef.current.lensCards.find(c => c.id === attributionCardId && c.cardType === "attribution") as AttributionCardData | undefined;
-    if (!attrCard?.data) return;
+  const handleVerifyTopK = sseHandlers.verifyTopK;
 
-    const activationId = crypto.randomUUID();
-    const activationCard: ActivationCardData = {
-      id: activationId,
-      cardType: "activation",
-      status: "loading",
-      modelName: attrCard.modelName,
-      cleanPrompt: attrCard.cleanPrompt,
-      k,
-      parentAttributionId: attributionCardId,
-      data: null,
-      error: null,
-      position: { x: attrCard.position.x + 420, y: attrCard.position.y },
-      gpuTier: attrCard.gpuTier,
-      startedAt: Date.now(),
-    };
+  const handleSteerComponents = steeringHandlers.steerComponents;
 
-    dispatch({ type: "ADD_CARD", card: activationCard });
-    dispatch({ type: "ATTRIBUTION_VERIFY_STARTED", id: attributionCardId, k, verifyCardId: activationId });
+  const handleRerunSteering = steeringHandlers.rerunSteering;
 
-    const components = attrCard.data.top_k_components;
-    const targetTokenIdx = attrCard.data.target_token_idx;
-    const contrastiveTokenIdx = attrCard.data.contrastive_token_idx ?? null;
-
-    fetch("/api/run-activation-patch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cleanPrompt: attrCard.cleanPrompt,
-        corruptedPrompt: attrCard.corruptedPrompt,
-        modelName: attrCard.modelName,
-        gpuTier: attrCard.gpuTier,
-        targetPosition: attrCard.targetPosition,
-        targetTokenIdx,
-        contrastiveTokenIdx,
-        components,
-        k,
-      }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const message = response.status === 401
-            ? (err.error ?? "Sign in to use medium and large models")
-            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
-          dispatch({ type: "CARD_ERRORED", id: activationId, error: message });
-          dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
-          return;
-        }
-
-        for await (const event of readSSEStream(response)) {
-          if (event.stage === "done" && event.data) {
-            const data = event.data as ActivationPatchResult;
-            dispatch({ type: "ACTIVATION_CARD_RESOLVED", id: activationId, data, parentAttributionId: attributionCardId });
-            const pid = projectIdRef.current;
-            if (pid) {
-              const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-              updateProject(pid, [...existingResult, { id: activationId, cardType: "activation" as const, modelName: attrCard.modelName, prompt: attrCard.cleanPrompt, data: data as Record<string, unknown>, position: activationCard.position, gpuTier: attrCard.gpuTier, parentAttributionId: attributionCardId }], stateRef.current.canvas).catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id: activationId, error: event.error ?? "Unknown error" });
-            dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
-          } else {
-            dispatch({ type: "CARD_STAGE", id: activationId, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => {
-        dispatch({ type: "CARD_ERRORED", id: activationId, error: err instanceof Error ? err.message : "Unknown error" });
-        dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
-      });
-  };
-
-  const handleSteerComponents = useCallback((sourceCardId: string, components: SteeringComponent[]) => {
-    const sourceCard = stateRef.current.lensCards.find(c => c.id === sourceCardId);
-    if (!sourceCard) return;
-
-    let cleanPrompt: string;
-    let corruptedPrompt: string;
-    let targetPosition: number | "last";
-    let targetToken: string | null;
-    let modelName: string;
-    let gpuTier: string | undefined;
-
-    if (sourceCard.cardType === "attribution") {
-      cleanPrompt = sourceCard.cleanPrompt;
-      corruptedPrompt = sourceCard.corruptedPrompt;
-      targetPosition = sourceCard.targetPosition;
-      targetToken = sourceCard.targetToken;
-      modelName = sourceCard.modelName;
-      gpuTier = sourceCard.gpuTier;
-    } else if (sourceCard.cardType === "activation") {
-      const parentAttr = stateRef.current.lensCards.find(
-        c => c.id === sourceCard.parentAttributionId && c.cardType === "attribution"
-      ) as AttributionCardData | undefined;
-      if (!parentAttr) return;
-      cleanPrompt = sourceCard.cleanPrompt;
-      corruptedPrompt = parentAttr.corruptedPrompt;
-      targetPosition = parentAttr.targetPosition;
-      targetToken = parentAttr.targetToken;
-      modelName = sourceCard.modelName;
-      gpuTier = sourceCard.gpuTier;
-    } else {
-      return;
-    }
-
-    const steeringId = crypto.randomUUID();
-    const steeringCard: SteeringCardData = {
-      id: steeringId,
-      cardType: "steering",
-      status: "loading",
-      modelName,
-      cleanPrompt,
-      corruptedPrompt,
-      generationPrompt: undefined,
-      targetPosition,
-      targetToken,
-      components,
-      alpha: 1.0,
-      temperature: 1.0,
-      repetitionPenalty: 1.3,
-      nTokens: 50,
-      nPairs: 1,
-      extraPairs: [],
-      parentCardId: sourceCardId,
-      data: null,
-      error: null,
-      position: { x: sourceCard.position.x + 440, y: sourceCard.position.y },
-      gpuTier,
-      startedAt: Date.now(),
-    };
-
-    dispatch({ type: "ADD_CARD", card: steeringCard });
-
-    fetch("/api/run-steering", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 50, temperature: 1.0, repetitionPenalty: 1.3 }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const message = response.status === 401
-            ? (err.error ?? "Sign in to use medium and large models")
-            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
-          dispatch({ type: "CARD_ERRORED", id: steeringId, error: message });
-          return;
-        }
-
-        for await (const event of readSSEStream(response)) {
-          const evData = event.data as (SteeringResult & { token?: string; index?: number }) | undefined;
-          if (event.stage === "token" && evData?.token !== undefined) {
-            startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: evData.token! }));
-          } else if (event.stage === "done" && evData) {
-            dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: evData as SteeringResult });
-            const pid = projectIdRef.current;
-            if (pid) {
-              const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-              updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: evData as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken, components, alpha: 1.0, temperature: 1.0, repetitionPenalty: 1.3, nTokens: 50, nPairs: 1, extraPairs: [], parentCardId: sourceCardId }], stateRef.current.canvas).catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id: steeringId, error: event.error ?? "Unknown error" });
-          } else {
-            dispatch({ type: "CARD_STAGE", id: steeringId, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => dispatch({ type: "CARD_ERRORED", id: steeringId, error: err instanceof Error ? err.message : "Unknown error" }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleRerunSteering = useCallback((cardId: string, newAlpha: number) => {
-    const card = stateRef.current.lensCards.find(c => c.id === cardId && c.cardType === "steering") as SteeringCardData | undefined;
-    if (!card || card.status === "loading") return;
-    dispatch({ type: "STEERING_CARD_RERUN", id: cardId, alpha: newAlpha });
-    const { modelName, cleanPrompt, corruptedPrompt, generationPrompt, gpuTier, targetPosition, components, temperature, repetitionPenalty, extraPairs } = card;
-    fetch("/api/run-steering", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cleanPrompt, corruptedPrompt, generationPrompt, modelName, gpuTier, targetPosition, components, alpha: newAlpha, nTokens: card.nTokens, temperature, repetitionPenalty, extraPairs: extraPairs?.length ? extraPairs : null }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const message = response.status === 401
-            ? (err.error ?? "Sign in to use medium and large models")
-            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
-          dispatch({ type: "CARD_ERRORED", id: cardId, error: message });
-          return;
-        }
-        for await (const event of readSSEStream(response)) {
-          const evData = event.data as (SteeringResult & { token?: string }) | undefined;
-          if (event.stage === "token" && evData?.token !== undefined) {
-            startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: cardId, token: evData.token! }));
-          } else if (event.stage === "done" && evData) {
-            dispatch({ type: "STEERING_CARD_RESOLVED", id: cardId, data: evData as SteeringResult });
-            const pid = projectIdRef.current;
-            if (pid) {
-              const updatedCards = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-              updateProject(pid, updatedCards, stateRef.current.canvas).catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id: cardId, error: event.error ?? "Unknown error" });
-          } else {
-            dispatch({ type: "CARD_STAGE", id: cardId, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => dispatch({ type: "CARD_ERRORED", id: cardId, error: err instanceof Error ? err.message : "Unknown error" }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleAddStandaloneSteer = useCallback(({ modelName, cleanPrompt, corruptedPrompt, generationPrompt, gpuTier, targetPosition, injectionLayer, extraPairs, temperature, repetitionPenalty }: {
-    modelName: string;
-    cleanPrompt: string;
-    corruptedPrompt: string;
-    generationPrompt: string;
-    gpuTier?: string;
-    targetPosition: number | "last";
-    injectionLayer: number;
-    extraPairs?: Array<{ clean: string; corrupted: string }>;
-    temperature: number;
-    repetitionPenalty: number;
-  }) => {
+  const handleAddStandaloneSteer = (args: Parameters<typeof steeringHandlers.addStandaloneSteer>[0]) => {
     setSteeringOpen(false);
-    const components: SteeringComponent[] = [{ layer: injectionLayer, head: null, injectionType: "residual" }];
-    const nPairs = 1 + (extraPairs?.length ?? 0);
-    const steeringId = crypto.randomUUID();
-    const steeringCard: SteeringCardData = {
-      id: steeringId,
-      cardType: "steering",
-      status: "loading",
-      modelName,
-      cleanPrompt,
-      corruptedPrompt,
-      generationPrompt,
-      targetPosition,
-      targetToken: null,
-      components,
-      alpha: 1.0,
-      temperature,
-      repetitionPenalty,
-      nTokens: 50,
-      nPairs,
-      extraPairs: extraPairs ?? [],
-      parentCardId: "",
-      data: null,
-      error: null,
-      position: autoArrangePos(stateRef.current.lensCards.length),
-      gpuTier,
-      startedAt: Date.now(),
-    };
-    dispatch({ type: "ADD_CARD", card: steeringCard });
-
-    fetch("/api/run-steering", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cleanPrompt, corruptedPrompt, generationPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 50, extraPairs: extraPairs ?? null, temperature, repetitionPenalty }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const message = response.status === 401
-            ? (err.error ?? "Sign in to use medium and large models")
-            : (err.detail ?? err.error ?? `Request failed (${response.status})`);
-          dispatch({ type: "CARD_ERRORED", id: steeringId, error: message });
-          return;
-        }
-        for await (const event of readSSEStream(response)) {
-          const evData = event.data as (SteeringResult & { token?: string; index?: number }) | undefined;
-          if (event.stage === "token" && evData?.token !== undefined) {
-            startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: evData.token! }));
-          } else if (event.stage === "done" && evData) {
-            dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: evData as SteeringResult });
-            const pid = projectIdRef.current;
-            if (pid) {
-              const existingResult = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-              updateProject(pid, [...existingResult, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, generationPrompt, data: evData as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken: null, components, alpha: 1.0, temperature, repetitionPenalty, nTokens: 50, nPairs, extraPairs: extraPairs ?? [], parentCardId: "" }], stateRef.current.canvas).catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id: steeringId, error: event.error ?? "Unknown error" });
-          } else {
-            dispatch({ type: "CARD_STAGE", id: steeringId, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => dispatch({ type: "CARD_ERRORED", id: steeringId, error: err instanceof Error ? err.message : "Unknown error" }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    steeringHandlers.addStandaloneSteer(args);
+  };
 
   async function handleNew() {
     if (!session?.user) return;
