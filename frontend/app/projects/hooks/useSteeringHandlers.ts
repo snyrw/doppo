@@ -77,7 +77,6 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
         }
       })
       .catch(err => dispatch({ type: "CARD_ERRORED", id: steeringId, error: err instanceof Error ? err.message : "Unknown error" }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, projectIdRef, stateRef]);
 
   const rerunSteering = useCallback((cardId: string, newAlpha: number) => {
@@ -116,7 +115,6 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
         }
       })
       .catch(err => dispatch({ type: "CARD_ERRORED", id: cardId, error: err instanceof Error ? err.message : "Unknown error" }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, projectIdRef, stateRef]);
 
   const addStandaloneSteer = useCallback(({ modelName, cleanPrompt, corruptedPrompt, generationPrompt, gpuTier, targetPosition, injectionLayer, extraPairs, temperature, repetitionPenalty }: {
@@ -168,7 +166,6 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
         }
       })
       .catch(err => dispatch({ type: "CARD_ERRORED", id: steeringId, error: err instanceof Error ? err.message : "Unknown error" }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, projectIdRef, stateRef]);
 
   return { steerComponents, rerunSteering, addStandaloneSteer };

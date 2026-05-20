@@ -61,7 +61,6 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
         }
       })
       .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, projectIdRef, stateRef]);
 
   const addDla = useCallback(({ modelName, prompt, gpuTier, targetPosition, targetToken, contrastiveToken }: {
@@ -104,7 +103,6 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
         }
       })
       .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, projectIdRef, stateRef]);
 
   const addAttribution = useCallback(({ modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, targetToken, contrastiveToken }: {
@@ -147,7 +145,6 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
         }
       })
       .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, projectIdRef, stateRef]);
 
   const verifyTopK = useCallback((attributionCardId: string, k: number) => {
@@ -200,7 +197,6 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
         dispatch({ type: "CARD_ERRORED", id: activationId, error: err instanceof Error ? err.message : "Unknown error" });
         dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, projectIdRef, stateRef]);
 
   const spawnEntropyCard = useCallback((lensCardId: string) => {
@@ -221,7 +217,6 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
       updateProject(pid, [...existing, { id: entropyCard.id, cardType: "entropy" as const, modelName: entropyCard.modelName, prompt: entropyCard.prompt, data: {}, position: entropyCard.position, parentLensId: lensCardId, entropyData: entropyCard.entropyData, xLabels: entropyCard.xLabels, yLabels: entropyCard.yLabels }], stateRef.current.canvas).catch(console.error);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, projectIdRef, stateRef]);
 
   return { addLens, addDla, addAttribution, verifyTopK, spawnEntropyCard };
