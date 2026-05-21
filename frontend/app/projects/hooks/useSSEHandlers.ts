@@ -9,6 +9,7 @@ import type { DlaCardData, DlaData } from "@/app/components/DlaCard";
 import type { AttributionCardData, AttributionData } from "@/app/components/AttributionCard";
 import type { ActivationCardData, ActivationPatchResult } from "@/app/components/ActivationCard";
 import type { EntropyCardData } from "@/app/components/EntropyCard";
+import type { AttentionCardData, AttentionData } from "@/app/components/AttentionCard";
 
 type Deps = {
   dispatch: Dispatch<AppAction>;
@@ -219,5 +220,46 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
     }
   }, [dispatch, projectIdRef, stateRef]);
 
-  return { addLens, addDla, addAttribution, verifyTopK, spawnEntropyCard };
+  const addAttn = useCallback(({ modelName, prompt, gpuTier }: {
+    modelName: string; prompt: string; gpuTier?: string;
+  }) => {
+    const id = crypto.randomUUID();
+    const card: AttentionCardData = {
+      id, cardType: "attention-pattern", status: "loading", modelName, prompt,
+      data: null, error: null,
+      position: autoArrangePos(stateRef.current.lensCards.length),
+      gpuTier, startedAt: Date.now(),
+    };
+    dispatch({ type: "ADD_CARD", card });
+    fetch("/api/run-attn", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, modelName, gpuTier }),
+    })
+      .then(async (response) => {
+        if (!response.ok || !response.body) {
+          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
+          dispatch({ type: "CARD_ERRORED", id, error: handleFetchError(response, err) });
+          return;
+        }
+        for await (const event of readSSEStream(response)) {
+          if (event.stage === "done" && event.data) {
+            const data = event.data as AttentionData;
+            dispatch({ type: "ATTENTION_CARD_RESOLVED", id, data });
+            const pid = projectIdRef.current;
+            if (pid) {
+              const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+              updateProject(pid, [...existing, { id, cardType: "attention-pattern" as const, modelName, prompt, data: data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas).catch(console.error);
+            }
+          } else if (event.stage === "error") {
+            dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
+          } else {
+            dispatch({ type: "CARD_STAGE", id, stage: event.stage });
+          }
+        }
+      })
+      .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
+  }, [dispatch, projectIdRef, stateRef]);
+
+  return { addLens, addDla, addAttribution, verifyTopK, spawnEntropyCard, addAttn };
 }
