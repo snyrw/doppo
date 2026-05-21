@@ -7,6 +7,7 @@ import type { DlaCardData } from "../../components/DlaCard";
 import type { AttributionCardData } from "../../components/AttributionCard";
 import type { ActivationCardData } from "../../components/ActivationCard";
 import type { SteeringCardData, SteeringComponent } from "../../components/SteeringCard";
+import type { AttentionCardData, AttentionData } from "../../components/AttentionCard";
 import type { AnyCard } from "../../components/SandboxCanvas";
 
 export default async function SharePage({
@@ -46,6 +47,15 @@ export default async function SharePage({
         parentCardId: c.parentCardId ?? "",
         streamingText: undefined,
       } as unknown as SteeringCardData;
+    }
+    if (c.cardType === "attention-pattern") {
+      return {
+        ...c,
+        cardType: "attention-pattern" as const,
+        status: "result" as const,
+        error: null,
+        data: (c.data ?? null) as AttentionData | null,
+      } as AttentionCardData;
     }
     return { ...c, cardType: "logit-lens" as const, status: "result" as const, error: null } as LensCardData;
   });
