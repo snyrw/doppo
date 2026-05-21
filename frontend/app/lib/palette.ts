@@ -96,3 +96,10 @@ export function getContrastColor(palette: PaletteName, prob: number): string {
   const lum = 0.2126 * (r / 255) + 0.7152 * (g / 255) + 0.0722 * (b / 255);
   return lum > 0.35 ? "#1c1c1c" : "#ecebe4";
 }
+
+export function getHeadColor(headIdx: number, nHeads: number, weight: number): string {
+  const hue = (headIdx * 360) / Math.max(nHeads, 1);
+  const saturation = weight * 80;
+  const lightness = 95 - weight * 70;
+  return `hsl(${hue.toFixed(1)}, ${saturation.toFixed(1)}%, ${lightness.toFixed(1)}%)`;
+}
