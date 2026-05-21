@@ -50,7 +50,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType !== "dla" && c.cardType !== "attribution" && c.cardType !== "activation" && c.cardType !== "steering" && c.cardType !== "entropy"
+          c.id === action.id && c.cardType !== "dla" && c.cardType !== "attribution" && c.cardType !== "activation" && c.cardType !== "steering" && c.cardType !== "entropy" && c.cardType !== "attention-pattern"
             ? { ...c, status: "result" as const, data: action.data } : c
         ),
       };
@@ -80,6 +80,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
             return { ...c, verifyStatus: "done" as const };
           return c;
         }),
+      };
+    case "ATTENTION_CARD_RESOLVED":
+      return {
+        ...state,
+        lensCards: state.lensCards.map(c =>
+          c.id === action.id && c.cardType === "attention-pattern" ? { ...c, status: "result" as const, data: action.data } : c
+        ),
       };
     case "ATTRIBUTION_VERIFY_STARTED":
       return {

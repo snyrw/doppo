@@ -7,6 +7,7 @@ import AttributionCard, { type AttributionCardData } from "./AttributionCard";
 import ActivationCard, { type ActivationCardData } from "./ActivationCard";
 import SteeringCard, { type SteeringCardData, type SteeringComponent } from "./SteeringCard";
 import EntropyCard, { type EntropyCardData } from "./EntropyCard";
+import AttentionCard, { type AttentionCardData } from "./AttentionCard";
 import { useCanvasPan } from "../hooks/useCanvasPan";
 import { useCardDrag } from "../hooks/useCardDrag";
 
@@ -18,7 +19,7 @@ type CanvasState = {
   zoom: number;
 };
 
-export type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData | SteeringCardData | EntropyCardData;
+export type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData | SteeringCardData | EntropyCardData | AttentionCardData;
 
 type SandboxCanvasProps = {
   cards: AnyCard[];
@@ -158,6 +159,8 @@ export default function SandboxCanvas({
         return <SteeringCard key={card.id} {...sharedProps} card={card} onRerun={onRerunSteering} />;
       case "entropy":
         return <EntropyCard key={card.id} {...sharedProps} card={card as EntropyCardData} />;
+      case "attention-pattern":
+        return <AttentionCard key={card.id} {...sharedProps} card={card as AttentionCardData} />;
       default:
         return <LensCard key={card.id} {...sharedProps} card={card as LensCardData} onSpawnEntropy={() => onSpawnEntropyCard(card.id)} />;
     }
