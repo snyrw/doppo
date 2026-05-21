@@ -7,6 +7,7 @@ import ConfigPane from "../components/ConfigPane";
 import DlaConfigPane from "../components/DlaConfigPane";
 import AttributionConfigPane from "../components/AttributionConfigPane";
 import SteeringConfigPane from "../components/SteeringConfigPane";
+import AttentionConfigPane from "../components/AttentionConfigPane";
 import Navbar from "../components/Navbar";
 import { ProjectSearch } from "../components/ProjectSearch";
 import type { LensCardData } from "../components/LensCard";
@@ -15,6 +16,7 @@ import type { AttributionCardData } from "../components/AttributionCard";
 import type { ActivationCardData } from "../components/ActivationCard";
 import type { SteeringCardData, SteeringComponent } from "../components/SteeringCard";
 import type { EntropyCardData } from "../components/EntropyCard";
+import type { AttentionCardData, AttentionData } from "../components/AttentionCard";
 import { useSession } from "../lib/auth-client";
 import {
   createProject,
@@ -169,6 +171,7 @@ function Projects() {
   const [dlaOpen, setDlaOpen] = useState(false);
   const [attributionOpen, setAttributionOpen] = useState(false);
   const [steeringOpen, setSteeringOpen] = useState(false);
+  const [attentionOpen, setAttentionOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -193,7 +196,7 @@ function Projects() {
 
   // Close add dropdown + sub-panes on outside click
   useEffect(() => {
-    if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen) return;
+    if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen && !attentionOpen) return;
     function handleClickOutside(e: MouseEvent) {
       if (addRef.current && !addRef.current.contains(e.target as Node)) {
         setAddOpen(false);
@@ -201,11 +204,12 @@ function Projects() {
         setDlaOpen(false);
         setAttributionOpen(false);
         setSteeringOpen(false);
+        setAttentionOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [addOpen, configOpen, dlaOpen, attributionOpen, steeringOpen]);
+  }, [addOpen, configOpen, dlaOpen, attributionOpen, steeringOpen, attentionOpen]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -276,6 +280,15 @@ function Projects() {
             xLabels: (c.xLabels ?? []) as string[],
             yLabels: (c.yLabels ?? []) as string[],
           } as EntropyCardData;
+        }
+        if (c.cardType === "attention-pattern") {
+          return {
+            ...c,
+            cardType: "attention-pattern" as const,
+            status: "result" as const,
+            error: null,
+            data: (c.data ?? null) as AttentionData | null,
+          } as AttentionCardData;
         }
         return { ...c, cardType: "logit-lens" as const, status: "result" as const, error: null, topK: c.topK ?? 5 } as LensCardData;
       });
@@ -355,6 +368,11 @@ function Projects() {
   const handleAddStandaloneSteer = (args: Parameters<typeof steeringHandlers.addStandaloneSteer>[0]) => {
     setSteeringOpen(false);
     steeringHandlers.addStandaloneSteer(args);
+  };
+
+  const handleAddAttn = (args: Parameters<typeof sseHandlers.addAttn>[0]) => {
+    setAttentionOpen(false);
+    sseHandlers.addAttn(args);
   };
 
   async function handleNew() {
@@ -442,9 +460,9 @@ function Projects() {
           <div ref={addRef} style={{ position: "relative" }}>
             {/* "Add +" button */}
             <button
-              onClick={() => { setAddOpen(o => !o); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); setSteeringOpen(false); }}
+              onClick={() => { setAddOpen(o => !o); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); setSteeringOpen(false); setAttentionOpen(false); }}
               style={{
-                background: (addOpen || configOpen || dlaOpen || attributionOpen || steeringOpen) ? "var(--color-accent-hover)" : "var(--color-accent)",
+                background: (addOpen || configOpen || dlaOpen || attributionOpen || steeringOpen || attentionOpen) ? "var(--color-accent-hover)" : "var(--color-accent)",
                 color: "var(--color-accent-fg)",
                 border: "none",
                 borderRadius: 6,
@@ -459,8 +477,8 @@ function Projects() {
                 gap: 6,
                 letterSpacing: "0.01em",
               }}
-              onMouseEnter={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-              onMouseLeave={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+              onMouseEnter={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen && !attentionOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+              onMouseLeave={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen && !attentionOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
             >
               <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
               Add
@@ -484,7 +502,7 @@ function Projects() {
               }}>
                 <style>{`@keyframes cfgDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
                 <button
-                  onClick={() => { setAddOpen(false); setConfigOpen(true); setDlaOpen(false); setAttributionOpen(false); setSteeringOpen(false); }}
+                  onClick={() => { setAddOpen(false); setConfigOpen(true); setDlaOpen(false); setAttributionOpen(false); setSteeringOpen(false); setAttentionOpen(false); }}
                   style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: "6px 6px 0 0", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
@@ -493,7 +511,7 @@ function Projects() {
                   <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Layer-by-layer predictions</span>
                 </button>
                 <button
-                  onClick={() => { setAddOpen(false); setDlaOpen(true); setConfigOpen(false); setAttributionOpen(false); setSteeringOpen(false); }}
+                  onClick={() => { setAddOpen(false); setDlaOpen(true); setConfigOpen(false); setAttributionOpen(false); setSteeringOpen(false); setAttentionOpen(false); }}
                   style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: 0, padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
@@ -502,7 +520,7 @@ function Projects() {
                   <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Direct attribution per component</span>
                 </button>
                 <button
-                  onClick={() => { setAddOpen(false); setAttributionOpen(true); setConfigOpen(false); setDlaOpen(false); setSteeringOpen(false); }}
+                  onClick={() => { setAddOpen(false); setAttributionOpen(true); setConfigOpen(false); setDlaOpen(false); setSteeringOpen(false); setAttentionOpen(false); }}
                   style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: 0, padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
@@ -511,13 +529,22 @@ function Projects() {
                   <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Map behavioral difference → verify causally</span>
                 </button>
                 <button
-                  onClick={() => { setAddOpen(false); setSteeringOpen(true); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); }}
-                  style={{ background: "var(--color-card)", border: "none", borderRadius: "0 0 6px 6px", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
+                  onClick={() => { setAddOpen(false); setSteeringOpen(true); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); setAttentionOpen(false); }}
+                  style={{ background: "var(--color-card)", border: "none", borderRadius: 0, padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
                 >
                   <span>Steer</span>
                   <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>DIM vector injection from contrastive pair</span>
+                </button>
+                <button
+                  onClick={() => { setAddOpen(false); setAttentionOpen(true); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); setSteeringOpen(false); }}
+                  style={{ background: "var(--color-card)", border: "none", borderRadius: "0 0 6px 6px", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                >
+                  <span>Attention</span>
+                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Per-head attention weight matrices</span>
                 </button>
               </div>
             )}
@@ -549,6 +576,13 @@ function Projects() {
               modelsLoading={modelsLoading}
               onSubmit={handleAddStandaloneSteer}
               onClose={() => setSteeringOpen(false)}
+            />
+            <AttentionConfigPane
+              isOpen={attentionOpen}
+              availableModels={availableModels}
+              modelsLoading={modelsLoading}
+              onSubmit={handleAddAttn}
+              onClose={() => setAttentionOpen(false)}
             />
           </div>
 
