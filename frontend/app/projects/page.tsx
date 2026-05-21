@@ -530,7 +530,7 @@ function Projects() {
                 </button>
                 <button
                   onClick={() => { setAddOpen(false); setSteeringOpen(true); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); setAttentionOpen(false); }}
-                  style={{ background: "var(--color-card)", border: "none", borderRadius: 0, padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
+                  style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: 0, padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
                 >
