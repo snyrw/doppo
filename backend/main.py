@@ -1038,6 +1038,41 @@ class _TLBase:
             },
         })
 
+    @modal.method()
+    def run_attn(self, prompt: str):
+        import json
+        import torch
+
+        TOKEN_CAP = 64
+        tokens = self.model.to_tokens(prompt)
+        truncated = tokens.shape[1] > TOKEN_CAP
+        if truncated:
+            tokens = tokens[:, :TOKEN_CAP]
+
+        _, cache = self.model.run_with_cache(
+            tokens,
+            names_filter=lambda name: "hook_pattern" in name,
+        )
+
+        n_layers = self.model.cfg.n_layers
+        patterns = []
+        for layer in range(n_layers):
+            layer_pats = cache[f"blocks.{layer}.attn.hook_pattern"][0].cpu().tolist()
+            patterns.append(layer_pats)
+
+        token_strs = [self.model.tokenizer.decode([t]) for t in tokens[0].tolist()]
+
+        yield json.dumps({
+            "stage": "done",
+            "data": {
+                "tokens": token_strs,
+                "patterns": patterns,
+                "n_layers": n_layers,
+                "n_heads": self.model.cfg.n_heads,
+                "truncated": truncated,
+            },
+        })
+
 
 @app.cls(gpu="L4", **_TL_KWARGS)
 class TransformerLensSmall(_TLBase):
@@ -1176,6 +1211,10 @@ def api():
         extra_pairs: list[dict] | None = None  # [{clean, corrupted}] for CAA-mode averaging
         temperature: float = Field(default=1.0, ge=0.0, le=5.0)
         repetition_penalty: float = Field(default=1.3, ge=0.5, le=5.0)
+
+    class AttentionRequest(BaseModel):
+        prompt: str
+        model_name: str
 
     class ValidateModelRequest(BaseModel):
         repo_id: str
@@ -1330,6 +1369,23 @@ def api():
                     request.temperature,
                     request.repetition_penalty,
                     request.generation_prompt,
+                ):
+                    yield f"data: {chunk}\n\n"
+            except Exception as e:
+                yield _sse_error(e)
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+    @web_app.post("/api/run-attn-stream")
+    async def run_attn_stream(request: AttentionRequest):
+        from fastapi.responses import StreamingResponse
+
+        cls, model_id = _resolve_model(request.model_name, bump=False, hf_token=hf_token)
+
+        async def event_stream():
+            try:
+                async for chunk in cls(model_id=model_id).run_attn.remote_gen.aio(
+                    request.prompt
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:
