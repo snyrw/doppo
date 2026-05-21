@@ -1,6 +1,7 @@
 import type { AnyCard } from "./types";
 import type { LensCardData } from "../components/LensCard";
 import type { DlaCardData } from "../components/DlaCard";
+import type { AttentionCardData } from "../components/AttentionCard";
 
 export const CARD_COL_WIDTH = 360;
 export const CARD_ROW_HEIGHT = 320;
@@ -30,6 +31,10 @@ export function serializeCard(c: AnyCard) {
   }
   if (c.cardType === "entropy") {
     return { id: c.id, cardType: "entropy" as const, modelName: c.modelName, prompt: c.prompt, data: {} as Record<string, unknown>, position: c.position, parentLensId: c.parentLensId, entropyData: c.entropyData, xLabels: c.xLabels, yLabels: c.yLabels };
+  }
+  if (c.cardType === "attention-pattern") {
+    const ac = c as AttentionCardData;
+    return { id: ac.id, cardType: "attention-pattern" as const, modelName: ac.modelName, prompt: ac.prompt, data: ac.data as Record<string, unknown>, position: ac.position, gpuTier: ac.gpuTier };
   }
   const lc = c as LensCardData;
   return { id: lc.id, cardType: "logit-lens" as const, modelName: lc.modelName, prompt: lc.prompt, data: lc.data as Record<string, unknown>, position: lc.position, gpuTier: lc.gpuTier, topK: lc.topK };

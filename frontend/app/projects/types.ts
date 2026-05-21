@@ -3,6 +3,7 @@ import type { AttributionData } from "../components/AttributionCard";
 import type { ActivationPatchResult } from "../components/ActivationCard";
 import type { SteeringResult } from "../components/SteeringCard";
 import type { EntropyCardData } from "../components/EntropyCard";
+import type { AttentionData } from "../components/AttentionCard";
 import type { AnyCard } from "../components/SandboxCanvas";
 
 export type { AnyCard };
@@ -46,4 +47,5 @@ export type AppAction =
   | { type: "STEERING_CARD_TOKEN"; id: string; token: string }
   | { type: "STEERING_CARD_RESOLVED"; id: string; data: SteeringResult }
   | { type: "STEERING_CARD_RERUN"; id: string; alpha: number }
-  | { type: "SPAWN_ENTROPY_CARD"; card: EntropyCardData };
+  | { type: "SPAWN_ENTROPY_CARD"; card: EntropyCardData }
+  | { type: "ATTENTION_CARD_RESOLVED"; id: string; data: AttentionData };
