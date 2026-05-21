@@ -42,5 +42,5 @@ export function serializeCard(c: AnyCard) {
 
 export function getCardPrompt(c: AnyCard): string {
   if (c.cardType === "attribution" || c.cardType === "activation" || c.cardType === "steering") return c.cleanPrompt;
-  return (c as LensCardData | DlaCardData).prompt;
+  return (c as LensCardData | DlaCardData | AttentionCardData).prompt;
 }

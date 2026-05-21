@@ -3,7 +3,7 @@
 import React from "react";
 import { getHeadColor } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
-import { CardDragHandle, CardLoadingState, CardErrorState } from "./CardShell";
+import { CardDragHandle, CardLoadingState, CardErrorState, formatElapsed } from "./CardShell";
 
 export type AttentionData = {
   tokens: string[];
@@ -42,13 +42,7 @@ const X_LABEL_H = 40;
 
 type SelectedCell = { q: number; k: number } | null;
 
-function formatElapsed(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  return `${m}:${String(s % 60).padStart(2, "0")}`;
-}
-
-function AttentionMatrix({
+const AttentionMatrix = React.memo(function AttentionMatrix({
   headIdx,
   nHeads,
   pattern,
@@ -63,9 +57,13 @@ function AttentionMatrix({
   selectedCell: SelectedCell;
   onCellClick: (q: number, k: number) => void;
 }) {
+  const colors = React.useMemo(
+    () => pattern.map(row => row.map(w => getHeadColor(headIdx, nHeads, w))),
+    [pattern, headIdx, nHeads],
+  );
+
   return (
     <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
-      {/* Head label */}
       <div style={{
         height: 14,
         display: "flex",
@@ -80,7 +78,6 @@ function AttentionMatrix({
       </div>
 
       <div style={{ display: "flex" }}>
-        {/* Y-axis labels (query tokens) */}
         <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
           <div style={{ height: X_LABEL_H }} />
           {tokens.map((tok, qi) => (
@@ -112,9 +109,7 @@ function AttentionMatrix({
           ))}
         </div>
 
-        {/* Matrix body: x labels + cells */}
         <div style={{ flexShrink: 0 }}>
-          {/* X-axis labels (key tokens, rotated 45°) */}
           <div style={{ display: "flex", height: X_LABEL_H, alignItems: "flex-end" }}>
             {tokens.map((tok, ki) => (
               <div
@@ -147,12 +142,10 @@ function AttentionMatrix({
             ))}
           </div>
 
-          {/* Cell rows */}
           {pattern.map((row, qi) => (
             <div key={qi} style={{ display: "flex" }}>
               {row.map((weight, ki) => {
                 const isSelected = selectedCell?.q === qi && selectedCell?.k === ki;
-                const color = getHeadColor(headIdx, nHeads, weight);
                 return (
                   <div
                     key={ki}
@@ -162,7 +155,7 @@ function AttentionMatrix({
                     style={{
                       width: CELL_SIZE,
                       height: CELL_SIZE,
-                      background: color,
+                      background: colors[qi][ki],
                       boxSizing: "border-box",
                       cursor: "pointer",
                       outline: isSelected ? "1.5px solid var(--color-text)" : "none",
@@ -180,7 +173,7 @@ function AttentionMatrix({
       </div>
     </div>
   );
-}
+});
 
 function AttentionCard({
   card,
@@ -233,12 +226,6 @@ function AttentionCard({
         ...(card.status === "error" ? { width: 280 } : {}),
       }}
     >
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
-      `}</style>
-
-      {/* Hover popup */}
       {headerHovered && (
         <div style={{
           position: "absolute",
@@ -274,7 +261,6 @@ function AttentionCard({
         </div>
       )}
 
-      {/* Header */}
       <div
         onPointerDown={e => onStartDrag(e, card.id, card.position)}
         onPointerMove={onDragMove}
@@ -291,7 +277,6 @@ function AttentionCard({
           userSelect: "none",
         }}
       >
-        {/* Drag strip */}
         <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6 }}>
           <CardDragHandle />
           <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0 }}>
@@ -309,7 +294,6 @@ function AttentionCard({
           </button>
         </div>
 
-        {/* Sub-header: layer nav (result only) */}
         {card.status === "result" && card.data && (
           <div
             onPointerDown={e => e.stopPropagation()}
@@ -353,7 +337,6 @@ function AttentionCard({
         )}
       </div>
 
-      {/* Loading */}
       {card.status === "loading" && (
         <div style={{ display: "flex", flexDirection: "column", padding: "12px 14px", gap: 10, minHeight: 110 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -374,10 +357,8 @@ function AttentionCard({
         </div>
       )}
 
-      {/* Error */}
       {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
 
-      {/* Result */}
       {card.status === "result" && card.data && (
         <div style={{ overflow: "auto", background: "var(--color-card)" }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: 10 }}>

@@ -1060,7 +1060,7 @@ class _TLBase:
             layer_pats = cache[f"blocks.{layer}.attn.hook_pattern"][0].cpu().tolist()
             patterns.append(layer_pats)
 
-        token_strs = [self.model.tokenizer.decode([t]) for t in tokens[0].tolist()]
+        token_strs = self.model.tokenizer.convert_ids_to_tokens(tokens[0].tolist())
 
         yield json.dumps({
             "stage": "done",

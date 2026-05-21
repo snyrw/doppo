@@ -113,10 +113,7 @@ export default function AttentionConfigPane({
   const handleRun = () => {
     if (!canRun) return;
     const modelName = usingCustom ? customRepoId.trim() : selectedModel;
-    const gpuTier = usingCustom
-      ? (customValidation?.gpu_tier ?? undefined)
-      : (availableModels.find(m => m.id === selectedModel)?.gpu_tier ?? undefined);
-    onSubmit({ modelName, prompt, gpuTier });
+    onSubmit({ modelName, prompt, gpuTier: selectedGpuTier ?? undefined });
     doReset();
   };
 
@@ -142,9 +139,6 @@ export default function AttentionConfigPane({
         animation: "cfgDropIn 140ms ease-out",
       }}
     >
-      <style>{`@keyframes cfgDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px 12px", borderBottom: "1px solid var(--color-surface-border)" }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", letterSpacing: "0.01em" }}>
           New Attention
@@ -159,10 +153,8 @@ export default function AttentionConfigPane({
         </button>
       </div>
 
-      {/* Form body */}
       <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
 
-        {/* Featured models */}
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
             Featured Models
@@ -197,14 +189,12 @@ export default function AttentionConfigPane({
           )}
         </div>
 
-        {/* Divider */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
           <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
           <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>or</span>
           <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
         </div>
 
-        {/* Any HuggingFace model */}
         <div style={{ marginBottom: 20 }}>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
             Any HuggingFace Model
@@ -235,7 +225,6 @@ export default function AttentionConfigPane({
           )}
         </div>
 
-        {/* Prompt */}
         <div>
           <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
             Prompt
@@ -250,7 +239,6 @@ export default function AttentionConfigPane({
         </div>
       </div>
 
-      {/* Footer */}
       <div style={{ padding: "12px 16px", borderTop: "1px solid var(--color-surface-border)" }}>
         {isLockedByAuth && (
           <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--color-text-muted)", textAlign: "center" }}>

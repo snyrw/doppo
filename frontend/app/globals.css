@@ -98,6 +98,11 @@ body {
   color: var(--color-text);
 }
 
+/* === Card animations === */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes cfgDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
 /* === Hero specimen palette animation === */
 @keyframes hero-swatch-in {
   from { opacity: 0; transform: translateX(10px); }
