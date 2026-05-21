@@ -73,6 +73,15 @@ export const activationPatchCache = pgTable("activation_patch_cache", {
   lastAccessedAt: timestamp("last_accessed_at"),
 });
 
+export const attnCache = pgTable("attn_cache", {
+  id: text("id").primaryKey(),
+  modelName: text("model_name").notNull(),
+  prompt: text("prompt").notNull(),
+  r2Key: text("r2_key"),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastAccessedAt: timestamp("last_accessed_at"),
+});
+
 export const userCallQuota = pgTable(
   "user_call_quota",
   {
