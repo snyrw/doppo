@@ -73,7 +73,7 @@ export async function deleteProject(projectId: string): Promise<void> {
     .where(and(eq(project.id, projectId), eq(project.userId, userId)))
     .limit(1);
   if (rows.length === 0) throw new Error("Project not found");
-  await db.delete(project).where(eq(project.id, projectId));
+  await db.delete(project).where(and(eq(project.id, projectId), eq(project.userId, userId)));
 }
 
 export async function loadProject(
@@ -103,11 +103,11 @@ export async function setProjectShare(projectId: string): Promise<{ shareId: str
     .limit(1);
   if (rows.length === 0) throw new Error("Project not found");
   if (rows[0].shareId) {
-    await db.update(project).set({ isPublic: true, updatedAt: new Date() }).where(eq(project.id, projectId));
+    await db.update(project).set({ isPublic: true, updatedAt: new Date() }).where(and(eq(project.id, projectId), eq(project.userId, userId)));
     return { shareId: rows[0].shareId };
   }
   const shareId = crypto.randomUUID();
-  await db.update(project).set({ isPublic: true, shareId, updatedAt: new Date() }).where(eq(project.id, projectId));
+  await db.update(project).set({ isPublic: true, shareId, updatedAt: new Date() }).where(and(eq(project.id, projectId), eq(project.userId, userId)));
   return { shareId };
 }
 

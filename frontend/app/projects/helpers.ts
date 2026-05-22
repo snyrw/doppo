@@ -3,9 +3,9 @@ import type { LensCardData } from "../components/LensCard";
 import type { DlaCardData } from "../components/DlaCard";
 import type { AttentionCardData } from "../components/AttentionCard";
 
-export const CARD_COL_WIDTH = 360;
-export const CARD_ROW_HEIGHT = 320;
-export const GRID_MARGIN = 40;
+const CARD_COL_WIDTH = 360;
+const CARD_ROW_HEIGHT = 320;
+const GRID_MARGIN = 40;
 
 export function autoArrangePos(index: number): { x: number; y: number } {
   const col = index % 3;

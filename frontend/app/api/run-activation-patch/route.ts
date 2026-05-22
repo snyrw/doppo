@@ -11,6 +11,7 @@ import {
   requireAuth,
   fetchUpstream,
   validateGpuTier,
+  resolveModelTier,
 } from "@/app/lib/api-helpers";
 
 export async function POST(request: NextRequest) {
@@ -61,21 +62,31 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
-  if (!validateGpuTier(gpuTier)) {
+  if (gpuTier !== undefined && !validateGpuTier(gpuTier)) {
     return new Response(
       JSON.stringify({ error: "gpuTier must be one of: tl_small, tl_medium, tl_large, tl_xlarge" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
 
-  const authResult = await requireAuth(gpuTier);
+  const resolvedTier = await resolveModelTier(modelName);
+  if (!resolvedTier) {
+    return new Response(
+      JSON.stringify({ error: "Model not found or invalid." }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const authResult = await requireAuth(resolvedTier);
   if (!("userId" in authResult)) return authResult;
   const userId = authResult.userId;
 
   const resolvedPosition = String(targetPosition);
   const resolvedContrastive = String(contrastiveTokenIdx ?? "null");
 
+  const userScope = userId || "anon";
   const cacheKey = createHash("sha256")
+    .update(userScope)
     .update(modelName)
     .update(cleanPrompt)
     .update(corruptedPrompt)

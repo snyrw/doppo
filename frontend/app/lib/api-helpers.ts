@@ -21,6 +21,38 @@ export function validateGpuTier(tier: unknown): tier is GpuTier {
   );
 }
 
+// Module-level cache for the featured models list — warm after first request.
+let featuredModelsCache: Array<{ id: string; gpu_tier: string }> | null = null;
+
+/**
+ * Resolves a model name to its authoritative GPU tier from the backend.
+ * Never trusts the client-supplied gpuTier for auth decisions.
+ * Returns null if the model is unknown or invalid.
+ */
+export async function resolveModelTier(modelName: string): Promise<GpuTier | null> {
+  if (!featuredModelsCache) {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/models`);
+      if (res.ok) featuredModelsCache = (await res.json()) as Array<{ id: string; gpu_tier: string }>;
+    } catch { /* fall through to validate-model */ }
+  }
+  const featured = featuredModelsCache?.find((m) => m.id === modelName);
+  if (featured) return validateGpuTier(featured.gpu_tier) ? featured.gpu_tier : null;
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/validate-model`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repo_id: modelName }),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { gpu_tier?: string };
+    return validateGpuTier(json.gpu_tier) ? json.gpu_tier : null;
+  } catch {
+    return null;
+  }
+}
+
 export type AuthResult = { userId: string } | Response;
 
 export async function requireAuth(gpuTier: string): Promise<AuthResult> {

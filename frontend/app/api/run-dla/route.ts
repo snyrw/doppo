@@ -10,6 +10,7 @@ import {
   requireAuth,
   fetchUpstream,
   validateGpuTier,
+  resolveModelTier,
 } from "@/app/lib/api-helpers";
 
 export async function POST(request: NextRequest) {
@@ -36,15 +37,24 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
-  if (!validateGpuTier(gpuTier)) {
+  if (gpuTier !== undefined && !validateGpuTier(gpuTier)) {
     return new Response(
       JSON.stringify({ error: "gpuTier must be one of: tl_small, tl_medium, tl_large, tl_xlarge" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
 
-  const authResult = await requireAuth(gpuTier);
+  const resolvedTier = await resolveModelTier(modelName);
+  if (!resolvedTier) {
+    return new Response(
+      JSON.stringify({ error: "Model not found or invalid." }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const authResult = await requireAuth(resolvedTier);
   if (!("userId" in authResult)) return authResult;
+  const userScope = authResult.userId || "anon";
 
   // Cache key includes all parameters. Look up by hash only — avoids needing
   // a contrastive_token column in the DB schema.
@@ -52,7 +62,7 @@ export async function POST(request: NextRequest) {
   const resolvedContrastive = contrastiveToken ?? "__none__";
   const resolvedPosition = String(targetPosition);
   const cacheKey = createHash("sha256")
-    .update(`${modelName}:${prompt}:${resolvedPosition}:${resolvedToken}:${resolvedContrastive}`)
+    .update(`${userScope}:${modelName}:${prompt}:${resolvedPosition}:${resolvedToken}:${resolvedContrastive}`)
     .digest("hex");
 
   const cached = await db

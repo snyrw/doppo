@@ -10,7 +10,9 @@ import {
   requireAuth,
   fetchUpstream,
   validateGpuTier,
+  resolveModelTier,
 } from "@/app/lib/api-helpers";
+import { checkAndIncrementQuota } from "@/app/lib/quota";
 
 export async function POST(request: NextRequest) {
   const {
@@ -56,22 +58,32 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
-  if (!validateGpuTier(gpuTier)) {
+  if (gpuTier !== undefined && !validateGpuTier(gpuTier)) {
     return new Response(
       JSON.stringify({ error: "gpuTier must be one of: tl_small, tl_medium, tl_large, tl_xlarge" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
 
-  const authResult = await requireAuth(gpuTier);
-  if (!("userId" in authResult)) return authResult;
+  const resolvedTier = await resolveModelTier(modelName);
+  if (!resolvedTier) {
+    return new Response(
+      JSON.stringify({ error: "Model not found or invalid." }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
 
+  const authResult = await requireAuth(resolvedTier);
+  if (!("userId" in authResult)) return authResult;
+  const userId = authResult.userId;
+
+  const userScope = userId || "anon";
   const resolvedToken = targetToken ?? "__auto__";
   const resolvedContrastive = contrastiveToken ?? "__none__";
   const resolvedPosition = String(targetPosition);
   const cacheKey = createHash("sha256")
     .update(
-      `${modelName}:${cleanPrompt}:${corruptedPrompt}:${resolvedPosition}:${resolvedToken}:${resolvedContrastive}`
+      `${userScope}:${modelName}:${cleanPrompt}:${corruptedPrompt}:${resolvedPosition}:${resolvedToken}:${resolvedContrastive}`
     )
     .digest("hex");
 
@@ -90,6 +102,19 @@ export async function POST(request: NextRequest) {
     return new Response(`data: ${JSON.stringify({ stage: "done", data })}\n\n`, {
       headers: SSE_HEADERS,
     });
+  }
+
+  // Cache miss — check quota before spinning up a GPU container.
+  if (userId) {
+    const { allowed, count } = await checkAndIncrementQuota(userId);
+    if (!allowed) {
+      return new Response(
+        JSON.stringify({
+          error: `Daily inference limit reached (${count - 1} calls used). Resets at midnight UTC.`,
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
+    }
   }
 
   const upstreamResult = await fetchUpstream(
