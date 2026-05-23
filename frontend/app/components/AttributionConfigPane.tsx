@@ -122,10 +122,10 @@ export default function AttributionConfigPane({
   const activeModelId = usingCustom
     ? (customValidation?.valid ? customRepoId.trim() : "")
     : selectedModel;
-  const cleanPreview = useTokenPreview(activeModelId, cleanPrompt);
-  const corruptedPreview = useTokenPreview(activeModelId, corruptedPrompt);
-  const targetTokenPreview = useTokenPreview(activeModelId, tokenMode === "custom" ? customToken : "");
-  const contrastivePreview = useTokenPreview(activeModelId, contrastiveToken);
+  const cleanPreview = useTokenPreview(isOpen ? activeModelId : "", cleanPrompt);
+  const corruptedPreview = useTokenPreview(isOpen ? activeModelId : "", corruptedPrompt);
+  const targetTokenPreview = useTokenPreview(isOpen ? activeModelId : "", tokenMode === "custom" ? customToken : "");
+  const contrastivePreview = useTokenPreview(isOpen ? activeModelId : "", contrastiveToken);
   const modelOk = usingCustom ? customValidation?.valid === true : selectedModel !== "";
   const positionOk = positionMode === "last" || (customPosition.trim() !== "" && !isNaN(parseInt(customPosition)));
   const tokenOk = tokenMode === "auto" || customToken.trim() !== "";

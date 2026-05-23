@@ -36,10 +36,12 @@ type AttentionCardProps = {
   onRemove: (id: string) => void;
 };
 
-const CELL_SIZE = 10;
+const CELL_SIZE = 5;
 const Y_LABEL_W = 42;
 const X_LABEL_H = 40;
+const MAX_PINS = 5;
 
+type PinnedHead = { layer: number; head: number };
 type SelectedCell = { q: number; k: number } | null;
 
 const AttentionMatrix = React.memo(function AttentionMatrix({
@@ -49,6 +51,8 @@ const AttentionMatrix = React.memo(function AttentionMatrix({
   tokens,
   selectedCell,
   onCellClick,
+  onPin,
+  isPinned,
 }: {
   headIdx: number;
   nHeads: number;
@@ -56,25 +60,59 @@ const AttentionMatrix = React.memo(function AttentionMatrix({
   tokens: string[];
   selectedCell: SelectedCell;
   onCellClick: (q: number, k: number) => void;
+  onPin?: () => void;
+  isPinned?: boolean;
 }) {
+  const [hovered, setHovered] = React.useState(false);
+
   const colors = React.useMemo(
     () => pattern.map(row => row.map(w => getHeadColor(headIdx, nHeads, w))),
     [pattern, headIdx, nHeads],
   );
 
+  const showPinButton = onPin && (hovered || isPinned);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
+    <div
+      style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <div style={{
         height: 14,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        gap: 4,
         fontSize: 8,
         fontFamily: "var(--font-azeret-mono), monospace",
-        color: "var(--color-text-muted)",
+        color: isPinned ? "var(--color-accent)" : "var(--color-text-muted)",
         marginBottom: 2,
+        transition: "color 120ms",
       }}>
         H{headIdx}
+        {showPinButton && (
+          <button
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onPin(); }}
+            title={isPinned ? "Unpin" : "Pin to comparison"}
+            style={{
+              fontSize: 7,
+              background: "none",
+              border: "1px solid",
+              borderColor: isPinned ? "var(--color-accent)" : "var(--color-surface-border)",
+              color: isPinned ? "var(--color-accent)" : "var(--color-text-muted)",
+              borderRadius: 2,
+              cursor: "pointer",
+              padding: "0 3px",
+              lineHeight: "11px",
+              transition: "all 120ms",
+              animation: "fadeIn 100ms ease-out",
+            }}
+          >
+            {isPinned ? "pinned" : "pin"}
+          </button>
+        )}
       </div>
 
       <div style={{ display: "flex" }}>
@@ -185,6 +223,7 @@ function AttentionCard({
 }: AttentionCardProps) {
   const [currentLayer, setCurrentLayer] = React.useState(0);
   const [selectedCell, setSelectedCell] = React.useState<SelectedCell>(null);
+  const [pinnedHeads, setPinnedHeads] = React.useState<PinnedHead[]>([]);
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
 
@@ -199,12 +238,26 @@ function AttentionCard({
   React.useEffect(() => {
     setCurrentLayer(0);
     setSelectedCell(null);
+    setPinnedHeads([]);
   }, [card.data]);
 
   const nLayers = card.data?.n_layers ?? 0;
 
   function handleCellClick(q: number, k: number) {
     setSelectedCell(prev => (prev?.q === q && prev?.k === k ? null : { q, k }));
+  }
+
+  function handlePin(layer: number, head: number) {
+    setPinnedHeads(prev => {
+      const alreadyPinned = prev.some(p => p.layer === layer && p.head === head);
+      if (alreadyPinned) return prev.filter(p => !(p.layer === layer && p.head === head));
+      if (prev.length >= MAX_PINS) return prev;
+      return [...prev, { layer, head }];
+    });
+  }
+
+  function handleUnpin(layer: number, head: number) {
+    setPinnedHeads(prev => prev.filter(p => !(p.layer === layer && p.head === head)));
   }
 
   return (
@@ -224,6 +277,7 @@ function AttentionCard({
         flexDirection: "column",
         ...(card.status === "loading" ? { width: 280, height: 200 } : {}),
         ...(card.status === "error" ? { width: 280 } : {}),
+        ...(card.status === "result" ? { maxWidth: 760 } : {}),
       }}
     >
       {headerHovered && (
@@ -330,7 +384,7 @@ function AttentionCard({
             )}
             {card.data.truncated && (
               <span style={{ fontSize: 9, fontWeight: 600, color: "#d97706", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
-                truncated to 64 tok
+                truncated to 30 tok
               </span>
             )}
           </div>
@@ -360,21 +414,104 @@ function AttentionCard({
       {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
 
       {card.status === "result" && card.data && (
-        <div style={{ overflow: "auto", background: "var(--color-card)" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: 10 }}>
-            {Array.from({ length: card.data.n_heads }, (_, h) => (
-              <AttentionMatrix
-                key={h}
-                headIdx={h}
-                nHeads={card.data!.n_heads}
-                pattern={card.data!.patterns[currentLayer][h]}
-                tokens={card.data!.tokens}
-                selectedCell={selectedCell}
-                onCellClick={handleCellClick}
-              />
-            ))}
+        <>
+          {/* Horizontal-scroll browse strip — one layer, all heads */}
+          <div style={{ overflowX: "auto", overflowY: "hidden", background: "var(--color-card)" }}>
+            <div style={{ display: "flex", flexWrap: "nowrap", gap: 10, padding: 10 }}>
+              {Array.from({ length: card.data.n_heads }, (_, h) => {
+                const isPinned = pinnedHeads.some(p => p.layer === currentLayer && p.head === h);
+                return (
+                  <AttentionMatrix
+                    key={h}
+                    headIdx={h}
+                    nHeads={card.data!.n_heads}
+                    pattern={card.data!.patterns[currentLayer][h]}
+                    tokens={card.data!.tokens}
+                    selectedCell={selectedCell}
+                    onCellClick={handleCellClick}
+                    onPin={pinnedHeads.length < MAX_PINS || isPinned ? () => handlePin(currentLayer, h) : undefined}
+                    isPinned={isPinned}
+                  />
+                );
+              })}
+            </div>
           </div>
-        </div>
+
+          {/* Pinned comparison section */}
+          {pinnedHeads.length > 0 && (
+            <div style={{
+              borderTop: "2px solid var(--color-surface-border)",
+              background: "var(--color-panel)",
+              borderRadius: "0 0 8px 8px",
+              animation: pinnedHeads.length === 1 ? "fadeIn 180ms ease-out" : undefined,
+            }}>
+              <div
+                onPointerDown={e => e.stopPropagation()}
+                style={{
+                  padding: "5px 10px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  borderBottom: "1px solid var(--color-surface-border)",
+                }}
+              >
+                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", letterSpacing: "0.08em" }}>
+                  PINNED
+                </span>
+                <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+                  {pinnedHeads.length}/{MAX_PINS}
+                </span>
+                <div style={{ flex: 1 }} />
+                <button
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={() => setPinnedHeads([])}
+                  style={{ fontSize: 9, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-azeret-mono), monospace" }}
+                >
+                  clear all
+                </button>
+              </div>
+
+              <div style={{ overflowX: "auto", background: "var(--color-panel)" }}>
+                <div style={{ display: "flex", flexWrap: "nowrap", gap: 10, padding: 10 }}>
+                  {pinnedHeads.map(({ layer, head }) => (
+                    <div
+                      key={`${layer}-${head}`}
+                      style={{ position: "relative", flexShrink: 0, animation: "fadeIn 200ms ease-out" }}
+                    >
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        height: 14,
+                        marginBottom: 2,
+                        gap: 4,
+                      }}>
+                        <span style={{ fontSize: 8, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-accent)", fontWeight: 700 }}>
+                          L{layer}·H{head}
+                        </span>
+                        <button
+                          onPointerDown={e => e.stopPropagation()}
+                          onClick={() => handleUnpin(layer, head)}
+                          style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", padding: "0 2px", lineHeight: 1 }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <AttentionMatrix
+                        headIdx={head}
+                        nHeads={card.data!.n_heads}
+                        pattern={card.data!.patterns[layer][head]}
+                        tokens={card.data!.tokens}
+                        selectedCell={selectedCell}
+                        onCellClick={handleCellClick}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

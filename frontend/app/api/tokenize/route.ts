@@ -1,6 +1,4 @@
 import { NextRequest } from "next/server";
-import { headers } from "next/headers";
-import { hashIp, checkAndIncrementAnonQuota } from "@/app/lib/ip-quota";
 
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as { model_name?: unknown; text?: unknown };
@@ -15,16 +13,6 @@ export async function POST(request: NextRequest) {
     return new Response(
       JSON.stringify({ error: "text must be a string of at most 8000 characters" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
-  const hdrs = await headers();
-  const rawIp = hdrs.get("x-forwarded-for") ?? hdrs.get("cf-connecting-ip") ?? "unknown";
-  const quota = await checkAndIncrementAnonQuota(hashIp(rawIp.split(",")[0].trim()));
-  if (!quota.allowed) {
-    return new Response(
-      JSON.stringify({ error: "Daily limit reached. Sign in for more access." }),
-      { status: 429, headers: { "Content-Type": "application/json" } }
     );
   }
 

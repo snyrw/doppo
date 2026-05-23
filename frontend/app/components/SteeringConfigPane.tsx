@@ -183,8 +183,8 @@ export default function SteeringConfigPane({
   const activeModelId = usingCustom
     ? (customValidation?.valid ? customRepoId.trim() : "")
     : selectedModel;
-  const cleanPreview = useTokenPreview(activeModelId, cleanPrompt);
-  const corruptedPreview = useTokenPreview(activeModelId, corruptedPrompt);
+  const cleanPreview = useTokenPreview(isOpen ? activeModelId : "", cleanPrompt);
+  const corruptedPreview = useTokenPreview(isOpen ? activeModelId : "", corruptedPrompt);
   const modelOk = usingCustom ? customValidation?.valid === true : selectedModel !== "";
   const positionOk = positionMode === "last" || (customPosition.trim() !== "" && !isNaN(parseInt(customPosition)));
   const canRun = modelOk && positionOk && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "";

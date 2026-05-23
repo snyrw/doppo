@@ -101,7 +101,7 @@ export default function AttentionConfigPane({
   const activeModelId = usingCustom
     ? (customValidation?.valid ? customRepoId.trim() : "")
     : selectedModel;
-  const tokenPreview = useTokenPreview(activeModelId, prompt);
+  const tokenPreview = useTokenPreview(isOpen ? activeModelId : "", prompt);
   const modelOk = usingCustom ? customValidation?.valid === true : selectedModel !== "";
   const canRun = modelOk && prompt.trim() !== "";
 

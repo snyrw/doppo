@@ -1043,7 +1043,7 @@ class _TLBase:
         import json
         import torch
 
-        TOKEN_CAP = 64
+        TOKEN_CAP = 30
         tokens = self.model.to_tokens(prompt)
         truncated = tokens.shape[1] > TOKEN_CAP
         if truncated:

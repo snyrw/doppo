@@ -50,7 +50,7 @@ export default function ConfigPane({
   const activeModelId = usingCustom
     ? (customValidation?.valid ? customRepoId.trim() : "")
     : selectedModel;
-  const tokenPreview = useTokenPreview(activeModelId, prompt);
+  const tokenPreview = useTokenPreview(isOpen ? activeModelId : "", prompt);
 
   useEffect(() => {
     if (selectedModel === "" && availableModels.length > 0 && customRepoId === "") {
