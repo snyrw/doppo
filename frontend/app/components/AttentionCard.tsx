@@ -36,179 +36,93 @@ type AttentionCardProps = {
   onRemove: (id: string) => void;
 };
 
-const CELL_SIZE = 5;
-const Y_LABEL_W = 42;
-const X_LABEL_H = 40;
+const CELL_SIZE = 8;
+const HEAD_LABEL_H = 24;
 const MAX_PINS = 5;
 
 type PinnedHead = { layer: number; head: number };
 type SelectedCell = { q: number; k: number } | null;
+type FocusedHead = { layer: number; head: number } | null;
+type HoverInfo = { head: number; q: number; k: number; w: number } | null;
 
-const AttentionMatrix = React.memo(function AttentionMatrix({
+const AttentionMatrixCanvas = React.memo(function AttentionMatrixCanvas({
   headIdx,
   nHeads,
   pattern,
-  tokens,
   selectedCell,
   onCellClick,
-  onPin,
-  isPinned,
+  onHover,
+  onHoverEnd,
 }: {
   headIdx: number;
   nHeads: number;
   pattern: number[][];
-  tokens: string[];
   selectedCell: SelectedCell;
   onCellClick: (q: number, k: number) => void;
-  onPin?: () => void;
-  isPinned?: boolean;
+  onHover: (info: { head: number; q: number; k: number; w: number }) => void;
+  onHoverEnd: () => void;
 }) {
-  const [hovered, setHovered] = React.useState(false);
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const n = pattern.length;
+  const canvasPx = n * CELL_SIZE;
 
-  const colors = React.useMemo(
-    () => pattern.map(row => row.map(w => getHeadColor(headIdx, nHeads, w))),
-    [pattern, headIdx, nHeads],
-  );
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvasPx * dpr;
+    canvas.height = canvasPx * dpr;
+    canvas.style.width = `${canvasPx}px`;
+    canvas.style.height = `${canvasPx}px`;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+    for (let q = 0; q < n; q++) {
+      for (let k = 0; k < n; k++) {
+        ctx.fillStyle = getHeadColor(headIdx, nHeads, pattern[q][k]);
+        ctx.fillRect(k * CELL_SIZE, q * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      }
+    }
+  }, [pattern, headIdx, nHeads, n, canvasPx]);
 
-  const showPinButton = onPin && (hovered || isPinned);
+  function getCellAt(e: React.MouseEvent<HTMLCanvasElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const k = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+    const q = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+    return k >= 0 && k < n && q >= 0 && q < n ? { q, k } : null;
+  }
 
   return (
-    <div
-      style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      <div style={{
-        height: 14,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 4,
-        fontSize: 8,
-        fontFamily: "var(--font-azeret-mono), monospace",
-        color: isPinned ? "var(--color-accent)" : "var(--color-text-muted)",
-        marginBottom: 2,
-        transition: "color 120ms",
-      }}>
-        H{headIdx}
-        {showPinButton && (
-          <button
-            onPointerDown={e => e.stopPropagation()}
-            onClick={e => { e.stopPropagation(); onPin(); }}
-            title={isPinned ? "Unpin" : "Pin to comparison"}
-            style={{
-              fontSize: 7,
-              background: "none",
-              border: "1px solid",
-              borderColor: isPinned ? "var(--color-accent)" : "var(--color-surface-border)",
-              color: isPinned ? "var(--color-accent)" : "var(--color-text-muted)",
-              borderRadius: 2,
-              cursor: "pointer",
-              padding: "0 3px",
-              lineHeight: "11px",
-              transition: "all 120ms",
-              animation: "fadeIn 100ms ease-out",
-            }}
-          >
-            {isPinned ? "pinned" : "pin"}
-          </button>
-        )}
-      </div>
-
-      <div style={{ display: "flex" }}>
-        <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
-          <div style={{ height: X_LABEL_H }} />
-          {tokens.map((tok, qi) => (
-            <div
-              key={qi}
-              style={{
-                width: Y_LABEL_W,
-                height: CELL_SIZE,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                paddingRight: 3,
-                overflow: "hidden",
-                flexShrink: 0,
-              }}
-            >
-              <span style={{
-                fontSize: 6,
-                fontFamily: "var(--font-azeret-mono), monospace",
-                color: "var(--color-text-muted)",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                maxWidth: Y_LABEL_W - 4,
-              }}>
-                {tok}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ flexShrink: 0 }}>
-          <div style={{ display: "flex", height: X_LABEL_H, alignItems: "flex-end" }}>
-            {tokens.map((tok, ki) => (
-              <div
-                key={ki}
-                style={{
-                  width: CELL_SIZE,
-                  height: X_LABEL_H,
-                  display: "flex",
-                  alignItems: "flex-end",
-                  justifyContent: "center",
-                  overflow: "visible",
-                  flexShrink: 0,
-                }}
-              >
-                <span style={{
-                  fontSize: 6,
-                  fontFamily: "var(--font-azeret-mono), monospace",
-                  color: "var(--color-text-muted)",
-                  whiteSpace: "nowrap",
-                  transform: "rotate(-45deg)",
-                  transformOrigin: "bottom center",
-                  display: "block",
-                  maxWidth: 28,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}>
-                  {tok}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {pattern.map((row, qi) => (
-            <div key={qi} style={{ display: "flex" }}>
-              {row.map((weight, ki) => {
-                const isSelected = selectedCell?.q === qi && selectedCell?.k === ki;
-                return (
-                  <div
-                    key={ki}
-                    onPointerDown={e => e.stopPropagation()}
-                    onClick={() => onCellClick(qi, ki)}
-                    title={`H${headIdx}: "${tokens[qi]}" → "${tokens[ki]}" = ${weight.toFixed(3)}`}
-                    style={{
-                      width: CELL_SIZE,
-                      height: CELL_SIZE,
-                      background: colors[qi][ki],
-                      boxSizing: "border-box",
-                      cursor: "pointer",
-                      outline: isSelected ? "1.5px solid var(--color-text)" : "none",
-                      outlineOffset: "-1px",
-                      position: "relative",
-                      zIndex: isSelected ? 1 : 0,
-                      flexShrink: 0,
-                    }}
-                  />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
+    <div style={{ position: "relative", width: canvasPx, height: canvasPx, flexShrink: 0 }}>
+      <canvas
+        ref={canvasRef}
+        width={canvasPx}
+        height={canvasPx}
+        style={{ display: "block", cursor: "crosshair" }}
+        onPointerDown={e => e.stopPropagation()}
+        onClick={e => {
+          const c = getCellAt(e);
+          if (c) onCellClick(c.q, c.k);
+        }}
+        onMouseMove={e => {
+          const c = getCellAt(e);
+          if (c) onHover({ head: headIdx, q: c.q, k: c.k, w: pattern[c.q][c.k] });
+        }}
+        onMouseLeave={onHoverEnd}
+      />
+      {selectedCell && (
+        <div style={{
+          position: "absolute",
+          left: selectedCell.k * CELL_SIZE,
+          top: selectedCell.q * CELL_SIZE,
+          width: CELL_SIZE,
+          height: CELL_SIZE,
+          outline: "2px solid var(--color-text)",
+          outlineOffset: "-1px",
+          pointerEvents: "none",
+          zIndex: 1,
+        }} />
+      )}
     </div>
   );
 });
@@ -224,8 +138,12 @@ function AttentionCard({
   const [currentLayer, setCurrentLayer] = React.useState(0);
   const [selectedCell, setSelectedCell] = React.useState<SelectedCell>(null);
   const [pinnedHeads, setPinnedHeads] = React.useState<PinnedHead[]>([]);
+  const [focusedHead, setFocusedHead] = React.useState<FocusedHead>(null);
+  const [pinConfirm, setPinConfirm] = React.useState<string | null>(null);
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
+  const [hoverInfo, setHoverInfo] = React.useState<HoverInfo>(null);
+  const pinConfirmTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
     if (card.status !== "loading") return;
@@ -239,9 +157,31 @@ function AttentionCard({
     setCurrentLayer(0);
     setSelectedCell(null);
     setPinnedHeads([]);
+    setFocusedHead(null);
   }, [card.data]);
 
+  // Clear focus when Escape pressed
+  React.useEffect(() => {
+    if (!focusedHead) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setFocusedHead(null);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [focusedHead]);
+
+  // Cleanup confirm timer on unmount
+  React.useEffect(() => {
+    return () => { if (pinConfirmTimer.current) clearTimeout(pinConfirmTimer.current); };
+  }, []);
+
   const nLayers = card.data?.n_layers ?? 0;
+
+  function showConfirm(msg: string) {
+    if (pinConfirmTimer.current) clearTimeout(pinConfirmTimer.current);
+    setPinConfirm(msg);
+    pinConfirmTimer.current = setTimeout(() => setPinConfirm(null), 1800);
+  }
 
   function handleCellClick(q: number, k: number) {
     setSelectedCell(prev => (prev?.q === q && prev?.k === k ? null : { q, k }));
@@ -256,9 +196,51 @@ function AttentionCard({
     });
   }
 
+  function handleHeadLabelClick(layer: number, head: number) {
+    const isPinned = pinnedHeads.some(p => p.layer === layer && p.head === head);
+    const isFocused = focusedHead?.layer === layer && focusedHead?.head === head;
+
+    if (isFocused) {
+      // Second click — commit
+      if (isPinned) {
+        handlePin(layer, head); // unpin
+        showConfirm(`unpinned L${layer}·H${head}`);
+      } else if (pinnedHeads.length < MAX_PINS) {
+        handlePin(layer, head); // pin
+        showConfirm(`✓ pinned L${layer}·H${head}`);
+      } else {
+        showConfirm(`max ${MAX_PINS} pins reached`);
+      }
+      setFocusedHead(null);
+    } else {
+      // First click — focus (show aura)
+      setFocusedHead({ layer, head });
+    }
+  }
+
+  function handleLayerChange(delta: number) {
+    setCurrentLayer(l => Math.max(0, Math.min(nLayers - 1, l + delta)));
+    setFocusedHead(null);
+  }
+
   function handleUnpin(layer: number, head: number) {
     setPinnedHeads(prev => prev.filter(p => !(p.layer === layer && p.head === head)));
   }
+
+  const data = card.status === "result" ? card.data : null;
+
+  // Info bar text priority: confirm > focused > hover > selected > default
+  const infoContent = React.useMemo(() => {
+    if (pinConfirm) return { type: "confirm" as const, text: pinConfirm };
+    if (focusedHead) {
+      const isPinned = pinnedHeads.some(p => p.layer === focusedHead.layer && p.head === focusedHead.head);
+      const action = isPinned ? "unpin" : pinnedHeads.length >= MAX_PINS ? "max pins reached — click to dismiss" : "pin for comparison";
+      return { type: "focused" as const, text: `click again to ${action}  ·  L${focusedHead.layer}·H${focusedHead.head}  ·  Esc to cancel` };
+    }
+    if (hoverInfo && data) return { type: "hover" as const, head: hoverInfo.head, q: hoverInfo.q, k: hoverInfo.k, w: hoverInfo.w, tokens: data.tokens };
+    if (selectedCell && data) return { type: "selected" as const, q: selectedCell.q, k: selectedCell.k, tokens: data.tokens };
+    return { type: "idle" as const };
+  }, [pinConfirm, focusedHead, hoverInfo, selectedCell, data, pinnedHeads]);
 
   return (
     <div
@@ -277,24 +259,24 @@ function AttentionCard({
         flexDirection: "column",
         ...(card.status === "loading" ? { width: 280, height: 200 } : {}),
         ...(card.status === "error" ? { width: 280 } : {}),
-        ...(card.status === "result" ? { maxWidth: 760 } : {}),
+        ...(data ? { maxWidth: 760 } : {}),
       }}
     >
+      <style>{`
+        @keyframes pulseRing {
+          0%, 100% { box-shadow: 0 0 0 1.5px var(--color-accent), 0 0 6px 1px var(--color-accent); }
+          50%       { box-shadow: 0 0 0 1.5px var(--color-accent), 0 0 14px 4px var(--color-accent); }
+        }
+      `}</style>
+
+      {/* Hover popup */}
       {headerHovered && (
         <div style={{
-          position: "absolute",
-          bottom: "calc(100% + 6px)",
-          left: 0,
-          background: "var(--color-card)",
-          border: "1px solid var(--color-card-border)",
-          borderRadius: 8,
-          boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-          padding: "10px 12px",
-          zIndex: 100,
-          pointerEvents: "none",
-          minWidth: 200,
-          maxWidth: 320,
-          animation: "fadeUp 120ms ease-out",
+          position: "absolute", bottom: "calc(100% + 6px)", left: 0,
+          background: "var(--color-card)", border: "1px solid var(--color-card-border)",
+          borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+          padding: "10px 12px", zIndex: 100, pointerEvents: "none",
+          minWidth: 200, maxWidth: 320,
         }}>
           <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-all" }}>
             {card.modelName}
@@ -315,6 +297,7 @@ function AttentionCard({
         </div>
       )}
 
+      {/* Header */}
       <div
         onPointerDown={e => onStartDrag(e, card.id, card.position)}
         onPointerMove={onDragMove}
@@ -323,12 +306,8 @@ function AttentionCard({
         onMouseLeave={() => setHeaderHovered(false)}
         style={{
           borderBottom: "1px solid var(--color-surface-border)",
-          display: "flex",
-          flexDirection: "column",
-          flexShrink: 0,
-          borderRadius: "8px 8px 0 0",
-          cursor: "grab",
-          userSelect: "none",
+          display: "flex", flexDirection: "column", flexShrink: 0,
+          borderRadius: "8px 8px 0 0", cursor: "grab", userSelect: "none",
         }}
       >
         <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6 }}>
@@ -348,41 +327,31 @@ function AttentionCard({
           </button>
         </div>
 
-        {card.status === "result" && card.data && (
+        {data && (
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{
-              padding: "4px 10px",
-              borderTop: "1px solid var(--color-surface-border)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
+            style={{ padding: "4px 10px", borderTop: "1px solid var(--color-surface-border)", display: "flex", alignItems: "center", gap: 6 }}
           >
             <button
-              onClick={() => setCurrentLayer(l => Math.max(0, l - 1))}
+              onClick={() => handleLayerChange(-1)}
               disabled={currentLayer === 0}
               style={{ fontSize: 12, background: "none", border: "none", cursor: currentLayer === 0 ? "not-allowed" : "pointer", color: currentLayer === 0 ? "var(--color-text-muted)" : "var(--color-text)", padding: "0 4px", lineHeight: 1 }}
-            >
-              ←
-            </button>
+            >←</button>
             <span style={{ fontSize: 10, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text)", minWidth: 28, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
               L{currentLayer}
             </span>
             <button
-              onClick={() => setCurrentLayer(l => Math.min(nLayers - 1, l + 1))}
+              onClick={() => handleLayerChange(1)}
               disabled={currentLayer === nLayers - 1}
               style={{ fontSize: 12, background: "none", border: "none", cursor: currentLayer === nLayers - 1 ? "not-allowed" : "pointer", color: currentLayer === nLayers - 1 ? "var(--color-text-muted)" : "var(--color-text)", padding: "0 4px", lineHeight: 1 }}
-            >
-              →
-            </button>
+            >→</button>
             <div style={{ flex: 1 }} />
             {card.gpuTier && (
               <span style={{ fontSize: 9, fontWeight: 600, color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
                 {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
               </span>
             )}
-            {card.data.truncated && (
+            {data.truncated && (
               <span style={{ fontSize: 9, fontWeight: 600, color: "#d97706", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
                 truncated to 30 tok
               </span>
@@ -391,6 +360,7 @@ function AttentionCard({
         )}
       </div>
 
+      {/* Loading */}
       {card.status === "loading" && (
         <div style={{ display: "flex", flexDirection: "column", padding: "12px 14px", gap: 10, minHeight: 110 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -403,38 +373,137 @@ function AttentionCard({
               {formatElapsed(elapsedMs)}
             </span>
           </div>
-          <CardLoadingState
-            stage="Computing attention patterns…"
-            elapsed={elapsedMs}
-            warmup={elapsedMs > 30_000}
-          />
+          <CardLoadingState stage="Computing attention patterns…" elapsed={elapsedMs} warmup={elapsedMs > 30_000} />
         </div>
       )}
 
+      {/* Error */}
       {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
 
-      {card.status === "result" && card.data && (
+      {/* Result */}
+      {data && (
         <>
-          {/* Horizontal-scroll browse strip — one layer, all heads */}
-          <div style={{ overflowX: "auto", overflowY: "hidden", background: "var(--color-card)" }}>
-            <div style={{ display: "flex", flexWrap: "nowrap", gap: 10, padding: 10 }}>
-              {Array.from({ length: card.data.n_heads }, (_, h) => {
+          {/* Browse strip — onPointerDown + onWheel stop propagation so scroll works inside the canvas */}
+          <div
+            onPointerDown={e => e.stopPropagation()}
+            onWheel={e => e.stopPropagation()}
+            style={{ overflowX: "auto", overflowY: "hidden", background: "var(--color-card)" }}
+          >
+            <div style={{ display: "flex", gap: 8, padding: "8px 10px" }}>
+              {Array.from({ length: data.n_heads }, (_, h) => {
                 const isPinned = pinnedHeads.some(p => p.layer === currentLayer && p.head === h);
+                const isFocused = focusedHead?.layer === currentLayer && focusedHead?.head === h;
+                const gridW = data.tokens.length * CELL_SIZE;
+
                 return (
-                  <AttentionMatrix
+                  <div
                     key={h}
-                    headIdx={h}
-                    nHeads={card.data!.n_heads}
-                    pattern={card.data!.patterns[currentLayer][h]}
-                    tokens={card.data!.tokens}
-                    selectedCell={selectedCell}
-                    onCellClick={handleCellClick}
-                    onPin={pinnedHeads.length < MAX_PINS || isPinned ? () => handlePin(currentLayer, h) : undefined}
-                    isPinned={isPinned}
-                  />
+                    style={{
+                      flexShrink: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      borderRadius: 4,
+                      // Aura appears on first click; pulses until second click
+                      animation: isFocused ? "pulseRing 1.8s ease-in-out infinite" : "none",
+                      boxShadow: isFocused
+                        ? "0 0 0 1.5px var(--color-accent), 0 0 6px 1px var(--color-accent)"
+                        : isPinned
+                          ? "0 0 0 1px var(--color-accent)"
+                          : "none",
+                      transition: "box-shadow 150ms",
+                      outline: "none",
+                    }}
+                  >
+                    {/* Head label — click target for two-click pinning */}
+                    <div
+                      onPointerDown={e => e.stopPropagation()}
+                      onClick={() => handleHeadLabelClick(currentLayer, h)}
+                      title={isFocused ? "Click again to pin" : "Click to select, click again to pin"}
+                      style={{
+                        height: HEAD_LABEL_H,
+                        width: gridW,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        borderRadius: "4px 4px 0 0",
+                        userSelect: "none",
+                      }}
+                    >
+                      <span style={{
+                        fontSize: 8,
+                        fontFamily: "var(--font-azeret-mono), monospace",
+                        fontWeight: 700,
+                        letterSpacing: "0.04em",
+                        color: isFocused ? "var(--color-accent)" : isPinned ? "var(--color-accent)" : "var(--color-text-muted)",
+                        transition: "color 150ms",
+                      }}>
+                        H{h}
+                      </span>
+                    </div>
+
+                    <AttentionMatrixCanvas
+                      headIdx={h}
+                      nHeads={data.n_heads}
+                      pattern={data.patterns[currentLayer][h]}
+                      selectedCell={selectedCell}
+                      onCellClick={handleCellClick}
+                      onHover={info => setHoverInfo(info)}
+                      onHoverEnd={() => setHoverInfo(null)}
+                    />
+                  </div>
                 );
               })}
             </div>
+          </div>
+
+          {/* Info bar */}
+          <div
+            onPointerDown={e => e.stopPropagation()}
+            style={{
+              height: 22,
+              padding: "0 10px",
+              display: "flex",
+              alignItems: "center",
+              borderTop: "1px solid var(--color-surface-border)",
+              background: "var(--color-card)",
+              overflow: "hidden",
+              flexShrink: 0,
+            }}
+          >
+            {infoContent.type === "confirm" && (
+              <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-accent)", fontWeight: 600, whiteSpace: "nowrap" }}>
+                {infoContent.text}
+              </span>
+            )}
+            {infoContent.type === "focused" && (
+              <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+                {infoContent.text}
+              </span>
+            )}
+            {infoContent.type === "hover" && (
+              <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+                {"H" + infoContent.head + "  ·  "}
+                <span style={{ color: "var(--color-text)" }}>&ldquo;{infoContent.tokens[infoContent.q]}&rdquo;</span>
+                {"  →  "}
+                <span style={{ color: "var(--color-text)" }}>&ldquo;{infoContent.tokens[infoContent.k]}&rdquo;</span>
+                {"  =  "}
+                <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{infoContent.w.toFixed(3)}</span>
+              </span>
+            )}
+            {infoContent.type === "selected" && (
+              <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+                {"selected  "}
+                <span style={{ color: "var(--color-text)" }}>&ldquo;{infoContent.tokens[infoContent.q]}&rdquo;</span>
+                {"  →  "}
+                <span style={{ color: "var(--color-text)" }}>&ldquo;{infoContent.tokens[infoContent.k]}&rdquo;</span>
+              </span>
+            )}
+            {infoContent.type === "idle" && (
+              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+                hover cells to inspect  ·  click a head label once then again to pin
+              </span>
+            )}
           </div>
 
           {/* Pinned comparison section */}
@@ -443,17 +512,10 @@ function AttentionCard({
               borderTop: "2px solid var(--color-surface-border)",
               background: "var(--color-panel)",
               borderRadius: "0 0 8px 8px",
-              animation: pinnedHeads.length === 1 ? "fadeIn 180ms ease-out" : undefined,
             }}>
               <div
                 onPointerDown={e => e.stopPropagation()}
-                style={{
-                  padding: "5px 10px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  borderBottom: "1px solid var(--color-surface-border)",
-                }}
+                style={{ padding: "5px 10px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid var(--color-surface-border)" }}
               >
                 <span style={{ fontSize: 9, fontWeight: 700, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", letterSpacing: "0.08em" }}>
                   PINNED
@@ -471,20 +533,21 @@ function AttentionCard({
                 </button>
               </div>
 
-              <div style={{ overflowX: "auto", background: "var(--color-panel)" }}>
-                <div style={{ display: "flex", flexWrap: "nowrap", gap: 10, padding: 10 }}>
+              <div
+                onPointerDown={e => e.stopPropagation()}
+                onWheel={e => e.stopPropagation()}
+                style={{ overflowX: "auto", background: "var(--color-panel)" }}
+              >
+                <div style={{ display: "flex", gap: 8, padding: "8px 10px" }}>
                   {pinnedHeads.map(({ layer, head }) => (
-                    <div
-                      key={`${layer}-${head}`}
-                      style={{ position: "relative", flexShrink: 0, animation: "fadeIn 200ms ease-out" }}
-                    >
+                    <div key={`${layer}-${head}`} style={{ flexShrink: 0, display: "flex", flexDirection: "column" }}>
                       <div style={{
+                        height: HEAD_LABEL_H,
+                        width: data.tokens.length * CELL_SIZE,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        height: 14,
-                        marginBottom: 2,
-                        gap: 4,
+                        gap: 5,
                       }}>
                         <span style={{ fontSize: 8, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-accent)", fontWeight: 700 }}>
                           L{layer}·H{head}
@@ -493,17 +556,16 @@ function AttentionCard({
                           onPointerDown={e => e.stopPropagation()}
                           onClick={() => handleUnpin(layer, head)}
                           style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", padding: "0 2px", lineHeight: 1 }}
-                        >
-                          ×
-                        </button>
+                        >×</button>
                       </div>
-                      <AttentionMatrix
+                      <AttentionMatrixCanvas
                         headIdx={head}
-                        nHeads={card.data!.n_heads}
-                        pattern={card.data!.patterns[layer][head]}
-                        tokens={card.data!.tokens}
+                        nHeads={data.n_heads}
+                        pattern={data.patterns[layer][head]}
                         selectedCell={selectedCell}
                         onCellClick={handleCellClick}
+                        onHover={info => setHoverInfo(info)}
+                        onHoverEnd={() => setHoverInfo(null)}
                       />
                     </div>
                   ))}
