@@ -59,13 +59,14 @@ function getStageLabel(stage: string | undefined, elapsedMs: number): string {
   }
   const labels: Record<string, string> = {
     tokenizing: "Tokenizing…",
-    preparing: "Caching counterfactual activations",
+    preparing: "Caching clean activations",
     computing_effects: "Normalizing effects",
   };
   return labels[stage] ?? "Processing…";
 }
 
 function matchLabel(effect: number): { text: string; color: string; bg: string; border: string } {
+  if (effect < 0) return { text: "Suppress", color: "#9333ea", bg: "rgba(147,51,234,0.08)", border: "rgba(147,51,234,0.25)" };
   if (effect > 0.7) return { text: "Strong", color: "#16a34a", bg: "rgba(22,163,74,0.08)", border: "rgba(22,163,74,0.25)" };
   if (effect > 0.3) return { text: "Partial", color: "#d97706", bg: "rgba(217,119,6,0.08)", border: "rgba(217,119,6,0.25)" };
   return { text: "Weak", color: "#dc2626", bg: "rgba(220,38,38,0.08)", border: "rgba(220,38,38,0.25)" };
@@ -242,7 +243,8 @@ function ActivationCard({
               const match = matchLabel(comp.actual_effect);
               const attrColor = interpolateColorDivergent("rdbu", comp.attribution_score, attrAbsMax);
               const attrFrac = Math.abs(comp.attribution_score) / attrAbsMax;
-              const effectFrac = Math.max(0, Math.min(1, comp.actual_effect));
+              const effectFrac = Math.min(1, Math.abs(comp.actual_effect));
+              const effectColor = comp.actual_effect < 0 ? "#9333ea" : "#16a34a";
               const label = comp.component_type === "attn_head"
                 ? `L${comp.layer}·H${comp.head}`
                 : `L${comp.layer}·MLP`;
@@ -287,7 +289,7 @@ function ActivationCard({
 
                   {/* Effect bar */}
                   <div style={{ flex: 1, height: 8, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
-                    <div style={{ width: `${effectFrac * 100}%`, height: "100%", background: "#16a34a", borderRadius: 2, opacity: 0.7 + effectFrac * 0.3 }} />
+                    <div style={{ width: `${effectFrac * 100}%`, height: "100%", background: effectColor, borderRadius: 2, opacity: 0.7 + effectFrac * 0.3 }} />
                   </div>
 
                   {/* Match badge */}

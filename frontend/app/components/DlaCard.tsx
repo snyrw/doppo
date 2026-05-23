@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { interpolateColorDivergent, getContrastColor } from "../lib/palette";
+import { interpolateColorDivergent } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
 import { CardDragHandle, CardLoadingState, CardErrorState } from "./CardShell";
 
@@ -74,7 +74,7 @@ function DlaCard({
   onDragEnd,
   onRemove,
 }: DlaCardProps) {
-  const [view, setView] = React.useState<"layer" | "head">("layer");
+  const [view, setView] = React.useState<"layer" | "head" | "top">("layer");
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
 
@@ -242,7 +242,7 @@ function DlaCard({
             )}
             <div style={{ flex: 1 }} />
             <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
-              {(["layer", "head"] as const).map(v => (
+              {(["layer", "head", "top"] as const).map(v => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
@@ -290,8 +290,10 @@ function DlaCard({
         <div style={{ overflow: "auto", padding: 6, background: "var(--color-card)" }}>
           {view === "layer" ? (
             <LayerView data={card.data} absMax={absMax} />
-          ) : (
+          ) : view === "head" ? (
             <HeadView data={card.data} absMax={absMax} />
+          ) : (
+            <TopView data={card.data} absMax={absMax} />
           )}
         </div>
       )}
@@ -439,7 +441,6 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
           </div>
           {data.head_dla[li].map((val, hi) => {
             const color = interpolateColorDivergent("rdbu", val, absMax);
-            const contrastColor = getContrastColor("rdbu", (val + absMax) / (2 * absMax));
             const tooltip = `${label} H${hi}: ${val >= 0 ? "+" : ""}${val.toFixed(3)}`;
             return (
               <div
@@ -457,6 +458,37 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
               />
             );
           })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const TOP_N = 15;
+const TOP_BAR_W = 120;
+
+function TopView({ data, absMax }: { data: DlaData; absMax: number }) {
+  const ranked = React.useMemo(() => {
+    const entries: { label: string; val: number }[] = [];
+    data.head_dla.forEach((row, li) => {
+      row.forEach((val, hi) => {
+        entries.push({ label: `${data.y_labels[li]}H${hi}`, val });
+      });
+    });
+    return entries.sort((a, b) => Math.abs(b.val) - Math.abs(a.val)).slice(0, TOP_N);
+  }, [data]);
+
+  return (
+    <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
+      {ranked.map(({ label, val }) => (
+        <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
+          <div style={{ width: Y_LABEL_W + 14, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
+            {label}
+          </div>
+          <DivergingBar val={val} absMax={absMax} width={TOP_BAR_W} height={LAYER_CELL_H} tooltip={`${label}: ${val >= 0 ? "+" : ""}${val.toFixed(3)}`} />
+          <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+            {val >= 0 ? "+" : ""}{val.toFixed(2)}
+          </span>
         </div>
       ))}
     </div>

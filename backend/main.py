@@ -683,18 +683,18 @@ class _TLBase:
         yield json.dumps({"stage": "preparing"})
         device = clean_tokens.device
         with torch.no_grad():
-            _, corrupted_cache = self.model.run_with_cache(
-                corrupted_tokens,
+            _, clean_cache = self.model.run_with_cache(
+                clean_tokens,
                 names_filter=lambda name: name in hook_names,
             )
             clean_metric = _metric(self.model(clean_tokens))
             corrupted_metric = _metric(self.model(corrupted_tokens))
         total_diff = max(abs(clean_metric - corrupted_metric), 1e-8)
 
-        # CPU-offload the corrupted cache so it doesn't compete with the k patching
+        # CPU-offload the clean cache so it doesn't compete with the k patching
         # forward passes for the limited headroom above model weights.
-        corrupted_cache_cpu = {name: corrupted_cache[name].cpu() for name in hook_names}
-        del corrupted_cache
+        clean_cache_cpu = {name: clean_cache[name].cpu() for name in hook_names}
+        del clean_cache
         torch.cuda.empty_cache()
 
         results: list[dict] = []
@@ -703,7 +703,7 @@ class _TLBase:
             H = comp.get("head", -1)
 
             if comp["component_type"] == "attn_head":
-                corrupted_z_val = corrupted_cache_cpu[f"blocks.{L}.attn.hook_z"][:, :, H, :].to(device)
+                clean_z_val = clean_cache_cpu[f"blocks.{L}.attn.hook_z"][:, :, H, :].to(device)
 
                 def make_head_hook(cached_z, head_idx):
                     def _fn(value, hook):
@@ -711,26 +711,27 @@ class _TLBase:
                         return value
                     return _fn
 
-                hook_fn = make_head_hook(corrupted_z_val, H)
+                hook_fn = make_head_hook(clean_z_val, H)
                 hook_name = f"blocks.{L}.attn.hook_z"
             else:
-                corrupted_mlp_val = corrupted_cache_cpu[f"blocks.{L}.hook_mlp_out"].to(device)
+                clean_mlp_val = clean_cache_cpu[f"blocks.{L}.hook_mlp_out"].to(device)
 
                 def make_mlp_hook(cached_mlp):
                     def _fn(value, hook):
                         return cached_mlp
                     return _fn
 
-                hook_fn = make_mlp_hook(corrupted_mlp_val)
+                hook_fn = make_mlp_hook(clean_mlp_val)
                 hook_name = f"blocks.{L}.hook_mlp_out"
 
             with torch.no_grad():
                 patched_logits = self.model.run_with_hooks(
-                    clean_tokens,
+                    corrupted_tokens,
                     fwd_hooks=[(hook_name, hook_fn)],
                 )
             patched_metric = _metric(patched_logits)
-            actual_effect = (clean_metric - patched_metric) / total_diff
+            # Denoising: 0 = no recovery (stays corrupted), 1 = full recovery (matches clean).
+            actual_effect = (patched_metric - corrupted_metric) / total_diff
 
             results.append({
                 "layer": L,
