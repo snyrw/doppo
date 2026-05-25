@@ -7,11 +7,11 @@ import { putHeatmap, getHeatmap } from "@/app/lib/r2";
 import { checkAndIncrementQuota } from "@/app/lib/quota";
 import {
   SSE_HEADERS,
-  parseSSE,
   requireAuth,
   fetchUpstream,
   validateGpuTier,
   resolveModelTier,
+  resolveEndpointUrl,
 } from "@/app/lib/api-helpers";
 
 export async function POST(request: NextRequest) {
@@ -172,27 +172,26 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const upstreamResult = await fetchUpstream(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/run-steering-stream`,
-    {
-      model_name: modelName,
-      clean_prompt: cleanPrompt,
-      corrupted_prompt: corruptedPrompt,
-      generation_prompt: generationPrompt ?? null,
-      target_position: targetPosition,
-      components: components.map((c) => ({
-        layer: c.layer,
-        head: c.head,
-        injection_type: c.injectionType,
-      })),
-      alpha,
-      n_tokens: nTokens,
-      extra_pairs: extraPairs ?? null,
-      temperature: resolvedTemperature,
-      repetition_penalty: resolvedRep,
-    }
-  );
-  if (!upstreamResult.ok) return upstreamResult.errorResponse;
+  // Cache miss — submit to RunPod and poll.
+  const endpointUrl = resolveEndpointUrl(resolvedTier);
+  const workerInput = {
+    endpoint: "run_steering",
+    model_id: modelName,
+    clean_prompt: cleanPrompt,
+    corrupted_prompt: corruptedPrompt,
+    generation_prompt: generationPrompt ?? null,
+    target_position: targetPosition,
+    components: components.map((c) => ({
+      layer: c.layer,
+      head: c.head,
+      injection_type: c.injectionType,
+    })),
+    alpha,
+    n_tokens: nTokens,
+    extra_pairs: extraPairs ?? null,
+    temperature: resolvedTemperature,
+    repetition_penalty: resolvedRep,
+  };
 
   const encoder = new TextEncoder();
   let doneData: unknown = null;
@@ -202,15 +201,7 @@ export async function POST(request: NextRequest) {
 
   (async () => {
     try {
-      for await (const event of parseSSE(upstreamResult.response.body!)) {
-        await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-        if (event.stage === "done") doneData = event.data;
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      await writer
-        .write(encoder.encode(`data: ${JSON.stringify({ stage: "error", error: msg })}\n\n`))
-        .catch(() => {});
+      doneData = await fetchUpstream(endpointUrl, workerInput, writer, encoder);
     } finally {
       await writer.close().catch(() => {});
     }
