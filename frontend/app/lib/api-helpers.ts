@@ -76,45 +76,105 @@ export async function requireAuth(gpuTier: string): Promise<AuthResult> {
   return { userId: session.user.id };
 }
 
-export type UpstreamResult =
-  | { ok: true; response: Response }
-  | { ok: false; errorResponse: Response };
+// ── RunPod endpoint routing ───────────────────────────────────────────────────
 
+const RUNPOD_ENDPOINTS: Record<GpuTier, string> = {
+  tl_small:   process.env.RUNPOD_ENDPOINT_SMALL!,
+  tl_medium:  process.env.RUNPOD_ENDPOINT_MEDIUM!,
+  tl_large:   process.env.RUNPOD_ENDPOINT_LARGE!,
+  tl_xlarge:  process.env.RUNPOD_ENDPOINT_XLARGE!,
+};
+
+function bumpTier(tier: GpuTier): GpuTier {
+  const order: GpuTier[] = ["tl_small", "tl_medium", "tl_large", "tl_xlarge"];
+  const idx = order.indexOf(tier);
+  return order[Math.min(idx + 1, order.length - 1)];
+}
+
+export function resolveEndpointUrl(tier: GpuTier, bump = false): string {
+  return RUNPOD_ENDPOINTS[bump ? bumpTier(tier) : tier];
+}
+
+// ── RunPod polling fetchUpstream ─────────────────────────────────────────────
+
+const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY!;
+const POLL_INTERVAL_MS = 400;
+
+type RunPodChunk = {
+  output: { stage: string; data?: unknown; error?: string };
+};
+
+/**
+ * Submit a job to a RunPod endpoint and poll /stream until done.
+ * Writes SSE events to `writer` as they arrive.
+ * Returns the `data` payload from the "done" event, or null on error.
+ */
 export async function fetchUpstream(
-  url: string,
-  body: unknown
-): Promise<UpstreamResult> {
-  let upstream: Response;
+  endpointUrl: string,
+  body: unknown,
+  writer: WritableStreamDefaultWriter<Uint8Array>,
+  encoder: TextEncoder,
+): Promise<unknown> {
+  const send = async (data: object) =>
+    writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+
+  let submitRes: Response;
   try {
-    upstream = await fetch(url, {
+    submitRes = await fetch(`${endpointUrl}/run`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RUNPOD_API_KEY}`,
+      },
+      body: JSON.stringify({ input: body }),
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return {
-      ok: false,
-      errorResponse: new Response(
-        `data: ${JSON.stringify({ stage: "error", error: `Could not reach inference backend: ${msg}` })}\n\n`,
-        { headers: SSE_HEADERS }
-      ),
-    };
+    await send({ stage: "error", error: `Could not reach inference backend: ${msg}` });
+    return null;
   }
 
-  if (!upstream.ok || !upstream.body) {
-    const errData = (await upstream.json().catch(() => ({}))) as {
-      detail?: string;
-    };
-    const detail = errData.detail ?? `Upstream error ${upstream.status}`;
-    return {
-      ok: false,
-      errorResponse: new Response(
-        `data: ${JSON.stringify({ stage: "error", error: detail })}\n\n`,
-        { headers: SSE_HEADERS }
-      ),
-    };
+  if (!submitRes.ok) {
+    await send({ stage: "error", error: `RunPod submit failed: ${submitRes.status}` });
+    return null;
   }
 
-  return { ok: true, response: upstream };
+  const { id: jobId } = (await submitRes.json()) as { id: string };
+  let doneData: unknown = null;
+
+  for (;;) {
+    await new Promise<void>((r) => setTimeout(r, POLL_INTERVAL_MS));
+
+    let pollRes: Response;
+    try {
+      pollRes = await fetch(`${endpointUrl}/stream/${jobId}`, {
+        headers: { Authorization: `Bearer ${RUNPOD_API_KEY}` },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await send({ stage: "error", error: `Poll failed: ${msg}` });
+      return null;
+    }
+
+    if (!pollRes.ok) {
+      await send({ stage: "error", error: `RunPod poll HTTP ${pollRes.status}` });
+      return null;
+    }
+
+    const { stream, status } = (await pollRes.json()) as {
+      stream?: RunPodChunk[];
+      status: string;
+    };
+
+    for (const chunk of stream ?? []) {
+      await send(chunk.output);
+      if (chunk.output.stage === "done") doneData = chunk.output.data ?? null;
+      if (chunk.output.stage === "done" || chunk.output.stage === "error") return doneData;
+    }
+
+    if (status === "FAILED") {
+      await send({ stage: "error", error: "RunPod job failed" });
+      return null;
+    }
+  }
 }
