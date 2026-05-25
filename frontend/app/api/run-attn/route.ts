@@ -6,11 +6,11 @@ import { attnCache } from "@/app/schema";
 import { putHeatmap, getHeatmap } from "@/app/lib/r2";
 import {
   SSE_HEADERS,
-  parseSSE,
   requireAuth,
   fetchUpstream,
   validateGpuTier,
   resolveModelTier,
+  resolveEndpointUrl,
 } from "@/app/lib/api-helpers";
 
 export async function POST(request: NextRequest) {
@@ -71,11 +71,13 @@ export async function POST(request: NextRequest) {
     return new Response(`data: ${payload}\n\n`, { headers: SSE_HEADERS });
   }
 
-  const upstreamResult = await fetchUpstream(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/run-attn-stream`,
-    { prompt, model_name: modelName }
-  );
-  if (!upstreamResult.ok) return upstreamResult.errorResponse;
+  // Cache miss — submit to RunPod and poll.
+  const endpointUrl = resolveEndpointUrl(resolvedTier);
+  const workerInput = {
+    endpoint: "run_attn",
+    model_id: modelName,
+    prompt,
+  };
 
   const encoder = new TextEncoder();
   let doneData: unknown = null;
@@ -85,15 +87,7 @@ export async function POST(request: NextRequest) {
 
   (async () => {
     try {
-      for await (const event of parseSSE(upstreamResult.response.body!)) {
-        await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-        if (event.stage === "done") doneData = event.data;
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      await writer
-        .write(encoder.encode(`data: ${JSON.stringify({ stage: "error", error: msg })}\n\n`))
-        .catch(() => {});
+      doneData = await fetchUpstream(endpointUrl, workerInput, writer, encoder);
     } finally {
       await writer.close().catch(() => {});
     }
@@ -103,10 +97,15 @@ export async function POST(request: NextRequest) {
         await putHeatmap(cacheKey, doneData);
         await db
           .insert(attnCache)
-          .values({ id: cacheKey, modelName, prompt, r2Key: cacheKey })
+          .values({
+            id: cacheKey,
+            modelName,
+            prompt,
+            r2Key: cacheKey,
+          })
           .onConflictDoNothing();
       } catch (err) {
-        console.error("Attention cache write failed:", err);
+        console.error("Attn cache write failed:", err);
       }
     }
   })();
