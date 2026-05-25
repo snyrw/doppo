@@ -38,6 +38,7 @@ export type SteeringCardData = {
   parentCardId: string;
   data: SteeringResult | null;
   error: string | null;
+  showBuyCredits?: boolean;
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
@@ -53,6 +54,7 @@ type SteeringCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   onRerun: (cardId: string, newAlpha: number) => void;
+  onBuyCredits?: () => void;
 };
 
 function formatElapsed(ms: number): string {
@@ -75,6 +77,7 @@ function SteeringCard({
   onDragEnd,
   onRemove,
   onRerun,
+  onBuyCredits,
 }: SteeringCardProps) {
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
@@ -304,7 +307,7 @@ function SteeringCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} onBuyCredits={onBuyCredits} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (

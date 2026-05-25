@@ -54,8 +54,8 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       .then(async (response) => {
         if (!response.ok || !response.body) {
           const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const message = response.status === 401 ? (err.error ?? "Sign in to use medium and large models") : (err.detail ?? err.error ?? `Request failed (${response.status})`);
-          dispatch({ type: "CARD_ERRORED", id: steeringId, error: message });
+          const steeringErr = response.status === 402 ? { error: err.error ?? "Insufficient credits", showBuyCredits: true as const } : response.status === 401 ? { error: err.error ?? "Sign in to use medium and large models" } : { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
+          dispatch({ type: "CARD_ERRORED", id: steeringId, ...steeringErr });
           return;
         }
         for await (const event of readSSEStream(response)) {
@@ -92,8 +92,8 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       .then(async (response) => {
         if (!response.ok || !response.body) {
           const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const message = response.status === 401 ? (err.error ?? "Sign in to use medium and large models") : (err.detail ?? err.error ?? `Request failed (${response.status})`);
-          dispatch({ type: "CARD_ERRORED", id: cardId, error: message });
+          const rerunErr = response.status === 402 ? { error: err.error ?? "Insufficient credits", showBuyCredits: true as const } : response.status === 401 ? { error: err.error ?? "Sign in to use medium and large models" } : { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
+          dispatch({ type: "CARD_ERRORED", id: cardId, ...rerunErr });
           return;
         }
         for await (const event of readSSEStream(response)) {
@@ -143,8 +143,8 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       .then(async (response) => {
         if (!response.ok || !response.body) {
           const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const message = response.status === 401 ? (err.error ?? "Sign in to use medium and large models") : (err.detail ?? err.error ?? `Request failed (${response.status})`);
-          dispatch({ type: "CARD_ERRORED", id: steeringId, error: message });
+          const standaloneErr = response.status === 402 ? { error: err.error ?? "Insufficient credits", showBuyCredits: true as const } : response.status === 401 ? { error: err.error ?? "Sign in to use medium and large models" } : { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
+          dispatch({ type: "CARD_ERRORED", id: steeringId, ...standaloneErr });
           return;
         }
         for await (const event of readSSEStream(response)) {

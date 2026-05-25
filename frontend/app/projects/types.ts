@@ -37,7 +37,7 @@ export type AppAction =
   | { type: "ACTIVATION_CARD_RESOLVED"; id: string; data: ActivationPatchResult; parentAttributionId: string }
   | { type: "ATTRIBUTION_VERIFY_STARTED"; id: string; k: number; verifyCardId: string }
   | { type: "ATTRIBUTION_VERIFY_DONE"; id: string }
-  | { type: "CARD_ERRORED"; id: string; error: string }
+  | { type: "CARD_ERRORED"; id: string; error: string; showBuyCredits?: boolean }
   | { type: "CARD_STAGE"; id: string; stage: string }
   | { type: "MOVE_CARD"; id: string; position: { x: number; y: number } }
   | { type: "REMOVE_CARD"; id: string }

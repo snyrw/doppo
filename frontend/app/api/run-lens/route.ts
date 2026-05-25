@@ -12,6 +12,7 @@ import {
   resolveModelTier,
   resolveEndpointUrl,
 } from "@/app/lib/api-helpers";
+import { checkBalance, deductJobCost } from "@/app/lib/credits";
 
 export async function POST(request: NextRequest) {
   const { prompt, modelName, gpuTier, topK } = (await request.json()) as {
@@ -55,9 +56,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const authResult = await requireAuth(resolvedTier);
+  const authResult = await requireAuth();
   if (!("userId" in authResult)) return authResult;
-  const userScope = authResult.userId || "anon";
+  const userId = authResult.userId;
+  const userScope = userId;
 
   const resolvedTopK = topK ?? 5;
   const id = createHash("sha256").update(`${userScope}:${modelName}:${prompt}:${resolvedTopK}`).digest("hex");
@@ -79,6 +81,15 @@ export async function POST(request: NextRequest) {
     return new Response(`data: ${payload}\n\n`, { headers: SSE_HEADERS });
   }
 
+  // Cache miss — check balance before spinning up the GPU.
+  const { allowed } = await checkBalance(userId, resolvedTier);
+  if (!allowed) {
+    return new Response(
+      JSON.stringify({ error: "Insufficient credits. Add credits to continue." }),
+      { status: 402, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   // Cache miss — submit to RunPod and poll.
   const endpointUrl = resolveEndpointUrl(resolvedTier);
   const workerInput = {
@@ -90,18 +101,22 @@ export async function POST(request: NextRequest) {
 
   const encoder = new TextEncoder();
   let doneData: unknown = null;
+  let executionTimeMs: number | undefined;
 
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   const writer = writable.getWriter();
 
   (async () => {
     try {
-      doneData = await fetchUpstream(endpointUrl, workerInput, writer, encoder);
+      ({ doneData, executionTimeMs } = await fetchUpstream(endpointUrl, workerInput, writer, encoder));
     } finally {
       await writer.close().catch(() => {});
     }
 
     if (doneData) {
+      if (executionTimeMs !== undefined) {
+        deductJobCost(userId, resolvedTier, executionTimeMs).catch(console.error);
+      }
       try {
         await putHeatmap(id, doneData);
         await db

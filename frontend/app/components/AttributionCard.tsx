@@ -35,6 +35,7 @@ export type AttributionCardData = {
   corruptedPrompt: string;
   data: AttributionData | null;
   error: string | null;
+  showBuyCredits?: boolean;
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
@@ -56,6 +57,7 @@ type AttributionCardProps = {
   onRemove: (id: string) => void;
   onVerifyTopK: (cardId: string, k: number) => void;
   onSteerComponents: (cardId: string, components: SteeringComponent[]) => void;
+  onBuyCredits?: () => void;
 };
 
 const COL_GAP = 2;
@@ -90,6 +92,7 @@ function AttributionCard({
   onRemove,
   onVerifyTopK,
   onSteerComponents,
+  onBuyCredits,
 }: AttributionCardProps) {
   const [view, setView] = React.useState<"layer" | "head">("head");
   const [selectedK, setSelectedK] = React.useState<5 | 10 | 20>(10);
@@ -394,7 +397,7 @@ function AttributionCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} onBuyCredits={onBuyCredits} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (

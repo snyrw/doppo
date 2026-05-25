@@ -21,6 +21,7 @@ export type AttentionCardData = {
   prompt: string;
   data: AttentionData | null;
   error: string | null;
+  showBuyCredits?: boolean;
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
@@ -34,6 +35,7 @@ type AttentionCardProps = {
   onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
+  onBuyCredits?: () => void;
 };
 
 const CELL_SIZE = 8;
@@ -134,6 +136,7 @@ function AttentionCard({
   onDragMove,
   onDragEnd,
   onRemove,
+  onBuyCredits,
 }: AttentionCardProps) {
   const [currentLayer, setCurrentLayer] = React.useState(0);
   const [selectedCell, setSelectedCell] = React.useState<SelectedCell>(null);
@@ -378,7 +381,7 @@ function AttentionCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} onBuyCredits={onBuyCredits} />}
 
       {/* Result */}
       {data && (

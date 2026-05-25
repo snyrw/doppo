@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, index, boolean, jsonb, integer, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, index, boolean, jsonb, integer, unique, bigint } from "drizzle-orm/pg-core";
 
 export const heatmapCache = pgTable(
   "heatmap_cache",
@@ -159,4 +159,26 @@ export const project = pgTable("project", {
   shareId: text("share_id").unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const userCredits = pgTable("user_credits", {
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" })
+    .primaryKey(),
+  balanceMicros: bigint("balance_micros", { mode: "number" }).notNull().default(0),
+  lastFreeGrantMonth: text("last_free_grant_month"), // YYYY-MM, nullable
+});
+
+export const creditLedger = pgTable("credit_ledger", {
+  id: text("id").notNull().primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "free_grant" | "purchase" | "usage"
+  amountMicros: bigint("amount_micros", { mode: "number" }).notNull(),
+  jobTier: text("job_tier"),
+  jobDurationMs: integer("job_duration_ms"),
+  stripeCheckoutSessionId: text("stripe_checkout_session_id").unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });

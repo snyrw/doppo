@@ -1,6 +1,5 @@
 import { auth } from "./auth";
 import { headers } from "next/headers";
-import { hashIp, checkAndIncrementAnonQuota } from "./ip-quota";
 export type { SSEEvent } from "./stream-sse";
 export { parseSSE } from "./stream-sse";
 
@@ -55,20 +54,8 @@ export async function resolveModelTier(modelName: string): Promise<GpuTier | nul
 
 export type AuthResult = { userId: string } | Response;
 
-export async function requireAuth(gpuTier: string): Promise<AuthResult> {
+export async function requireAuth(): Promise<AuthResult> {
   const hdrs = await headers();
-  if (gpuTier === "tl_small") {
-    const rawIp = hdrs.get("x-forwarded-for") ?? hdrs.get("cf-connecting-ip") ?? "unknown";
-    const ip = rawIp.split(",")[0].trim();
-    const quota = await checkAndIncrementAnonQuota(hashIp(ip));
-    if (!quota.allowed) {
-      return new Response(
-        JSON.stringify({ error: "Daily limit reached. Sign in for more access." }),
-        { status: 429, headers: { "Content-Type": "application/json" } }
-      );
-    }
-    return { userId: "" };
-  }
   const session = await auth.api.getSession({ headers: hdrs });
   if (!session?.user) {
     return new Response("Unauthorized", { status: 401 });
@@ -114,7 +101,7 @@ export async function fetchUpstream(
   body: unknown,
   writer: WritableStreamDefaultWriter<Uint8Array>,
   encoder: TextEncoder,
-): Promise<unknown> {
+): Promise<{ doneData: unknown; executionTimeMs: number | undefined }> {
   const send = async (data: object) =>
     writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
 
@@ -131,12 +118,12 @@ export async function fetchUpstream(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await send({ stage: "error", error: `Could not reach inference backend: ${msg}` });
-    return null;
+    return { doneData: null, executionTimeMs: undefined };
   }
 
   if (!submitRes.ok) {
     await send({ stage: "error", error: `RunPod submit failed: ${submitRes.status}` });
-    return null;
+    return { doneData: null, executionTimeMs: undefined };
   }
 
   const { id: jobId } = (await submitRes.json()) as { id: string };
@@ -153,28 +140,31 @@ export async function fetchUpstream(
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       await send({ stage: "error", error: `Poll failed: ${msg}` });
-      return null;
+      return { doneData: null, executionTimeMs: undefined };
     }
 
     if (!pollRes.ok) {
       await send({ stage: "error", error: `RunPod poll HTTP ${pollRes.status}` });
-      return null;
+      return { doneData: null, executionTimeMs: undefined };
     }
 
-    const { stream, status } = (await pollRes.json()) as {
+    const { stream, status, executionTime } = (await pollRes.json()) as {
       stream?: RunPodChunk[];
       status: string;
+      executionTime?: number;
     };
 
     for (const chunk of stream ?? []) {
       await send(chunk.output);
       if (chunk.output.stage === "done") doneData = chunk.output.data ?? null;
-      if (chunk.output.stage === "done" || chunk.output.stage === "error") return doneData;
+      if (chunk.output.stage === "done" || chunk.output.stage === "error") {
+        return { doneData, executionTimeMs: executionTime };
+      }
     }
 
     if (status === "FAILED") {
       await send({ stage: "error", error: "RunPod job failed" });
-      return null;
+      return { doneData: null, executionTimeMs: undefined };
     }
   }
 }

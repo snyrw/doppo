@@ -12,7 +12,7 @@ import {
   resolveModelTier,
   resolveEndpointUrl,
 } from "@/app/lib/api-helpers";
-import { checkAndIncrementQuota } from "@/app/lib/quota";
+import { checkBalance, deductJobCost } from "@/app/lib/credits";
 
 export async function POST(request: NextRequest) {
   const {
@@ -73,11 +73,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const authResult = await requireAuth(resolvedTier);
+  const authResult = await requireAuth();
   if (!("userId" in authResult)) return authResult;
   const userId = authResult.userId;
 
-  const userScope = userId || "anon";
+  const userScope = userId;
   const resolvedToken = targetToken ?? "__auto__";
   const resolvedContrastive = contrastiveToken ?? "__none__";
   const resolvedPosition = String(targetPosition);
@@ -104,17 +104,13 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Cache miss — check quota before spinning up a GPU container.
-  if (userId) {
-    const { allowed, count } = await checkAndIncrementQuota(userId);
-    if (!allowed) {
-      return new Response(
-        JSON.stringify({
-          error: `Daily inference limit reached (${count - 1} calls used). Resets at midnight UTC.`,
-        }),
-        { status: 429, headers: { "Content-Type": "application/json" } }
-      );
-    }
+  // Cache miss — check balance before spinning up the GPU.
+  const { allowed } = await checkBalance(userId, resolvedTier);
+  if (!allowed) {
+    return new Response(
+      JSON.stringify({ error: "Insufficient credits. Add credits to continue." }),
+      { status: 402, headers: { "Content-Type": "application/json" } }
+    );
   }
 
   // Cache miss — submit to RunPod and poll (bump=true: backward pass needs extra VRAM).
@@ -131,18 +127,22 @@ export async function POST(request: NextRequest) {
 
   const encoder = new TextEncoder();
   let doneData: unknown = null;
+  let executionTimeMs: number | undefined;
 
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   const writer = writable.getWriter();
 
   (async () => {
     try {
-      doneData = await fetchUpstream(endpointUrl, workerInput, writer, encoder);
+      ({ doneData, executionTimeMs } = await fetchUpstream(endpointUrl, workerInput, writer, encoder));
     } finally {
       await writer.close().catch(() => {});
     }
 
     if (doneData) {
+      if (executionTimeMs !== undefined) {
+        deductJobCost(userId, resolvedTier, executionTimeMs).catch(console.error);
+      }
       try {
         await putHeatmap(cacheKey, doneData);
         await db

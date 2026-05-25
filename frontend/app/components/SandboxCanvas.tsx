@@ -31,6 +31,7 @@ type SandboxCanvasProps = {
   onSteerComponents: (sourceCardId: string, components: SteeringComponent[]) => void;
   onRerunSteering: (cardId: string, newAlpha: number) => void;
   onSpawnEntropyCard: (lensCardId: string) => void;
+  onBuyCredits?: () => void;
 };
 
 export default function SandboxCanvas({
@@ -43,6 +44,7 @@ export default function SandboxCanvas({
   onSteerComponents,
   onRerunSteering,
   onSpawnEntropyCard,
+  onBuyCredits,
 }: SandboxCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -150,19 +152,19 @@ export default function SandboxCanvas({
     };
     switch (card.cardType) {
       case "dla":
-        return <DlaCard key={card.id} {...sharedProps} card={card} />;
+        return <DlaCard key={card.id} {...sharedProps} card={card} onBuyCredits={onBuyCredits} />;
       case "attribution":
-        return <AttributionCard key={card.id} {...sharedProps} card={card} onVerifyTopK={onVerifyTopK} onSteerComponents={onSteerComponents} />;
+        return <AttributionCard key={card.id} {...sharedProps} card={card} onVerifyTopK={onVerifyTopK} onSteerComponents={onSteerComponents} onBuyCredits={onBuyCredits} />;
       case "activation":
-        return <ActivationCard key={card.id} {...sharedProps} card={card} onSteerComponents={onSteerComponents} />;
+        return <ActivationCard key={card.id} {...sharedProps} card={card} onSteerComponents={onSteerComponents} onBuyCredits={onBuyCredits} />;
       case "steering":
-        return <SteeringCard key={card.id} {...sharedProps} card={card} onRerun={onRerunSteering} />;
+        return <SteeringCard key={card.id} {...sharedProps} card={card} onRerun={onRerunSteering} onBuyCredits={onBuyCredits} />;
       case "entropy":
         return <EntropyCard key={card.id} {...sharedProps} card={card as EntropyCardData} />;
       case "attention-pattern":
-        return <AttentionCard key={card.id} {...sharedProps} card={card as AttentionCardData} />;
+        return <AttentionCard key={card.id} {...sharedProps} card={card as AttentionCardData} onBuyCredits={onBuyCredits} />;
       default:
-        return <LensCard key={card.id} {...sharedProps} card={card as LensCardData} onSpawnEntropy={() => onSpawnEntropyCard(card.id)} />;
+        return <LensCard key={card.id} {...sharedProps} card={card as LensCardData} onSpawnEntropy={() => onSpawnEntropyCard(card.id)} onBuyCredits={onBuyCredits} />;
     }
   }
 

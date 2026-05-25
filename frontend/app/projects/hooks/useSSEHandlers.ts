@@ -17,9 +17,10 @@ type Deps = {
   stateRef: RefObject<AppState>;
 };
 
-function handleFetchError(response: Response, err: { error?: string; detail?: string }): string {
-  if (response.status === 401) return err.error ?? "Sign in to use medium and large models";
-  return err.detail ?? err.error ?? `Request failed (${response.status})`;
+function handleFetchError(response: Response, err: { error?: string; detail?: string }): { error: string; showBuyCredits?: boolean } {
+  if (response.status === 402) return { error: err.error ?? "Insufficient credits", showBuyCredits: true };
+  if (response.status === 401) return { error: err.error ?? "Sign in to use medium and large models" };
+  return { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
 }
 
 export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
@@ -42,7 +43,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       .then(async (response) => {
         if (!response.ok || !response.body) {
           const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          dispatch({ type: "CARD_ERRORED", id, error: handleFetchError(response, err) });
+          dispatch({ type: "CARD_ERRORED", id, ...handleFetchError(response, err) });
           return;
         }
         for await (const event of readSSEStream(response)) {
@@ -84,7 +85,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       .then(async (response) => {
         if (!response.ok || !response.body) {
           const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          dispatch({ type: "CARD_ERRORED", id, error: handleFetchError(response, err) });
+          dispatch({ type: "CARD_ERRORED", id, ...handleFetchError(response, err) });
           return;
         }
         for await (const event of readSSEStream(response)) {
@@ -126,7 +127,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       .then(async (response) => {
         if (!response.ok || !response.body) {
           const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          dispatch({ type: "CARD_ERRORED", id, error: handleFetchError(response, err) });
+          dispatch({ type: "CARD_ERRORED", id, ...handleFetchError(response, err) });
           return;
         }
         for await (const event of readSSEStream(response)) {
@@ -173,7 +174,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       .then(async (response) => {
         if (!response.ok || !response.body) {
           const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          dispatch({ type: "CARD_ERRORED", id: activationId, error: handleFetchError(response, err) });
+          dispatch({ type: "CARD_ERRORED", id: activationId, ...handleFetchError(response, err) });
           dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
           return;
         }
@@ -239,7 +240,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       .then(async (response) => {
         if (!response.ok || !response.body) {
           const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          dispatch({ type: "CARD_ERRORED", id, error: handleFetchError(response, err) });
+          dispatch({ type: "CARD_ERRORED", id, ...handleFetchError(response, err) });
           return;
         }
         for await (const event of readSSEStream(response)) {

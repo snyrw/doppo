@@ -29,6 +29,7 @@ export type ActivationCardData = {
   parentAttributionId: string;
   data: ActivationPatchResult | null;
   error: string | null;
+  showBuyCredits?: boolean;
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
@@ -43,6 +44,7 @@ type ActivationCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   onSteerComponents: (cardId: string, components: SteeringComponent[]) => void;
+  onBuyCredits?: () => void;
 };
 
 function formatElapsed(ms: number): string {
@@ -95,6 +97,7 @@ function ActivationCard({
   onDragEnd,
   onRemove,
   onSteerComponents,
+  onBuyCredits,
 }: ActivationCardProps) {
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
@@ -224,7 +227,7 @@ function ActivationCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} onBuyCredits={onBuyCredits} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (

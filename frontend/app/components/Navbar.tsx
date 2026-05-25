@@ -7,6 +7,7 @@ import Image from "next/image";
 import lightLogo from "../lightlogo.png";
 import darkLogo from "../darklogo.png";
 import { PALETTE_META, PALETTE_ORDER, type PaletteName } from "../lib/palette";
+import { CreditsDisplay } from "./CreditsDisplay";
 
 function MoonIcon() {
   return (
@@ -49,7 +50,7 @@ function CheckIcon() {
   );
 }
 
-export default function Navbar({ actions }: { actions?: React.ReactNode }) {
+export default function Navbar({ actions, onAddCredits }: { actions?: React.ReactNode; onAddCredits?: () => void }) {
   const [isDark, setIsDark] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [palette, setPalette] = useState<PaletteName>("warm-mono");
@@ -134,6 +135,7 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {actions}
+        <CreditsDisplay onAddCredits={onAddCredits} />
         <AuthButtons />
         <div style={{ width: 1, height: 16, background: "var(--color-surface-border)" }} />
 
