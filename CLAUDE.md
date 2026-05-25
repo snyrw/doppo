@@ -17,7 +17,8 @@ modal deploy backend/main.py    # production — prints stable URL (we are not i
 - **`/api/run-steering` payload changes:** sync all three fetch paths in `page.tsx` — `handleSteerComponents`, `handleRerunSteering`, `handleAddStandaloneSteer`.
 - **Drizzle migrations in bash:** `drizzle-kit migrate/push` hangs in non-TTY. Use `.mjs` workaround — see `.claude/rules/database.md`.
 - **GPU tier labels:** always import from `app/lib/tiers.ts`. Never redefine inline.
-- **Auth gate:** `tl_small` models are unauthenticated; all other tiers require a session. Always verify `userId` ownership before mutating DB rows.
+- **Auth gate:** All GPU inference requires authentication — there is no anonymous inference tier. `tl_small` was previously unauthenticated; that is being removed as part of the credits/billing migration (see `docs/superpowers/specs/2026-05-25-credits-billing-design.md`). Always verify `userId` ownership before mutating DB rows.
+- **Planned: on-rails tutorial** — a pre-computed, scripted walkthrough of all six analysis tools (logit lens → DLA → attribution → activation patch → steering → attn) on a fixed model/prompt, served as static data (no GPU). Replaces anon access as the discovery/onboarding path. Not yet implemented; spec TBD.
 
 ## Backend (backend/main.py)
 
