@@ -1,0 +1,9 @@
+torch==2.6.0
+transformer-lens>=3.0
+einops==0.8.1
+fancy-einsum==0.0.3
+jaxtyping==0.3.2
+runpod
+huggingface-hub
+safetensors
+pytest
