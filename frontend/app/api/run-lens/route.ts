@@ -6,11 +6,11 @@ import { heatmapCache } from "@/app/schema";
 import { putHeatmap, getHeatmap } from "@/app/lib/r2";
 import {
   SSE_HEADERS,
-  parseSSE,
   requireAuth,
   fetchUpstream,
   validateGpuTier,
   resolveModelTier,
+  resolveEndpointUrl,
 } from "@/app/lib/api-helpers";
 
 export async function POST(request: NextRequest) {
@@ -79,12 +79,14 @@ export async function POST(request: NextRequest) {
     return new Response(`data: ${payload}\n\n`, { headers: SSE_HEADERS });
   }
 
-  // Cache miss — connect to Modal and pipe the SSE stream through.
-  const upstreamResult = await fetchUpstream(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/run-lens-stream`,
-    { prompt, model_name: modelName, top_k: resolvedTopK }
-  );
-  if (!upstreamResult.ok) return upstreamResult.errorResponse;
+  // Cache miss — submit to RunPod and poll.
+  const endpointUrl = resolveEndpointUrl(resolvedTier);
+  const workerInput = {
+    endpoint: "run_logit_lens",
+    model_id: modelName,
+    prompt,
+    top_k: resolvedTopK,
+  };
 
   const encoder = new TextEncoder();
   let doneData: unknown = null;
@@ -92,18 +94,9 @@ export async function POST(request: NextRequest) {
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   const writer = writable.getWriter();
 
-  // Pipe events to the client in the background; intercept the done event to cache.
   (async () => {
     try {
-      for await (const event of parseSSE(upstreamResult.response.body!)) {
-        await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-        if (event.stage === "done") doneData = event.data;
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      await writer
-        .write(encoder.encode(`data: ${JSON.stringify({ stage: "error", error: msg })}\n\n`))
-        .catch(() => {});
+      doneData = await fetchUpstream(endpointUrl, workerInput, writer, encoder);
     } finally {
       await writer.close().catch(() => {});
     }
