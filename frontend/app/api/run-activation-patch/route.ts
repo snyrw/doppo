@@ -7,11 +7,11 @@ import { putHeatmap, getHeatmap } from "@/app/lib/r2";
 import { checkAndIncrementQuota } from "@/app/lib/quota";
 import {
   SSE_HEADERS,
-  parseSSE,
   requireAuth,
   fetchUpstream,
   validateGpuTier,
   resolveModelTier,
+  resolveEndpointUrl,
 } from "@/app/lib/api-helpers";
 
 export async function POST(request: NextRequest) {
@@ -127,20 +127,19 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const upstreamResult = await fetchUpstream(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/run-activation-patch-stream`,
-    {
-      prompt: cleanPrompt,
-      corrupted_prompt: corruptedPrompt,
-      model_name: modelName,
-      target_position: targetPosition,
-      target_token_idx: targetTokenIdx,
-      contrastive_token_idx: contrastiveTokenIdx ?? null,
-      components,
-      k,
-    }
-  );
-  if (!upstreamResult.ok) return upstreamResult.errorResponse;
+  // Cache miss — submit to RunPod and poll (bump=true: backward pass needs extra VRAM).
+  const endpointUrl = resolveEndpointUrl(resolvedTier, true);
+  const workerInput = {
+    endpoint: "run_activation_patch",
+    model_id: modelName,
+    prompt: cleanPrompt,
+    corrupted_prompt: corruptedPrompt,
+    target_position: targetPosition,
+    target_token_idx: targetTokenIdx,
+    contrastive_token_idx: contrastiveTokenIdx ?? null,
+    components,
+    k,
+  };
 
   const encoder = new TextEncoder();
   let doneData: unknown = null;
@@ -150,15 +149,7 @@ export async function POST(request: NextRequest) {
 
   (async () => {
     try {
-      for await (const event of parseSSE(upstreamResult.response.body!)) {
-        await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-        if (event.stage === "done") doneData = event.data;
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      await writer
-        .write(encoder.encode(`data: ${JSON.stringify({ stage: "error", error: msg })}\n\n`))
-        .catch(() => {});
+      doneData = await fetchUpstream(endpointUrl, workerInput, writer, encoder);
     } finally {
       await writer.close().catch(() => {});
     }
