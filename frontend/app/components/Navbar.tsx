@@ -129,7 +129,7 @@ export default function Navbar({ actions, onAddCredits }: { actions?: React.Reac
             letterSpacing: "-0.01em",
           }}
         >
-          Doppo
+          doppo
         </span>
       </Link>
 
