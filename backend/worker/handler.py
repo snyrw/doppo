@@ -19,7 +19,7 @@ def _handle_tokenize(inp: dict):
     hf_token = os.environ.get("HF_TOKEN")
     tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token)
     ids = tokenizer.encode(text, add_special_tokens=True)
-    special_ids = set(tokenizer.all_special_ids)
+    special_ids = set(getattr(tokenizer, "all_special_ids", []))
     tokens = []
     for i in ids:
         tok_text = tokenizer.decode([i], skip_special_tokens=False)
