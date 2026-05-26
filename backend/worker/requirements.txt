@@ -1,4 +1,4 @@
-torch==2.12.0
+torch==2.11.0
 transformer-lens>=3.0
 einops==0.8.1
 fancy-einsum==0.0.3
