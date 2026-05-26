@@ -124,12 +124,12 @@ export default function Navbar({ actions, onAddCredits }: { actions?: React.Reac
           style={{
             fontFamily: "var(--font-azeret-mono), monospace",
             fontSize: 14,
-            fontWeight: 600,
+            fontWeight: 500,
             color: "var(--color-accent)",
             letterSpacing: "-0.01em",
           }}
         >
-          doppo
+          Doppo
         </span>
       </Link>
 
