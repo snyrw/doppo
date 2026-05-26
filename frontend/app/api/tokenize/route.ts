@@ -27,11 +27,28 @@ export async function POST(request: NextRequest) {
   }
 
   // Call RunPod tokenize endpoint via tl_small tier (tokenization doesn't require GPU)
-  const result = await runPodJob(resolveEndpointUrl("tl_small"), {
-    endpoint: "tokenize",
-    model_id: body.model_name,
-    text: body.text ?? "",
-  });
+  let result: unknown;
+  try {
+    result = await runPodJob(resolveEndpointUrl("tl_small"), {
+      endpoint: "tokenize",
+      model_id: body.model_name,
+      text: body.text ?? "",
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Validate response structure
+  if (!Array.isArray((result as any)?.tokens)) {
+    return new Response(JSON.stringify({ error: "Invalid tokenization response" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   // Cast result and return
   const typedResult = result as { tokens: { text: string; special: boolean }[] };
