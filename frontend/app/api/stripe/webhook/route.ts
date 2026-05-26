@@ -53,25 +53,27 @@ export async function POST(req: Request) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     if (session.payment_status !== "paid") return new Response("OK");
+    const userId = session.metadata?.userId;
+    const creditMicrosRaw = session.metadata?.creditMicros;
+    if (!userId || !creditMicrosRaw || !Number.isFinite(Number(creditMicrosRaw))) {
+      return new Response("Invalid metadata", { status: 400 });
+    }
+    const creditMicros = Number(creditMicrosRaw);
     await db.transaction((tx) =>
-      creditUser(
-        session.id,
-        session.metadata!.userId,
-        Number(session.metadata!.creditMicros),
-        tx
-      )
+      creditUser(session.id, userId, creditMicros, tx)
     );
   }
 
   if (event.type === "checkout.session.async_payment_succeeded") {
     const session = event.data.object as Stripe.Checkout.Session;
+    const userId = session.metadata?.userId;
+    const creditMicrosRaw = session.metadata?.creditMicros;
+    if (!userId || !creditMicrosRaw || !Number.isFinite(Number(creditMicrosRaw))) {
+      return new Response("Invalid metadata", { status: 400 });
+    }
+    const creditMicros = Number(creditMicrosRaw);
     await db.transaction((tx) =>
-      creditUser(
-        session.id,
-        session.metadata!.userId,
-        Number(session.metadata!.creditMicros),
-        tx
-      )
+      creditUser(session.id, userId, creditMicros, tx)
     );
   }
 

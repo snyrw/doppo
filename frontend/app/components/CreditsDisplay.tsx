@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { LOW_BALANCE_THRESHOLD_MICROS } from "@/app/lib/rates";
 
 function formatMicros(micros: number): string {
   return `$${(micros / 1_000_000).toFixed(2)}`;
@@ -44,7 +45,7 @@ function CreditsDisplayInner({ onAddCredits }: { onAddCredits?: () => void }) {
 
   if (balanceMicros === null) return null;
 
-  const isLow = balanceMicros < 50_000; // < $0.05
+  const isLow = balanceMicros < LOW_BALANCE_THRESHOLD_MICROS;
   const isEmpty = balanceMicros === 0;
 
   return (

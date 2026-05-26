@@ -25,6 +25,8 @@ export async function ensureGrantAndGetBalance(userId: string): Promise<number> 
   `);
 
   if (granted.rows.length > 0) {
+    // Ledger insert follows the balance update. On crash between these two,
+    // the balance is correct but the audit row is missing — acceptable for this use case.
     await db.insert(creditLedger).values({
       userId,
       type: "free_grant",
@@ -57,6 +59,9 @@ export async function deductJobCost(
 ): Promise<number> {
   const rate = TIER_RATES_MICROS_PER_SEC[tier];
   if (rate === undefined) throw new Error(`Unknown GPU tier: ${tier}`);
+  // Balance may go negative if a job runs longer than the pre-flight floor estimate.
+  // This is intentional: we do not interrupt in-flight jobs, and the floor guard
+  // prevents starting jobs with clearly insufficient balance.
   const costMicros = Math.ceil((executionTimeMs * rate) / 1000);
   await db.transaction(async (tx) => {
     await tx

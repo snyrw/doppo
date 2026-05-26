@@ -54,7 +54,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       .then(async (response) => {
         if (!response.ok || !response.body) {
           const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const steeringErr = response.status === 402 ? { error: err.error ?? "Insufficient credits", showBuyCredits: true as const } : response.status === 401 ? { error: err.error ?? "Sign in to use medium and large models" } : { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
+          const steeringErr = response.status === 402 ? { error: err.error ?? "Insufficient credits", showBuyCredits: true as const } : response.status === 401 ? { error: err.error ?? "Sign in to run inference" } : { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
           dispatch({ type: "CARD_ERRORED", id: steeringId, ...steeringErr });
           return;
         }
@@ -64,6 +64,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
             startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: evData.token! }));
           } else if (event.stage === "done" && evData) {
             dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: evData as SteeringResult });
+            window.dispatchEvent(new CustomEvent("credits-updated"));
             const pid = projectIdRef.current;
             if (pid) {
               const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
@@ -92,7 +93,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       .then(async (response) => {
         if (!response.ok || !response.body) {
           const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const rerunErr = response.status === 402 ? { error: err.error ?? "Insufficient credits", showBuyCredits: true as const } : response.status === 401 ? { error: err.error ?? "Sign in to use medium and large models" } : { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
+          const rerunErr = response.status === 402 ? { error: err.error ?? "Insufficient credits", showBuyCredits: true as const } : response.status === 401 ? { error: err.error ?? "Sign in to run inference" } : { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
           dispatch({ type: "CARD_ERRORED", id: cardId, ...rerunErr });
           return;
         }
@@ -102,6 +103,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
             startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: cardId, token: evData.token! }));
           } else if (event.stage === "done" && evData) {
             dispatch({ type: "STEERING_CARD_RESOLVED", id: cardId, data: evData as SteeringResult });
+            window.dispatchEvent(new CustomEvent("credits-updated"));
             const pid = projectIdRef.current;
             if (pid) {
               const updated = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
@@ -143,7 +145,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       .then(async (response) => {
         if (!response.ok || !response.body) {
           const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          const standaloneErr = response.status === 402 ? { error: err.error ?? "Insufficient credits", showBuyCredits: true as const } : response.status === 401 ? { error: err.error ?? "Sign in to use medium and large models" } : { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
+          const standaloneErr = response.status === 402 ? { error: err.error ?? "Insufficient credits", showBuyCredits: true as const } : response.status === 401 ? { error: err.error ?? "Sign in to run inference" } : { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
           dispatch({ type: "CARD_ERRORED", id: steeringId, ...standaloneErr });
           return;
         }
@@ -153,6 +155,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
             startTransition(() => dispatch({ type: "STEERING_CARD_TOKEN", id: steeringId, token: evData.token! }));
           } else if (event.stage === "done" && evData) {
             dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: evData as SteeringResult });
+            window.dispatchEvent(new CustomEvent("credits-updated"));
             const pid = projectIdRef.current;
             if (pid) {
               const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);

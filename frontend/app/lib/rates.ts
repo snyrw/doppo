@@ -7,6 +7,8 @@ export const TIER_RATES_MICROS_PER_SEC: Record<string, number> = {
 
 export const FREE_MONTHLY_GRANT_MICROS = 1_000_000; // $1.00
 
+export const LOW_BALANCE_THRESHOLD_MICROS = 50_000; // $0.05
+
 export const CREDIT_PACKS = [
   { label: "$2",  creditMicros:  2_000_000, chargeCents:  237 },
   { label: "$5",  creditMicros:  5_000_000, chargeCents:  546 },

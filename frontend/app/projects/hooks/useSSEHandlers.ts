@@ -19,7 +19,7 @@ type Deps = {
 
 function handleFetchError(response: Response, err: { error?: string; detail?: string }): { error: string; showBuyCredits?: boolean } {
   if (response.status === 402) return { error: err.error ?? "Insufficient credits", showBuyCredits: true };
-  if (response.status === 401) return { error: err.error ?? "Sign in to use medium and large models" };
+  if (response.status === 401) return { error: err.error ?? "Sign in to run inference" };
   return { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
 }
 
@@ -50,6 +50,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
           if (event.stage === "done" && event.data) {
             const data = event.data as HeatmapData;
             dispatch({ type: "CARD_RESOLVED", id, data });
+            window.dispatchEvent(new CustomEvent("credits-updated"));
             const pid = projectIdRef.current;
             if (pid) {
               const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
@@ -92,6 +93,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
           if (event.stage === "done" && event.data) {
             const data = event.data as DlaData;
             dispatch({ type: "DLA_CARD_RESOLVED", id, data });
+            window.dispatchEvent(new CustomEvent("credits-updated"));
             const pid = projectIdRef.current;
             if (pid) {
               const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
@@ -134,6 +136,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
           if (event.stage === "done" && event.data) {
             const data = event.data as AttributionData;
             dispatch({ type: "ATTRIBUTION_CARD_RESOLVED", id, data });
+            window.dispatchEvent(new CustomEvent("credits-updated"));
             const pid = projectIdRef.current;
             if (pid) {
               const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
@@ -182,6 +185,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
           if (event.stage === "done" && event.data) {
             const data = event.data as ActivationPatchResult;
             dispatch({ type: "ACTIVATION_CARD_RESOLVED", id: activationId, data, parentAttributionId: attributionCardId });
+            window.dispatchEvent(new CustomEvent("credits-updated"));
             const pid = projectIdRef.current;
             if (pid) {
               const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
@@ -247,6 +251,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
           if (event.stage === "done" && event.data) {
             const data = event.data as AttentionData;
             dispatch({ type: "ATTENTION_CARD_RESOLVED", id, data });
+            window.dispatchEvent(new CustomEvent("credits-updated"));
             const pid = projectIdRef.current;
             if (pid) {
               const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
