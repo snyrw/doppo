@@ -337,7 +337,7 @@ function Projects() {
 
   // Fetch available models
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/models`)
+    fetch("/api/models")
       .then(r => r.json())
       .then(models => setAvailableModels(models))
       .catch(() => setAvailableModels([{ id: "gpt2-small", display_name: "GPT-2 Small", description: "Classic 12-layer baseline, fast cold starts.", requires_hf_token: false, gpu_tier: "tl_small" }]))
