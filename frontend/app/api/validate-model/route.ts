@@ -1,0 +1,23 @@
+// frontend/app/api/validate-model/route.ts
+import { NextRequest } from "next/server";
+import { validateHfRepo } from "@/app/lib/validate-model";
+
+export async function POST(request: NextRequest) {
+  const body = (await request.json()) as { repo_id?: unknown };
+
+  if (typeof body.repo_id !== "string" || body.repo_id.length < 1 || body.repo_id.length > 200) {
+    return new Response(
+      JSON.stringify({ detail: "repo_id must be a non-empty string of at most 200 characters" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const result = await validateHfRepo(body.repo_id);
+  if (!result.valid) {
+    return new Response(JSON.stringify({ detail: result.reason }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return Response.json(result);
+}

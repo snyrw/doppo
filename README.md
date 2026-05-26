@@ -4,7 +4,7 @@ A browser-based mechanistic interpretability tool — run logit lens, direct log
 
 ## What it does
 
-You pick a model, enter a prompt, and get interactive visualizations of how information flows through the model's layers and attention heads. All compute runs on Modal serverless GPUs; results are cached in Cloudflare R2 so repeated runs are instant.
+You pick a model, enter a prompt, and get interactive visualizations of how information flows through the model's layers and attention heads. All compute runs on RunPod serverless GPUs; results are cached in Cloudflare R2 so repeated runs are instant.
 
 **Available analysis types:**
 - **Logit lens** — per-layer residual stream projections to vocabulary space
@@ -18,12 +18,14 @@ You pick a model, enter a prompt, and get interactive visualizations of how info
 
 ```
 frontend/           Next.js 16 app (Vercel)
-  app/api/          Thin proxy routes → Modal endpoints
+  app/api/          Thin proxy routes → RunPod endpoints
   app/components/   Canvas, card types, config panes
   app/lib/          Auth, DB, R2, palette helpers
 
-backend/            Modal serverless Python app
-  main.py           All inference endpoints (lens, DLA, attribution, activation patch)
+backend/worker/     RunPod serverless Python worker
+  handler.py        Entry point — INFERENCE_ENDPOINTS dispatch dict
+  inference.py      Per-endpoint inference logic
+  model_cache.py    In-process model cache
 ```
 
 **Data layer:** Neon Postgres (projects, cache metadata) + Cloudflare R2 (heatmap blobs)
@@ -33,7 +35,7 @@ backend/            Modal serverless Python app
 
 | Service | Purpose | Free tier |
 |---|---|---|
-| [Modal](https://modal.com) | GPU inference | $30/month credits |
+| [RunPod](https://runpod.io) | GPU inference | Pay-per-use |
 | [Neon](https://neon.tech) | Postgres | Yes |
 | [Cloudflare R2](https://developers.cloudflare.com/r2/) | Heatmap cache | Yes (10 GB) |
 | [Vercel](https://vercel.com) | Frontend hosting | Yes |
@@ -43,26 +45,16 @@ backend/            Modal serverless Python app
 
 **Backend**
 
-```bash
-cd backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-modal setup            # authenticate with Modal
-modal serve main.py    # dev — hot-reload, prints a temporary URL
-# modal deploy main.py # production deploy — prints the stable URL
-```
+The RunPod worker is deployed via GitHub Actions CI/CD on push to `main`. Set `RUNPOD_ENDPOINT_SMALL`, `RUNPOD_ENDPOINT_MEDIUM`, `RUNPOD_ENDPOINT_LARGE`, and `RUNPOD_ENDPOINT_XLARGE` env vars in Vercel to point at your RunPod endpoint IDs.
 
 **Frontend**
 
 ```bash
-cd frontend
 cp .env.example .env.local
 # fill in .env.local — see comments in that file
 npm install
 npm run dev            # http://localhost:3000
 ```
-
-Set `NEXT_PUBLIC_API_URL` in `frontend/.env.local` to the URL printed by `modal serve` or `modal deploy`.
 
 For full setup instructions including database migrations and OAuth app configuration, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
