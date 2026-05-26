@@ -1,0 +1,13 @@
+.env
+.env.local
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Claude Code / AI tooling
+.agents/
+skills-lock.json
+.claude/
