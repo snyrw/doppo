@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
+FROM pytorch/pytorch:2.12.0-cuda12.6-cudnn9-runtime
 
 # HF will check this path first; volumes mount here for tl_xlarge endpoints.
 # For tiers without a volume, HF falls back to /tmp download-on-demand.
