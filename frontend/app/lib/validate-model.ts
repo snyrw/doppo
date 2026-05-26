@@ -38,7 +38,8 @@ export async function validateHfRepo(repoId: string): Promise<ValidationResult> 
     const json = (await res.json()) as { siblings?: Array<{ rfilename: string }> };
     siblings = json.siblings ?? [];
   } catch (e) {
-    return { valid: false, gpu_tier: null, reason: `Could not list repo files: ${e}` };
+    const msg = e instanceof Error ? e.message : String(e);
+    return { valid: false, gpu_tier: null, reason: `Could not list repo files: ${msg}` };
   }
 
   const fileSet = new Set(siblings.map((s) => s.rfilename));
