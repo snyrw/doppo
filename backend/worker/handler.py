@@ -12,7 +12,7 @@ INFERENCE_ENDPOINTS = {
     "run_attn": TLInference.run_attn,
 }
 
-def _handle_tokenize(inp: dict):
+def _handle_tokenize(inp: dict): 
     from transformers import AutoTokenizer
     model_id = inp.get("model_id", "")
     text = inp.get("text", "")
