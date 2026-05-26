@@ -1,14 +1,13 @@
 @AGENTS.md
 
 Logit lens visualization tool — no-code mechanistic interpretability for any HuggingFace model.
-Stack: Next.js, FastAPI, TransformerLens 3.0, Modal (serverless GPU), Neon + BetterAuth + Drizzle.
+Stack: Next.js, FastAPI, TransformerLens 3.0, RunPod (serverless GPU), Neon + BetterAuth + Drizzle.
 
 ## Dev commands
 
 ```
 npm run dev                     # frontend: localhost:3000
-modal serve backend/main.py     # backend hot-reload (prints temp URL)
-modal deploy backend/main.py    # production — prints stable URL (we are not in production yet)
+# backend worker is deployed via GitHub Actions CI/CD — no local CLI deploy command
 ```
 
 ## Behavioral rules
@@ -17,30 +16,30 @@ modal deploy backend/main.py    # production — prints stable URL (we are not i
 - **`/api/run-steering` payload changes:** sync all three fetch paths in `page.tsx` — `handleSteerComponents`, `handleRerunSteering`, `handleAddStandaloneSteer`.
 - **Drizzle migrations in bash:** `drizzle-kit migrate/push` hangs in non-TTY. Use `.mjs` workaround — see `.claude/rules/database.md`.
 - **GPU tier labels:** always import from `app/lib/tiers.ts`. Never redefine inline.
-- **Auth gate:** All GPU inference requires authentication — there is no anonymous inference tier. `tl_small` was previously unauthenticated; that is being removed as part of the credits/billing migration (see `docs/superpowers/specs/2026-05-25-credits-billing-design.md`). Always verify `userId` ownership before mutating DB rows.
+- **Auth gate:** All GPU inference requires authentication and credits — there is no anonymous inference tier. Credits billing is live. Always verify `userId` ownership before mutating DB rows.
 - **Planned: on-rails tutorial** — a pre-computed, scripted walkthrough of all six analysis tools (logit lens → DLA → attribution → activation patch → steering → attn) on a fixed model/prompt, served as static data (no GPU). Replaces anon access as the discovery/onboarding path. Not yet implemented; spec TBD.
 
-## Backend (backend/main.py)
+## Backend (backend/worker/handler.py)
 
-- `_TLBase` — shared inference base; all endpoints (`run_lens`, `run_dla`, `run_attribution`, `run_activation_patch`, `run_steering`) are methods here
-- `TransformerLensSmall/Medium/Large/XLarge` — GPU-tiered Modal classes, each extends `_TLBase`
-- `api()` — FastAPI web endpoint (lightweight image, no torch)
+- `INFERENCE_ENDPOINTS` — dispatch dict mapping endpoint names (`run_lens`, `run_dla`, `run_attribution`, `run_activation_patch`, `run_steering`) to handler functions
+- `_handle_tokenize` — lightweight tokenizer-only path (no GPU); used for token validation and pair generation
 - `FEATURED_MODELS` — editorial curation for the UI only; not a gate on what `run-lens` accepts
 - `_detect_gpu_tier()` / `_bump_tier()` — param-count-to-tier mapping; `_bump_tier` used for attribution backward passes (need ~2–3× model weights in VRAM)
+- Worker deployed via GitHub Actions CI/CD; four RunPod endpoint IDs configured via env vars (`RUNPOD_ENDPOINT_SMALL`, `RUNPOD_ENDPOINT_MEDIUM`, `RUNPOD_ENDPOINT_LARGE`, `RUNPOD_ENDPOINT_XLARGE`)
 
 **GPU tiers:**
-- `tl_small` → L4 (< 4B params; 24 GB, $0.80/hr)
-- `tl_medium` → L40S (4–10B; 48 GB, $1.95/hr)
-- `tl_large` → A100-80GB (10–25B; 80 GB, $2.50/hr)
-- `tl_xlarge` → H200 (25–70B; 141 GB, $4.54/hr)
+- `tl_small` → L4 (< 4B params; 24 GB)
+- `tl_medium` → L40S (4–10B; 48 GB)
+- `tl_large` → A100-80GB (10–25B; 80 GB)
+- `tl_xlarge` → H200 (25–70B; 141 GB)
 
->70B and multi-GPU are rejected. B200 unsupported (image pins torch==2.6.0; B200 needs 2.7+).
+>70B and multi-GPU are rejected.
 
 ## TransformerLens 3.0 — critical API differences
 
 Use `TransformerBridge.boot_transformers(hf_model_id)` — not `HookedTransformer.from_pretrained`. Full HF IDs required (`"openai-community/gpt2"`, not `"gpt2-small"`). Weight-processing kwargs (`fold_ln`, `center_unembed`) are gone.
 
-**Local venv is TL 2.18.0.** `TransformerBridge` only runs on Modal — never try to import `model_bridge` locally.
+**Local venv is TL 2.18.0.** `TransformerBridge` only runs on the RunPod worker — never try to import `model_bridge` locally.
 
 Hook callbacks: second parameter MUST be named `hook` — any other name raises `unexpected keyword argument 'hook'`:
 ```python
@@ -86,4 +85,4 @@ Full hook name strings only — tuple shorthand is gone:
 /api/generate-pairs      → { pairs: [{clean, corrupted}], n_requested }
 ```
 
-See `.claude/rules/` for: frontend patterns, database/Drizzle, Modal infrastructure.
+See `.claude/rules/` for: frontend patterns, database/Drizzle, RunPod infrastructure.
