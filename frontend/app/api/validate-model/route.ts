@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 
   if (typeof body.repo_id !== "string" || body.repo_id.length < 1 || body.repo_id.length > 200) {
     return new Response(
-      JSON.stringify({ error: "repo_id must be a non-empty string of at most 200 characters" }),
+      JSON.stringify({ detail: "repo_id must be a non-empty string of at most 200 characters" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
