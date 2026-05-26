@@ -8,7 +8,7 @@ You pick a model, enter a prompt, and get interactive visualizations of how info
 
 **Available analysis types:**
 - **Logit lens** — per-layer residual stream projections to vocabulary space
-- **Attention heads** - attention head vieweing for every head at every layer
+- **Attention heads** - attention head viewing for every head at every layer
 - **Direct logit attribution (DLA)** — per-layer and per-head contribution to a target token
 - **Attribution patching** — identify which components causally matter for a prediction
 - **Activation patching** — measure the actual effect of patching specific components
