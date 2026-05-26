@@ -18,11 +18,13 @@ export async function validateHfRepo(repoId: string): Promise<ValidationResult> 
   const authHeaders: Record<string, string> = {};
   if (hfToken) authHeaders["Authorization"] = `Bearer ${hfToken}`;
 
+  const encodedRepoId = repoId.split("/").map(encodeURIComponent).join("/");
+
   // 1. Fetch model metadata (includes full file list via siblings).
   let siblings: Array<{ rfilename: string }>;
   try {
     const res = await fetch(
-      `https://huggingface.co/api/models/${encodeURIComponent(repoId)}?full=true`,
+      `https://huggingface.co/api/models/${encodedRepoId}?full=true`,
       { headers: authHeaders }
     );
     if (res.status === 404 || res.status === 401 || res.status === 403) {
@@ -80,7 +82,7 @@ export async function validateHfRepo(repoId: string): Promise<ValidationResult> 
   if (fileSet.has("config.json")) {
     try {
       const configRes = await fetch(
-        `https://huggingface.co/${encodeURIComponent(repoId)}/resolve/main/config.json`,
+        `https://huggingface.co/${encodedRepoId}/resolve/main/config.json`,
         { headers: authHeaders }
       );
       if (configRes.ok) {
