@@ -1,5 +1,7 @@
 import { auth } from "./auth";
 import { headers } from "next/headers";
+import { FEATURED_MODELS } from "./featured-models";
+import { validateHfRepo } from "./validate-model";
 export type { SSEEvent } from "./stream-sse";
 export { parseSSE } from "./stream-sse";
 
@@ -20,36 +22,17 @@ export function validateGpuTier(tier: unknown): tier is GpuTier {
   );
 }
 
-// Module-level cache for the featured models list — warm after first request.
-let featuredModelsCache: Array<{ id: string; gpu_tier: string }> | null = null;
-
 /**
- * Resolves a model name to its authoritative GPU tier from the backend.
- * Never trusts the client-supplied gpuTier for auth decisions.
+ * Resolves a model name to its GPU tier.
+ * Checks FEATURED_MODELS first; falls back to validateHfRepo for arbitrary HF IDs.
  * Returns null if the model is unknown or invalid.
  */
 export async function resolveModelTier(modelName: string): Promise<GpuTier | null> {
-  if (!featuredModelsCache) {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/models`);
-      if (res.ok) featuredModelsCache = (await res.json()) as Array<{ id: string; gpu_tier: string }>;
-    } catch { /* fall through to validate-model */ }
-  }
-  const featured = featuredModelsCache?.find((m) => m.id === modelName);
-  if (featured) return validateGpuTier(featured.gpu_tier) ? featured.gpu_tier : null;
+  const featured = FEATURED_MODELS[modelName];
+  if (featured) return featured.gpu_tier;
 
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/validate-model`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ repo_id: modelName }),
-    });
-    if (!res.ok) return null;
-    const json = (await res.json()) as { gpu_tier?: string };
-    return validateGpuTier(json.gpu_tier) ? json.gpu_tier : null;
-  } catch {
-    return null;
-  }
+  const result = await validateHfRepo(modelName);
+  return result.valid && result.gpu_tier ? result.gpu_tier : null;
 }
 
 export type AuthResult = { userId: string } | Response;
@@ -82,7 +65,7 @@ export function resolveEndpointUrl(tier: GpuTier, bump = false): string {
   return RUNPOD_ENDPOINTS[bump ? bumpTier(tier) : tier];
 }
 
-// ── RunPod polling fetchUpstream ─────────────────────────────────────────────
+// ── RunPod API key ────────────────────────────────────────────────────────────
 
 const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY!;
 const POLL_INTERVAL_MS = 400;
@@ -91,10 +74,11 @@ type RunPodChunk = {
   output: { stage: string; data?: unknown; error?: string };
 };
 
+// ── SSE streaming fetchUpstream ───────────────────────────────────────────────
+
 /**
  * Submit a job to a RunPod endpoint and poll /stream until done.
  * Writes SSE events to `writer` as they arrive.
- * Returns the `data` payload from the "done" event, or null on error.
  */
 export async function fetchUpstream(
   endpointUrl: string,
@@ -166,5 +150,43 @@ export async function fetchUpstream(
       await send({ stage: "error", error: "RunPod job failed" });
       return { doneData: null, executionTimeMs: undefined };
     }
+  }
+}
+
+// ── Non-SSE RunPod job ────────────────────────────────────────────────────────
+
+/**
+ * Submit a job to RunPod and poll until done. Returns the `data` payload from
+ * the "done" event. Throws on network error or job failure. No SSE, no credits.
+ * Use for lightweight non-GPU operations like tokenization.
+ */
+export async function runPodJob(endpointUrl: string, body: unknown): Promise<unknown> {
+  const submitRes = await fetch(`${endpointUrl}/run`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${RUNPOD_API_KEY}`,
+    },
+    body: JSON.stringify({ input: body }),
+  });
+  if (!submitRes.ok) throw new Error(`RunPod submit failed: ${submitRes.status}`);
+  const { id: jobId } = (await submitRes.json()) as { id: string };
+
+  for (;;) {
+    await new Promise<void>((r) => setTimeout(r, POLL_INTERVAL_MS));
+    const pollRes = await fetch(`${endpointUrl}/stream/${jobId}`, {
+      headers: { Authorization: `Bearer ${RUNPOD_API_KEY}` },
+    });
+    if (!pollRes.ok) throw new Error(`RunPod poll HTTP ${pollRes.status}`);
+    const { stream, status } = (await pollRes.json()) as {
+      stream?: RunPodChunk[];
+      status: string;
+    };
+    for (const chunk of stream ?? []) {
+      if (chunk.output.stage === "done") return chunk.output.data ?? null;
+      if (chunk.output.stage === "error")
+        throw new Error(chunk.output.error ?? "RunPod job error");
+    }
+    if (status === "FAILED") throw new Error("RunPod job failed");
   }
 }
