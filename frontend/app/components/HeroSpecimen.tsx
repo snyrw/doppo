@@ -76,7 +76,7 @@ function FigLabel({ n, caption }: { n: number; caption: string }) {
     <div>
       <p
         style={{
-          fontFamily: "var(--font-azeret-mono), monospace",
+          fontFamily: "var(--font-ibm-plex-mono), monospace",
           fontSize: 9,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
@@ -89,7 +89,7 @@ function FigLabel({ n, caption }: { n: number; caption: string }) {
       </p>
       <p
         style={{
-          fontFamily: "var(--font-azeret-mono), monospace",
+          fontFamily: "var(--font-ibm-plex-mono), monospace",
           fontSize: 10,
           color: "var(--color-text-muted)",
           margin: 0,
@@ -220,7 +220,7 @@ function LogitLensSpecimen() {
             <span
               key={`name-${palette}`}
               style={{
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-mono), monospace",
                 fontSize: 10,
                 color: "var(--color-text-muted)",
                 animation: "hero-label-in 380ms ease forwards",
@@ -230,7 +230,7 @@ function LogitLensSpecimen() {
             </span>
             <span
               style={{
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-mono), monospace",
                 fontSize: 9,
                 color: "var(--color-text-muted)",
                 opacity: 0.5,
@@ -265,7 +265,7 @@ function LogitLensSpecimen() {
           />
           <span
             style={{
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-mono), monospace",
               fontSize: 10,
               color: "var(--color-text-muted)",
             }}
@@ -287,7 +287,7 @@ function LogitLensSpecimen() {
           />
           <span
             style={{
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-mono), monospace",
               fontSize: 10,
               color: "var(--color-text-muted)",
             }}
@@ -322,7 +322,7 @@ function DlaSpecimen() {
               width: DLA_BAR_HALF,
               textAlign: "right",
               paddingRight: 8,
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-mono), monospace",
               fontSize: 8,
               color: "var(--color-text-muted)",
               opacity: 0.55,
@@ -336,7 +336,7 @@ function DlaSpecimen() {
             style={{
               width: DLA_BAR_HALF,
               paddingLeft: 8,
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-mono), monospace",
               fontSize: 8,
               color: "var(--color-text-muted)",
               opacity: 0.55,
@@ -457,7 +457,7 @@ function DlaSpecimen() {
             />
             <span
               style={{
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-mono), monospace",
                 fontSize: 9,
                 color: "var(--color-text-muted)",
               }}
@@ -476,7 +476,7 @@ function DlaSpecimen() {
             />
             <span
               style={{
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-mono), monospace",
                 fontSize: 9,
                 color: "var(--color-text-muted)",
               }}
@@ -524,7 +524,7 @@ function ActivationPatchSpecimen() {
           <div style={{ width: PATCH_BAR_MAX, display: "flex", flexDirection: "column", gap: 3 }}>
             <span
               style={{
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-mono), monospace",
                 fontSize: 8,
                 color: "rgba(175,118,32,0.85)",
                 letterSpacing: "0.04em",
@@ -534,7 +534,7 @@ function ActivationPatchSpecimen() {
             </span>
             <span
               style={{
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-mono), monospace",
                 fontSize: 8,
                 letterSpacing: "0.04em",
                 color: phase >= 1 ? "#4a9e6b" : "transparent",
@@ -614,7 +614,7 @@ function ActivationPatchSpecimen() {
                 >
                   <span
                     style={{
-                      fontFamily: "var(--font-azeret-mono), monospace",
+                      fontFamily: "var(--font-ibm-plex-mono), monospace",
                       fontSize: 8,
                       color: ms.color,
                       backgroundColor: ms.bg,
@@ -647,7 +647,7 @@ function ActivationPatchSpecimen() {
         >
           <span
             style={{
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-mono), monospace",
               fontSize: 9,
               color: "var(--color-text-muted)",
             }}
@@ -656,7 +656,7 @@ function ActivationPatchSpecimen() {
           </span>
           <span
             style={{
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-mono), monospace",
               fontSize: 9,
               color: "var(--color-text-muted)",
               opacity: 0.55,

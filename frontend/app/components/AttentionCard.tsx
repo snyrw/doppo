@@ -281,10 +281,10 @@ function AttentionCard({
           padding: "10px 12px", zIndex: 100, pointerEvents: "none",
           minWidth: 200, maxWidth: 320,
         }}>
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-all" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-azeret-mono), monospace", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-word" }}>
             {card.prompt}
           </p>
           <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
@@ -340,7 +340,7 @@ function AttentionCard({
               disabled={currentLayer === 0}
               style={{ fontSize: 12, background: "none", border: "none", cursor: currentLayer === 0 ? "not-allowed" : "pointer", color: currentLayer === 0 ? "var(--color-text-muted)" : "var(--color-text)", padding: "0 4px", lineHeight: 1 }}
             >←</button>
-            <span style={{ fontSize: 10, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text)", minWidth: 28, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text)", minWidth: 28, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
               L{currentLayer}
             </span>
             <button
@@ -372,7 +372,7 @@ function AttentionCard({
                 {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
               </span>
             ) : <span />}
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
               {formatElapsed(elapsedMs)}
             </span>
           </div>
@@ -435,7 +435,7 @@ function AttentionCard({
                     >
                       <span style={{
                         fontSize: 8,
-                        fontFamily: "var(--font-azeret-mono), monospace",
+                        fontFamily: "var(--font-ibm-plex-mono), monospace",
                         fontWeight: 700,
                         letterSpacing: "0.04em",
                         color: isFocused ? "var(--color-accent)" : isPinned ? "var(--color-accent)" : "var(--color-text-muted)",
@@ -475,17 +475,17 @@ function AttentionCard({
             }}
           >
             {infoContent.type === "confirm" && (
-              <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-accent)", fontWeight: 600, whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-accent)", fontWeight: 600, whiteSpace: "nowrap" }}>
                 {infoContent.text}
               </span>
             )}
             {infoContent.type === "focused" && (
-              <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
                 {infoContent.text}
               </span>
             )}
             {infoContent.type === "hover" && (
-              <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
                 {"H" + infoContent.head + "  ·  "}
                 <span style={{ color: "var(--color-text)" }}>&ldquo;{infoContent.tokens[infoContent.q]}&rdquo;</span>
                 {"  →  "}
@@ -495,7 +495,7 @@ function AttentionCard({
               </span>
             )}
             {infoContent.type === "selected" && (
-              <span style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
                 {"selected  "}
                 <span style={{ color: "var(--color-text)" }}>&ldquo;{infoContent.tokens[infoContent.q]}&rdquo;</span>
                 {"  →  "}
@@ -503,7 +503,7 @@ function AttentionCard({
               </span>
             )}
             {infoContent.type === "idle" && (
-              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
                 hover cells to inspect  ·  click a head label once then again to pin
               </span>
             )}
@@ -520,17 +520,17 @@ function AttentionCard({
                 onPointerDown={e => e.stopPropagation()}
                 style={{ padding: "5px 10px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid var(--color-surface-border)" }}
               >
-                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace", letterSpacing: "0.08em" }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", letterSpacing: "0.08em" }}>
                   PINNED
                 </span>
-                <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+                <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
                   {pinnedHeads.length}/{MAX_PINS}
                 </span>
                 <div style={{ flex: 1 }} />
                 <button
                   onPointerDown={e => e.stopPropagation()}
                   onClick={() => setPinnedHeads([])}
-                  style={{ fontSize: 9, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-azeret-mono), monospace" }}
+                  style={{ fontSize: 9, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ibm-plex-mono), monospace" }}
                 >
                   clear all
                 </button>
@@ -552,7 +552,7 @@ function AttentionCard({
                         justifyContent: "center",
                         gap: 5,
                       }}>
-                        <span style={{ fontSize: 8, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-accent)", fontWeight: 700 }}>
+                        <span style={{ fontSize: 8, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-accent)", fontWeight: 700 }}>
                           L{layer}·H{head}
                         </span>
                         <button

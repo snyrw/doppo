@@ -1,13 +1,13 @@
 @AGENTS.md
 
 Logit lens visualization tool — no-code mechanistic interpretability for any HuggingFace model.
-Stack: Next.js, FastAPI, TransformerLens 3.0, RunPod (serverless GPU), Neon + BetterAuth + Drizzle.
+Stack: Next.js, FastAPI, TransformerLens 3.0, Modal (serverless GPU), Neon + BetterAuth + Drizzle.
 
 ## Dev commands
 
 ```
 npm run dev                     # frontend: localhost:3000
-# backend worker is deployed via GitHub Actions CI/CD — no local CLI deploy command
+modal deploy backend/main.py    # deploy backend (requires Modal credentials)
 ```
 
 ## Behavioral rules
@@ -19,13 +19,14 @@ npm run dev                     # frontend: localhost:3000
 - **Auth gate:** All GPU inference requires authentication and credits — there is no anonymous inference tier. Credits billing is live. Always verify `userId` ownership before mutating DB rows.
 - **Planned: on-rails tutorial** — a pre-computed, scripted walkthrough of all six analysis tools (logit lens → DLA → attribution → activation patch → steering → attn) on a fixed model/prompt, served as static data (no GPU). Replaces anon access as the discovery/onboarding path. Not yet implemented; spec TBD.
 
-## Backend (backend/worker/handler.py)
+## Backend (backend/main.py)
 
-- `INFERENCE_ENDPOINTS` — dispatch dict mapping endpoint names (`run_lens`, `run_dla`, `run_attribution`, `run_activation_patch`, `run_steering`) to handler functions
-- `_handle_tokenize` — lightweight tokenizer-only path (no GPU); used for token validation and pair generation
+- `_TLBase` class — shared inference logic with methods for all 6 analysis types
+- Four Modal GPU-tier classes (`TLSmall`, `TLMedium`, `TLLarge`, `TLXLarge`) — one per GPU tier
 - `FEATURED_MODELS` — editorial curation for the UI only; not a gate on what `run-lens` accepts
-- `_detect_gpu_tier()` / `_bump_tier()` — param-count-to-tier mapping; `_bump_tier` used for attribution backward passes (need ~2–3× model weights in VRAM)
-- Worker deployed via GitHub Actions CI/CD; four RunPod endpoint IDs configured via env vars (`RUNPOD_ENDPOINT_SMALL`, `RUNPOD_ENDPOINT_MEDIUM`, `RUNPOD_ENDPOINT_LARGE`, `RUNPOD_ENDPOINT_XLARGE`)
+- `_detect_gpu_tier()` / `_bump_tier()` — param-count-to-tier mapping; `_bump_tier` used for attribution/activation-patch backward passes (need ~2–3× model weights in VRAM)
+- Deployed via `modal deploy backend/main.py`; GitHub Actions CI/CD on changes to `backend/main.py`
+- Single env var `NEXT_PUBLIC_API_URL` points to the deployed Modal app URL
 
 **GPU tiers:**
 - `tl_small` → L4 (< 4B params; 24 GB)
@@ -39,7 +40,7 @@ npm run dev                     # frontend: localhost:3000
 
 Use `TransformerBridge.boot_transformers(hf_model_id)` — not `HookedTransformer.from_pretrained`. Full HF IDs required (`"openai-community/gpt2"`, not `"gpt2-small"`). Weight-processing kwargs (`fold_ln`, `center_unembed`) are gone.
 
-**Local venv is TL 2.18.0.** `TransformerBridge` only runs on the RunPod worker — never try to import `model_bridge` locally.
+**Local venv is TL 2.18.0.** `TransformerBridge` only runs on the Modal worker — never try to import `model_bridge` locally.
 
 Hook callbacks: second parameter MUST be named `hook` — any other name raises `unexpected keyword argument 'hook'`:
 ```python
@@ -85,4 +86,4 @@ Full hook name strings only — tuple shorthand is gone:
 /api/generate-pairs      → { pairs: [{clean, corrupted}], n_requested }
 ```
 
-See `.claude/rules/` for: frontend patterns, database/Drizzle, RunPod infrastructure.
+See `.claude/rules/` for: frontend patterns, database/Drizzle, Modal infrastructure.

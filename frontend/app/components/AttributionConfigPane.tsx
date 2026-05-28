@@ -291,7 +291,7 @@ export default function AttributionConfigPane({
               style={{
                 flex: 1, border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
                 borderRadius: 6, padding: "6px 8px", fontSize: 11,
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-mono), monospace",
                 color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
                 transition: "border-color 120ms",
               }}
@@ -325,7 +325,7 @@ export default function AttributionConfigPane({
             <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
               Reference Prompt
             </label>
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
               {cleanPrompt.trim() ? cleanPrompt.trim().split(/\s+/).length : 0}w
             </span>
           </div>
@@ -349,7 +349,7 @@ export default function AttributionConfigPane({
             <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
               Counterfactual Prompt
             </label>
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
               {corruptedPrompt.trim() ? corruptedPrompt.trim().split(/\s+/).length : 0}w
             </span>
           </div>
@@ -417,7 +417,7 @@ export default function AttributionConfigPane({
                     width: 72, marginLeft: 6,
                     border: `1px solid ${positionMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
                     borderRadius: 5, padding: "3px 6px", fontSize: 11,
-                    fontFamily: "var(--font-azeret-mono), monospace",
+                    fontFamily: "var(--font-ibm-plex-mono), monospace",
                     color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
                     transition: "border-color 120ms",
                   }}
@@ -446,7 +446,7 @@ export default function AttributionConfigPane({
                     flex: 1, marginLeft: 6,
                     border: `1px solid ${tokenMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
                     borderRadius: 5, padding: "3px 6px", fontSize: 11,
-                    fontFamily: "var(--font-azeret-mono), monospace",
+                    fontFamily: "var(--font-ibm-plex-mono), monospace",
                     color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
                     transition: "border-color 120ms",
                   }}
@@ -480,7 +480,7 @@ export default function AttributionConfigPane({
                 width: "100%",
                 border: `1px solid ${contrastiveToken.trim() ? "var(--color-accent)" : "var(--color-card-border)"}`,
                 borderRadius: 5, padding: "4px 8px", fontSize: 11,
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-mono), monospace",
                 color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
                 transition: "border-color 120ms", boxSizing: "border-box",
               }}

@@ -311,7 +311,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
                   borderRadius: 4,
                   padding: "1px 5px",
                   fontSize: 11,
-                  fontFamily: "var(--font-azeret-mono), monospace",
+                  fontFamily: "var(--font-ibm-plex-mono), monospace",
                   color: "var(--color-text-muted)",
                   lineHeight: "16px",
                 }}
@@ -413,7 +413,7 @@ function Row({
               key={m}
               style={{
                 fontSize: 10,
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-mono), monospace",
                 background: "var(--color-surface-border)",
                 color: "var(--color-accent)",
                 padding: "1px 5px",

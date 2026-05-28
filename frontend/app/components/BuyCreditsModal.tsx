@@ -95,7 +95,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
             lineHeight: 1.5,
           }}
         >
-          Credits are charged at RunPod serverless cost with Stripe fees included.
+          Credits are charged at Modal serverless cost with Stripe fees included.
           Free tier: $1.00/month.
         </p>
 

@@ -118,7 +118,7 @@ function MiniPatchBars() {
         {([{ color: amber, label: "pred" }, { color: green, label: "actual" }] as const).map(({ color, label }) => (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: 3 }}>
             <div style={{ width: 8, height: 3, borderRadius: 1, backgroundColor: color }} />
-            <span style={{ fontSize: 7, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>{label}</span>
+            <span style={{ fontSize: 7, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>{label}</span>
           </div>
         ))}
       </div>
@@ -135,7 +135,7 @@ function MiniSteeringMotif() {
         { label: "strd", tokens: ["John", "took"], highlight: true },
       ].map(({ label, tokens, highlight }) => (
         <div key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 6, width: 22, flexShrink: 0, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+          <span style={{ fontSize: 6, width: 22, flexShrink: 0, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
             {label}
           </span>
           <div style={{ display: "flex", gap: 2 }}>
@@ -244,7 +244,7 @@ export default function HeroContent() {
       >
         <p
           style={{
-            fontFamily: "var(--font-azeret-mono), monospace",
+            fontFamily: "var(--font-ibm-plex-mono), monospace",
             fontSize: 10,
             fontWeight: 600,
             letterSpacing: "0.1em",
@@ -258,7 +258,7 @@ export default function HeroContent() {
 
         <h1
           style={{
-            fontFamily: "var(--font-azeret-mono), monospace",
+            fontFamily: "var(--font-ibm-plex-mono), monospace",
             fontSize: "clamp(20px, 1.8vw, 28px)",
             fontWeight: 400,
             lineHeight: 1.5,
@@ -273,7 +273,7 @@ export default function HeroContent() {
 
         <p
           style={{
-            fontFamily: "var(--font-azeret-mono), monospace",
+            fontFamily: "var(--font-ibm-plex-mono), monospace",
             fontSize: 12,
             lineHeight: 1.9,
             color: "var(--color-text-muted)",
@@ -296,7 +296,7 @@ export default function HeroContent() {
               gap: 8,
               padding: "9px 18px",
               borderRadius: 6,
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-mono), monospace",
               fontSize: 12,
               fontWeight: 500,
               letterSpacing: "0.02em",
@@ -312,7 +312,7 @@ export default function HeroContent() {
               alignItems: "center",
               padding: "9px 18px",
               borderRadius: 6,
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-mono), monospace",
               fontSize: 12,
               fontWeight: 500,
               letterSpacing: "0.02em",
@@ -338,7 +338,7 @@ export default function HeroContent() {
             <span
               key={tag}
               style={{
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-mono), monospace",
                 fontSize: 10,
                 color: "var(--color-text-muted)",
                 letterSpacing: "0.04em",
@@ -377,7 +377,7 @@ export default function HeroContent() {
                 key={t}
                 onClick={() => setTab(t)}
                 style={{
-                  fontFamily: "var(--font-azeret-mono), monospace",
+                  fontFamily: "var(--font-ibm-plex-mono), monospace",
                   fontSize: 10,
                   letterSpacing: "0.06em",
                   color: isActive ? "var(--color-text)" : "var(--color-text-muted)",
@@ -480,7 +480,7 @@ function TechniquesTab() {
             <div>
               <p
                 style={{
-                  fontFamily: "var(--font-azeret-mono), monospace",
+                  fontFamily: "var(--font-ibm-plex-mono), monospace",
                   fontSize: 10,
                   fontWeight: 600,
                   letterSpacing: "0.04em",
@@ -492,7 +492,7 @@ function TechniquesTab() {
               </p>
               <p
                 style={{
-                  fontFamily: "var(--font-azeret-mono), monospace",
+                  fontFamily: "var(--font-ibm-plex-mono), monospace",
                   fontSize: 10,
                   lineHeight: 1.7,
                   color: "var(--color-text-muted)",
@@ -522,7 +522,7 @@ function InferenceTab() {
               <div style={{ width: 96, fontFamily: "var(--font-geist-mono), monospace", fontSize: 11, color: "var(--color-text)", fontWeight: 500 }}>
                 {tier.tier}
               </div>
-              <div style={{ flex: 1, fontFamily: "var(--font-azeret-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
+              <div style={{ flex: 1, fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
                 {tier.range}
               </div>
               <div style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
@@ -536,7 +536,7 @@ function InferenceTab() {
       <div>
         <SectionLabel>Infrastructure</SectionLabel>
         <FactList items={[
-          ["Runtime",    "RunPod serverless — billed per second of GPU compute, no idle cost"],
+          ["Runtime",    "Modal serverless — billed per second of GPU compute, no idle cost"],
           ["Framework",  "TransformerLens 3.0 running PyTorch 2.6"],
           ["Cold start", "First request loads model weights — expect 30–120s depending on model size"],
           ["Caching",    "Logit lens, DLA, and attribution results are stored; repeat queries on the same model and prompt don't consume credits"],
@@ -562,10 +562,10 @@ function PricingTab() {
     <div style={{ display: "flex", flexDirection: "column", gap: 26, height: "100%", overflow: "hidden" }}>
       <div>
         <SectionLabel>Free tier</SectionLabel>
-        <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 11, color: "var(--color-text)", lineHeight: 1.75, margin: "0 0 8px" }}>
+        <p style={{ fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 11, color: "var(--color-text)", lineHeight: 1.75, margin: "0 0 8px" }}>
           Every account receives $1.00 in GPU credits each month, automatically. No payment method required to get started.
         </p>
-        <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.7, margin: 0 }}>
+        <p style={{ fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.7, margin: 0 }}>
           On the L4 tier (GPT-2–scale models), $1.00 covers roughly 87 minutes of active inference time.
         </p>
       </div>
@@ -578,7 +578,7 @@ function PricingTab() {
               <div style={{ width: 48, fontFamily: "var(--font-geist-mono), monospace", fontSize: 11, color: "var(--color-text)" }}>
                 {pack.label}
               </div>
-              <div style={{ flex: 1, fontFamily: "var(--font-azeret-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
+              <div style={{ flex: 1, fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
                 ${(pack.creditMicros / 1_000_000).toFixed(2)} in GPU credit
               </div>
               <div style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
@@ -587,9 +587,9 @@ function PricingTab() {
             </div>
           ))}
         </div>
-        <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 9, color: "var(--color-text-muted)", opacity: 0.65, margin: "12px 0 0", lineHeight: 1.6 }}>
+        <p style={{ fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 9, color: "var(--color-text-muted)", opacity: 0.65, margin: "12px 0 0", lineHeight: 1.6 }}>
           The difference between credit value and charge is Stripe's processing fee.
-          GPU compute is priced at RunPod serverless rates with no additional markup.
+          GPU compute is priced at Modal serverless rates with no additional markup.
         </p>
       </div>
 
@@ -605,7 +605,7 @@ function PricingTab() {
               <span style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 9, color: "var(--color-text-muted)", opacity: 0.4, paddingTop: 2, flexShrink: 0 }}>
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 10, color: "var(--color-text)", lineHeight: 1.65, margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 10, color: "var(--color-text)", lineHeight: 1.65, margin: 0 }}>
                 {line}
               </p>
             </div>
@@ -622,7 +622,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <p
       style={{
-        fontFamily: "var(--font-azeret-mono), monospace",
+        fontFamily: "var(--font-ibm-plex-mono), monospace",
         fontSize: 9,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
@@ -644,7 +644,7 @@ function FactList({ items }: { items: [string, string][] }) {
             style={{
               width: 76,
               flexShrink: 0,
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-mono), monospace",
               fontSize: 9,
               color: "var(--color-text-muted)",
               letterSpacing: "0.04em",
@@ -655,7 +655,7 @@ function FactList({ items }: { items: [string, string][] }) {
           </div>
           <div
             style={{
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-mono), monospace",
               fontSize: 10,
               color: "var(--color-text)",
               lineHeight: 1.65,

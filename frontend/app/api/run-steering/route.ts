@@ -6,11 +6,11 @@ import { steeringCache } from "@/app/schema";
 import { putHeatmap, getHeatmap } from "@/app/lib/r2";
 import {
   SSE_HEADERS,
+  parseSSE,
   requireAuth,
   fetchUpstream,
   validateGpuTier,
   resolveModelTier,
-  resolveEndpointUrl,
 } from "@/app/lib/api-helpers";
 import { checkBalance, deductJobCost } from "@/app/lib/credits";
 
@@ -168,45 +168,53 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Cache miss — submit to RunPod and poll.
-  const endpointUrl = resolveEndpointUrl(resolvedTier);
-  const workerInput = {
-    endpoint: "run_steering",
-    model_id: modelName,
-    clean_prompt: cleanPrompt,
-    corrupted_prompt: corruptedPrompt,
-    generation_prompt: generationPrompt ?? null,
-    target_position: targetPosition,
-    components: components.map((c) => ({
-      layer: c.layer,
-      head: c.head,
-      injection_type: c.injectionType,
-    })),
-    alpha,
-    n_tokens: nTokens,
-    extra_pairs: extraPairs ?? null,
-    temperature: resolvedTemperature,
-    repetition_penalty: resolvedRep,
-  };
+  // Cache miss — connect to Modal and pipe the SSE stream through.
+  const upstreamResult = await fetchUpstream(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/run-steering-stream`,
+    {
+      model_name: modelName,
+      clean_prompt: cleanPrompt,
+      corrupted_prompt: corruptedPrompt,
+      generation_prompt: generationPrompt ?? null,
+      target_position: targetPosition,
+      components: components.map((c) => ({
+        layer: c.layer,
+        head: c.head,
+        injection_type: c.injectionType,
+      })),
+      alpha,
+      n_tokens: nTokens,
+      extra_pairs: extraPairs ?? null,
+      temperature: resolvedTemperature,
+      repetition_penalty: resolvedRep,
+    }
+  );
+  if (!upstreamResult.ok) return upstreamResult.errorResponse;
 
   const encoder = new TextEncoder();
   let doneData: unknown = null;
-  let executionTimeMs: number | undefined;
 
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   const writer = writable.getWriter();
 
   (async () => {
+    const startTime = Date.now();
     try {
-      ({ doneData, executionTimeMs } = await fetchUpstream(endpointUrl, workerInput, writer, encoder));
+      for await (const event of parseSSE(upstreamResult.response.body!)) {
+        await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        if (event.stage === "done") doneData = event.data;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await writer
+        .write(encoder.encode(`data: ${JSON.stringify({ stage: "error", error: msg })}\n\n`))
+        .catch(() => {});
     } finally {
       await writer.close().catch(() => {});
     }
 
     if (doneData) {
-      if (executionTimeMs !== undefined) {
-        deductJobCost(userId, resolvedTier, executionTimeMs).catch(console.error);
-      }
+      deductJobCost(userId, resolvedTier, Date.now() - startTime).catch(console.error);
       try {
         await putHeatmap(cacheKey, doneData);
         await db

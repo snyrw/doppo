@@ -651,7 +651,7 @@ function Projects() {
                   <span>Search</span>
                   <kbd style={{
                     fontSize: 10,
-                    fontFamily: "var(--font-azeret-mono), monospace",
+                    fontFamily: "var(--font-ibm-plex-mono), monospace",
                     background: "var(--color-surface-border)",
                     color: "var(--color-text-muted)",
                     border: "1px solid var(--color-card-border)",
@@ -770,7 +770,7 @@ function Projects() {
                           onMouseEnter={e => { if (!exportingId) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
                           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
                         >
-                          <span style={{ fontWeight: 600, color: "var(--color-text)", fontFamily: "var(--font-azeret-mono), monospace", fontSize: 11 }}>
+                          <span style={{ fontWeight: 600, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 11 }}>
                             {card.modelName.split("/").pop()}
                           </span>
                           <span style={{ color: "var(--color-text-muted)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 192 }}>
