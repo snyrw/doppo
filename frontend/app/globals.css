@@ -34,7 +34,7 @@
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: var(--font-azeret-mono), monospace;
+  font-family: var(--font-fragment-mono), monospace;
 }
 
 /* === Shared utilities === */
@@ -52,7 +52,7 @@ body {
   border: none;
   cursor: pointer;
   color: var(--color-text-muted);
-  font-family: var(--font-azeret-mono), monospace;
+  font-family: var(--font-fragment-mono), monospace;
   font-size: 12px;
   transition: color 120ms ease;
   padding: 0;
@@ -68,7 +68,7 @@ body {
   border-radius: 5px;
   cursor: pointer;
   color: var(--color-text-muted);
-  font-family: var(--font-azeret-mono), monospace;
+  font-family: var(--font-fragment-mono), monospace;
   font-size: 12px;
   padding: 3px 10px;
   transition: border-color 120ms ease, color 120ms ease;

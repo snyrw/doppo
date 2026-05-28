@@ -65,7 +65,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
             style={{
               margin: 0,
               fontSize: 14,
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-syne-mono), monospace",
               color: "var(--color-text)",
             }}
           >
@@ -90,7 +90,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
           style={{
             fontSize: 11,
             color: "var(--color-text-muted)",
-            fontFamily: "var(--font-azeret-mono), monospace",
+            fontFamily: "var(--font-syne-mono), monospace",
             marginBottom: 16,
             lineHeight: 1.5,
           }}
@@ -115,7 +115,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
                 borderRadius: 8,
                 cursor: loading !== null ? "not-allowed" : "pointer",
                 opacity: loading !== null && loading !== pack.label ? 0.5 : 1,
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-syne-mono), monospace",
               }}
             >
               <div style={{ textAlign: "left" }}>
@@ -141,7 +141,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
               marginTop: 12,
               fontSize: 11,
               color: "#dc2626",
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-syne-mono), monospace",
             }}
           >
             {error}

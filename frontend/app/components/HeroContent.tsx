@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { interpolateColor, interpolateColorDivergent } from "../lib/palette";
 import { CREDIT_PACKS } from "../lib/rates";
+import WaveformLayers from "./WaveformLayers";
 
 type Tab = "techniques" | "inference" | "pricing";
 
@@ -118,7 +119,7 @@ function MiniPatchBars() {
         {([{ color: amber, label: "pred" }, { color: green, label: "actual" }] as const).map(({ color, label }) => (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: 3 }}>
             <div style={{ width: 8, height: 3, borderRadius: 1, backgroundColor: color }} />
-            <span style={{ fontSize: 7, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>{label}</span>
+            <span style={{ fontSize: 7, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>{label}</span>
           </div>
         ))}
       </div>
@@ -135,7 +136,7 @@ function MiniSteeringMotif() {
         { label: "strd", tokens: ["John", "took"], highlight: true },
       ].map(({ label, tokens, highlight }) => (
         <div key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 6, width: 22, flexShrink: 0, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>
+          <span style={{ fontSize: 6, width: 22, flexShrink: 0, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
             {label}
           </span>
           <div style={{ display: "flex", gap: 2 }}>
@@ -147,7 +148,7 @@ function MiniSteeringMotif() {
                   padding: "1px 3px",
                   border: `1px solid ${highlight ? amber : "var(--color-surface-border)"}`,
                   borderRadius: 2,
-                  fontFamily: "var(--font-geist-mono), monospace",
+                  fontFamily: "var(--font-azeret-mono), monospace",
                   color: highlight ? "var(--color-text)" : "var(--color-text-muted)",
                   backgroundColor: highlight ? "rgba(175,118,32,0.08)" : "transparent",
                 }}
@@ -215,36 +216,23 @@ export default function HeroContent() {
       style={{
         flex: 1,
         display: "grid",
-        gridTemplateColumns: "1fr 1fr",
+        gridTemplateColumns: "1fr 2.5fr",
         overflow: "hidden",
-        position: "relative",
       }}
     >
-      {/* Center rule */}
-      <div
-        style={{
-          position: "absolute",
-          left: "50%",
-          top: "12%",
-          bottom: "12%",
-          width: 1,
-          background: "var(--color-surface-border)",
-          pointerEvents: "none",
-        }}
-      />
-
-      {/* ── Left column ── */}
+      {/* ── Left rail ── */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          padding: "0 60px 0 80px",
+          padding: "0 36px 0 52px",
+          borderRight: "1px solid var(--color-surface-border)",
         }}
       >
         <p
           style={{
-            fontFamily: "var(--font-ibm-plex-mono), monospace",
+            fontFamily: "var(--font-azeret-mono), monospace",
             fontSize: 10,
             fontWeight: 600,
             letterSpacing: "0.1em",
@@ -258,14 +246,13 @@ export default function HeroContent() {
 
         <h1
           style={{
-            fontFamily: "var(--font-ibm-plex-mono), monospace",
-            fontSize: "clamp(20px, 1.8vw, 28px)",
-            fontWeight: 400,
-            lineHeight: 1.5,
+            fontFamily: "var(--font-azeret-mono), monospace",
+            fontSize: "clamp(15px, 1.3vw, 20px)",
+            fontWeight: 500,
+            lineHeight: 1.6,
             letterSpacing: "-0.01em",
             color: "var(--color-text)",
-            margin: "0 0 20px",
-            maxWidth: 340,
+            margin: "0 0 18px",
           }}
         >
           No-code mechanistic interpretability for transformer models on HuggingFace.
@@ -273,20 +260,18 @@ export default function HeroContent() {
 
         <p
           style={{
-            fontFamily: "var(--font-ibm-plex-mono), monospace",
-            fontSize: 12,
-            lineHeight: 1.9,
+            fontFamily: "var(--font-azeret-mono), monospace",
+            fontSize: 11,
+            lineHeight: 1.85,
             color: "var(--color-text-muted)",
-            margin: "0 0 32px",
-            maxWidth: 340,
+            margin: "0 0 28px",
           }}
         >
           Run logit lens, attribution, and steering on any model from HuggingFace Hub.
-          No environment setup, no notebook. Built for researchers and students working
-          through how transformers represent information internally.
+          No environment setup, no notebook.
         </p>
 
-        <div style={{ display: "flex", gap: 10, marginBottom: 44 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 40 }}>
           <Link
             href="/tutorial"
             className="btn-accent"
@@ -294,10 +279,10 @@ export default function HeroContent() {
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
-              padding: "9px 18px",
+              padding: "9px 16px",
               borderRadius: 6,
-              fontFamily: "var(--font-ibm-plex-mono), monospace",
-              fontSize: 12,
+              fontFamily: "var(--font-azeret-mono), monospace",
+              fontSize: 11,
               fontWeight: 500,
               letterSpacing: "0.02em",
               textDecoration: "none",
@@ -310,10 +295,10 @@ export default function HeroContent() {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              padding: "9px 18px",
+              padding: "9px 16px",
               borderRadius: 6,
-              fontFamily: "var(--font-ibm-plex-mono), monospace",
-              fontSize: 12,
+              fontFamily: "var(--font-azeret-mono), monospace",
+              fontSize: 11,
               fontWeight: 500,
               letterSpacing: "0.02em",
               textDecoration: "none",
@@ -328,17 +313,17 @@ export default function HeroContent() {
         <div
           style={{
             display: "flex",
-            gap: 20,
+            flexDirection: "column",
+            gap: 7,
             paddingTop: 20,
             borderTop: "1px solid var(--color-surface-border)",
-            flexWrap: "wrap",
           }}
         >
           {["TransformerLens 3.0", "Any HF model", "GPU-accelerated", "Saved projects"].map((tag) => (
             <span
               key={tag}
               style={{
-                fontFamily: "var(--font-ibm-plex-mono), monospace",
+                fontFamily: "var(--font-azeret-mono), monospace",
                 fontSize: 10,
                 color: "var(--color-text-muted)",
                 letterSpacing: "0.04em",
@@ -350,106 +335,124 @@ export default function HeroContent() {
         </div>
       </div>
 
-      {/* ── Right column ── */}
+      {/* ── Right panel ── */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
-          padding: "32px 52px",
           overflow: "hidden",
-          borderLeft: "1px solid var(--color-surface-border)",
         }}
       >
-        {/* Tab strip */}
+        {/* Waveform */}
         <div
           style={{
-            display: "flex",
+            flex: "0 0 38%",
             borderBottom: "1px solid var(--color-surface-border)",
-            marginBottom: 24,
-            flexShrink: 0,
-            position: "relative",
+            overflow: "hidden",
           }}
         >
-          {TAB_ORDER.map((t) => {
-            const isActive = tab === t;
-            return (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                style={{
-                  fontFamily: "var(--font-ibm-plex-mono), monospace",
-                  fontSize: 10,
-                  letterSpacing: "0.06em",
-                  color: isActive ? "var(--color-text)" : "var(--color-text-muted)",
-                  background: "none",
-                  border: "none",
-                  borderBottom: "2px solid transparent",
-                  padding: "0 0 10px",
-                  marginBottom: -1,
-                  marginRight: 24,
-                  cursor: "pointer",
-                  transition: "color 180ms ease",
-                  position: "relative",
-                }}
-              >
-                {t}
-                {/* Per-tab active indicator — slides in from below */}
-                <span
-                  style={{
-                    position: "absolute",
-                    bottom: -1,
-                    left: 0,
-                    right: 0,
-                    height: 1,
-                    background: "var(--color-text)",
-                    transform: isActive ? "scaleX(1)" : "scaleX(0)",
-                    transformOrigin: "left center",
-                    transition: "transform 220ms cubic-bezier(0.4, 0, 0.2, 1)",
-                  }}
-                />
-              </button>
-            );
-          })}
+          <WaveformLayers />
         </div>
 
-        {/* Tab content — card background + cross-fade on switch */}
+        {/* Tabs + content */}
         <div
           style={{
             flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            padding: "24px 44px",
             overflow: "hidden",
-            position: "relative",
-            background: "var(--color-card)",
-            border: "1px solid var(--color-card-border)",
-            borderRadius: 10,
           }}
         >
-          {TAB_ORDER.map((t) => {
-            const isActive = tab === t;
-            const dir = TAB_ORDER.indexOf(t) - tabIndex;
-            return (
-              <div
-                key={t}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  overflow: "hidden",
-                  padding: "18px 20px",
-                  opacity: isActive ? 1 : 0,
-                  transform: isActive
-                    ? "translateY(0px)"
-                    : dir > 0
-                    ? "translateY(6px)"
-                    : "translateY(-6px)",
-                  transition: "opacity 220ms ease, transform 220ms cubic-bezier(0.4, 0, 0.2, 1)",
-                  pointerEvents: isActive ? "auto" : "none",
-                }}
-              >
-                {t === "techniques" && <TechniquesTab />}
-                {t === "inference"  && <InferenceTab />}
-                {t === "pricing"    && <PricingTab />}
-              </div>
-            );
-          })}
+          {/* Tab strip */}
+          <div
+            style={{
+              display: "flex",
+              borderBottom: "1px solid var(--color-surface-border)",
+              marginBottom: 20,
+              flexShrink: 0,
+            }}
+          >
+            {TAB_ORDER.map((t) => {
+              const isActive = tab === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  style={{
+                    fontFamily: "var(--font-azeret-mono), monospace",
+                    fontSize: 10,
+                    letterSpacing: "0.06em",
+                    color: isActive ? "var(--color-text)" : "var(--color-text-muted)",
+                    background: "none",
+                    border: "none",
+                    borderBottom: "2px solid transparent",
+                    padding: "0 0 10px",
+                    marginBottom: -1,
+                    marginRight: 24,
+                    cursor: "pointer",
+                    transition: "color 180ms ease",
+                    position: "relative",
+                  }}
+                >
+                  {t}
+                  <span
+                    style={{
+                      position: "absolute",
+                      bottom: -1,
+                      left: 0,
+                      right: 0,
+                      height: 1,
+                      background: "var(--color-text)",
+                      transform: isActive ? "scaleX(1)" : "scaleX(0)",
+                      transformOrigin: "left center",
+                      transition: "transform 220ms cubic-bezier(0.4, 0, 0.2, 1)",
+                    }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tab content */}
+          <div
+            style={{
+              flex: 1,
+              overflow: "hidden",
+              position: "relative",
+              background: "var(--color-card)",
+              border: "1px solid var(--color-card-border)",
+              borderRadius: 10,
+            }}
+          >
+            {TAB_ORDER.map((t) => {
+              const isActive = tab === t;
+              const dir = TAB_ORDER.indexOf(t) - tabIndex;
+              return (
+                <div
+                  key={t}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    overflow: "hidden",
+                    padding: "18px 20px",
+                    opacity: isActive ? 1 : 0,
+                    transform: isActive
+                      ? "translateY(0px)"
+                      : dir > 0
+                      ? "translateY(6px)"
+                      : "translateY(-6px)",
+                    transition: "opacity 220ms ease, transform 220ms cubic-bezier(0.4, 0, 0.2, 1)",
+                    pointerEvents: isActive ? "auto" : "none",
+                  }}
+                >
+                  {t === "techniques" && <TechniquesTab />}
+                  {t === "inference"  && <InferenceTab />}
+                  {t === "pricing"    && <PricingTab />}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </main>
@@ -480,7 +483,7 @@ function TechniquesTab() {
             <div>
               <p
                 style={{
-                  fontFamily: "var(--font-ibm-plex-mono), monospace",
+                  fontFamily: "var(--font-azeret-mono), monospace",
                   fontSize: 10,
                   fontWeight: 600,
                   letterSpacing: "0.04em",
@@ -492,7 +495,7 @@ function TechniquesTab() {
               </p>
               <p
                 style={{
-                  fontFamily: "var(--font-ibm-plex-mono), monospace",
+                  fontFamily: "var(--font-azeret-mono), monospace",
                   fontSize: 10,
                   lineHeight: 1.7,
                   color: "var(--color-text-muted)",
@@ -519,13 +522,13 @@ function InferenceTab() {
         <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
           {GPU_TIERS.map((tier) => (
             <div key={tier.tier} style={{ display: "flex", alignItems: "center" }}>
-              <div style={{ width: 96, fontFamily: "var(--font-geist-mono), monospace", fontSize: 11, color: "var(--color-text)", fontWeight: 500 }}>
+              <div style={{ width: 96, fontFamily: "var(--font-azeret-mono), monospace", fontSize: 11, color: "var(--color-text)", fontWeight: 500 }}>
                 {tier.tier}
               </div>
-              <div style={{ flex: 1, fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
+              <div style={{ flex: 1, fontFamily: "var(--font-azeret-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
                 {tier.range}
               </div>
-              <div style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
+              <div style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
                 ${(tier.microsPerSec / 1_000_000).toFixed(6)}/sec
               </div>
             </div>
@@ -562,10 +565,10 @@ function PricingTab() {
     <div style={{ display: "flex", flexDirection: "column", gap: 26, height: "100%", overflow: "hidden" }}>
       <div>
         <SectionLabel>Free tier</SectionLabel>
-        <p style={{ fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 11, color: "var(--color-text)", lineHeight: 1.75, margin: "0 0 8px" }}>
+        <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 11, color: "var(--color-text)", lineHeight: 1.75, margin: "0 0 8px" }}>
           Every account receives $1.00 in GPU credits each month, automatically. No payment method required to get started.
         </p>
-        <p style={{ fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.7, margin: 0 }}>
+        <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.7, margin: 0 }}>
           On the L4 tier (GPT-2–scale models), $1.00 covers roughly 87 minutes of active inference time.
         </p>
       </div>
@@ -575,19 +578,19 @@ function PricingTab() {
         <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
           {CREDIT_PACKS.map((pack) => (
             <div key={pack.label} style={{ display: "flex", alignItems: "center" }}>
-              <div style={{ width: 48, fontFamily: "var(--font-geist-mono), monospace", fontSize: 11, color: "var(--color-text)" }}>
+              <div style={{ width: 48, fontFamily: "var(--font-azeret-mono), monospace", fontSize: 11, color: "var(--color-text)" }}>
                 {pack.label}
               </div>
-              <div style={{ flex: 1, fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
+              <div style={{ flex: 1, fontFamily: "var(--font-azeret-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
                 ${(pack.creditMicros / 1_000_000).toFixed(2)} in GPU credit
               </div>
-              <div style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
+              <div style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 10, color: "var(--color-text-muted)" }}>
                 ${(pack.chargeCents / 100).toFixed(2)} charged
               </div>
             </div>
           ))}
         </div>
-        <p style={{ fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 9, color: "var(--color-text-muted)", opacity: 0.65, margin: "12px 0 0", lineHeight: 1.6 }}>
+        <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 9, color: "var(--color-text-muted)", opacity: 0.65, margin: "12px 0 0", lineHeight: 1.6 }}>
           The difference between credit value and charge is Stripe's processing fee.
           GPU compute is priced at Modal serverless rates with no additional markup.
         </p>
@@ -602,10 +605,10 @@ function PricingTab() {
             "Activation patching and steering are not cached — each run is billed separately.",
           ].map((line, i) => (
             <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-              <span style={{ fontFamily: "var(--font-geist-mono), monospace", fontSize: 9, color: "var(--color-text-muted)", opacity: 0.4, paddingTop: 2, flexShrink: 0 }}>
+              <span style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 9, color: "var(--color-text-muted)", opacity: 0.4, paddingTop: 2, flexShrink: 0 }}>
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <p style={{ fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 10, color: "var(--color-text)", lineHeight: 1.65, margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 10, color: "var(--color-text)", lineHeight: 1.65, margin: 0 }}>
                 {line}
               </p>
             </div>
@@ -622,7 +625,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <p
       style={{
-        fontFamily: "var(--font-ibm-plex-mono), monospace",
+        fontFamily: "var(--font-azeret-mono), monospace",
         fontSize: 9,
         letterSpacing: "0.08em",
         textTransform: "uppercase",
@@ -644,7 +647,7 @@ function FactList({ items }: { items: [string, string][] }) {
             style={{
               width: 76,
               flexShrink: 0,
-              fontFamily: "var(--font-ibm-plex-mono), monospace",
+              fontFamily: "var(--font-azeret-mono), monospace",
               fontSize: 9,
               color: "var(--color-text-muted)",
               letterSpacing: "0.04em",
@@ -655,7 +658,7 @@ function FactList({ items }: { items: [string, string][] }) {
           </div>
           <div
             style={{
-              fontFamily: "var(--font-ibm-plex-mono), monospace",
+              fontFamily: "var(--font-azeret-mono), monospace",
               fontSize: 10,
               color: "var(--color-text)",
               lineHeight: 1.65,

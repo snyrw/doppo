@@ -131,22 +131,22 @@ function SteeringCard({
           padding: "10px 12px", zIndex: 100, pointerEvents: "none",
           minWidth: 200, maxWidth: 320,
         }}>
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-all" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
           <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "8px 0 3px" }}>
             DIM pair
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-word" }}>
             clean: {card.cleanPrompt}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "3px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "3px 0 0", lineHeight: 1.5, fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-word" }}>
             corrupted: {card.corruptedPrompt}
           </p>
           <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "8px 0 3px" }}>
             generation prompt
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--color-text)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-word" }}>
             {card.generationPrompt && card.generationPrompt.trim() !== "" ? card.generationPrompt : <span style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>↳ defaults to clean prompt</span>}
           </p>
           <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
@@ -158,7 +158,7 @@ function SteeringCard({
             <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
               Steering
             </span>
-            <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text-muted)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+            <span style={{ fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text-muted)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
               T={card.temperature.toFixed(1)}  rep={card.repetitionPenalty.toFixed(2)}
             </span>
           </div>
@@ -213,7 +213,7 @@ function SteeringCard({
           <span
             key={i}
             style={{
-              fontSize: 9, fontWeight: 600, fontFamily: "var(--font-ibm-plex-mono), monospace",
+              fontSize: 9, fontWeight: 600, fontFamily: "var(--font-syne-mono), monospace",
               color: "var(--color-accent)", background: "var(--color-surface-border)",
               border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px",
               flexShrink: 0,
@@ -223,7 +223,7 @@ function SteeringCard({
           </span>
         ))}
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", width: 36, textAlign: "right" }}>
+          <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", width: 36, textAlign: "right" }}>
             α={localAlpha >= 0 ? localAlpha.toFixed(2) : localAlpha.toFixed(2)}
           </span>
           <input
@@ -246,7 +246,7 @@ function SteeringCard({
             style={{ width: 80, accentColor: "var(--color-accent)", cursor: "pointer" }}
           />
           {debouncing && (
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", userSelect: "none" }}>⋯</span>
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", userSelect: "none" }}>⋯</span>
           )}
           {card.status !== "loading" && localAlpha !== card.alpha && (
             <button
@@ -278,7 +278,7 @@ function SteeringCard({
                 {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
               </span>
             ) : <span />}
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
               {formatElapsed(elapsedMs)}
             </span>
           </div>
@@ -293,7 +293,7 @@ function SteeringCard({
             <div
               onPointerDown={e => e.stopPropagation()}
               style={{
-                fontSize: 11, fontFamily: "var(--font-ibm-plex-mono), monospace",
+                fontSize: 11, fontFamily: "var(--font-syne-mono), monospace",
                 color: "var(--color-text)", lineHeight: 1.6,
                 maxHeight: 100, overflowY: "auto", background: "var(--color-card)",
                 border: "1px solid var(--color-surface-border)", borderRadius: 4,
@@ -318,7 +318,7 @@ function SteeringCard({
               Steered
             </p>
             <div style={{
-              fontSize: 11, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text)",
+              fontSize: 11, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text)",
               lineHeight: 1.6, maxHeight: 100, overflowY: "auto", background: "var(--color-card)",
               border: "1px solid var(--color-surface-border)", borderRadius: 4,
               padding: "6px 8px", whiteSpace: "pre-wrap", wordBreak: "break-word",
@@ -333,7 +333,7 @@ function SteeringCard({
               Baseline
             </p>
             <div style={{
-              fontSize: 11, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text-muted)",
+              fontSize: 11, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text-muted)",
               lineHeight: 1.6, maxHeight: 100, overflowY: "auto", background: "var(--color-card)",
               border: "1px solid var(--color-surface-border)", borderRadius: 4,
               padding: "6px 8px", whiteSpace: "pre-wrap", wordBreak: "break-word",
@@ -351,7 +351,7 @@ function SteeringCard({
                 Next token
               </p>
               <span style={{
-                fontSize: 9, fontWeight: 600, fontFamily: "var(--font-ibm-plex-mono), monospace",
+                fontSize: 9, fontWeight: 600, fontFamily: "var(--font-syne-mono), monospace",
                 color: card.data.logit_diff >= 0 ? "#16a34a" : "#dc2626",
                 background: card.data.logit_diff >= 0 ? "rgba(22,163,74,0.08)" : "rgba(220,38,38,0.08)",
                 border: `1px solid ${card.data.logit_diff >= 0 ? "rgba(22,163,74,0.25)" : "rgba(220,38,38,0.25)"}`,
@@ -370,13 +370,13 @@ function SteeringCard({
                 </p>
                 {card.data.top_k_steered.map((t, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
-                    <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text)", width: 60, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text)", width: 60, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {JSON.stringify(t.token)}
                     </span>
                     <div style={{ flex: 1, height: 6, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
                       <div style={{ width: `${t.prob * 100}%`, height: "100%", background: "var(--color-accent)", borderRadius: 2, opacity: 0.8 }} />
                     </div>
-                    <span style={{ fontSize: 8, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", width: 26, textAlign: "right", flexShrink: 0 }}>
+                    <span style={{ fontSize: 8, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", width: 26, textAlign: "right", flexShrink: 0 }}>
                       {(t.prob * 100).toFixed(0)}%
                     </span>
                   </div>
@@ -390,13 +390,13 @@ function SteeringCard({
                 </p>
                 {card.data.top_k_baseline.map((t, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
-                    <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text-muted)", width: 60, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text-muted)", width: 60, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {JSON.stringify(t.token)}
                     </span>
                     <div style={{ flex: 1, height: 6, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
                       <div style={{ width: `${t.prob * 100}%`, height: "100%", background: "var(--color-text-muted)", borderRadius: 2, opacity: 0.5 }} />
                     </div>
-                    <span style={{ fontSize: 8, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", width: 26, textAlign: "right", flexShrink: 0 }}>
+                    <span style={{ fontSize: 8, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", width: 26, textAlign: "right", flexShrink: 0 }}>
                       {(t.prob * 100).toFixed(0)}%
                     </span>
                   </div>

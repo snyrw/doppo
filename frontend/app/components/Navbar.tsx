@@ -122,7 +122,7 @@ export default function Navbar({ actions, onAddCredits }: { actions?: React.Reac
         />
         <span
           style={{
-            fontFamily: "var(--font-azeret-mono), monospace",
+            fontFamily: "var(--font-syne-mono), monospace",
             fontSize: 14,
             fontWeight: 500,
             color: "var(--color-accent)",
@@ -174,7 +174,7 @@ export default function Navbar({ actions, onAddCredits }: { actions?: React.Reac
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
                   color: "var(--color-text-muted)",
-                  fontFamily: "var(--font-azeret-mono), monospace",
+                  fontFamily: "var(--font-syne-mono), monospace",
                 }}
               >
                 Heatmap palette
@@ -214,7 +214,7 @@ export default function Navbar({ actions, onAddCredits }: { actions?: React.Reac
                           fontSize: 12,
                           fontWeight: isSelected ? 700 : 500,
                           color: "var(--color-text)",
-                          fontFamily: "var(--font-azeret-mono), monospace",
+                          fontFamily: "var(--font-syne-mono), monospace",
                         }}
                       >
                         {meta.label}
@@ -237,7 +237,7 @@ export default function Navbar({ actions, onAddCredits }: { actions?: React.Reac
                       style={{
                         fontSize: 9,
                         color: "var(--color-text-muted)",
-                        fontFamily: "var(--font-azeret-mono), monospace",
+                        fontFamily: "var(--font-syne-mono), monospace",
                       }}
                     >
                       {meta.description}

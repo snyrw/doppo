@@ -155,10 +155,10 @@ function ActivationCard({
           padding: "10px 12px", zIndex: 100, pointerEvents: "none",
           minWidth: 200, maxWidth: 300,
         }}>
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-all" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-word" }}>
             {card.cleanPrompt}
           </p>
           <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
@@ -213,7 +213,7 @@ function ActivationCard({
                 {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
               </span>
             ) : <span />}
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
               {formatElapsed(elapsedMs)}
             </span>
           </div>
@@ -281,7 +281,7 @@ function ActivationCard({
                   }}
                 >
                   {/* Component label */}
-                  <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text)", width: 52, flexShrink: 0, fontWeight: 600 }}>
+                  <span style={{ fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text)", width: 52, flexShrink: 0, fontWeight: 600 }}>
                     {label}
                   </span>
 

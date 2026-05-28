@@ -261,10 +261,10 @@ function LensCard({
             animation: "fadeUp 120ms ease-out",
           }}
         >
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-all" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-word" }}>
             {card.prompt}
           </p>
           {card.gpuTier && (
@@ -292,10 +292,10 @@ function LensCard({
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 4 }}>
-            <span style={{ fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 11, fontWeight: 700, color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px", maxWidth: 90, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", flexShrink: 0 }}>
+            <span style={{ fontFamily: "var(--font-syne-mono), monospace", fontSize: 11, fontWeight: 700, color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px", maxWidth: 90, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", flexShrink: 0 }}>
               {panelData.colLabel}
             </span>
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", flexShrink: 0 }}>
+            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", flexShrink: 0 }}>
               layer {panelData.layerLabel}
             </span>
           </div>
@@ -304,7 +304,7 @@ function LensCard({
               const prob = panelData.probs[i];
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ width: 48, fontFamily: "var(--font-ibm-plex-mono), monospace", fontSize: 9, color: "var(--color-text)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", flexShrink: 0, textAlign: "right" }}>
+                  <span style={{ width: 48, fontFamily: "var(--font-syne-mono), monospace", fontSize: 9, color: "var(--color-text)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", flexShrink: 0, textAlign: "right" }}>
                     {JSON.stringify(tok)}
                   </span>
                   <div style={{ flex: 1, height: 8, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
@@ -404,7 +404,7 @@ function LensCard({
               <button
                 onClick={() => { setStride(1); setLayerRange(null); }}
                 title="Reset layer filter"
-                style={{ fontSize: 9, padding: "1px 5px", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 4, color: "var(--color-accent)", cursor: "pointer", flexShrink: 0, fontFamily: "var(--font-ibm-plex-mono), monospace", lineHeight: 1.4 }}
+                style={{ fontSize: 9, padding: "1px 5px", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 4, color: "var(--color-accent)", cursor: "pointer", flexShrink: 0, fontFamily: "var(--font-syne-mono), monospace", lineHeight: 1.4 }}
               >
                 {stride > 1 ? `÷${stride}` : "◉"}
               </button>
@@ -439,7 +439,7 @@ function LensCard({
                   onPointerDown={e => e.stopPropagation()}
                 >
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.06em", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>STRIDE</span>
+                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.06em", fontFamily: "var(--font-syne-mono), monospace" }}>STRIDE</span>
                     <div style={{ display: "flex", gap: 3 }}>
                       {[1, 2, 4, 8].map(s => (
                         <button
@@ -453,7 +453,7 @@ function LensCard({
                             border: "1px solid var(--color-card-border)",
                             borderRadius: 3,
                             cursor: "pointer",
-                            fontFamily: "var(--font-ibm-plex-mono), monospace",
+                            fontFamily: "var(--font-syne-mono), monospace",
                           }}
                         >
                           ×{s}
@@ -463,24 +463,24 @@ function LensCard({
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.06em", fontFamily: "var(--font-ibm-plex-mono), monospace" }}>LAYERS</span>
+                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.06em", fontFamily: "var(--font-syne-mono), monospace" }}>LAYERS</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", width: 22 }}>from</span>
+                      <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", width: 22 }}>from</span>
                       <button onClick={() => setLayerRange([Math.max(0, rangeFrom - 1), rangeTo])} style={stepperBtn}>−</button>
-                      <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text)", minWidth: 20, textAlign: "center" }}>{rangeFrom}</span>
+                      <span style={{ fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text)", minWidth: 20, textAlign: "center" }}>{rangeFrom}</span>
                       <button onClick={() => setLayerRange([Math.min(rangeTo, rangeFrom + 1), rangeTo])} style={stepperBtn}>+</button>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", width: 22 }}>to</span>
+                      <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", width: 22 }}>to</span>
                       <button onClick={() => setLayerRange([rangeFrom, Math.max(rangeFrom, rangeTo - 1)])} style={stepperBtn}>−</button>
-                      <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text)", minWidth: 20, textAlign: "center" }}>{rangeTo}</span>
+                      <span style={{ fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text)", minWidth: 20, textAlign: "center" }}>{rangeTo}</span>
                       <button onClick={() => setLayerRange([rangeFrom, Math.min(nLayers - 1, rangeTo + 1)])} style={stepperBtn}>+</button>
                     </div>
                   </div>
 
                   <button
                     onClick={() => { setStride(1); setLayerRange(null); }}
-                    style={{ fontSize: 9, padding: "3px 0", background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", textAlign: "left", fontFamily: "var(--font-ibm-plex-mono), monospace" }}
+                    style={{ fontSize: 9, padding: "3px 0", background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", textAlign: "left", fontFamily: "var(--font-syne-mono), monospace" }}
                   >
                     reset
                   </button>
@@ -500,7 +500,7 @@ function LensCard({
                 {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
               </span>
             ) : <span />}
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
               {formatElapsed(elapsedMs)}
             </span>
           </div>
@@ -529,7 +529,7 @@ function LensCard({
                     flexShrink: 0,
                     fontSize: 7,
                     textAlign: "center",
-                    fontFamily: "var(--font-ibm-plex-mono), monospace",
+                    fontFamily: "var(--font-syne-mono), monospace",
                     color: pinnedCol === i ? "var(--color-accent)" : "var(--color-text-muted)",
                     fontWeight: pinnedCol === i ? 700 : 400,
                     overflow: "hidden",
@@ -561,7 +561,7 @@ function LensCard({
                     width: Y_LABEL_W,
                     flexShrink: 0,
                     fontSize: 9,
-                    fontFamily: "var(--font-ibm-plex-mono), monospace",
+                    fontFamily: "var(--font-syne-mono), monospace",
                     paddingRight: 4,
                     textAlign: "right",
                     overflow: "hidden",
@@ -628,12 +628,12 @@ function LensCard({
                         onClick={() => canPin && handleColClick(xIndex)}
                       >
                         {inTokensMode && topToken !== null && (
-                          <span style={{ fontSize: 7, fontFamily: "var(--font-ibm-plex-mono), monospace", lineHeight: 1, color: getContrastColor(palette, topProb), maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: 7, fontFamily: "var(--font-syne-mono), monospace", lineHeight: 1, color: getContrastColor(palette, topProb), maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap" }}>
                             {topToken}
                           </span>
                         )}
                         {showRankNumber && !inTokensMode && (
-                          <span style={{ fontSize: 7, fontFamily: "var(--font-ibm-plex-mono), monospace", lineHeight: 1, color: getContrastColor(palette, cellColorValue), maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: 7, fontFamily: "var(--font-syne-mono), monospace", lineHeight: 1, color: getContrastColor(palette, cellColorValue), maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap" }}>
                             {rank}
                           </span>
                         )}

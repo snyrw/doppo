@@ -278,7 +278,7 @@ export default function ConfigPane({
                   borderRadius: 6,
                   padding: "6px 8px",
                   fontSize: 11,
-                  fontFamily: "var(--font-ibm-plex-mono), monospace",
+                  fontFamily: "var(--font-syne-mono), monospace",
                   color: "var(--color-text)",
                   background: "var(--color-bg)",
                   outline: "none",
@@ -351,7 +351,7 @@ export default function ConfigPane({
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {/* Top-k stepper — controls how many tokens appear in the pinned panel */}
             <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-              <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", whiteSpace: "nowrap" }}>
                 k
               </span>
               <button
@@ -360,7 +360,7 @@ export default function ConfigPane({
               >
                 −
               </button>
-              <span style={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text)", minWidth: 14, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+              <span style={{ fontSize: 11, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text)", minWidth: 14, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
                 {topK}
               </span>
               <button

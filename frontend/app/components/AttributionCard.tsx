@@ -178,13 +178,13 @@ function AttributionCard({
           padding: "10px 12px", zIndex: 100, pointerEvents: "none",
           minWidth: 220, maxWidth: 340, animation: "fadeUp 120ms ease-out",
         }}>
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-all" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 2px", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 2px", lineHeight: 1.5, fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-word" }}>
             <span style={{ opacity: 0.6 }}>ref: </span>{card.cleanPrompt}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-mono), monospace", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-word" }}>
             <span style={{ opacity: 0.6 }}>∼: </span>{card.corruptedPrompt}
           </p>
           <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
@@ -249,7 +249,7 @@ function AttributionCard({
           >
             {card.data?.target_token && (
               <span style={{
-                fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", fontWeight: 600,
+                fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", fontWeight: 600,
                 color: "var(--color-accent)", background: "var(--color-surface-border)",
                 border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px",
                 whiteSpace: "nowrap",
@@ -384,7 +384,7 @@ function AttributionCard({
                 {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
               </span>
             ) : <span />}
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
               {formatElapsed(elapsedMs)}
             </span>
           </div>
@@ -425,7 +425,7 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
 
         return (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-            <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
+            <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
               {label}
             </div>
             <div
@@ -446,7 +446,7 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
                 </>
               )}
             </div>
-            <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+            <span style={{ fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
               {val >= 0 ? "+" : ""}{val.toFixed(2)}
             </span>
           </div>
@@ -473,7 +473,7 @@ function HeadView({
             key={i}
             style={{
               width: HEAD_CELL_SIZE, flexShrink: 0, fontSize: 7, textAlign: "center",
-              fontFamily: "var(--font-ibm-plex-mono), monospace", color: "var(--color-text-muted)",
+              fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text-muted)",
               overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", paddingBottom: 2,
             }}
           >
@@ -483,7 +483,7 @@ function HeadView({
       </div>
       {data.y_labels.map((label, li) => (
         <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
+          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
             {label}
           </div>
           {data.head_attribution[li].map((val, hi) => {
