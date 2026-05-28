@@ -346,7 +346,7 @@ export default function HeroContent() {
         {/* Waveform */}
         <div
           style={{
-            flex: "0 0 38%",
+            flex: "0 0 32%",
             borderBottom: "1px solid var(--color-surface-border)",
             overflow: "hidden",
           }}
@@ -434,7 +434,7 @@ export default function HeroContent() {
                   style={{
                     position: "absolute",
                     inset: 0,
-                    overflow: "hidden",
+                    overflowY: "auto",
                     padding: "18px 20px",
                     opacity: isActive ? 1 : 0,
                     transform: isActive
@@ -463,51 +463,48 @@ export default function HeroContent() {
 
 function TechniquesTab() {
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {TECHNIQUES.map((t, i) => (
-          <div
-            key={t.name}
-            style={{
-              display: "flex",
-              gap: 16,
-              padding: "13px 0",
-              borderBottom: i < TECHNIQUES.length - 1 ? "1px solid var(--color-surface-border)" : "none",
-              alignItems: "stretch",
-              flex: "1 1 0",
-            }}
-          >
-            <div style={{ width: 82, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {t.motif}
-            </div>
-            <div>
-              <p
-                style={{
-                  fontFamily: "var(--font-azeret-mono), monospace",
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.04em",
-                  color: "var(--color-text)",
-                  margin: "0 0 5px",
-                }}
-              >
-                {t.name}
-              </p>
-              <p
-                style={{
-                  fontFamily: "var(--font-azeret-mono), monospace",
-                  fontSize: 10,
-                  lineHeight: 1.7,
-                  color: "var(--color-text-muted)",
-                  margin: 0,
-                }}
-              >
-                {t.description}
-              </p>
-            </div>
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      {TECHNIQUES.map((t, i) => (
+        <div
+          key={t.name}
+          style={{
+            display: "flex",
+            gap: 16,
+            padding: "13px 0",
+            borderBottom: i < TECHNIQUES.length - 1 ? "1px solid var(--color-surface-border)" : "none",
+            alignItems: "flex-start",
+          }}
+        >
+          <div style={{ width: 82, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {t.motif}
           </div>
-        ))}
-      </div>
+          <div>
+            <p
+              style={{
+                fontFamily: "var(--font-azeret-mono), monospace",
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.04em",
+                color: "var(--color-text)",
+                margin: "0 0 5px",
+              }}
+            >
+              {t.name}
+            </p>
+            <p
+              style={{
+                fontFamily: "var(--font-azeret-mono), monospace",
+                fontSize: 10,
+                lineHeight: 1.7,
+                color: "var(--color-text-muted)",
+                margin: 0,
+              }}
+            >
+              {t.description}
+            </p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -516,7 +513,7 @@ function TechniquesTab() {
 
 function InferenceTab() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 26, height: "100%", overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 26 }}>
       <div>
         <SectionLabel>GPU tiers</SectionLabel>
         <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
@@ -562,7 +559,7 @@ function InferenceTab() {
 
 function PricingTab() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 26, height: "100%", overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 26 }}>
       <div>
         <SectionLabel>Free tier</SectionLabel>
         <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: 11, color: "var(--color-text)", lineHeight: 1.75, margin: "0 0 8px" }}>
