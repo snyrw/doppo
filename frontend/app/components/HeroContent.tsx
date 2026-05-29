@@ -338,29 +338,31 @@ export default function HeroContent() {
       {/* ── Right panel ── */}
       <div
         style={{
-          display: "flex",
-          flexDirection: "column",
+          position: "relative",
           overflow: "hidden",
         }}
       >
-        {/* Waveform */}
-        <div
-          style={{
-            flex: "0 0 32%",
-            borderBottom: "1px solid var(--color-surface-border)",
-            overflow: "hidden",
-          }}
-        >
+        {/* Waveform — fills entire right panel as background */}
+        <div style={{ position: "absolute", inset: 0 }}>
           <WaveformLayers />
         </div>
 
-        {/* Tabs + content */}
+        {/* Floating tab card */}
         <div
           style={{
-            flex: 1,
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "80%",
+            height: "72%",
             display: "flex",
             flexDirection: "column",
-            padding: "clamp(16px, 1.8vw, 36px) clamp(28px, 3.2vw, 60px)",
+            padding: "clamp(16px, 1.8vw, 32px) clamp(20px, 2.4vw, 48px)",
+            background: "var(--color-card)",
+            border: "1px solid var(--color-card-border)",
+            borderRadius: 12,
+            boxShadow: "0 8px 48px rgba(0,0,0,0.14), 0 2px 12px rgba(0,0,0,0.08)",
             overflow: "hidden",
           }}
         >
@@ -420,9 +422,6 @@ export default function HeroContent() {
               flex: 1,
               overflow: "hidden",
               position: "relative",
-              background: "var(--color-card)",
-              border: "1px solid var(--color-card-border)",
-              borderRadius: 10,
             }}
           >
             {TAB_ORDER.map((t) => {
@@ -435,7 +434,6 @@ export default function HeroContent() {
                     position: "absolute",
                     inset: 0,
                     overflowY: "auto",
-                    padding: "clamp(12px, 1.4vw, 28px) clamp(14px, 1.6vw, 28px)",
                     opacity: isActive ? 1 : 0,
                     transform: isActive
                       ? "translateY(0px)"
