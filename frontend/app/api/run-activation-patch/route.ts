@@ -150,8 +150,11 @@ export async function POST(request: NextRequest) {
     const startTime = Date.now();
     try {
       for await (const event of parseSSE(upstreamResult.response.body!)) {
+        if (event.stage === "done") {
+          doneData = event.data;
+          await deductJobCost(userId, resolvedTier, Date.now() - startTime).catch(console.error);
+        }
         await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-        if (event.stage === "done") doneData = event.data;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -163,7 +166,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (doneData) {
-      deductJobCost(userId, resolvedTier, Date.now() - startTime).catch(console.error);
       try {
         await putHeatmap(cacheKey, doneData);
         await db

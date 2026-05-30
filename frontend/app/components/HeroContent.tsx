@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { interpolateColor, interpolateColorDivergent } from "../lib/palette";
-import { CREDIT_PACKS } from "../lib/rates";
+import { CREDIT_PACKS, TIER_RATES_MICROS_PER_SEC } from "../lib/rates";
 import WaveformLayers from "./WaveformLayers";
 
 type Tab = "techniques" | "inference" | "pricing";
@@ -199,10 +199,10 @@ const TECHNIQUES: { name: string; description: string; motif: ReactNode }[] = [
 ];
 
 const GPU_TIERS = [
-  { tier: "L4",        range: "< 4B params",    microsPerSec: 190  },
-  { tier: "L40S",      range: "4–10B params",   microsPerSec: 530  },
-  { tier: "A100-80GB", range: "10–25B params",  microsPerSec: 760  },
-  { tier: "H200",      range: "25–70B params",  microsPerSec: 1550 },
+  { tier: "L4",        range: "< 4B params",   microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_small  },
+  { tier: "L40S",      range: "4–10B params",  microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_medium },
+  { tier: "A100-80GB", range: "10–25B params", microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_large  },
+  { tier: "H200",      range: "25–70B params", microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_xlarge },
 ];
 
 // ─── Root ──────────────────────────────────────────────────────────────────

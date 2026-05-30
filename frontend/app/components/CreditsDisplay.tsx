@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { BuyCreditsModal } from "./BuyCreditsModal";
 import { LOW_BALANCE_THRESHOLD_MICROS } from "@/app/lib/rates";
 
 function formatMicros(micros: number): string {
@@ -35,6 +36,7 @@ function CreditsButtonInner() {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [showBuyModal, setShowBuyModal] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,6 +63,7 @@ function CreditsButtonInner() {
   const accentColor = isEmpty ? "#dc2626" : isLow ? "#ea580c" : "var(--color-text-muted)";
 
   return (
+    <>
     <div ref={ref} style={{ position: "relative" }}>
       <button
         onClick={() => setOpen(o => !o)}
@@ -154,31 +157,33 @@ function CreditsButtonInner() {
             </div>
           )}
 
-          <div
-            style={{
-              padding: "12px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-              alignItems: "center",
-            }}
-          >
-            <span style={{ fontSize: 18 }}>🚧</span>
-            <span
+          <div style={{ padding: "8px" }}>
+            <button
+              onClick={() => { setOpen(false); setShowBuyModal(true); }}
               style={{
-                fontSize: 11,
-                color: "var(--color-text-muted)",
+                width: "100%",
+                padding: "8px 12px",
+                background: "var(--color-accent)",
+                color: "var(--color-accent-fg)",
+                border: "none",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
                 fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                textAlign: "center",
-                lineHeight: 1.5,
+                cursor: "pointer",
+                transition: "opacity 120ms",
               }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.85"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
             >
-              Billing coming soon
-            </span>
+              Add credits
+            </button>
           </div>
         </div>
       )}
     </div>
+    {showBuyModal && <BuyCreditsModal onClose={() => setShowBuyModal(false)} />}
+    </>
   );
 }
 

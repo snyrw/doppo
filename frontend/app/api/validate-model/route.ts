@@ -1,8 +1,12 @@
 // frontend/app/api/validate-model/route.ts
 import { NextRequest } from "next/server";
+import { requireAuth } from "@/app/lib/api-helpers";
 import { validateHfRepo } from "@/app/lib/validate-model";
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth();
+  if (!("userId" in authResult)) return authResult;
+
   const body = (await request.json()) as { repo_id?: unknown };
 
   if (typeof body.repo_id !== "string" || body.repo_id.length < 1 || body.repo_id.length > 200) {

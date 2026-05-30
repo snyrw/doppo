@@ -6,23 +6,23 @@ Stack: Next.js, FastAPI, TransformerLens 3.0, Modal (serverless GPU), Neon + Bet
 ## Dev commands
 
 ```
-npm run dev                     # frontend: localhost:3000
+cd frontend && npm run dev      # frontend: localhost:3000
 modal deploy backend/main.py    # deploy backend (requires Modal credentials)
 ```
 
 ## Behavioral rules
 
-- **New card type checklist:** update `AnyCard` union in `SandboxCanvas.tsx`, add a case to `renderCard()`, add optional fields to `SerializedCard` in `actions.ts`, add `?? default` in DB restore block in `page.tsx`.
-- **`/api/run-steering` payload changes:** sync all three fetch paths in `page.tsx` — `handleSteerComponents`, `handleRerunSteering`, `handleAddStandaloneSteer`.
+- **New card type checklist:** update `AnyCard` union in `SandboxCanvas.tsx`, add a case to `renderCard()`, add a branch to `serializeCard()` in `projects/helpers.ts`, add optional fields to `SerializedCard` in `actions.ts`, add `?? default` in DB restore blocks in `projects/page.tsx` and `share/[shareId]/page.tsx`.
+- **`/api/run-steering` payload changes:** sync all three fetch bodies in `projects/hooks/useSteeringHandlers.ts` — `steerComponents`, `rerunSteering`, `addStandaloneSteer`.
 - **Drizzle migrations in bash:** `drizzle-kit migrate/push` hangs in non-TTY. Use `.mjs` workaround — see `.claude/rules/database.md`.
-- **GPU tier labels:** always import from `app/lib/tiers.ts`. Never redefine inline.
+- **GPU tier labels:** always import from `frontend/app/lib/tiers.ts`. Never redefine inline.
 - **Auth gate:** All GPU inference requires authentication and credits — there is no anonymous inference tier. Credits billing is live. Always verify `userId` ownership before mutating DB rows.
 - **Planned: on-rails tutorial** — a pre-computed, scripted walkthrough of all six analysis tools (logit lens → DLA → attribution → activation patch → steering → attn) on a fixed model/prompt, served as static data (no GPU). Replaces anon access as the discovery/onboarding path. Not yet implemented; spec TBD.
 
 ## Backend (backend/main.py)
 
-- `_TLBase` class — shared inference logic with methods for all 6 analysis types
-- Four Modal GPU-tier classes (`TLSmall`, `TLMedium`, `TLLarge`, `TLXLarge`) — one per GPU tier
+- `_TLBase` class — shared inference logic with methods for all 7 analysis types (`run_logit_lens`, `run_dla`, `run_attribution`, `run_activation_patch`, `run_steering`, `run_attn`)
+- Four Modal GPU-tier classes (`TransformerLensSmall`, `TransformerLensMedium`, `TransformerLensLarge`, `TransformerLensXLarge`) — one per GPU tier
 - `FEATURED_MODELS` — editorial curation for the UI only; not a gate on what `run-lens` accepts
 - `_detect_gpu_tier()` / `_bump_tier()` — param-count-to-tier mapping; `_bump_tier` used for attribution/activation-patch backward passes (need ~2–3× model weights in VRAM)
 - Deployed via `modal deploy backend/main.py`; GitHub Actions CI/CD on changes to `backend/main.py`
@@ -64,26 +64,39 @@ Full hook name strings only — tuple shorthand is gone:
 
 ## Frontend key files
 
-- `app/page.tsx` — hero (server component); client state/effects must live in child `"use client"` components
-- `app/projects/page.tsx` — canvas; `useReducer` for `{ lensCards, canvas }`
-- `app/schema.ts` — all Drizzle table definitions
-- `app/actions.ts` — all server actions (`"use server"` file-level directive)
-- `app/components/SandboxCanvas.tsx` — exports `AnyCard` union; `renderCard()` switch
-- `app/lib/tiers.ts` — canonical GPU tier labels
-- `app/lib/palette.ts` — `interpolateColor(palette, prob)` [0,1]; `interpolateColorDivergent` for signed DLA
-- `app/share/[shareId]/` — `page.tsx` (server) + `ShareCanvas.tsx` (client, noop callbacks)
+All frontend source lives under `frontend/app/`.
+
+- `frontend/app/page.tsx` — hero (server component); renders `<Navbar>` + `<HeroContent>`
+- `frontend/app/components/HeroContent.tsx` — hero UI with tabs (techniques / inference / pricing)
+- `frontend/app/projects/page.tsx` — canvas; `useReducer` for `{ lensCards, canvas }`; imports from hooks/types/helpers
+- `frontend/app/projects/hooks/useSSEHandlers.ts` — SSE-based card creation: lens, DLA, attribution, activation, attn
+- `frontend/app/projects/hooks/useSteeringHandlers.ts` — steering card creation: `steerComponents`, `rerunSteering`, `addStandaloneSteer`
+- `frontend/app/projects/types.ts` — `AppState`, `AppAction`, `AnyCard` re-export, `HeatmapData`
+- `frontend/app/projects/helpers.ts` — `serializeCard()`, `getCardPrompt()`, `autoArrangePos()`
+- `frontend/app/schema.ts` — all Drizzle table definitions
+- `frontend/app/actions.ts` — all server actions (`"use server"` file-level directive)
+- `frontend/app/components/SandboxCanvas.tsx` — exports `AnyCard` union; `renderCard()` switch
+- `frontend/app/lib/tiers.ts` — canonical GPU tier labels
+- `frontend/app/lib/palette.ts` — `interpolateColor(palette, prob)` [0,1]; `interpolateColorDivergent` for signed DLA
+- `frontend/app/lib/stream-sse.ts` — `readSSEStream()` / `parseSSE()` async generators for SSE consumption
+- `frontend/app/lib/api-helpers.ts` — shared route utilities: `requireAuth()`, `fetchUpstream()`, `validateGpuTier()`, `resolveModelTier()`
+- `frontend/app/share/[shareId]/` — `page.tsx` (server) + `ShareCanvas.tsx` (client, noop callbacks)
 
 ## API contracts
 
 ```
 /api/models              → { id, display_name, description, requires_hf_token }[]
 /api/validate-model      → { valid, gpu_tier, reason }
-/api/run-lens            → SSE → done: { x_labels, y_labels, heatmap_data }
+/api/tokenize            → { tokens: { text, special }[] }
+/api/run-lens            → SSE → done: { x_labels, y_labels, heatmap_data, topk_tokens, topk_probs, kl_data, rank_data, entropy_data }
 /api/run-dla             → { target_token, target_position, y_labels, x_labels, layer_dla, head_dla }
 /api/run-attribution     → { target_token, target_token_idx, ..., top_k_components } — cached
 /api/run-activation-patch → { total_diff, components[{layer, head, component_type, attribution_score, actual_effect}] } — ephemeral
 /api/run-steering        → { steered_text, baseline_text, top_k_steered, top_k_baseline, logit_diff }
+/api/run-attn            → SSE → done: { tokens, patterns[layer][head][q][k], n_layers, n_heads, truncated } — cached; truncates to 30 tokens
 /api/generate-pairs      → { pairs: [{clean, corrupted}], n_requested }
 ```
+
+All inference cache keys include `userId` as a scope prefix — caches are per-user.
 
 See `.claude/rules/` for: frontend patterns, database/Drizzle, Modal infrastructure.
