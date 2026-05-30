@@ -5,8 +5,6 @@ import { db } from "@/app/db";
 import { userCredits, creditLedger } from "@/app/schema";
 import { sql } from "drizzle-orm";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 async function creditUser(
   sessionId: string,
   userId: string,
@@ -36,6 +34,11 @@ async function creditUser(
 }
 
 export async function POST(req: Request) {
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return new Response("Payments not yet configured", { status: 503 });
+  }
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
   const sig = req.headers.get("stripe-signature")!;
   const body = await req.text();
 
@@ -44,7 +47,7 @@ export async function POST(req: Request) {
     event = stripe.webhooks.constructEvent(
       body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch {
     return new Response("Bad signature", { status: 400 });

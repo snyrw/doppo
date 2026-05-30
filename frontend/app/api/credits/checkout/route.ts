@@ -3,9 +3,12 @@ import { headers } from "next/headers";
 import { auth } from "@/app/lib/auth";
 import { CREDIT_PACKS } from "@/app/lib/rates";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 export async function POST(req: Request) {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return new Response("Payments not yet configured", { status: 503 });
+  }
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return new Response("Unauthorized", { status: 401 });
 
