@@ -192,9 +192,15 @@ function Projects() {
   const stateRef = useRef(state);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, isPending: sessionPending } = useSession();
   const sseHandlers = useSSEHandlers({ dispatch, projectIdRef, stateRef });
   const steeringHandlers = useSteeringHandlers({ dispatch, projectIdRef, stateRef });
+
+  useEffect(() => {
+    if (!sessionPending && !session?.user) {
+      router.replace("/");
+    }
+  }, [sessionPending, session, router]);
 
   // Close add dropdown + sub-panes on outside click
   useEffect(() => {

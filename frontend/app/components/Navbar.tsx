@@ -116,7 +116,7 @@ export default function Navbar({ actions }: { actions?: React.ReactNode; onAddCr
       >
         <Image
           src={mounted && isDark ? darkLogo : lightLogo}
-          alt="logitlensviz logo"
+          alt="Doppo logo"
           height={24}
           suppressHydrationWarning
         />

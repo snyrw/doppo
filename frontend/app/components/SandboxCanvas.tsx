@@ -97,11 +97,17 @@ export default function SandboxCanvas({
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const { zoom, panOffset } = localStateRef.current;
+      // Normalize deltaMode: Firefox with a physical mouse sends deltaMode=1 (lines)
+      // with small integer values; convert to pixels so scrolling feels consistent.
+      const LINE_PX = 40;
+      const scale = e.deltaMode === 0 ? 1 : e.deltaMode === 1 ? LINE_PX : el.clientHeight;
+      const dx = e.deltaX * scale;
+      const dy = e.deltaY * scale;
       let newState: CanvasState;
 
       if (e.ctrlKey) {
         const rect = el.getBoundingClientRect();
-        const factor = Math.exp(-e.deltaY * 0.01);
+        const factor = Math.exp(-dy * 0.01);
         const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
@@ -114,7 +120,7 @@ export default function SandboxCanvas({
       } else {
         newState = {
           zoom,
-          panOffset: { x: panOffset.x - e.deltaX, y: panOffset.y - e.deltaY },
+          panOffset: { x: panOffset.x - dx, y: panOffset.y - dy },
         };
       }
 

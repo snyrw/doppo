@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "../lib/auth-client";
 import { interpolateColor, interpolateColorDivergent } from "../lib/palette";
 import { CREDIT_PACKS, TIER_RATES_MICROS_PER_SEC } from "../lib/rates";
 import WaveformLayers from "./WaveformLayers";
@@ -209,6 +210,8 @@ const GPU_TIERS = [
 
 export default function HeroContent() {
   const [tab, setTab] = useState<Tab>("techniques");
+  const router = useRouter();
+  const { data: session } = useSession();
   const tabIndex = TAB_ORDER.indexOf(tab);
 
   return (
@@ -272,9 +275,15 @@ export default function HeroContent() {
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "clamp(6px, 0.5vw, 10px)", marginBottom: "clamp(28px, 2.8vw, 56px)" }}>
-          <Link
-            href="/projects"
+          <button
             className="btn-accent"
+            onClick={() => {
+              if (session?.user) {
+                router.push("/projects");
+              } else {
+                window.dispatchEvent(new CustomEvent("doppo:open-auth", { detail: { mode: "signup" } }));
+              }
+            }}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -284,11 +293,12 @@ export default function HeroContent() {
               fontSize: "clamp(10px, 0.8vw, 14px)",
               fontWeight: 500,
               letterSpacing: "0.02em",
-              textDecoration: "none",
+              border: "none",
+              cursor: "pointer",
             }}
           >
             Projects
-          </Link>
+          </button>
           <span
             style={{
               display: "inline-flex",
@@ -359,7 +369,7 @@ export default function HeroContent() {
             display: "flex",
             flexDirection: "column",
             padding: "clamp(16px, 1.8vw, 32px) clamp(20px, 2.4vw, 48px)",
-            background: "var(--color-card)",
+            background: "color-mix(in srgb, var(--color-card) 90%, transparent)",
             border: "1px solid var(--color-card-border)",
             borderRadius: 12,
             boxShadow: "0 8px 48px rgba(0,0,0,0.14), 0 2px 12px rgba(0,0,0,0.08)",

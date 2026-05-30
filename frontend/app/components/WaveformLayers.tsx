@@ -2,205 +2,131 @@
 
 import { useRef, useEffect } from "react";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+const N_LAYERS = 12;
 
-const SPACING = 32;
-const SWELL   = 9;
-const PERIOD  = 192;
-const LW_BG   = 4;
-const LW_TIP  = 5;
-const BG_A    = 0.07;
-const TIP_MAX = 0.55;
-const TAIL    = 280;
-const SPEED   = 0.10;
-const STEP    = 6;    // path vertex step (was 4/5) — 33% fewer vertices per frame
-const MAX_DPR = 2;    // cap pixel ratio; prevents 9× canvas area on 3× displays
-
-// Precomputed sine LUT — eliminates all Math.sin calls during animation.
-// Index = y mod PERIOD (integer), value = SWELL·sin(2π·y/PERIOD).
-const SIN_TABLE = new Float32Array(PERIOD);
-for (let i = 0; i < PERIOD; i++) {
-  SIN_TABLE[i] = SWELL * Math.sin(2 * Math.PI * i / PERIOD);
-}
-
-// Odd lines use phase=π, so sin(...+π) = -sin(...). Pass sign=-1 from the caller.
-function sinAt(y: number): number {
-  return SIN_TABLE[((y | 0) % PERIOD + PERIOD) % PERIOD];
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
+// Per-layer constants — computed once, not inside the draw loop
+const LAYERS = Array.from({ length: N_LAYERS }, (_, i) => {
+  const frac = i / (N_LAYERS - 1);
+  return {
+    // spatial frequency: later layers oscillate slightly faster across the width
+    freqCycles: 1.4 + i * 0.19,
+    // temporal speed: each layer drifts at its own pace (radians per frame)
+    omega: 0.011 + i * 0.0014,
+    // amplitude grows modestly with depth
+    amp: 4.5 + frac * 7,
+    // phase offset staggers the waves so they don't all peak simultaneously
+    phi: i * (Math.PI / 2.6),
+    // opacity: barely visible at the top, more present at the bottom
+    opacity: 0.055 + frac * 0.19,
+    lineWidth: 0.9 + frac * 0.4,
+  };
+});
 
 export default function WaveformLayers() {
-  const cvRef     = useRef<HTMLCanvasElement>(null);
-  const ctxRef    = useRef<CanvasRenderingContext2D | null>(null);
-  const yDrawRef  = useRef<Float32Array>(new Float32Array(0));
-  const multRef   = useRef<Float32Array>(new Float32Array(0));
-  const animRef   = useRef<number>(0);
-  const lastTRef  = useRef<number>(0);
-  const seededRef = useRef(false);
-  const bgRef     = useRef<{ canvas: HTMLCanvasElement; w: number; h: number; dark: boolean } | null>(null);
-  const darkRef   = useRef(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const targetXRef = useRef(0.5);   // raw mouse target, normalized [0,1]
+  const smoothXRef = useRef(0.5);   // lerped value used in draw
+  const frameRef = useRef(0);
+  const animRef = useRef<number>(0);
 
   useEffect(() => {
-    const cv = cvRef.current;
-    if (!cv) return;
+    const canvas = canvasRef.current!;
+    if (!canvas) return;
+
     let alive = true;
 
-    // Cache the context — avoids a getContext() call every frame.
-    ctxRef.current = cv.getContext("2d");
+    // ── Size sync ───────────────────────────────────────────────────────────
+    function syncSize() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight;
+      if (w === 0 || h === 0) return;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    syncSize();
+    const ro = new ResizeObserver(syncSize);
+    ro.observe(canvas);
 
-    // Track theme changes with MutationObserver instead of querying the DOM each frame.
-    darkRef.current = document.documentElement.getAttribute("data-theme") === "dark";
-    const themeObs = new MutationObserver(() => {
-      const d = document.documentElement.getAttribute("data-theme") === "dark";
-      if (d !== darkRef.current) { darkRef.current = d; bgRef.current = null; }
-    });
-    themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    // ── Mouse ───────────────────────────────────────────────────────────────
+    function onMove(e: MouseEvent) {
+      const rect = canvas.getBoundingClientRect();
+      targetXRef.current = (e.clientX - rect.left) / rect.width;
+    }
+    function onLeave() {
+      targetXRef.current = 0.5;
+    }
+    canvas.addEventListener("mousemove", onMove);
+    canvas.addEventListener("mouseleave", onLeave);
 
-    const sync = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-      const w = cv.offsetWidth, h = cv.offsetHeight;
-      if (!w || !h) return;
-      cv.width  = Math.round(w * dpr);
-      cv.height = Math.round(h * dpr);
-      ctxRef.current = cv.getContext("2d");
-      seededRef.current = false;
-      bgRef.current = null;
-    };
-    sync();
-    const ro = new ResizeObserver(sync);
-    ro.observe(cv);
-
-    const tick = (now: number) => {
+    // ── Draw ────────────────────────────────────────────────────────────────
+    function draw() {
       if (!alive) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
-      // Throttle to ~30 fps — this is a decorative background; 30 fps is imperceptible
-      // and halves all per-frame CPU work.
-      if (lastTRef.current !== 0 && now - lastTRef.current < 32) {
-        animRef.current = requestAnimationFrame(tick);
-        return;
-      }
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.width / dpr;
+      const H = canvas.height / dpr;
+      const t = frameRef.current;
 
-      const ctx = ctxRef.current;
-      if (!ctx) { animRef.current = requestAnimationFrame(tick); return; }
-
-      const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-      const W = cv.width / dpr, H = cv.height / dpr;
-      if (!W || !H) { animRef.current = requestAnimationFrame(tick); return; }
-
-      const dt = lastTRef.current === 0 ? 16 : Math.min(now - lastTRef.current, 50);
-      lastTRef.current = now;
-
-      const nLines = Math.ceil(W / SPACING) + 4;
-
-      // Seed tips and precompute per-line speed multipliers (avoids Math.sin each frame).
-      if (!seededRef.current || yDrawRef.current.length !== nLines) {
-        seededRef.current = true;
-        yDrawRef.current = new Float32Array(nLines);
-        multRef.current  = new Float32Array(nLines);
-        for (let i = 0; i < nLines; i++) {
-          yDrawRef.current[i] = -TAIL + Math.random() * (H + 2 * TAIL);
-          multRef.current[i]  = 0.65 + 0.70 * (Math.sin(i * 1.6180) * 0.5 + 0.5);
-        }
-      }
-
-      const ys   = yDrawRef.current;
-      const mult = multRef.current;
-
-      for (let i = 0; i < nLines; i++) {
-        ys[i] += SPEED * mult[i] * dt;
-        if (ys[i] > H + TAIL) ys[i] -= (H + 2 * TAIL);
-      }
-
-      // ── Offscreen background ─────────────────────────────────────────────
-      const dark = darkRef.current;
-      let bg = bgRef.current;
-      if (!bg || bg.w !== W || bg.h !== H || bg.dark !== dark) {
-        const oc  = document.createElement("canvas");
-        oc.width  = cv.width;
-        oc.height = cv.height;
-        const bc  = oc.getContext("2d")!;
-        bc.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-        const [r, g, b] = dark ? [180, 178, 170] : [80, 78, 72];
-        bc.strokeStyle = `rgba(${r},${g},${b},${BG_A})`;
-        bc.lineWidth   = LW_BG;
-        bc.lineCap     = "butt";
-
-        for (let i = 0; i < nLines; i++) {
-          const sign = i % 2 === 0 ? 1 : -1;
-          const cx   = (i - 1.5) * SPACING;
-          bc.beginPath();
-          bc.moveTo(cx + sign * sinAt(-1), -1);
-          for (let y = 4; y <= H; y += 5) {
-            bc.lineTo(cx + sign * sinAt(y), y);
-          }
-          bc.stroke();
-        }
-
-        bgRef.current = { canvas: oc, w: W, h: H, dark };
-        bg = bgRef.current;
-      }
-
-      // ── Render ────────────────────────────────────────────────────────────
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
 
-      ctx.save();
-      ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      // matches --color-text in each theme
+      const [r, g, b] = isDark ? [220, 218, 210] : [28, 28, 28];
 
-      ctx.drawImage(bg.canvas, 0, 0, W, H);
+      smoothXRef.current += (targetXRef.current - smoothXRef.current) * 0.07;
+      const mx = smoothXRef.current * W;
+      // gaussian sigma: disturbance is felt over ~15% of the width
+      const sig2 = (W * 0.15) ** 2;
 
-      const [r, g, b] = dark ? [180, 178, 170] : [80, 78, 72];
-      ctx.lineWidth = LW_TIP;
-      ctx.lineCap   = "butt";
+      for (let i = 0; i < N_LAYERS; i++) {
+        const { freqCycles, omega, amp, phi, opacity, lineWidth } = LAYERS[i];
+        const yCenter = (i + 0.5) * (H / N_LAYERS);
+        const spatialFreq = (freqCycles * 2 * Math.PI) / W;
 
-      for (let i = 0; i < nLines; i++) {
-        const yDraw = ys[i];
-        const sign  = i % 2 === 0 ? 1 : -1;
-        const cx    = (i - 1.5) * SPACING;
-
-        const effectiveTip = Math.min(yDraw, H);
-        const exitFade = yDraw > H ? Math.max(0, 1 - (yDraw - H) / TAIL) : 1;
-
-        const tailY = effectiveTip - TAIL;
-        const vTop  = Math.max(0, tailY);
-        const vBot  = effectiveTip;
-        if (vBot <= vTop) continue;
-
-        const aTop = TIP_MAX * exitFade * (vTop - tailY) / TAIL;
-        const aBot = TIP_MAX * exitFade;
-
-        const grad = ctx.createLinearGradient(0, vTop, 0, vBot);
-        grad.addColorStop(0, `rgba(${r},${g},${b},${aTop.toFixed(3)})`);
-        grad.addColorStop(1, `rgba(${r},${g},${b},${aBot.toFixed(3)})`);
-        ctx.strokeStyle = grad;
-
-        const pathY0 = vTop > 0 ? vTop : -1;
         ctx.beginPath();
-        ctx.moveTo(cx + sign * sinAt(pathY0), pathY0);
-        for (let y = pathY0 + STEP; y <= vBot; y += STEP) {
-          ctx.lineTo(cx + sign * sinAt(y), y);
+        ctx.strokeStyle = `rgba(${r},${g},${b},${opacity})`;
+        ctx.lineWidth = lineWidth;
+
+        const step = Math.max(1, Math.floor(W / 320)); // ~320 points max
+        for (let px = 0; px <= W; px += step) {
+          // gaussian disturbance centered on mouse x — ripples at a faster rate
+          const dx = px - mx;
+          const gauss = Math.exp(-(dx * dx) / sig2);
+          const disturbance = gauss * 6 * Math.sin(t * 0.07 + i * 0.6);
+
+          const y =
+            yCenter +
+            amp * Math.sin(spatialFreq * px - omega * t + phi) +
+            disturbance;
+
+          if (px === 0) ctx.moveTo(px, y);
+          else ctx.lineTo(px, y);
         }
         ctx.stroke();
       }
 
-      ctx.restore();
-      animRef.current = requestAnimationFrame(tick);
-    };
+      frameRef.current += 1;
+      animRef.current = requestAnimationFrame(draw);
+    }
 
-    animRef.current = requestAnimationFrame(tick);
+    draw();
+
     return () => {
       alive = false;
       cancelAnimationFrame(animRef.current);
       ro.disconnect();
-      themeObs.disconnect();
+      canvas.removeEventListener("mousemove", onMove);
+      canvas.removeEventListener("mouseleave", onLeave);
     };
   }, []);
 
   return (
     <canvas
-      ref={cvRef}
+      ref={canvasRef}
       style={{ width: "100%", height: "100%", display: "block" }}
     />
   );

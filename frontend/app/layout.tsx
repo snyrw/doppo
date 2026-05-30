@@ -9,8 +9,9 @@ const ibmPlexSans = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "logitlensviz",
+  title: "Doppo",
   description: "Visualize token predictions at every layer of a transformer model. No code required.",
+  icons: [],
 };
 
 export default function RootLayout({
@@ -25,10 +26,12 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Runs before React hydration to set theme without flash */}
+        <link rel="icon" href="/lightlogo.png" media="(prefers-color-scheme: light)" />
+        <link rel="icon" href="/darklogo.png" media="(prefers-color-scheme: dark)" />
+        {/* Runs before React hydration to set theme and favicon without flash */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("theme"),d=window.matchMedia("(prefers-color-scheme:dark)").matches;document.documentElement.setAttribute("data-theme",(t?t==="dark":d)?"dark":"light");}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("theme"),d=window.matchMedia("(prefers-color-scheme:dark)").matches,dark=(t?t==="dark":d);document.documentElement.setAttribute("data-theme",dark?"dark":"light");var l=document.createElement("link");l.rel="icon";l.href=dark?"/darklogo.png":"/lightlogo.png";document.head.appendChild(l);new MutationObserver(function(){var dark=document.documentElement.getAttribute("data-theme")==="dark";l.href=dark?"/darklogo.png":"/lightlogo.png";}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});}catch(e){}})();`,
           }}
         />
       </head>
