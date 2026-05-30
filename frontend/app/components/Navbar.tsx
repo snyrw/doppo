@@ -7,7 +7,7 @@ import Image from "next/image";
 import lightLogo from "../lightlogo.png";
 import darkLogo from "../darklogo.png";
 import { PALETTE_META, PALETTE_ORDER, type PaletteName } from "../lib/palette";
-import { CreditsDisplay } from "./CreditsDisplay";
+import { CreditsButton } from "./CreditsDisplay";
 
 function MoonIcon() {
   return (
@@ -50,7 +50,7 @@ function CheckIcon() {
   );
 }
 
-export default function Navbar({ actions, onAddCredits }: { actions?: React.ReactNode; onAddCredits?: () => void }) {
+export default function Navbar({ actions }: { actions?: React.ReactNode; onAddCredits?: () => void }) {
   const [isDark, setIsDark] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [palette, setPalette] = useState<PaletteName>("warm-mono");
@@ -133,11 +133,12 @@ export default function Navbar({ actions, onAddCredits }: { actions?: React.Reac
         </span>
       </Link>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {actions}
-        <CreditsDisplay onAddCredits={onAddCredits} />
         <AuthButtons />
-        <div style={{ width: 1, height: 16, background: "var(--color-surface-border)" }} />
+        <div style={{ width: 1, height: 16, background: "var(--color-surface-border)", flexShrink: 0 }} />
+
+        <CreditsButton />
 
         {/* Palette picker */}
         <div ref={paletteRef} style={{ position: "relative" }}>

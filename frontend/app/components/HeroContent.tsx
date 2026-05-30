@@ -273,8 +273,23 @@ export default function HeroContent() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: "clamp(6px, 0.5vw, 10px)", marginBottom: "clamp(28px, 2.8vw, 56px)" }}>
           <Link
-            href="/tutorial"
+            href="/projects"
             className="btn-accent"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              padding: "clamp(7px, 0.65vw, 12px) clamp(12px, 1.1vw, 22px)",
+              borderRadius: 6,
+              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
+              fontSize: "clamp(10px, 0.8vw, 14px)",
+              fontWeight: 500,
+              letterSpacing: "0.02em",
+              textDecoration: "none",
+            }}
+          >
+            Projects
+          </Link>
+          <span
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -285,29 +300,14 @@ export default function HeroContent() {
               fontSize: "clamp(10px, 0.8vw, 14px)",
               fontWeight: 500,
               letterSpacing: "0.02em",
-              textDecoration: "none",
-            }}
-          >
-            <span aria-hidden>→</span> Interactive walkthrough
-          </Link>
-          <Link
-            href="/projects"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              padding: "clamp(7px, 0.65vw, 12px) clamp(12px, 1.1vw, 22px)",
-              borderRadius: 6,
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              fontSize: "clamp(10px, 0.8vw, 14px)",
-              fontWeight: 500,
-              letterSpacing: "0.02em",
-              textDecoration: "none",
-              color: "var(--color-text)",
+              color: "var(--color-text-muted)",
               border: "1px solid var(--color-surface-border)",
+              cursor: "not-allowed",
+              userSelect: "none",
             }}
           >
-            Projects
-          </Link>
+            Tutorial (coming soon)
+          </span>
         </div>
 
         <div
