@@ -165,10 +165,10 @@ function DlaCard({
             animation: "fadeUp 120ms ease-out",
           }}
         >
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-all" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-syne-mono), monospace", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
             {card.prompt}
           </p>
           <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
@@ -233,7 +233,7 @@ function DlaCard({
           >
             {card.data?.target_token && (
               <span style={{
-                fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", fontWeight: 600,
+                fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontWeight: 600,
                 color: "var(--color-accent)", background: "var(--color-surface-border)",
                 border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px",
                 whiteSpace: "nowrap",
@@ -273,7 +273,7 @@ function DlaCard({
                 {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
               </span>
             ) : <span />}
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", fontVariantNumeric: "tabular-nums" }}>
+            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontVariantNumeric: "tabular-nums" }}>
               {formatElapsed(elapsedMs)}
             </span>
           </div>
@@ -343,9 +343,9 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
       {hasAttnMlp && (
         <div style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
           <div style={{ width: Y_LABEL_W, flexShrink: 0 }} />
-          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", letterSpacing: "0.04em" }}>Attn</span>
+          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", letterSpacing: "0.04em" }}>Attn</span>
           <div style={{ width: 4, flexShrink: 0 }} />
-          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--color-text-muted)", fontFamily: "var(--font-syne-mono), monospace", letterSpacing: "0.04em" }}>MLP</span>
+          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", letterSpacing: "0.04em" }}>MLP</span>
           <div style={{ width: 44, flexShrink: 0 }} />
         </div>
       )}
@@ -353,20 +353,20 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
       {/* Embed row */}
       {data.embed_dla != null && (
         <div style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)", fontStyle: "italic" }}>
+          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)", fontStyle: "italic" }}>
             emb
           </div>
           {hasAttnMlp ? (
             <>
               <DivergingBar val={data.embed_dla} absMax={absMax} width={LAYER_BAR_W + 4} tooltip={`Embed: ${data.embed_dla >= 0 ? "+" : ""}${data.embed_dla.toFixed(3)}`} />
-              <span style={{ fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
             </>
           ) : (
             <>
               <DivergingBar val={data.embed_dla} absMax={absMax} tooltip={`Embed: ${data.embed_dla >= 0 ? "+" : ""}${data.embed_dla.toFixed(3)}`} />
-              <span style={{ fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
             </>
@@ -385,7 +385,7 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
 
         return (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-            <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
+            <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
               {label}
             </div>
 
@@ -399,7 +399,7 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
               <DivergingBar val={combined} absMax={absMax} tooltip={tooltip} />
             )}
 
-            <span style={{ fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+            <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
               {combined >= 0 ? "+" : ""}{combined.toFixed(2)}
             </span>
           </div>
@@ -423,7 +423,7 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
               flexShrink: 0,
               fontSize: 7,
               textAlign: "center",
-              fontFamily: "var(--font-syne-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
               color: "var(--color-text-muted)",
               overflow: "hidden",
               whiteSpace: "nowrap",
@@ -439,7 +439,7 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
       {/* Heatmap rows */}
       {data.y_labels.map((label, li) => (
         <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
+          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
             {label}
           </div>
           {data.head_dla[li].map((val, hi) => {
@@ -485,11 +485,11 @@ function TopView({ data, absMax }: { data: DlaData; absMax: number }) {
     <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
       {ranked.map(({ label, val }) => (
         <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W + 14, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
+          <div style={{ width: Y_LABEL_W + 14, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
             {label}
           </div>
           <DivergingBar val={val} absMax={absMax} width={TOP_BAR_W} height={LAYER_CELL_H} tooltip={`${label}: ${val >= 0 ? "+" : ""}${val.toFixed(3)}`} />
-          <span style={{ fontSize: 9, fontFamily: "var(--font-syne-mono), monospace", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+          <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
             {val >= 0 ? "+" : ""}{val.toFixed(2)}
           </span>
         </div>

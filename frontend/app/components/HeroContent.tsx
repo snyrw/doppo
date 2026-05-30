@@ -119,7 +119,7 @@ function MiniPatchBars() {
         {([{ color: amber, label: "pred" }, { color: green, label: "actual" }] as const).map(({ color, label }) => (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: 3 }}>
             <div style={{ width: 8, height: 3, borderRadius: 1, backgroundColor: color }} />
-            <span style={{ fontSize: 7, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>{label}</span>
+            <span style={{ fontSize: 7, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>{label}</span>
           </div>
         ))}
       </div>
@@ -136,7 +136,7 @@ function MiniSteeringMotif() {
         { label: "strd", tokens: ["John", "took"], highlight: true },
       ].map(({ label, tokens, highlight }) => (
         <div key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 6, width: 22, flexShrink: 0, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+          <span style={{ fontSize: 6, width: 22, flexShrink: 0, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
             {label}
           </span>
           <div style={{ display: "flex", gap: 2 }}>
@@ -148,7 +148,7 @@ function MiniSteeringMotif() {
                   padding: "1px 3px",
                   border: `1px solid ${highlight ? amber : "var(--color-surface-border)"}`,
                   borderRadius: 2,
-                  fontFamily: "var(--font-azeret-mono), monospace",
+                  fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                   color: highlight ? "var(--color-text)" : "var(--color-text-muted)",
                   backgroundColor: highlight ? "rgba(175,118,32,0.08)" : "transparent",
                 }}
@@ -232,7 +232,7 @@ export default function HeroContent() {
       >
         <p
           style={{
-            fontFamily: "var(--font-azeret-mono), monospace",
+            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
             fontSize: "clamp(9px, 0.65vw, 13px)",
             fontWeight: 600,
             letterSpacing: "0.1em",
@@ -246,7 +246,7 @@ export default function HeroContent() {
 
         <h1
           style={{
-            fontFamily: "var(--font-azeret-mono), monospace",
+            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
             fontSize: "clamp(14px, 1.3vw, 24px)",
             fontWeight: 500,
             lineHeight: 1.6,
@@ -260,7 +260,7 @@ export default function HeroContent() {
 
         <p
           style={{
-            fontFamily: "var(--font-azeret-mono), monospace",
+            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
             fontSize: "clamp(10px, 0.8vw, 15px)",
             lineHeight: 1.85,
             color: "var(--color-text-muted)",
@@ -281,7 +281,7 @@ export default function HeroContent() {
               gap: 8,
               padding: "clamp(7px, 0.65vw, 12px) clamp(12px, 1.1vw, 22px)",
               borderRadius: 6,
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
               fontSize: "clamp(10px, 0.8vw, 14px)",
               fontWeight: 500,
               letterSpacing: "0.02em",
@@ -297,7 +297,7 @@ export default function HeroContent() {
               alignItems: "center",
               padding: "clamp(7px, 0.65vw, 12px) clamp(12px, 1.1vw, 22px)",
               borderRadius: 6,
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
               fontSize: "clamp(10px, 0.8vw, 14px)",
               fontWeight: 500,
               letterSpacing: "0.02em",
@@ -323,7 +323,7 @@ export default function HeroContent() {
             <span
               key={tag}
               style={{
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                 fontSize: "clamp(9px, 0.65vw, 13px)",
                 color: "var(--color-text-muted)",
                 letterSpacing: "0.04em",
@@ -382,7 +382,7 @@ export default function HeroContent() {
                   key={t}
                   onClick={() => setTab(t)}
                   style={{
-                    fontFamily: "var(--font-azeret-mono), monospace",
+                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                     fontSize: "clamp(9px, 0.65vw, 12px)",
                     letterSpacing: "0.06em",
                     color: isActive ? "var(--color-text)" : "var(--color-text-muted)",
@@ -479,7 +479,7 @@ function TechniquesTab() {
           <div>
             <p
               style={{
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                 fontSize: "clamp(9px, 0.7vw, 13px)",
                 fontWeight: 600,
                 letterSpacing: "0.04em",
@@ -491,7 +491,7 @@ function TechniquesTab() {
             </p>
             <p
               style={{
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                 fontSize: "clamp(9px, 0.7vw, 13px)",
                 lineHeight: 1.55,
                 color: "var(--color-text-muted)",
@@ -517,13 +517,13 @@ function InferenceTab() {
         <div style={{ display: "flex", flexDirection: "column", gap: "clamp(5px, 0.55vw, 9px)" }}>
           {GPU_TIERS.map((tier) => (
             <div key={tier.tier} style={{ display: "flex", alignItems: "center" }}>
-              <div style={{ width: "clamp(72px, 6.5vw, 120px)", fontFamily: "var(--font-azeret-mono), monospace", fontSize: "clamp(10px, 0.78vw, 14px)", color: "var(--color-text)", fontWeight: 500 }}>
+              <div style={{ width: "clamp(72px, 6.5vw, 120px)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(10px, 0.78vw, 14px)", color: "var(--color-text)", fontWeight: 500 }}>
                 {tier.tier}
               </div>
-              <div style={{ flex: 1, fontFamily: "var(--font-azeret-mono), monospace", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text-muted)" }}>
+              <div style={{ flex: 1, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text-muted)" }}>
                 {tier.range}
               </div>
-              <div style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text-muted)" }}>
+              <div style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text-muted)" }}>
                 ${(tier.microsPerSec / 1_000_000).toFixed(6)}/sec
               </div>
             </div>
@@ -560,10 +560,10 @@ function PricingTab() {
     <div style={{ display: "flex", flexDirection: "column", gap: "clamp(16px, 2vw, 36px)", height: "100%", justifyContent: "space-between" }}>
       <div>
         <SectionLabel>Free tier</SectionLabel>
-        <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: "clamp(10px, 0.78vw, 14px)", color: "var(--color-text)", lineHeight: 1.75, margin: "0 0 clamp(6px, 0.55vw, 10px)" }}>
+        <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(10px, 0.78vw, 14px)", color: "var(--color-text)", lineHeight: 1.75, margin: "0 0 clamp(6px, 0.55vw, 10px)" }}>
           Every account receives $1.00 in GPU credits each month, automatically. No payment method required to get started.
         </p>
-        <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text-muted)", lineHeight: 1.7, margin: 0 }}>
+        <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text-muted)", lineHeight: 1.7, margin: 0 }}>
           On the L4 tier (GPT-2–scale models), $1.00 covers roughly 87 minutes of active inference time.
         </p>
       </div>
@@ -573,19 +573,19 @@ function PricingTab() {
         <div style={{ display: "flex", flexDirection: "column", gap: "clamp(5px, 0.55vw, 9px)" }}>
           {CREDIT_PACKS.map((pack) => (
             <div key={pack.label} style={{ display: "flex", alignItems: "center" }}>
-              <div style={{ width: "clamp(36px, 3.2vw, 60px)", fontFamily: "var(--font-azeret-mono), monospace", fontSize: "clamp(10px, 0.78vw, 14px)", color: "var(--color-text)" }}>
+              <div style={{ width: "clamp(36px, 3.2vw, 60px)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(10px, 0.78vw, 14px)", color: "var(--color-text)" }}>
                 {pack.label}
               </div>
-              <div style={{ flex: 1, fontFamily: "var(--font-azeret-mono), monospace", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text-muted)" }}>
+              <div style={{ flex: 1, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text-muted)" }}>
                 ${(pack.creditMicros / 1_000_000).toFixed(2)} in GPU credit
               </div>
-              <div style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text-muted)" }}>
+              <div style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text-muted)" }}>
                 ${(pack.chargeCents / 100).toFixed(2)} charged
               </div>
             </div>
           ))}
         </div>
-        <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: "clamp(8px, 0.6vw, 11px)", color: "var(--color-text-muted)", opacity: 0.65, margin: "clamp(8px, 0.8vw, 14px) 0 0", lineHeight: 1.6 }}>
+        <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(8px, 0.6vw, 11px)", color: "var(--color-text-muted)", opacity: 0.65, margin: "clamp(8px, 0.8vw, 14px) 0 0", lineHeight: 1.6 }}>
           The difference between credit value and charge is Stripe's processing fee.
           GPU compute is priced at Modal serverless rates with no additional markup.
         </p>
@@ -600,10 +600,10 @@ function PricingTab() {
             "Activation patching and steering are not cached — each run is billed separately.",
           ].map((line, i) => (
             <div key={i} style={{ display: "flex", gap: "clamp(7px, 0.75vw, 14px)", alignItems: "flex-start" }}>
-              <span style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: "clamp(8px, 0.6vw, 11px)", color: "var(--color-text-muted)", opacity: 0.4, paddingTop: 2, flexShrink: 0 }}>
+              <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(8px, 0.6vw, 11px)", color: "var(--color-text-muted)", opacity: 0.4, paddingTop: 2, flexShrink: 0 }}>
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <p style={{ fontFamily: "var(--font-azeret-mono), monospace", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text)", lineHeight: 1.65, margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--color-text)", lineHeight: 1.65, margin: 0 }}>
                 {line}
               </p>
             </div>
@@ -620,7 +620,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
   return (
     <p
       style={{
-        fontFamily: "var(--font-azeret-mono), monospace",
+        fontFamily: "var(--font-ibm-plex-sans), sans-serif",
         fontSize: "clamp(8px, 0.6vw, 11px)",
         letterSpacing: "0.08em",
         textTransform: "uppercase",
@@ -642,7 +642,7 @@ function FactList({ items }: { items: [string, string][] }) {
             style={{
               width: "clamp(56px, 5.5vw, 96px)",
               flexShrink: 0,
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
               fontSize: "clamp(8px, 0.6vw, 11px)",
               color: "var(--color-text-muted)",
               letterSpacing: "0.04em",
@@ -653,7 +653,7 @@ function FactList({ items }: { items: [string, string][] }) {
           </div>
           <div
             style={{
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
               fontSize: "clamp(9px, 0.7vw, 13px)",
               color: "var(--color-text)",
               lineHeight: 1.65,

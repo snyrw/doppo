@@ -55,7 +55,7 @@ function CreditsDisplayInner({ onAddCredits }: { onAddCredits?: () => void }) {
         alignItems: "center",
         gap: 6,
         fontSize: 11,
-        fontFamily: "var(--font-syne-mono), monospace",
+        fontFamily: "var(--font-ibm-plex-sans), sans-serif",
         color: isEmpty ? "#dc2626" : isLow ? "#ea580c" : "var(--color-text-muted)",
       }}
     >

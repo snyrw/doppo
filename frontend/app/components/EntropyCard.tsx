@@ -124,7 +124,7 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove }
           fontSize: 9,
           fontWeight: 600,
           color: "var(--color-text-muted)",
-          fontFamily: "var(--font-syne-mono), monospace",
+          fontFamily: "var(--font-ibm-plex-sans), sans-serif",
           flex: 1,
           overflow: "hidden",
           whiteSpace: "nowrap",
@@ -161,7 +161,7 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove }
                     fontSize={7}
                     textAnchor="end"
                     fill="var(--color-text-muted)"
-                    style={{ fontFamily: "var(--font-syne-mono), monospace" }}
+                    style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}
                   >
                     {val}
                   </text>
@@ -202,9 +202,9 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove }
               />
             )}
 
-            <text x={0} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--color-text-muted)" style={{ fontFamily: "var(--font-syne-mono), monospace" }}>0</text>
-            <text x={INNER_W} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--color-text-muted)" style={{ fontFamily: "var(--font-syne-mono), monospace" }}>{nLayers - 1}</text>
-            <text x={INNER_W / 2} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--color-text-muted)" style={{ fontFamily: "var(--font-syne-mono), monospace" }}>layer</text>
+            <text x={0} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--color-text-muted)" style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>0</text>
+            <text x={INNER_W} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--color-text-muted)" style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>{nLayers - 1}</text>
+            <text x={INNER_W / 2} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--color-text-muted)" style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>layer</text>
 
             <text
               x={-PAD.left + 2}
@@ -213,7 +213,7 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove }
               textAnchor="middle"
               fill="var(--color-text-muted)"
               transform={`rotate(-90, ${-PAD.left + 2}, ${INNER_H / 2})`}
-              style={{ fontFamily: "var(--font-syne-mono), monospace" }}
+              style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}
             >
               nats
             </text>
@@ -230,7 +230,7 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove }
             borderRadius: 4,
             padding: "3px 6px",
             fontSize: 8,
-            fontFamily: "var(--font-syne-mono), monospace",
+            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
             color: "var(--color-text-muted)",
             pointerEvents: "none",
             lineHeight: 1.6,
