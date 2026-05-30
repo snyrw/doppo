@@ -1,27 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Fraunces, Azeret_Mono } from "next/font/google";
+import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const ibmPlexSans = IBM_Plex_Sans({
+  variable: "--font-ibm-plex-sans",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  axes: ["opsz"],
-});
-
-const azeretMono = Azeret_Mono({
-  variable: "--font-azeret-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: "variable",
 });
 
 export const metadata: Metadata = {
@@ -37,7 +21,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${azeretMono.variable} h-full antialiased`}
+      className={`${ibmPlexSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

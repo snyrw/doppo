@@ -3,6 +3,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { auth } from "@/app/lib/auth";
 import { headers } from "next/headers";
 import { validateGpuTier } from "@/app/lib/api-helpers";
+import { ensureGrantAndGetBalance, deductFixedCost } from "@/app/lib/credits";
+
+const PAIRS_GEN_COST_MICROS = 5_000; // $0.005 per call; ~200 free calls/month on the monthly grant
 
 // Tier-scaled caps matching compute cost: more pairs on cheap GPUs, fewer on expensive ones.
 const TIER_CAPS: Record<string, number> = {
@@ -97,6 +100,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Credit check — deduct after successful generation.
+  const balanceMicros = await ensureGrantAndGetBalance(session.user.id);
+  if (balanceMicros < PAIRS_GEN_COST_MICROS) {
+    return NextResponse.json(
+      { error: "Insufficient credits. Add credits to continue." },
+      { status: 402 }
+    );
+  }
+
   // Subtract 1 because the caller's seed pair already occupies slot 1 of the cap.
   const n = Math.max(1, (gpuTier ? (TIER_CAPS[gpuTier] ?? DEFAULT_CAP) : DEFAULT_CAP) - 1);
 
@@ -145,6 +157,8 @@ Generate ${n} diverse contrastive pairs for the target concept. Output one JSON 
       { status: 422 }
     );
   }
+
+  deductFixedCost(session.user.id, PAIRS_GEN_COST_MICROS, "usage_pairs").catch(console.error);
 
   return NextResponse.json({ pairs, n_requested: n });
 }

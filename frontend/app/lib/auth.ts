@@ -42,7 +42,7 @@ export const auth = betterAuth({
         await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL,
           to: user.email,
-          subject: "Verify your LogitLens account",
+          subject: "Verify your Doppo account",
           html: `<p>Click <a href="${url}">here</a> to verify your email address. This link expires in 24 hours.</p>`,
         });
       } else {

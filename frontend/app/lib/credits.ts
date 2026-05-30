@@ -52,6 +52,24 @@ export async function checkBalance(
   return { allowed: balanceMicros >= floor, balanceMicros };
 }
 
+export async function deductFixedCost(
+  userId: string,
+  amountMicros: number,
+  type: string
+): Promise<void> {
+  await db
+    .update(userCredits)
+    .set({ balanceMicros: sql`${userCredits.balanceMicros} - ${amountMicros}` })
+    .where(eq(userCredits.userId, userId));
+  // Ledger insert follows balance update. On crash between these two,
+  // the balance is correct but the audit row is missing — acceptable.
+  await db.insert(creditLedger).values({
+    userId,
+    type,
+    amountMicros: -amountMicros,
+  });
+}
+
 export async function deductJobCost(
   userId: string,
   tier: string,
@@ -63,18 +81,18 @@ export async function deductJobCost(
   // This is intentional: we do not interrupt in-flight jobs, and the floor guard
   // prevents starting jobs with clearly insufficient balance.
   const costMicros = Math.ceil((executionTimeMs * rate) / 1000);
-  await db.transaction(async (tx) => {
-    await tx
-      .update(userCredits)
-      .set({ balanceMicros: sql`${userCredits.balanceMicros} - ${costMicros}` })
-      .where(eq(userCredits.userId, userId));
-    await tx.insert(creditLedger).values({
-      userId,
-      type: "usage",
-      amountMicros: -costMicros,
-      jobTier: tier,
-      jobDurationMs: executionTimeMs,
-    });
+  await db
+    .update(userCredits)
+    .set({ balanceMicros: sql`${userCredits.balanceMicros} - ${costMicros}` })
+    .where(eq(userCredits.userId, userId));
+  // Ledger insert follows balance update. On crash between these two,
+  // the balance is correct but the audit row is missing — acceptable.
+  await db.insert(creditLedger).values({
+    userId,
+    type: "usage",
+    amountMicros: -costMicros,
+    jobTier: tier,
+    jobDurationMs: executionTimeMs,
   });
   return costMicros;
 }

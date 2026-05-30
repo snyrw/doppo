@@ -6,11 +6,11 @@ import { activationPatchCache } from "@/app/schema";
 import { putHeatmap, getHeatmap } from "@/app/lib/r2";
 import {
   SSE_HEADERS,
+  parseSSE,
   requireAuth,
   fetchUpstream,
   validateGpuTier,
   resolveModelTier,
-  resolveEndpointUrl,
 } from "@/app/lib/api-helpers";
 import { checkBalance, deductJobCost } from "@/app/lib/credits";
 
@@ -123,38 +123,49 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Cache miss — submit to RunPod and poll (bump=true: backward pass needs extra VRAM).
-  const endpointUrl = resolveEndpointUrl(resolvedTier, true);
-  const workerInput = {
-    endpoint: "run_activation_patch",
-    model_id: modelName,
-    prompt: cleanPrompt,
-    corrupted_prompt: corruptedPrompt,
-    target_position: targetPosition,
-    target_token_idx: targetTokenIdx,
-    contrastive_token_idx: contrastiveTokenIdx ?? null,
-    components,
-    k,
-  };
+  // Cache miss — connect to Modal and pipe the SSE stream through.
+  // main.py calls _resolve_model(bump=True) for this endpoint — no tier bump needed here.
+  const upstreamResult = await fetchUpstream(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/run-activation-patch-stream`,
+    {
+      prompt: cleanPrompt,
+      corrupted_prompt: corruptedPrompt,
+      model_name: modelName,
+      target_position: targetPosition,
+      target_token_idx: targetTokenIdx,
+      contrastive_token_idx: contrastiveTokenIdx ?? null,
+      components,
+      k,
+    }
+  );
+  if (!upstreamResult.ok) return upstreamResult.errorResponse;
 
   const encoder = new TextEncoder();
   let doneData: unknown = null;
-  let executionTimeMs: number | undefined;
 
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   const writer = writable.getWriter();
 
   (async () => {
+    const startTime = Date.now();
     try {
-      ({ doneData, executionTimeMs } = await fetchUpstream(endpointUrl, workerInput, writer, encoder));
+      for await (const event of parseSSE(upstreamResult.response.body!)) {
+        if (event.stage === "done") {
+          doneData = event.data;
+          await deductJobCost(userId, resolvedTier, Date.now() - startTime).catch(console.error);
+        }
+        await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await writer
+        .write(encoder.encode(`data: ${JSON.stringify({ stage: "error", error: msg })}\n\n`))
+        .catch(() => {});
     } finally {
       await writer.close().catch(() => {});
     }
 
     if (doneData) {
-      if (executionTimeMs !== undefined) {
-        deductJobCost(userId, resolvedTier, executionTimeMs).catch(console.error);
-      }
       try {
         await putHeatmap(cacheKey, doneData);
         await db

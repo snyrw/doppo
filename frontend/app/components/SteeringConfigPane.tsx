@@ -361,7 +361,7 @@ export default function SteeringConfigPane({
               style={{
                 flex: 1, border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
                 borderRadius: 6, padding: "6px 8px", fontSize: 11,
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                 color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
                 transition: "border-color 120ms",
               }}
@@ -451,7 +451,7 @@ export default function SteeringConfigPane({
               <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
                 {mode === "research" ? "Seed · Clean" : "Reference Prompt"}
               </label>
-              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
                 {cleanPrompt.trim() ? cleanPrompt.trim().split(/\s+/).length : 0}w
               </span>
             </div>
@@ -475,7 +475,7 @@ export default function SteeringConfigPane({
               <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
                 {mode === "research" ? "Seed · Corrupted" : "Counterfactual Prompt"}
               </label>
-              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
                 {corruptedPrompt.trim() ? corruptedPrompt.trim().split(/\s+/).length : 0}w
               </span>
             </div>
@@ -590,10 +590,10 @@ export default function SteeringConfigPane({
                       }}
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text)", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
+                        <div style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
                           {pair.clean}
                         </div>
-                        <div style={{ fontSize: 9, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", marginTop: 1 }}>
+                        <div style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", marginTop: 1 }}>
                           {pair.corrupted}
                         </div>
                       </div>
@@ -637,7 +637,7 @@ export default function SteeringConfigPane({
                     width: 72, marginLeft: 6,
                     border: `1px solid ${positionMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
                     borderRadius: 5, padding: "3px 6px", fontSize: 11,
-                    fontFamily: "var(--font-azeret-mono), monospace",
+                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                     color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
                     transition: "border-color 120ms",
                   }}
@@ -660,7 +660,7 @@ export default function SteeringConfigPane({
                 width: 100,
                 border: `1px solid ${injectionLayer.trim() ? "var(--color-accent)" : "var(--color-card-border)"}`,
                 borderRadius: 5, padding: "4px 8px", fontSize: 11,
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                 color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
                 transition: "border-color 120ms",
               }}
@@ -682,7 +682,7 @@ export default function SteeringConfigPane({
               <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
                 Generation Prompt
               </label>
-              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-azeret-mono), monospace" }}>
+              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
                 {generationPrompt.trim() ? generationPrompt.trim().split(/\s+/).length + "w" : "optional"}
               </span>
             </div>
@@ -707,7 +707,7 @@ export default function SteeringConfigPane({
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
               <span style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text)" }}>Temperature</span>
-              <span style={{ fontSize: 10, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", minWidth: 28, textAlign: "right" }}>
+              <span style={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", minWidth: 28, textAlign: "right" }}>
                 {temperature.toFixed(1)}
               </span>
             </div>
@@ -725,7 +725,7 @@ export default function SteeringConfigPane({
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
               <span style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text)" }}>Repetition penalty</span>
-              <span style={{ fontSize: 10, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text-muted)", minWidth: 28, textAlign: "right" }}>
+              <span style={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", minWidth: 28, textAlign: "right" }}>
                 {repetitionPenalty.toFixed(2)}
               </span>
             </div>

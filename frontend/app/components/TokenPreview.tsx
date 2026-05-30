@@ -14,7 +14,7 @@ function TokenChip({ tok, index }: { tok: Token; index: number }) {
       title={`pos ${index}`}
       style={{
         display: "inline-block",
-        fontFamily: "var(--font-azeret-mono), monospace",
+        fontFamily: "var(--font-ibm-plex-sans), sans-serif",
         fontSize: 11,
         lineHeight: 1,
         border: tok.special

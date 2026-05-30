@@ -65,7 +65,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
             style={{
               margin: 0,
               fontSize: 14,
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
               color: "var(--color-text)",
             }}
           >
@@ -90,12 +90,12 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
           style={{
             fontSize: 11,
             color: "var(--color-text-muted)",
-            fontFamily: "var(--font-azeret-mono), monospace",
+            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
             marginBottom: 16,
             lineHeight: 1.5,
           }}
         >
-          Credits are charged at RunPod serverless cost with Stripe fees included.
+          Credits are charged at Modal serverless cost with Stripe fees included.
           Free tier: $1.00/month.
         </p>
 
@@ -115,7 +115,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
                 borderRadius: 8,
                 cursor: loading !== null ? "not-allowed" : "pointer",
                 opacity: loading !== null && loading !== pack.label ? 0.5 : 1,
-                fontFamily: "var(--font-azeret-mono), monospace",
+                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
               }}
             >
               <div style={{ textAlign: "left" }}>
@@ -141,7 +141,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
               marginTop: 12,
               fontSize: 11,
               color: "#dc2626",
-              fontFamily: "var(--font-azeret-mono), monospace",
+              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
             }}
           >
             {error}

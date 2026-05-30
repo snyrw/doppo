@@ -206,7 +206,7 @@ export default function AttentionConfigPane({
               value={customRepoId}
               onChange={e => handleCustomRepoChange(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && customRepoId.trim()) validateCustomRepo(); }}
-              style={{ flex: 1, border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`, borderRadius: 6, padding: "6px 8px", fontSize: 11, fontFamily: "var(--font-azeret-mono), monospace", color: "var(--color-text)", background: "var(--color-bg)", outline: "none", transition: "border-color 120ms" }}
+              style={{ flex: 1, border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`, borderRadius: 6, padding: "6px 8px", fontSize: 11, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", background: "var(--color-bg)", outline: "none", transition: "border-color 120ms" }}
             />
             <button
               onClick={validateCustomRepo}
