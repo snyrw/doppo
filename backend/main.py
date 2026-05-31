@@ -319,15 +319,12 @@ def validate_hf_repo(repo_id: str, hf_token: str | None) -> dict:
 _SHARED_CLS_KWARGS = dict(
     secrets=[hf_secret],
     volumes={VOLUME_MOUNT: model_volume},
-    enable_memory_snapshot=True,
 )
 
-# All classes use a single GPU, so GPU snapshots are safe across the board.
 # scaledown_window is tiered: idle billing on H200 ($4.54/hr) is 6× more
 # expensive than on L4 ($0.80/hr), so expensive tiers cut off idle faster.
 _TL_KWARGS = dict(
     image=tl_image,
-    experimental_options={"enable_gpu_snapshot": True},
     timeout=600,
     scaledown_window=30,   # L4 / L40S — cheap enough to hold warm briefly
     **_SHARED_CLS_KWARGS,
@@ -356,7 +353,7 @@ def _gather_next_token_probs(probs, next_tokens):
 class _TLBase:
     model_id: str  # declared on each concrete subclass via modal.parameter()
 
-    @modal.enter(snap=True)
+    @modal.enter()
     def load_model(self):
         import torch
         from transformer_lens.model_bridge import TransformerBridge
@@ -369,8 +366,6 @@ class _TLBase:
         )
         self.model.eval()
 
-        # Warm-up passes trigger CUDA kernel compilation so it's captured in the
-        # GPU snapshot rather than paid as latency on the first real request.
         dummy = self.model.to_tokens("the quick brown fox")
         for _ in range(3):
             self.model(dummy)

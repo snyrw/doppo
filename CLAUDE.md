@@ -12,6 +12,9 @@ modal deploy backend/main.py    # deploy backend (requires Modal credentials)
 
 ## Behavioral rules
 
+- **Modal async in `api()`:** All route handlers in the `api()` FastAPI function are `async def`. Use `.aio()` variants for every Modal call: `.spawn.aio()`, `FunctionCall.from_id.aio()`, `.get.aio(timeout=0)`, `.cancel.aio()`. Sync versions cause `AsyncUsageWarning` and block the event loop.
+- **`injection_type` vs `injectionType`:** Frontend `SteeringComponent` uses camelCase `injectionType`; the backend Pydantic model expects snake_case `injection_type`. `spawn-steering/route.ts` maps this before sending. Any new steering-related endpoint must do the same.
+- **Backend deploys on push, not commit:** GitHub Actions only triggers on `git push` to `main`. Local commits to `backend/main.py` are not deployed until pushed.
 - **New card type checklist:** update `AnyCard` union in `SandboxCanvas.tsx`, add a case to `renderCard()`, add a branch to `serializeCard()` in `projects/helpers.ts`, add optional fields to `SerializedCard` in `actions.ts`, add `?? default` in DB restore blocks in `projects/page.tsx` and `share/[shareId]/page.tsx`.
 - **`/api/run-steering` payload changes:** sync all three fetch bodies in `projects/hooks/useSteeringHandlers.ts` — `steerComponents`, `rerunSteering`, `addStandaloneSteer`.
 - **Drizzle migrations in bash:** `drizzle-kit migrate/push` hangs in non-TTY. Use `.mjs` workaround — see `.claude/rules/database.md`.
@@ -23,9 +26,12 @@ modal deploy backend/main.py    # deploy backend (requires Modal credentials)
 ## Backend (backend/main.py)
 
 - `_TLBase` class — shared inference logic with methods for all 7 analysis types (`run_logit_lens`, `run_dla`, `run_attribution`, `run_activation_patch`, `run_steering`, `run_attn`)
+- `_TLBase` also has `_result` wrapper methods (`run_logit_lens_result`, etc.) — non-generator wrappers that call the generator via `.local()` and return only the final `done` data dict; used by the async spawn+poll system
 - Four Modal GPU-tier classes (`TransformerLensSmall`, `TransformerLensMedium`, `TransformerLensLarge`, `TransformerLensXLarge`) — one per GPU tier
 - `FEATURED_MODELS` — editorial curation for the UI only; not a gate on what `run-lens` accepts
 - `_detect_gpu_tier()` / `_bump_tier()` — param-count-to-tier mapping; `_bump_tier` used for attribution/activation-patch backward passes (need ~2–3× model weights in VRAM)
+- Async spawn+poll endpoints live in `api()`: `POST /api/job/spawn-{lens,attn,dla,attribution,activation-patch,steering}`, `GET /api/job/{job_id}` (poll), `DELETE /api/job/{job_id}` (cancel)
+- `activeJobs` DB table tracks in-flight jobs for billing (elapsed time) and cache writes on completion
 - Deployed via `modal deploy backend/main.py`; GitHub Actions CI/CD on changes to `backend/main.py`
 - Single env var `NEXT_PUBLIC_API_URL` points to the deployed Modal app URL
 
@@ -70,7 +76,7 @@ All frontend source lives under `frontend/app/`.
 - `frontend/app/page.tsx` — hero (server component); renders `<Navbar>` + `<HeroContent>`
 - `frontend/app/components/HeroContent.tsx` — hero UI with tabs (techniques / inference / pricing)
 - `frontend/app/projects/page.tsx` — canvas; `useReducer` for `{ lensCards, canvas }`; imports from hooks/types/helpers
-- `frontend/app/projects/hooks/useSSEHandlers.ts` — SSE-based card creation: lens, DLA, attribution, activation, attn
+- `frontend/app/projects/hooks/useSSEHandlers.ts` — polling-based card creation (spawn+poll, no SSE): lens, DLA, attribution, activation, attn. `spawnEntropyCard` is the one exception (synchronous, derived from parent lens card).
 - `frontend/app/projects/hooks/useSteeringHandlers.ts` — steering card creation: `steerComponents`, `rerunSteering`, `addStandaloneSteer`
 - `frontend/app/projects/types.ts` — `AppState`, `AppAction`, `AnyCard` re-export, `HeatmapData`
 - `frontend/app/projects/helpers.ts` — `serializeCard()`, `getCardPrompt()`, `autoArrangePos()`
@@ -86,6 +92,9 @@ All frontend source lives under `frontend/app/`.
 ## API contracts
 
 ```
+/api/job/spawn-{lens,attn,dla,attribution,activation-patch,steering} → POST → { jobId } or { status: "cached", data }
+/api/job/{jobId}         → GET → { status: "running" | "done" | "error", data?, error? }
+/api/job/{jobId}         → DELETE → { cancelled: true }
 /api/models              → { id, display_name, description, requires_hf_token }[]
 /api/validate-model      → { valid, gpu_tier, reason }
 /api/tokenize            → { tokens: { text, special }[] }
