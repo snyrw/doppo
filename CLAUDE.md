@@ -17,6 +17,7 @@ modal deploy backend/main.py    # deploy backend (requires Modal credentials)
 - **Drizzle migrations in bash:** `drizzle-kit migrate/push` hangs in non-TTY. Use `.mjs` workaround — see `.claude/rules/database.md`.
 - **GPU tier labels:** always import from `frontend/app/lib/tiers.ts`. Never redefine inline.
 - **Auth gate:** All GPU inference requires authentication and credits — there is no anonymous inference tier. Credits billing is live. Always verify `userId` ownership before mutating DB rows.
+- **Stripe (deferred):** Checkout and webhook routes are fully implemented but gated by missing env vars (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`). To activate: (1) set those three vars in Railway, (2) register `https://doppo.tools/api/stripe/webhook` in the Stripe dashboard for `checkout.session.completed` and `checkout.session.async_payment_succeeded`. No code changes needed — the guards in `api/credits/checkout/route.ts` and `api/stripe/webhook/route.ts` will fall through automatically.
 - **Planned: on-rails tutorial** — a pre-computed, scripted walkthrough of all six analysis tools (logit lens → DLA → attribution → activation patch → steering → attn) on a fixed model/prompt, served as static data (no GPU). Replaces anon access as the discovery/onboarding path. Not yet implemented; spec TBD.
 
 ## Backend (backend/main.py)

@@ -11,3 +11,6 @@ __pycache__/
 .agents/
 skills-lock.json
 .claude/
+
+# Planning docs
+docs/

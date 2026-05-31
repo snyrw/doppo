@@ -1074,6 +1074,103 @@ class _TLBase:
             },
         })
 
+    @modal.method()
+    def run_logit_lens_result(self, prompt: str, top_k: int = 5) -> dict:
+        import json
+        for chunk_str in self.run_logit_lens.local(prompt, top_k):
+            chunk = json.loads(chunk_str)
+            if chunk.get("stage") == "done":
+                return chunk["data"]
+        raise RuntimeError("run_logit_lens produced no done event")
+
+    @modal.method()
+    def run_attn_result(self, prompt: str) -> dict:
+        import json
+        for chunk_str in self.run_attn.local(prompt):
+            chunk = json.loads(chunk_str)
+            if chunk.get("stage") == "done":
+                return chunk["data"]
+        raise RuntimeError("run_attn produced no done event")
+
+    @modal.method()
+    def run_dla_result(
+        self,
+        prompt: str,
+        target_position: int | str = "last",
+        target_token: str | None = None,
+        contrastive_token: str | None = None,
+    ) -> dict:
+        import json
+        for chunk_str in self.run_dla.local(prompt, target_position, target_token, contrastive_token):
+            chunk = json.loads(chunk_str)
+            if chunk.get("stage") == "done":
+                return chunk["data"]
+        raise RuntimeError("run_dla produced no done event")
+
+    @modal.method()
+    def run_attribution_result(
+        self,
+        clean_prompt: str,
+        corrupted_prompt: str,
+        target_position: int | str = "last",
+        target_token: str | None = None,
+        contrastive_token: str | None = None,
+        top_n: int = 30,
+    ) -> dict:
+        import json
+        for chunk_str in self.run_attribution.local(
+            clean_prompt, corrupted_prompt, target_position, target_token, contrastive_token, top_n
+        ):
+            chunk = json.loads(chunk_str)
+            if chunk.get("stage") == "done":
+                return chunk["data"]
+        raise RuntimeError("run_attribution produced no done event")
+
+    @modal.method()
+    def run_activation_patch_result(
+        self,
+        prompt: str,
+        corrupted_prompt: str,
+        target_position: int | str = "last",
+        target_token_idx: int = 0,
+        contrastive_token_idx: int | None = None,
+        components: list[dict] | None = None,
+        k: int = 10,
+    ) -> dict:
+        import json
+        for chunk_str in self.run_activation_patch.local(
+            prompt, corrupted_prompt, target_position, target_token_idx, contrastive_token_idx,
+            components or [], k
+        ):
+            chunk = json.loads(chunk_str)
+            if chunk.get("stage") == "done":
+                return chunk["data"]
+        raise RuntimeError("run_activation_patch produced no done event")
+
+    @modal.method()
+    def run_steering_result(
+        self,
+        clean_prompt: str,
+        corrupted_prompt: str,
+        target_position: int | str = "last",
+        components: list[dict] | None = None,
+        alpha: float = 1.0,
+        n_tokens: int = 50,
+        extra_pairs: list[dict] | None = None,
+        temperature: float = 1.0,
+        repetition_penalty: float = 1.3,
+        generation_prompt: str | None = None,
+    ) -> dict:
+        import json
+        for chunk_str in self.run_steering.local(
+            clean_prompt, corrupted_prompt, target_position, components or [], alpha,
+            n_tokens, extra_pairs, temperature, repetition_penalty, generation_prompt
+        ):
+            chunk = json.loads(chunk_str)
+            if chunk.get("stage") == "done":
+                return chunk["data"]
+        raise RuntimeError("run_steering produced no done event")
+
 
 @app.cls(gpu="L4", **_TL_KWARGS)
 class TransformerLensSmall(_TLBase):
