@@ -162,3 +162,14 @@ export const creditLedger = pgTable("credit_ledger", {
   stripeCheckoutSessionId: text("stripe_checkout_session_id").unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const activeJobs = pgTable("active_jobs", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  gpuTier: text("gpu_tier").notNull(),
+  jobType: text("job_type").notNull(),
+  modelName: text("model_name").notNull(),
+  cacheKey: text("cache_key"),
+  cachePayload: text("cache_payload"),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+});
