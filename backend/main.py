@@ -1129,7 +1129,7 @@ class _TLBase:
     @modal.method()
     def run_activation_patch_result(
         self,
-        prompt: str,
+        clean_prompt: str,
         corrupted_prompt: str,
         target_position: int | str = "last",
         target_token_idx: int = 0,
@@ -1139,7 +1139,7 @@ class _TLBase:
     ) -> dict:
         import json
         for chunk_str in self.run_activation_patch.local(
-            prompt, corrupted_prompt, target_position, target_token_idx, contrastive_token_idx,
+            clean_prompt, corrupted_prompt, target_position, target_token_idx, contrastive_token_idx,
             components or [], k
         ):
             chunk = json.loads(chunk_str)
