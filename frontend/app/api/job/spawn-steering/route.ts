@@ -59,7 +59,8 @@ export async function POST(request: NextRequest) {
     body: JSON.stringify({
       model_name: modelName, clean_prompt: cleanPrompt, corrupted_prompt: corruptedPrompt,
       generation_prompt: generationPrompt ?? null, target_position: targetPosition,
-      components, alpha, n_tokens: nTokens, extra_pairs: extraPairs ?? null,
+      components: components.map(c => ({ layer: c.layer, head: c.head, injection_type: c.injectionType })),
+      alpha, n_tokens: nTokens, extra_pairs: extraPairs ?? null,
       temperature: resolvedTemp, repetition_penalty: resolvedRepPenalty,
     }),
   });
