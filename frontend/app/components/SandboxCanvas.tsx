@@ -95,20 +95,27 @@ export default function SandboxCanvas({
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const { zoom, panOffset } = localStateRef.current;
-      // Normalize deltaMode: Firefox with a physical mouse sends deltaMode=1 (lines)
-      // with small integer values; convert to pixels so scrolling feels consistent.
       const LINE_PX = 40;
       const scale = e.deltaMode === 0 ? 1 : e.deltaMode === 1 ? LINE_PX : el.clientHeight;
       const dx = e.deltaX * scale;
       const dy = e.deltaY * scale;
       let newState: CanvasState;
 
-      if (e.ctrlKey) {
+      // Physical mouse wheel: Firefox sends deltaMode=1; Chrome sends deltaMode=0 with
+      // large discrete deltaY (≈100) and no horizontal component. Trackpad two-finger
+      // scroll has small pixel deltas and often a nonzero deltaX.
+      const isMouseWheel = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40);
+
+      if (e.ctrlKey || isMouseWheel) {
         const rect = el.getBoundingClientRect();
-        const factor = Math.exp(-dy * 0.01);
-        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
+        // ctrlKey (trackpad pinch): dy is already small — use as-is scaled by 0.01.
+        // Mouse wheel: normalize to a consistent step regardless of delta magnitude.
+        const factor = e.ctrlKey
+          ? Math.exp(-dy * 0.01)
+          : Math.exp(-(e.deltaMode === 0 ? e.deltaY / 100 : e.deltaY / 3) * 0.2);
+        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
         const canvasX = (mouseX - panOffset.x) / zoom;
         const canvasY = (mouseY - panOffset.y) / zoom;
         newState = {
