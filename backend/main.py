@@ -1593,7 +1593,7 @@ def api():
     @web_app.get("/api/job/{job_id}")
     async def poll_job(job_id: str):
         try:
-            fc = await modal.functions.FunctionCall.from_id.aio(job_id)
+            fc = modal.functions.FunctionCall.from_id(job_id)
             result = await fc.get.aio(timeout=0)
             return {"status": "done", "data": result}
         except TimeoutError:
@@ -1604,7 +1604,7 @@ def api():
     @web_app.delete("/api/job/{job_id}")
     async def cancel_job_endpoint(job_id: str):
         try:
-            fc = await modal.functions.FunctionCall.from_id.aio(job_id)
+            fc = modal.functions.FunctionCall.from_id(job_id)
             await fc.cancel.aio()
         except Exception:
             pass
