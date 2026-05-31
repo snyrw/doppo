@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import type { Dispatch, RefObject } from "react";
-import { readSSEStream } from "@/app/lib/stream-sse";
 import { updateProject } from "@/app/actions";
 import { autoArrangePos, serializeCard } from "../helpers";
 import type { AppAction, AppState, HeatmapData } from "../types";
@@ -17,10 +16,57 @@ type Deps = {
   stateRef: RefObject<AppState>;
 };
 
-function handleFetchError(response: Response, err: { error?: string; detail?: string }): { error: string; showBuyCredits?: boolean } {
-  if (response.status === 402) return { error: err.error ?? "Insufficient credits", showBuyCredits: true };
-  if (response.status === 401) return { error: err.error ?? "Sign in to run inference" };
-  return { error: err.detail ?? err.error ?? `Request failed (${response.status})` };
+function handleSpawnError(status: number, err: { error?: string }): { error: string; showBuyCredits?: boolean } {
+  if (status === 402) return { error: err.error ?? "Insufficient credits", showBuyCredits: true };
+  if (status === 401) return { error: err.error ?? "Sign in to run inference" };
+  return { error: err.error ?? `Request failed (${status})` };
+}
+
+function heuristicStage(elapsed: number): string {
+  if (elapsed < 30_000) return "Connecting to GPU…";
+  if (elapsed < 90_000) return "Loading model…";
+  return "Running computation…";
+}
+
+async function pollUntilDone(
+  jobId: string,
+  cardId: string,
+  startedAt: number,
+  dispatch: Dispatch<AppAction>,
+  onDone: (data: unknown) => void
+): Promise<void> {
+  const POLL_INTERVAL_MS = 5000;
+  while (true) {
+    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+
+    dispatch({ type: "CARD_STAGE", id: cardId, stage: heuristicStage(Date.now() - startedAt) });
+
+    let pollRes: Response;
+    try {
+      pollRes = await fetch(`/api/job/${jobId}`);
+    } catch {
+      dispatch({ type: "CARD_ERRORED", id: cardId, error: "Lost connection to server" });
+      fetch(`/api/job/${jobId}`, { method: "DELETE" }).catch(() => {});
+      return;
+    }
+
+    if (!pollRes.ok) {
+      dispatch({ type: "CARD_ERRORED", id: cardId, error: `Poll failed (${pollRes.status})` });
+      return;
+    }
+
+    const result = await pollRes.json() as { status: string; data?: unknown; error?: string };
+
+    if (result.status === "done") {
+      onDone(result.data);
+      return;
+    }
+    if (result.status === "error") {
+      dispatch({ type: "CARD_ERRORED", id: cardId, error: result.error ?? "Unknown error" });
+      return;
+    }
+    // status === "running": continue loop
+  }
 }
 
 export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
@@ -28,42 +74,50 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
     modelName: string; prompt: string; gpuTier?: string; topK: number;
   }) => {
     const id = crypto.randomUUID();
+    const startedAt = Date.now();
     const card: LensCardData = {
       id, cardType: "logit-lens", status: "loading", modelName, prompt, topK,
       data: null, error: null,
       position: autoArrangePos(stateRef.current.lensCards.length),
-      gpuTier, startedAt: Date.now(),
+      gpuTier, startedAt,
     };
     dispatch({ type: "ADD_CARD", card });
-    fetch("/api/run-lens", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, modelName, gpuTier, topK }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          dispatch({ type: "CARD_ERRORED", id, ...handleFetchError(response, err) });
-          return;
+
+    (async () => {
+      let spawnRes: Response;
+      try {
+        spawnRes = await fetch("/api/job/spawn-lens", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, modelName, gpuTier, topK }),
+        });
+      } catch (err) {
+        dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Network error" });
+        return;
+      }
+      if (!spawnRes.ok) {
+        const err = await spawnRes.json().catch(() => ({})) as { error?: string };
+        dispatch({ type: "CARD_ERRORED", id, ...handleSpawnError(spawnRes.status, err) });
+        return;
+      }
+      const body = await spawnRes.json() as { status?: string; jobId?: string; data?: HeatmapData };
+      if (body.status === "cached" && body.data) {
+        dispatch({ type: "CARD_RESOLVED", id, data: body.data });
+        return;
+      }
+      if (!body.jobId) {
+        dispatch({ type: "CARD_ERRORED", id, error: "Spawn returned no job ID" });
+        return;
+      }
+      await pollUntilDone(body.jobId, id, startedAt, dispatch, (data) => {
+        dispatch({ type: "CARD_RESOLVED", id, data: data as HeatmapData });
+        window.dispatchEvent(new CustomEvent("credits-updated"));
+        const pid = projectIdRef.current;
+        if (pid) {
+          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+          updateProject(pid, [...existing, { id, cardType: "logit-lens" as const, modelName, prompt, topK, data: data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas).catch(console.error);
         }
-        for await (const event of readSSEStream(response)) {
-          if (event.stage === "done" && event.data) {
-            const data = event.data as HeatmapData;
-            dispatch({ type: "CARD_RESOLVED", id, data });
-            window.dispatchEvent(new CustomEvent("credits-updated"));
-            const pid = projectIdRef.current;
-            if (pid) {
-              const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-              updateProject(pid, [...existing, { id, cardType: "logit-lens" as const, modelName, prompt, topK, data: data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas).catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
-          } else {
-            dispatch({ type: "CARD_STAGE", id, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
+      });
+    })();
   }, [dispatch, projectIdRef, stateRef]);
 
   const addDla = useCallback(({ modelName, prompt, gpuTier, targetPosition, targetToken, contrastiveToken }: {
@@ -71,42 +125,50 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
     targetPosition: number | "last"; targetToken: string | null; contrastiveToken: string | null;
   }) => {
     const id = crypto.randomUUID();
+    const startedAt = Date.now();
     const card: DlaCardData = {
       id, cardType: "dla", status: "loading", modelName, prompt,
       data: null, error: null,
       position: autoArrangePos(stateRef.current.lensCards.length),
-      gpuTier, startedAt: Date.now(), targetPosition, targetToken, contrastiveToken,
+      gpuTier, startedAt, targetPosition, targetToken, contrastiveToken,
     };
     dispatch({ type: "ADD_CARD", card });
-    fetch("/api/run-dla", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          dispatch({ type: "CARD_ERRORED", id, ...handleFetchError(response, err) });
-          return;
+
+    (async () => {
+      let spawnRes: Response;
+      try {
+        spawnRes = await fetch("/api/job/spawn-dla", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken }),
+        });
+      } catch (err) {
+        dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Network error" });
+        return;
+      }
+      if (!spawnRes.ok) {
+        const err = await spawnRes.json().catch(() => ({})) as { error?: string };
+        dispatch({ type: "CARD_ERRORED", id, ...handleSpawnError(spawnRes.status, err) });
+        return;
+      }
+      const body = await spawnRes.json() as { status?: string; jobId?: string; data?: DlaData };
+      if (body.status === "cached" && body.data) {
+        dispatch({ type: "DLA_CARD_RESOLVED", id, data: body.data });
+        return;
+      }
+      if (!body.jobId) {
+        dispatch({ type: "CARD_ERRORED", id, error: "Spawn returned no job ID" });
+        return;
+      }
+      await pollUntilDone(body.jobId, id, startedAt, dispatch, (data) => {
+        dispatch({ type: "DLA_CARD_RESOLVED", id, data: data as DlaData });
+        window.dispatchEvent(new CustomEvent("credits-updated"));
+        const pid = projectIdRef.current;
+        if (pid) {
+          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+          updateProject(pid, [...existing, { id, cardType: "dla" as const, modelName, prompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
         }
-        for await (const event of readSSEStream(response)) {
-          if (event.stage === "done" && event.data) {
-            const data = event.data as DlaData;
-            dispatch({ type: "DLA_CARD_RESOLVED", id, data });
-            window.dispatchEvent(new CustomEvent("credits-updated"));
-            const pid = projectIdRef.current;
-            if (pid) {
-              const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-              updateProject(pid, [...existing, { id, cardType: "dla" as const, modelName, prompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
-          } else {
-            dispatch({ type: "CARD_STAGE", id, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
+      });
+    })();
   }, [dispatch, projectIdRef, stateRef]);
 
   const addAttribution = useCallback(({ modelName, cleanPrompt, corruptedPrompt, gpuTier, targetPosition, targetToken, contrastiveToken }: {
@@ -114,95 +176,111 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
     targetPosition: number | "last"; targetToken: string | null; contrastiveToken: string | null;
   }) => {
     const id = crypto.randomUUID();
+    const startedAt = Date.now();
     const card: AttributionCardData = {
       id, cardType: "attribution", status: "loading", modelName, cleanPrompt, corruptedPrompt,
       data: null, error: null,
       position: autoArrangePos(stateRef.current.lensCards.length),
-      gpuTier, startedAt: Date.now(), targetPosition, targetToken, contrastiveToken, verifyStatus: "idle",
+      gpuTier, startedAt, targetPosition, targetToken, contrastiveToken, verifyStatus: "idle",
     };
     dispatch({ type: "ADD_CARD", card });
-    fetch("/api/run-attribution", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          dispatch({ type: "CARD_ERRORED", id, ...handleFetchError(response, err) });
-          return;
+
+    (async () => {
+      let spawnRes: Response;
+      try {
+        spawnRes = await fetch("/api/job/spawn-attribution", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken }),
+        });
+      } catch (err) {
+        dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Network error" });
+        return;
+      }
+      if (!spawnRes.ok) {
+        const err = await spawnRes.json().catch(() => ({})) as { error?: string };
+        dispatch({ type: "CARD_ERRORED", id, ...handleSpawnError(spawnRes.status, err) });
+        return;
+      }
+      const body = await spawnRes.json() as { status?: string; jobId?: string; data?: AttributionData };
+      if (body.status === "cached" && body.data) {
+        dispatch({ type: "ATTRIBUTION_CARD_RESOLVED", id, data: body.data });
+        return;
+      }
+      if (!body.jobId) {
+        dispatch({ type: "CARD_ERRORED", id, error: "Spawn returned no job ID" });
+        return;
+      }
+      await pollUntilDone(body.jobId, id, startedAt, dispatch, (data) => {
+        dispatch({ type: "ATTRIBUTION_CARD_RESOLVED", id, data: data as AttributionData });
+        window.dispatchEvent(new CustomEvent("credits-updated"));
+        const pid = projectIdRef.current;
+        if (pid) {
+          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+          updateProject(pid, [...existing, { id, cardType: "attribution" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
         }
-        for await (const event of readSSEStream(response)) {
-          if (event.stage === "done" && event.data) {
-            const data = event.data as AttributionData;
-            dispatch({ type: "ATTRIBUTION_CARD_RESOLVED", id, data });
-            window.dispatchEvent(new CustomEvent("credits-updated"));
-            const pid = projectIdRef.current;
-            if (pid) {
-              const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-              updateProject(pid, [...existing, { id, cardType: "attribution" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
-          } else {
-            dispatch({ type: "CARD_STAGE", id, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
+      });
+    })();
   }, [dispatch, projectIdRef, stateRef]);
 
   const verifyTopK = useCallback((attributionCardId: string, k: number) => {
     const attrCard = stateRef.current.lensCards.find(c => c.id === attributionCardId && c.cardType === "attribution") as AttributionCardData | undefined;
     if (!attrCard?.data) return;
     const activationId = crypto.randomUUID();
+    const startedAt = Date.now();
     const activationCard: ActivationCardData = {
       id: activationId, cardType: "activation", status: "loading",
       modelName: attrCard.modelName, cleanPrompt: attrCard.cleanPrompt, k,
       parentAttributionId: attributionCardId,
       data: null, error: null,
       position: { x: attrCard.position.x + 420, y: attrCard.position.y },
-      gpuTier: attrCard.gpuTier, startedAt: Date.now(),
+      gpuTier: attrCard.gpuTier, startedAt,
     };
     dispatch({ type: "ADD_CARD", card: activationCard });
     dispatch({ type: "ATTRIBUTION_VERIFY_STARTED", id: attributionCardId, k, verifyCardId: activationId });
+
     const components = attrCard.data.top_k_components;
     const targetTokenIdx = attrCard.data.target_token_idx;
     const contrastiveTokenIdx = attrCard.data.contrastive_token_idx ?? null;
-    fetch("/api/run-activation-patch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cleanPrompt: attrCard.cleanPrompt, corruptedPrompt: attrCard.corruptedPrompt, modelName: attrCard.modelName, gpuTier: attrCard.gpuTier, targetPosition: attrCard.targetPosition, targetTokenIdx, contrastiveTokenIdx, components, k }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          dispatch({ type: "CARD_ERRORED", id: activationId, ...handleFetchError(response, err) });
-          dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
-          return;
-        }
-        for await (const event of readSSEStream(response)) {
-          if (event.stage === "done" && event.data) {
-            const data = event.data as ActivationPatchResult;
-            dispatch({ type: "ACTIVATION_CARD_RESOLVED", id: activationId, data, parentAttributionId: attributionCardId });
-            window.dispatchEvent(new CustomEvent("credits-updated"));
-            const pid = projectIdRef.current;
-            if (pid) {
-              const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-              updateProject(pid, [...existing, { id: activationId, cardType: "activation" as const, modelName: attrCard.modelName, prompt: attrCard.cleanPrompt, data: data as Record<string, unknown>, position: activationCard.position, gpuTier: attrCard.gpuTier, parentAttributionId: attributionCardId }], stateRef.current.canvas).catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id: activationId, error: event.error ?? "Unknown error" });
-            dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
-          } else {
-            dispatch({ type: "CARD_STAGE", id: activationId, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => {
-        dispatch({ type: "CARD_ERRORED", id: activationId, error: err instanceof Error ? err.message : "Unknown error" });
+
+    (async () => {
+      let spawnRes: Response;
+      try {
+        spawnRes = await fetch("/api/job/spawn-activation-patch", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cleanPrompt: attrCard.cleanPrompt, corruptedPrompt: attrCard.corruptedPrompt, modelName: attrCard.modelName, gpuTier: attrCard.gpuTier, targetPosition: attrCard.targetPosition, targetTokenIdx, contrastiveTokenIdx, components, k }),
+        });
+      } catch (err) {
+        dispatch({ type: "CARD_ERRORED", id: activationId, error: err instanceof Error ? err.message : "Network error" });
         dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
+        return;
+      }
+      if (!spawnRes.ok) {
+        const err = await spawnRes.json().catch(() => ({})) as { error?: string };
+        dispatch({ type: "CARD_ERRORED", id: activationId, ...handleSpawnError(spawnRes.status, err) });
+        dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
+        return;
+      }
+      const body = await spawnRes.json() as { status?: string; jobId?: string; data?: ActivationPatchResult };
+      if (body.status === "cached" && body.data) {
+        dispatch({ type: "ACTIVATION_CARD_RESOLVED", id: activationId, data: body.data, parentAttributionId: attributionCardId });
+        return;
+      }
+      if (!body.jobId) {
+        dispatch({ type: "CARD_ERRORED", id: activationId, error: "Spawn returned no job ID" });
+        dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
+        return;
+      }
+      await pollUntilDone(body.jobId, activationId, startedAt, dispatch, (data) => {
+        dispatch({ type: "ACTIVATION_CARD_RESOLVED", id: activationId, data: data as ActivationPatchResult, parentAttributionId: attributionCardId });
+        window.dispatchEvent(new CustomEvent("credits-updated"));
+        const pid = projectIdRef.current;
+        if (pid) {
+          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+          updateProject(pid, [...existing, { id: activationId, cardType: "activation" as const, modelName: attrCard.modelName, prompt: attrCard.cleanPrompt, data: data as Record<string, unknown>, position: activationCard.position, gpuTier: attrCard.gpuTier, parentAttributionId: attributionCardId }], stateRef.current.canvas).catch(console.error);
+        }
       });
+      dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
+    })();
   }, [dispatch, projectIdRef, stateRef]);
 
   const spawnEntropyCard = useCallback((lensCardId: string) => {
@@ -229,42 +307,50 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
     modelName: string; prompt: string; gpuTier?: string;
   }) => {
     const id = crypto.randomUUID();
+    const startedAt = Date.now();
     const card: AttentionCardData = {
       id, cardType: "attention-pattern", status: "loading", modelName, prompt,
       data: null, error: null,
       position: autoArrangePos(stateRef.current.lensCards.length),
-      gpuTier, startedAt: Date.now(),
+      gpuTier, startedAt,
     };
     dispatch({ type: "ADD_CARD", card });
-    fetch("/api/run-attn", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, modelName, gpuTier }),
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          const err = await response.json().catch(() => ({})) as { error?: string; detail?: string };
-          dispatch({ type: "CARD_ERRORED", id, ...handleFetchError(response, err) });
-          return;
+
+    (async () => {
+      let spawnRes: Response;
+      try {
+        spawnRes = await fetch("/api/job/spawn-attn", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, modelName, gpuTier }),
+        });
+      } catch (err) {
+        dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Network error" });
+        return;
+      }
+      if (!spawnRes.ok) {
+        const err = await spawnRes.json().catch(() => ({})) as { error?: string };
+        dispatch({ type: "CARD_ERRORED", id, ...handleSpawnError(spawnRes.status, err) });
+        return;
+      }
+      const body = await spawnRes.json() as { status?: string; jobId?: string; data?: AttentionData };
+      if (body.status === "cached" && body.data) {
+        dispatch({ type: "ATTENTION_CARD_RESOLVED", id, data: body.data });
+        return;
+      }
+      if (!body.jobId) {
+        dispatch({ type: "CARD_ERRORED", id, error: "Spawn returned no job ID" });
+        return;
+      }
+      await pollUntilDone(body.jobId, id, startedAt, dispatch, (data) => {
+        dispatch({ type: "ATTENTION_CARD_RESOLVED", id, data: data as AttentionData });
+        window.dispatchEvent(new CustomEvent("credits-updated"));
+        const pid = projectIdRef.current;
+        if (pid) {
+          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+          updateProject(pid, [...existing, { id, cardType: "attention-pattern" as const, modelName, prompt, data: data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas).catch(console.error);
         }
-        for await (const event of readSSEStream(response)) {
-          if (event.stage === "done" && event.data) {
-            const data = event.data as AttentionData;
-            dispatch({ type: "ATTENTION_CARD_RESOLVED", id, data });
-            window.dispatchEvent(new CustomEvent("credits-updated"));
-            const pid = projectIdRef.current;
-            if (pid) {
-              const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-              updateProject(pid, [...existing, { id, cardType: "attention-pattern" as const, modelName, prompt, data: data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas).catch(console.error);
-            }
-          } else if (event.stage === "error") {
-            dispatch({ type: "CARD_ERRORED", id, error: event.error ?? "Unknown error" });
-          } else {
-            dispatch({ type: "CARD_STAGE", id, stage: event.stage });
-          }
-        }
-      })
-      .catch(err => dispatch({ type: "CARD_ERRORED", id, error: err instanceof Error ? err.message : "Unknown error" }));
+      });
+    })();
   }, [dispatch, projectIdRef, stateRef]);
 
   return { addLens, addDla, addAttribution, verifyTopK, spawnEntropyCard, addAttn };
