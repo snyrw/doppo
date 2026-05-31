@@ -1544,19 +1544,19 @@ def api():
     @web_app.post("/api/job/spawn-lens")
     async def spawn_lens(request: SpawnLensRequest):
         cls, model_id = _resolve_model(request.model_name, bump=False, hf_token=hf_token)
-        fc = cls(model_id=model_id).run_logit_lens_result.spawn(request.prompt, request.top_k)
+        fc = await cls(model_id=model_id).run_logit_lens_result.spawn.aio(request.prompt, request.top_k)
         return {"job_id": fc.object_id}
 
     @web_app.post("/api/job/spawn-attn")
     async def spawn_attn(request: SpawnAttnRequest):
         cls, model_id = _resolve_model(request.model_name, bump=False, hf_token=hf_token)
-        fc = cls(model_id=model_id).run_attn_result.spawn(request.prompt)
+        fc = await cls(model_id=model_id).run_attn_result.spawn.aio(request.prompt)
         return {"job_id": fc.object_id}
 
     @web_app.post("/api/job/spawn-dla")
     async def spawn_dla(request: SpawnDlaRequest):
         cls, model_id = _resolve_model(request.model_name, bump=False, hf_token=hf_token)
-        fc = cls(model_id=model_id).run_dla_result.spawn(
+        fc = await cls(model_id=model_id).run_dla_result.spawn.aio(
             request.prompt, request.target_position, request.target_token, request.contrastive_token
         )
         return {"job_id": fc.object_id}
@@ -1564,7 +1564,7 @@ def api():
     @web_app.post("/api/job/spawn-attribution")
     async def spawn_attribution(request: SpawnAttributionRequest):
         cls, model_id = _resolve_model(request.model_name, bump=True, hf_token=hf_token)
-        fc = cls(model_id=model_id).run_attribution_result.spawn(
+        fc = await cls(model_id=model_id).run_attribution_result.spawn.aio(
             request.prompt, request.corrupted_prompt,
             request.target_position, request.target_token, request.contrastive_token, request.top_n
         )
@@ -1573,7 +1573,7 @@ def api():
     @web_app.post("/api/job/spawn-activation-patch")
     async def spawn_activation_patch(request: SpawnActivationPatchRequest):
         cls, model_id = _resolve_model(request.model_name, bump=True, hf_token=hf_token)
-        fc = cls(model_id=model_id).run_activation_patch_result.spawn(
+        fc = await cls(model_id=model_id).run_activation_patch_result.spawn.aio(
             request.prompt, request.corrupted_prompt, request.target_position,
             request.target_token_idx, request.contrastive_token_idx, request.components, request.k
         )
@@ -1582,7 +1582,7 @@ def api():
     @web_app.post("/api/job/spawn-steering")
     async def spawn_steering(request: SpawnSteeringRequest):
         cls, model_id = _resolve_model(request.model_name, bump=False, hf_token=hf_token)
-        fc = cls(model_id=model_id).run_steering_result.spawn(
+        fc = await cls(model_id=model_id).run_steering_result.spawn.aio(
             request.clean_prompt, request.corrupted_prompt, request.target_position,
             [c.model_dump() for c in request.components], request.alpha, request.n_tokens,
             request.extra_pairs, request.temperature, request.repetition_penalty,
@@ -1593,8 +1593,8 @@ def api():
     @web_app.get("/api/job/{job_id}")
     async def poll_job(job_id: str):
         try:
-            fc = modal.functions.FunctionCall.from_id(job_id)
-            result = fc.get(timeout=0)
+            fc = await modal.functions.FunctionCall.from_id.aio(job_id)
+            result = await fc.get.aio(timeout=0)
             return {"status": "done", "data": result}
         except TimeoutError:
             return {"status": "running"}
@@ -1604,8 +1604,8 @@ def api():
     @web_app.delete("/api/job/{job_id}")
     async def cancel_job_endpoint(job_id: str):
         try:
-            fc = modal.functions.FunctionCall.from_id(job_id)
-            fc.cancel()
+            fc = await modal.functions.FunctionCall.from_id.aio(job_id)
+            await fc.cancel.aio()
         except Exception:
             pass
         return {"cancelled": True}
