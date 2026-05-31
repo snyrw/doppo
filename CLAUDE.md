@@ -27,7 +27,7 @@ modal deploy backend/main.py    # deploy backend (requires Modal credentials)
 
 - `_TLBase` class — shared inference logic with methods for all 7 analysis types (`run_logit_lens`, `run_dla`, `run_attribution`, `run_activation_patch`, `run_steering`, `run_attn`)
 - `_TLBase` also has `_result` wrapper methods (`run_logit_lens_result`, etc.) — non-generator wrappers that call the generator via `.local()` and return only the final `done` data dict; used by the async spawn+poll system
-- Four Modal GPU-tier classes (`TransformerLensSmall`, `TransformerLensMedium`, `TransformerLensLarge`, `TransformerLensXLarge`) — one per GPU tier
+- Five Modal GPU-tier classes (`TransformerLensSmall`, `TransformerLensMedium`, `TransformerLensLarge`, `TransformerLensXLarge`, `TransformerLensXXLarge`) — one per GPU tier
 - `FEATURED_MODELS` — editorial curation for the UI only; not a gate on what `run-lens` accepts
 - `_detect_gpu_tier()` / `_bump_tier()` — param-count-to-tier mapping; `_bump_tier` used for attribution/activation-patch backward passes (need ~2–3× model weights in VRAM)
 - Async spawn+poll endpoints live in `api()`: `POST /api/job/spawn-{lens,attn,dla,attribution,activation-patch,steering}`, `GET /api/job/{job_id}` (poll), `DELETE /api/job/{job_id}` (cancel)
@@ -39,9 +39,10 @@ modal deploy backend/main.py    # deploy backend (requires Modal credentials)
 - `tl_small` → L4 (< 4B params; 24 GB)
 - `tl_medium` → L40S (4–10B; 48 GB)
 - `tl_large` → A100-80GB (10–25B; 80 GB)
-- `tl_xlarge` → H200 (25–70B; 141 GB)
+- `tl_xlarge` → H200 (25–69B; 141 GB)
+- `tl_xxlarge` → B200 (70B–100B; 192 GB)
 
->70B and multi-GPU are rejected.
+>100B and multi-GPU are rejected.
 
 ## TransformerLens 3.0 — critical API differences
 

@@ -35,10 +35,11 @@ tl_image = (
 
 
 # gpu_tier drives which Modal class handles a model.
-# tl_small  → L4         (< 4B, GPT-2 family + sub-4B instruct models)
-# tl_medium → L40S       (4–10B models; 48 GB gives ample headroom for attribution backward passes)
-# tl_large  → A100-80GB  (10–25B models; A100 fits ~25B comfortably in bfloat16)
-# tl_xlarge → H200       (25–70B models; H200 141 GB fits 70B in bfloat16)
+# tl_small   → L4         (< 4B, GPT-2 family + sub-4B instruct models)
+# tl_medium  → L40S       (4–10B models; 48 GB gives ample headroom for attribution backward passes)
+# tl_large   → A100-80GB  (10–25B models; A100 fits ~25B comfortably in bfloat16)
+# tl_xlarge  → H200       (25–69B models; H200 141 GB fits up to ~65B comfortably in bfloat16)
+# tl_xxlarge → B200       (70B–100B; B200 192 GB gives ~52 GB headroom for 70B weights + TL cache)
 FEATURED_MODELS: dict[str, dict] = {
     # ── GPT-2 ────────────────────────────────────────────────────────────────
     "gpt2-small": {
@@ -185,7 +186,7 @@ FEATURED_MODELS: dict[str, dict] = {
         "description": "Meta · 80 layers · 128K ctx",
         "model_id": "meta-llama/Llama-3.3-70B-Instruct",
         "requires_hf_token": True,
-        "gpu_tier": "tl_xlarge",
+        "gpu_tier": "tl_xxlarge",
     },
 }
 
@@ -198,13 +199,14 @@ def _detect_gpu_tier(config: dict) -> str:
     """
     Estimate GPU tier from a model's config.json.
     Falls back to tl_large when the model is too large for a cheaper tier or size is unknown.
-    Returns None if the model exceeds the single-GPU limit (~70B on H200).
+    Returns None if the model exceeds the single-GPU limit (~100B on B200).
 
     Tiers:
-      tl_small  → L4         (< 4B)
-      tl_medium → L40S       (4–10B; 48 GB gives backward-pass headroom for attribution)
-      tl_large  → A100-80GB  (10–25B; A100-80GB fits ~25B comfortably in bfloat16)
-      tl_xlarge → H200       (25–70B; H200 141 GB fits 70B in bfloat16)
+      tl_small   → L4         (< 4B)
+      tl_medium  → L40S       (4–10B; 48 GB gives backward-pass headroom for attribution)
+      tl_large   → A100-80GB  (10–25B; A100-80GB fits ~25B comfortably in bfloat16)
+      tl_xlarge  → H200       (25–69B; H200 141 GB fits up to ~65B comfortably)
+      tl_xxlarge → B200       (70B–100B; B200 192 GB gives ~52 GB headroom for 70B + TL cache)
     """
     num_params = config.get("num_parameters")
     if isinstance(num_params, (int, float)):
@@ -216,7 +218,9 @@ def _detect_gpu_tier(config: dict) -> str:
             return "tl_large"
         if num_params < 70e9:
             return "tl_xlarge"
-        return None  # exceeds single-GPU limit (~70B)
+        if num_params < 100e9:
+            return "tl_xxlarge"
+        return None  # exceeds single-GPU limit (~100B on B200)
 
     # Proxy: num_hidden_layers × hidden_size scales predictably with model size.
     # Thresholds calibrated against known models: GPT-2 XL=76K, Llama3-8B=131K,
@@ -230,10 +234,12 @@ def _detect_gpu_tier(config: dict) -> str:
         return "tl_medium"
     if proxy and proxy < 300_000:
         return "tl_large"
-    if proxy and proxy < 700_000:
+    if proxy and proxy < 660_000:
         return "tl_xlarge"
+    if proxy and proxy < 900_000:
+        return "tl_xxlarge"
     if proxy:
-        return None  # likely 70B+
+        return None  # likely 100B+
 
     return "tl_large"  # unknown shape — conservative fallback
 
@@ -302,7 +308,7 @@ def validate_hf_repo(repo_id: str, hf_token: str | None) -> dict:
             detected = _detect_gpu_tier(config)
             if detected is None:
                 return _invalid(
-                    "Model appears to exceed ~70B parameters. Single-GPU limit is 70B on H200 — "
+                    "Model appears to exceed ~100B parameters. Single-GPU limit is ~100B on B200 — "
                     "choose a smaller model."
                 )
             gpu_tier = detected
@@ -335,6 +341,9 @@ _TL_LARGE_KWARGS = {**_TL_KWARGS, "timeout": 1200, "scaledown_window": 15}   # A
 
 # H200 is the priciest tier; cut idle time aggressively.
 _TL_XLARGE_KWARGS = {**_TL_LARGE_KWARGS, "scaledown_window": 10}             # H200
+
+# B200 is even pricier ($6.25/hr); minimize idle window to the floor.
+_TL_XXLARGE_KWARGS = {**_TL_LARGE_KWARGS, "scaledown_window": 5}             # B200
 
 
 # ── Shared inference helper ───────────────────────────────────────────────────
@@ -1187,26 +1196,33 @@ class TransformerLensXLarge(_TLBase):
     model_id: str = modal.parameter()
 
 
+@app.cls(gpu="B200", **_TL_XXLARGE_KWARGS)
+class TransformerLensXXLarge(_TLBase):
+    model_id: str = modal.parameter()
+
+
 # ── Routing table ─────────────────────────────────────────────────────────────
 
 _TIER_TO_CLS = {
-    "tl_small":  TransformerLensSmall,
-    "tl_medium": TransformerLensMedium,
-    "tl_large":  TransformerLensLarge,
-    "tl_xlarge": TransformerLensXLarge,
+    "tl_small":   TransformerLensSmall,
+    "tl_medium":  TransformerLensMedium,
+    "tl_large":   TransformerLensLarge,
+    "tl_xlarge":  TransformerLensXLarge,
+    "tl_xxlarge": TransformerLensXXLarge,
 }
 
-_TIER_ORDER = ["tl_small", "tl_medium", "tl_large", "tl_xlarge"]
+_TIER_ORDER = ["tl_small", "tl_medium", "tl_large", "tl_xlarge", "tl_xxlarge"]
 
 def _bump_tier(tier: str) -> str:
     """Return the next GPU tier up for memory-intensive ops (attribution, activation patch).
 
     Backward passes retain intermediate activations for all layers, requiring
     significantly more headroom than a forward-only run. One tier up is enough:
-      tl_small  (L4, 24 GB)    → tl_medium (L40S, 48 GB)   — 2× VRAM, safe for ≤4B backward
-      tl_medium (L40S, 48 GB)  → tl_large  (A100-80GB, 80 GB)
-      tl_large  (A100-80GB)    → tl_xlarge (H200, 141 GB)
-      tl_xlarge (H200)         → tl_xlarge (ceiling, no tier above)
+      tl_small   (L4, 24 GB)    → tl_medium  (L40S, 48 GB)
+      tl_medium  (L40S, 48 GB)  → tl_large   (A100-80GB, 80 GB)
+      tl_large   (A100-80GB)    → tl_xlarge  (H200, 141 GB)
+      tl_xlarge  (H200)         → tl_xxlarge (B200, 192 GB)
+      tl_xxlarge (B200)         → tl_xxlarge (ceiling, no tier above)
     """
     idx = _TIER_ORDER.index(tier)
     return _TIER_ORDER[min(idx + 1, len(_TIER_ORDER) - 1)]

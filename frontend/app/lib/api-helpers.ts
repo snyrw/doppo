@@ -11,14 +11,15 @@ export const SSE_HEADERS = {
   "Connection": "keep-alive",
 } as const;
 
-export type GpuTier = "tl_small" | "tl_medium" | "tl_large" | "tl_xlarge";
+export type GpuTier = "tl_small" | "tl_medium" | "tl_large" | "tl_xlarge" | "tl_xxlarge";
 
 export function validateGpuTier(tier: unknown): tier is GpuTier {
   return (
     tier === "tl_small" ||
     tier === "tl_medium" ||
     tier === "tl_large" ||
-    tier === "tl_xlarge"
+    tier === "tl_xlarge" ||
+    tier === "tl_xxlarge"
   );
 }
 
