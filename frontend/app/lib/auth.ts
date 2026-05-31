@@ -19,6 +19,7 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: process.env.NODE_ENV === "production",
   },
   socialProviders: {
     github: {
@@ -48,7 +49,6 @@ export const auth = betterAuth({
         console.log(`[DEV] Verify ${user.email}: ${url}`);
       }
     },
-    requireEmailVerification: process.env.NODE_ENV === "production",
     autoSignInAfterVerification: true,
   },
   ...(process.env.NODE_ENV === "production" && productionOrigins.length > 0
