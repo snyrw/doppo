@@ -54,7 +54,6 @@ type SteeringCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   onRerun: (cardId: string, newAlpha: number) => void;
-  onBuyCredits?: () => void;
 };
 
 function formatElapsed(ms: number): string {
@@ -77,7 +76,6 @@ function SteeringCard({
   onDragEnd,
   onRemove,
   onRerun,
-  onBuyCredits,
 }: SteeringCardProps) {
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
@@ -307,7 +305,7 @@ function SteeringCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} onBuyCredits={onBuyCredits} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (

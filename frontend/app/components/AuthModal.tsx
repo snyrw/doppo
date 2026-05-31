@@ -60,7 +60,8 @@ export default function AuthButtons() {
     setSocialLoading(provider);
     setError("");
     try {
-      await signIn.social({ provider, callbackURL: "/" });
+      const { error: err } = await signIn.social({ provider, callbackURL: "/" });
+      if (err) throw new Error(err.message);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSocialLoading(null);

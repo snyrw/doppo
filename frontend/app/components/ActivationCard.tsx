@@ -44,7 +44,6 @@ type ActivationCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   onSteerComponents: (cardId: string, components: SteeringComponent[]) => void;
-  onBuyCredits?: () => void;
 };
 
 function formatElapsed(ms: number): string {
@@ -97,7 +96,6 @@ function ActivationCard({
   onDragEnd,
   onRemove,
   onSteerComponents,
-  onBuyCredits,
 }: ActivationCardProps) {
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
@@ -227,7 +225,7 @@ function ActivationCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} onBuyCredits={onBuyCredits} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (

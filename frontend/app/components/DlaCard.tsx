@@ -43,7 +43,6 @@ type DlaCardProps = {
   onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
-  onBuyCredits?: () => void;
 };
 
 
@@ -75,7 +74,6 @@ function DlaCard({
   onDragMove,
   onDragEnd,
   onRemove,
-  onBuyCredits,
 }: DlaCardProps) {
   const [view, setView] = React.useState<"layer" | "head" | "top">("layer");
   const [elapsedMs, setElapsedMs] = React.useState(0);
@@ -286,7 +284,7 @@ function DlaCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} onBuyCredits={onBuyCredits} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (

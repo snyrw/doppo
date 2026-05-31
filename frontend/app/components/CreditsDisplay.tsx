@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, Suspense } from "react";
-import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { BuyCreditsModal } from "./BuyCreditsModal";
 import { LOW_BALANCE_THRESHOLD_MICROS } from "@/app/lib/rates";
 
 function formatMicros(micros: number): string {
@@ -31,21 +29,9 @@ function useCreditsBalance() {
 }
 
 function CreditsButtonInner() {
-  const { balanceMicros, refresh } = useCreditsBalance();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
+  const { balanceMicros } = useCreditsBalance();
   const [open, setOpen] = useState(false);
-  const [showBuyModal, setShowBuyModal] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (searchParams.get("credits") === "success") {
-      refresh();
-      router.replace(pathname);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
 
   useEffect(() => {
     if (!open) return;
@@ -157,32 +143,39 @@ function CreditsButtonInner() {
             </div>
           )}
 
-          <div style={{ padding: "8px" }}>
-            <button
-              onClick={() => { setOpen(false); setShowBuyModal(true); }}
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                background: "var(--color-accent)",
-                color: "var(--color-accent-fg)",
-                border: "none",
-                borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 600,
+          <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "7px 10px",
+              background: "var(--color-bg)",
+              border: "1px solid var(--color-card-border)",
+              borderRadius: 6,
+            }}>
+              <span style={{ fontSize: 13 }}>🚧</span>
+              <span style={{
+                fontSize: 11,
+                color: "var(--color-text-muted)",
                 fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                cursor: "pointer",
-                transition: "opacity 120ms",
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.85"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
-            >
-              Add credits
-            </button>
+                lineHeight: 1.4,
+              }}>
+                Purchasing coming soon
+              </span>
+            </div>
+            <span style={{
+              fontSize: 10,
+              color: "var(--color-text-muted)",
+              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
+              opacity: 0.7,
+              paddingLeft: 2,
+            }}>
+              Free tier: $1.00/month included
+            </span>
           </div>
         </div>
       )}
     </div>
-    {showBuyModal && <BuyCreditsModal onClose={() => setShowBuyModal(false)} />}
     </>
   );
 }
@@ -195,8 +188,7 @@ export function CreditsButton() {
   );
 }
 
-// Keep for any existing consumers
-export function CreditsDisplay({ onAddCredits }: { onAddCredits?: () => void }) {
+export function CreditsDisplay() {
   return (
     <Suspense fallback={null}>
       <CreditsButtonInner />

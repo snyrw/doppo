@@ -41,7 +41,6 @@ type LensCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   onSpawnEntropy?: () => void;
-  onBuyCredits?: () => void;
 };
 
 type DisplayMode = "prob" | "tokens" | "kl" | "rank" | "entropy";
@@ -124,7 +123,6 @@ function LensCard({
   onDragEnd,
   onRemove,
   onSpawnEntropy,
-  onBuyCredits,
 }: LensCardProps) {
   const palette = usePalette();
   const [mode, setMode] = React.useState<DisplayMode>("prob");
@@ -512,7 +510,7 @@ function LensCard({
         </div>
       )}
 
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} onBuyCredits={onBuyCredits} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
 
       {card.status === "result" && card.data && (
         <div style={{ overflow: "auto", padding: 6, background: "var(--color-card)" }}>

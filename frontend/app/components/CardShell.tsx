@@ -89,35 +89,14 @@ export function CardLoadingState({
 /** Red error message block shown when a card enters the "error" status. */
 export function CardErrorState({
   message,
-  showBuyCredits,
-  onBuyCredits,
 }: {
   message: string | undefined;
-  showBuyCredits?: boolean;
-  onBuyCredits?: () => void;
 }) {
   return (
     <div style={{ padding: "12px 14px" }}>
       <p style={{ fontSize: 11, color: "#dc2626", margin: 0 }}>
         ✗ {message ?? "Unknown error"}
       </p>
-      {showBuyCredits && onBuyCredits && (
-        <button
-          onClick={onBuyCredits}
-          style={{
-            marginTop: 8,
-            fontSize: 11,
-            color: "var(--color-accent)",
-            background: "none",
-            border: "1px solid var(--color-card-border)",
-            borderRadius: 6,
-            padding: "4px 10px",
-            cursor: "pointer",
-          }}
-        >
-          Add credits
-        </button>
-      )}
     </div>
   );
 }

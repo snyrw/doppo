@@ -50,7 +50,7 @@ function CheckIcon() {
   );
 }
 
-export default function Navbar({ actions }: { actions?: React.ReactNode; onAddCredits?: () => void }) {
+export default function Navbar({ actions }: { actions?: React.ReactNode }) {
   const [isDark, setIsDark] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [palette, setPalette] = useState<PaletteName>("warm-mono");

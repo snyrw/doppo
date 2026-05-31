@@ -10,7 +10,6 @@ import SteeringConfigPane from "../components/SteeringConfigPane";
 import AttentionConfigPane from "../components/AttentionConfigPane";
 import Navbar from "../components/Navbar";
 import { ProjectSearch } from "../components/ProjectSearch";
-import { BuyCreditsModal } from "../components/BuyCreditsModal";
 import type { LensCardData } from "../components/LensCard";
 import type { DlaCardData } from "../components/DlaCard";
 import type { AttributionCardData } from "../components/AttributionCard";
@@ -181,7 +180,6 @@ function Projects() {
   const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [shareId, setShareId] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
-  const [showBuyCreditsModal, setShowBuyCreditsModal] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
   const addRef = useRef<HTMLDivElement>(null);
@@ -459,7 +457,7 @@ function Projects() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>
-      <Navbar onAddCredits={() => setShowBuyCreditsModal(true)} />
+      <Navbar />
 
       {/* Canvas area — relative so the "Add Lens +" button can float over it */}
       <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
@@ -995,14 +993,9 @@ function Projects() {
           onSteerComponents={handleSteerComponents}
           onRerunSteering={handleRerunSteering}
           onSpawnEntropyCard={handleSpawnEntropyCard}
-          onBuyCredits={() => setShowBuyCreditsModal(true)}
         />
 
       </div>
-
-      {showBuyCreditsModal && (
-        <BuyCreditsModal onClose={() => setShowBuyCreditsModal(false)} />
-      )}
 
       {shareCopied && (
         <div style={{
