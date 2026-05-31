@@ -24,7 +24,7 @@ _HF_CACHE_ENV = {
 tl_image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install(
-        "torch==2.6.0",
+        "torch==2.11.0",
         "transformer-lens>=3.0",
         "einops==0.8.1",
         "fancy-einsum==0.0.3",
