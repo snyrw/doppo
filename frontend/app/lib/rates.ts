@@ -1,8 +1,9 @@
 export const TIER_RATES_MICROS_PER_SEC: Record<string, number> = {
-  tl_small:  190,
-  tl_medium: 530,
-  tl_large:  760,
-  tl_xlarge: 1550,
+  tl_small:   190,
+  tl_medium:  530,
+  tl_large:   760,
+  tl_xlarge:  1550,
+  tl_xxlarge: 1736,
 };
 
 export const FREE_MONTHLY_GRANT_MICROS = 1_000_000; // $1.00

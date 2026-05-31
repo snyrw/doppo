@@ -43,10 +43,11 @@ type SteeringConfigPaneProps = {
 
 // Tier-scaled caps must match /api/generate-pairs/route.ts TIER_CAPS.
 const TIER_PAIR_CAPS: Record<string, number> = {
-  tl_small: 40,
-  tl_medium: 25,
-  tl_large: 15,
-  tl_xlarge: 10,
+  tl_small:   40,
+  tl_medium:  25,
+  tl_large:   15,
+  tl_xlarge:  10,
+  tl_xxlarge: 10,
 };
 const DEFAULT_PAIR_CAP = 20;
 

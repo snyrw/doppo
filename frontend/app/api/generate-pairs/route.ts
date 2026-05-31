@@ -9,10 +9,11 @@ const PAIRS_GEN_COST_MICROS = 5_000; // $0.005 per call; ~200 free calls/month o
 
 // Tier-scaled caps matching compute cost: more pairs on cheap GPUs, fewer on expensive ones.
 const TIER_CAPS: Record<string, number> = {
-  tl_small: 40,
-  tl_medium: 25,
-  tl_large: 15,
-  tl_xlarge: 10,
+  tl_small:   40,
+  tl_medium:  25,
+  tl_large:   15,
+  tl_xlarge:  10,
+  tl_xxlarge: 10,
 };
 const DEFAULT_CAP = 20;
 

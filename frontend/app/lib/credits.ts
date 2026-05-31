@@ -4,10 +4,11 @@ import { eq, sql } from "drizzle-orm";
 import { TIER_RATES_MICROS_PER_SEC, FREE_MONTHLY_GRANT_MICROS } from "./rates";
 
 export const MINIMUM_JOB_COST_MICROS: Record<string, number> = {
-  tl_small:  Math.ceil( 90 * TIER_RATES_MICROS_PER_SEC.tl_small),
-  tl_medium: Math.ceil(150 * TIER_RATES_MICROS_PER_SEC.tl_medium),
-  tl_large:  Math.ceil(200 * TIER_RATES_MICROS_PER_SEC.tl_large),
-  tl_xlarge: Math.ceil(300 * TIER_RATES_MICROS_PER_SEC.tl_xlarge),
+  tl_small:   Math.ceil( 90 * TIER_RATES_MICROS_PER_SEC.tl_small),
+  tl_medium:  Math.ceil(150 * TIER_RATES_MICROS_PER_SEC.tl_medium),
+  tl_large:   Math.ceil(200 * TIER_RATES_MICROS_PER_SEC.tl_large),
+  tl_xlarge:  Math.ceil(300 * TIER_RATES_MICROS_PER_SEC.tl_xlarge),
+  tl_xxlarge: Math.ceil(400 * TIER_RATES_MICROS_PER_SEC.tl_xxlarge),
 };
 
 export async function ensureGrantAndGetBalance(userId: string): Promise<number> {

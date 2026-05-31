@@ -200,10 +200,11 @@ const TECHNIQUES: { name: string; description: string; motif: ReactNode }[] = [
 ];
 
 const GPU_TIERS = [
-  { tier: "L4",        range: "< 4B params",   microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_small  },
-  { tier: "L40S",      range: "4–10B params",  microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_medium },
-  { tier: "A100-80GB", range: "10–25B params", microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_large  },
-  { tier: "H200",      range: "25–70B params", microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_xlarge },
+  { tier: "L4",        range: "< 4B params",    microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_small   },
+  { tier: "L40S",      range: "4–10B params",   microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_medium  },
+  { tier: "A100-80GB", range: "10–25B params",  microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_large   },
+  { tier: "H200",      range: "25–69B params",  microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_xlarge  },
+  { tier: "B200",      range: "70B–100B params", microsPerSec: TIER_RATES_MICROS_PER_SEC.tl_xxlarge },
 ];
 
 // ─── Root ──────────────────────────────────────────────────────────────────
