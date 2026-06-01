@@ -413,7 +413,7 @@ function AttributionCard({
           {view === "layer" ? (
             <LayerView data={card.data} absMax={absMax} />
           ) : (
-            <HeadView data={card.data} absMax={absMax} selectedComponents={selectedComponents} onToggleComponent={toggleComponent} />
+            <HeadView data={card.data} absMax={absMax} selectedComponents={selectedComponents} onToggleComponent={toggleComponent} tutorialMode={tutorialMode} />
           )}
         </div>
       )}
@@ -465,12 +465,13 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
 }
 
 function HeadView({
-  data, absMax, selectedComponents, onToggleComponent,
+  data, absMax, selectedComponents, onToggleComponent, tutorialMode,
 }: {
   data: AttributionData;
   absMax: number;
   selectedComponents: SteeringComponent[];
   onToggleComponent: (comp: SteeringComponent) => void;
+  tutorialMode?: boolean;
 }) {
   return (
     <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
@@ -503,7 +504,7 @@ function HeadView({
                 key={hi}
                 title={tooltip}
                 onPointerDown={e => e.stopPropagation()}
-                onClick={() => onToggleComponent({ layer: li, head: hi, injectionType: "attn_head" })}
+                onClick={tutorialMode ? undefined : () => onToggleComponent({ layer: li, head: hi, injectionType: "attn_head" })}
                 style={{
                   width: HEAD_CELL_SIZE, height: HEAD_CELL_SIZE, flexShrink: 0,
                   backgroundColor: color,
