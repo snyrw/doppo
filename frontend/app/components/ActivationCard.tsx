@@ -44,6 +44,7 @@ type ActivationCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   onSteerComponents: (cardId: string, components: SteeringComponent[]) => void;
+  tutorialMode?: boolean;
 };
 
 function formatElapsed(ms: number): string {
@@ -96,6 +97,7 @@ function ActivationCard({
   onDragEnd,
   onRemove,
   onSteerComponents,
+  tutorialMode,
 }: ActivationCardProps) {
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
@@ -193,13 +195,15 @@ function ActivationCard({
         <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           top {card.k}
         </span>
-        <button
-          onPointerDown={e => e.stopPropagation()}
-          onClick={() => onRemove(card.id)}
-          style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
-        >
-          ×
-        </button>
+        {!tutorialMode && (
+          <button
+            onPointerDown={e => e.stopPropagation()}
+            onClick={() => onRemove(card.id)}
+            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+          >
+            ×
+          </button>
+        )}
       </div>
 
       {/* Loading */}

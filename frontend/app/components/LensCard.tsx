@@ -41,6 +41,7 @@ type LensCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   onSpawnEntropy?: () => void;
+  tutorialMode?: boolean;
 };
 
 type DisplayMode = "prob" | "tokens" | "kl" | "rank" | "entropy";
@@ -123,6 +124,7 @@ function LensCard({
   onDragEnd,
   onRemove,
   onSpawnEntropy,
+  tutorialMode,
 }: LensCardProps) {
   const palette = usePalette();
   const [mode, setMode] = React.useState<DisplayMode>("prob");
@@ -347,13 +349,15 @@ function LensCard({
           <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {card.prompt}
           </span>
-          <button
-            onPointerDown={e => e.stopPropagation()}
-            onClick={() => onRemove(card.id)}
-            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
-          >
-            ×
-          </button>
+          {!tutorialMode && (
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => onRemove(card.id)}
+              style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+            >
+              ×
+            </button>
+          )}
         </div>
 
         {/* Row 2: mode controls — no overflow: hidden so the ··· popover can escape */}
@@ -385,7 +389,7 @@ function LensCard({
             )}
 
             {/* Entropy spawn button — only visible in H mode */}
-            {mode === "entropy" && hasEntropy && onSpawnEntropy && (
+            {!tutorialMode && mode === "entropy" && hasEntropy && onSpawnEntropy && (
               <button
                 onClick={onSpawnEntropy}
                 title="Spawn entropy sparkline card"

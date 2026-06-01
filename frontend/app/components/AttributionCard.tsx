@@ -57,6 +57,7 @@ type AttributionCardProps = {
   onRemove: (id: string) => void;
   onVerifyTopK: (cardId: string, k: number) => void;
   onSteerComponents: (cardId: string, components: SteeringComponent[]) => void;
+  tutorialMode?: boolean;
 };
 
 const COL_GAP = 2;
@@ -91,6 +92,7 @@ function AttributionCard({
   onRemove,
   onVerifyTopK,
   onSteerComponents,
+  tutorialMode,
 }: AttributionCardProps) {
   const [view, setView] = React.useState<"layer" | "head">("head");
   const [selectedK, setSelectedK] = React.useState<5 | 10 | 20>(10);
@@ -224,13 +226,15 @@ function AttributionCard({
           <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {card.cleanPrompt}
           </span>
-          <button
-            onPointerDown={e => e.stopPropagation()}
-            onClick={() => onRemove(card.id)}
-            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
-          >
-            ×
-          </button>
+          {!tutorialMode && (
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => onRemove(card.id)}
+              style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+            >
+              ×
+            </button>
+          )}
         </div>
 
         {/* Row 2: token badge + view toggle (result only) */}
@@ -302,72 +306,78 @@ function AttributionCard({
                 ✓ Verified
               </span>
             ) : (
+              !tutorialMode && (
+                <>
+                  <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
+                    {K_OPTIONS.map(k => (
+                      <button
+                        key={k}
+                        onClick={() => setSelectedK(k)}
+                        style={{
+                          fontSize: 9, padding: "2px 5px",
+                          background: selectedK === k ? "var(--color-surface-border)" : "transparent",
+                          color: selectedK === k ? "var(--color-text)" : "var(--color-text-muted)",
+                          border: "none", cursor: "pointer", lineHeight: 1.4,
+                        }}
+                      >
+                        {k}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => onVerifyTopK(card.id, selectedK)}
+                    disabled={isVerifying}
+                    style={{
+                      fontSize: 9, fontWeight: 600, padding: "2px 7px",
+                      background: isVerifying ? "var(--color-surface-border)" : "var(--color-accent)",
+                      color: isVerifying ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+                      border: "none", borderRadius: 4, cursor: isVerifying ? "not-allowed" : "pointer",
+                      display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+                      transition: "background 120ms",
+                    }}
+                  >
+                    {isVerifying ? (
+                      <>
+                        <div style={{ width: 8, height: 8, border: "1.5px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                        Verifying…
+                      </>
+                    ) : (
+                      `Verify →`
+                    )}
+                  </button>
+                </>
+              )
+            )}
+            {/* Steer buttons */}
+            {!tutorialMode && (
               <>
-                <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
-                  {K_OPTIONS.map(k => (
-                    <button
-                      key={k}
-                      onClick={() => setSelectedK(k)}
-                      style={{
-                        fontSize: 9, padding: "2px 5px",
-                        background: selectedK === k ? "var(--color-surface-border)" : "transparent",
-                        color: selectedK === k ? "var(--color-text)" : "var(--color-text-muted)",
-                        border: "none", cursor: "pointer", lineHeight: 1.4,
-                      }}
-                    >
-                      {k}
-                    </button>
-                  ))}
-                </div>
                 <button
-                  onClick={() => onVerifyTopK(card.id, selectedK)}
-                  disabled={isVerifying}
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={() => onSteerComponents(card.id, [{ layer: topLayer, head: null, injectionType: "residual" }])}
                   style={{
                     fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                    background: isVerifying ? "var(--color-surface-border)" : "var(--color-accent)",
-                    color: isVerifying ? "var(--color-text-muted)" : "var(--color-accent-fg)",
-                    border: "none", borderRadius: 4, cursor: isVerifying ? "not-allowed" : "pointer",
-                    display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+                    background: "var(--color-accent)", color: "var(--color-accent-fg)",
+                    border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
                     transition: "background 120ms",
                   }}
                 >
-                  {isVerifying ? (
-                    <>
-                      <div style={{ width: 8, height: 8, border: "1.5px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                      Verifying…
-                    </>
-                  ) : (
-                    `Verify →`
-                  )}
+                  Steer →
                 </button>
+                {view === "head" && selectedComponents.length > 0 && (
+                  <button
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={() => { onSteerComponents(card.id, selectedComponents); setSelectedComponents([]); }}
+                    style={{
+                      fontSize: 9, fontWeight: 600, padding: "2px 7px",
+                      background: "var(--color-accent)", color: "var(--color-accent-fg)",
+                      border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
+                      transition: "background 120ms",
+                    }}
+                  >
+                    Steer {selectedComponents.length} →
+                  </button>
+                )}
               </>
-            )}
-            {/* Steer buttons */}
-            <button
-              onPointerDown={e => e.stopPropagation()}
-              onClick={() => onSteerComponents(card.id, [{ layer: topLayer, head: null, injectionType: "residual" }])}
-              style={{
-                fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                background: "var(--color-accent)", color: "var(--color-accent-fg)",
-                border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
-                transition: "background 120ms",
-              }}
-            >
-              Steer →
-            </button>
-            {view === "head" && selectedComponents.length > 0 && (
-              <button
-                onPointerDown={e => e.stopPropagation()}
-                onClick={() => { onSteerComponents(card.id, selectedComponents); setSelectedComponents([]); }}
-                style={{
-                  fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                  background: "var(--color-accent)", color: "var(--color-accent-fg)",
-                  border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
-                  transition: "background 120ms",
-                }}
-              >
-                Steer {selectedComponents.length} →
-              </button>
             )}
           </div>
         )}
