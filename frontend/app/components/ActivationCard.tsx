@@ -269,7 +269,7 @@ function ActivationCard({
                   key={i}
                   title={tooltip}
                   onPointerDown={e => e.stopPropagation()}
-                  onClick={() => setSelectedComponents(prev =>
+                  onClick={tutorialMode ? undefined : () => setSelectedComponents(prev =>
                     isSelected
                       ? prev.filter(c => !(c.layer === steeringComp.layer && c.head === steeringComp.head && c.injectionType === steeringComp.injectionType))
                       : [...prev, steeringComp]
@@ -318,7 +318,7 @@ function ActivationCard({
               <span style={{ fontSize: 9, color: "var(--color-text-muted)", flex: 1 }}>
                 {spearman !== null ? `Spearman ρ ${spearman >= 0 ? "+" : ""}${spearman.toFixed(2)}` : ""}
               </span>
-              {selectedComponents.length > 0 && (
+              {selectedComponents.length > 0 && !tutorialMode && (
                 <button
                   onPointerDown={e => e.stopPropagation()}
                   onClick={() => { onSteerComponents(card.id, selectedComponents); setSelectedComponents([]); }}
