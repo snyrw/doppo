@@ -173,10 +173,8 @@ export default function SandboxCanvas({
         return <ActivationCard key={card.id} {...sharedProps} card={card} onSteerComponents={onSteerComponents} />;
       case "steering":
         return <SteeringCard key={card.id} {...sharedProps} card={card} onRerun={onRerunSteering} />;
-      case "entropy": {
-        const { tutorialMode: _tm, ...entropyProps } = sharedProps;
-        return <EntropyCard key={card.id} {...entropyProps} card={card as EntropyCardData} />;
-      }
+      case "entropy":
+        return <EntropyCard key={card.id} {...sharedProps} card={card as EntropyCardData} />;
       case "attention-pattern":
         return <AttentionCard key={card.id} {...sharedProps} card={card as AttentionCardData} />;
       default:
