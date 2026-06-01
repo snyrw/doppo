@@ -34,6 +34,16 @@ type AttributionConfigPaneProps = {
     contrastiveToken: string | null;
   }) => void;
   onClose: () => void;
+  tutorialMode?: boolean;
+  tutorialConfig?: {
+    modelName: string;
+    cleanPrompt: string;
+    corruptedPrompt: string;
+    gpuTier: string;
+    targetPosition: number | "last";
+    targetToken: string | null;
+    contrastiveToken: string | null;
+  };
 };
 
 const DEFAULT_CLEAN_PROMPT = "When Mary and John went to the store, John gave a drink to";
@@ -45,6 +55,8 @@ export default function AttributionConfigPane({
   modelsLoading,
   onSubmit,
   onClose,
+  tutorialMode,
+  tutorialConfig,
 }: AttributionConfigPaneProps) {
   const { data: session } = useSession();
   const [selectedModel, setSelectedModel] = useState("");
@@ -64,6 +76,15 @@ export default function AttributionConfigPane({
       setSelectedModel(availableModels[0].id);
     }
   }, [availableModels, selectedModel, customRepoId]);
+
+  useEffect(() => {
+    if (tutorialMode && tutorialConfig) {
+      setCleanPrompt(tutorialConfig.cleanPrompt);
+      setCorruptedPrompt(tutorialConfig.corruptedPrompt);
+      setSelectedModel(tutorialConfig.modelName);
+      setCustomRepoId("");
+    }
+  }, [tutorialMode, tutorialConfig]);
 
   const doReset = () => {
     setSelectedModel(availableModels[0]?.id ?? "");
@@ -223,101 +244,114 @@ export default function AttributionConfigPane({
       {/* Form body */}
       <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
 
-        {/* Featured models */}
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
-            Featured Models
-          </label>
-          {modelsLoading ? (
-            <div style={{ fontSize: 12, color: "var(--color-text-muted)", padding: "12px 0" }}>Loading models…</div>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, maxHeight: 200, overflowY: "auto", paddingRight: 2 }}>
-              {availableModels.map(m => {
-                const isSelected = selectedModel === m.id && !usingCustom;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => selectFeaturedModel(m.id)}
-                    title={m.description}
-                    style={{
-                      border: `1.5px solid ${isSelected ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                      borderRadius: 7, padding: "8px 9px",
-                      background: isSelected ? "var(--color-surface-border)" : "var(--color-card)",
-                      cursor: "pointer", textAlign: "left",
-                      transition: "border-color 120ms, background 120ms",
-                      display: "flex", flexDirection: "column", gap: 3,
-                    }}
-                    onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-accent)"; }}
-                    onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-card-border)"; }}
-                  >
-                    <span style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "var(--color-accent)" : "var(--color-text)", lineHeight: 1.3 }}>
-                      {m.display_name}
-                    </span>
-                    <span style={{ fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                      {m.description}
-                    </span>
-                    {m.requires_hf_token && (
-                      <span style={{ fontSize: 9, color: "var(--color-text-muted)", marginTop: 1, letterSpacing: "0.02em" }}>HF token required</span>
-                    )}
-                    {!session && m.gpu_tier !== "tl_small" && (
-                      <span style={{ fontSize: 9, color: "#d97706", marginTop: 1, letterSpacing: "0.02em" }}>Sign in to run</span>
-                    )}
-                  </button>
-                );
-              })}
+        {/* Featured models / model selection */}
+        {tutorialMode ? (
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
+              Model
+            </label>
+            <div style={{ padding: "8px 16px 4px", fontSize: 12, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+              {tutorialConfig?.modelName}
             </div>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
-          <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>or</span>
-          <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
-        </div>
-
-        {/* Any HuggingFace model */}
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
-            Any HuggingFace Model
-          </label>
-          <div style={{ display: "flex", gap: 6 }}>
-            <input
-              type="text"
-              placeholder="username/model-name"
-              value={customRepoId}
-              onChange={e => handleCustomRepoChange(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && customRepoId.trim()) validateCustomRepo(); }}
-              style={{
-                flex: 1, border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                borderRadius: 6, padding: "6px 8px", fontSize: 11,
-                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
-                transition: "border-color 120ms",
-              }}
-            />
-            <button
-              onClick={validateCustomRepo}
-              disabled={!customRepoId.trim() || customValidating}
-              style={{
-                border: "1px solid var(--color-card-border)", borderRadius: 6, padding: "6px 10px",
-                fontSize: 11, background: "var(--color-surface-border)", color: "var(--color-text-muted)",
-                cursor: (!customRepoId.trim() || customValidating) ? "not-allowed" : "pointer",
-                opacity: (!customRepoId.trim() || customValidating) ? 0.5 : 1,
-                whiteSpace: "nowrap", transition: "background 120ms",
-              }}
-            >
-              {customValidating ? "…" : "Validate"}
-            </button>
           </div>
-          {customValidation && (
-            <p style={{ marginTop: 6, fontSize: 11, color: customValidation.valid ? "#16a34a" : "#dc2626", margin: "6px 0 0" }}>
-              {customValidation.valid
-                ? `✓ Valid — ${customValidation.gpu_tier ? TIER_LABELS[customValidation.gpu_tier] ?? customValidation.gpu_tier : "unknown GPU"}`
-                : `✗ ${customValidation.reason}`}
-            </p>
-          )}
-        </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
+                Featured Models
+              </label>
+              {modelsLoading ? (
+                <div style={{ fontSize: 12, color: "var(--color-text-muted)", padding: "12px 0" }}>Loading models…</div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, maxHeight: 200, overflowY: "auto", paddingRight: 2 }}>
+                  {availableModels.map(m => {
+                    const isSelected = selectedModel === m.id && !usingCustom;
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => selectFeaturedModel(m.id)}
+                        title={m.description}
+                        style={{
+                          border: `1.5px solid ${isSelected ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                          borderRadius: 7, padding: "8px 9px",
+                          background: isSelected ? "var(--color-surface-border)" : "var(--color-card)",
+                          cursor: "pointer", textAlign: "left",
+                          transition: "border-color 120ms, background 120ms",
+                          display: "flex", flexDirection: "column", gap: 3,
+                        }}
+                        onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-accent)"; }}
+                        onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-card-border)"; }}
+                      >
+                        <span style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "var(--color-accent)" : "var(--color-text)", lineHeight: 1.3 }}>
+                          {m.display_name}
+                        </span>
+                        <span style={{ fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                          {m.description}
+                        </span>
+                        {m.requires_hf_token && (
+                          <span style={{ fontSize: 9, color: "var(--color-text-muted)", marginTop: 1, letterSpacing: "0.02em" }}>HF token required</span>
+                        )}
+                        {!session && m.gpu_tier !== "tl_small" && (
+                          <span style={{ fontSize: 9, color: "#d97706", marginTop: 1, letterSpacing: "0.02em" }}>Sign in to run</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
+              <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>or</span>
+              <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
+            </div>
+
+            {/* Any HuggingFace model */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
+                Any HuggingFace Model
+              </label>
+              <div style={{ display: "flex", gap: 6 }}>
+                <input
+                  type="text"
+                  placeholder="username/model-name"
+                  value={customRepoId}
+                  onChange={e => handleCustomRepoChange(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && customRepoId.trim()) validateCustomRepo(); }}
+                  style={{
+                    flex: 1, border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                    borderRadius: 6, padding: "6px 8px", fontSize: 11,
+                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
+                    color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
+                    transition: "border-color 120ms",
+                  }}
+                />
+                <button
+                  onClick={validateCustomRepo}
+                  disabled={!customRepoId.trim() || customValidating}
+                  style={{
+                    border: "1px solid var(--color-card-border)", borderRadius: 6, padding: "6px 10px",
+                    fontSize: 11, background: "var(--color-surface-border)", color: "var(--color-text-muted)",
+                    cursor: (!customRepoId.trim() || customValidating) ? "not-allowed" : "pointer",
+                    opacity: (!customRepoId.trim() || customValidating) ? 0.5 : 1,
+                    whiteSpace: "nowrap", transition: "background 120ms",
+                  }}
+                >
+                  {customValidating ? "…" : "Validate"}
+                </button>
+              </div>
+              {customValidation && (
+                <p style={{ marginTop: 6, fontSize: 11, color: customValidation.valid ? "#16a34a" : "#dc2626", margin: "6px 0 0" }}>
+                  {customValidation.valid
+                    ? `✓ Valid — ${customValidation.gpu_tier ? TIER_LABELS[customValidation.gpu_tier] ?? customValidation.gpu_tier : "unknown GPU"}`
+                    : `✗ ${customValidation.reason}`}
+                </p>
+              )}
+            </div>
+          </>
+        )}
 
         {/* Prompts */}
         <div style={{ marginBottom: 16 }}>
@@ -332,6 +366,7 @@ export default function AttributionConfigPane({
           <textarea
             value={cleanPrompt}
             onChange={e => setCleanPrompt(e.target.value)}
+            disabled={tutorialMode}
             rows={3}
             placeholder="Where the behavior you want to explain occurs"
             style={{
@@ -339,6 +374,7 @@ export default function AttributionConfigPane({
               padding: "8px 10px", fontSize: 12, color: "var(--color-text)",
               background: "var(--color-bg)", resize: "vertical", outline: "none",
               fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
+              ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
             }}
           />
           <TokenPreview tokens={cleanPreview.tokens} loading={cleanPreview.loading} />
@@ -356,6 +392,7 @@ export default function AttributionConfigPane({
           <textarea
             value={corruptedPrompt}
             onChange={e => setCorruptedPrompt(e.target.value)}
+            disabled={tutorialMode}
             rows={3}
             placeholder="A variation that changes the behavior"
             style={{
@@ -363,6 +400,7 @@ export default function AttributionConfigPane({
               padding: "8px 10px", fontSize: 12, color: "var(--color-text)",
               background: "var(--color-bg)", resize: "vertical", outline: "none",
               fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
+              ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
             }}
           />
           <TokenPreview tokens={corruptedPreview.tokens} loading={corruptedPreview.loading} />
@@ -401,18 +439,19 @@ export default function AttributionConfigPane({
             <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>Position</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <label style={radioStyle}>
-                <input type="radio" name="attr-position" checked={positionMode === "last"} onChange={() => setPositionMode("last")} style={radioInputStyle} />
+                <input type="radio" name="attr-position" checked={positionMode === "last"} onChange={() => setPositionMode("last")} disabled={tutorialMode} style={radioInputStyle} />
                 Last token
                 <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>— next-token prediction (most common)</span>
               </label>
               <label style={{ ...radioStyle, alignItems: "flex-start" }}>
-                <input type="radio" name="attr-position" checked={positionMode === "custom"} onChange={() => setPositionMode("custom")} style={{ ...radioInputStyle, marginTop: 2 }} />
+                <input type="radio" name="attr-position" checked={positionMode === "custom"} onChange={() => setPositionMode("custom")} disabled={tutorialMode} style={{ ...radioInputStyle, marginTop: 2 }} />
                 <span>Token index</span>
                 <input
                   type="number" min={0} placeholder="e.g. 3"
                   value={customPosition}
                   onFocus={() => setPositionMode("custom")}
                   onChange={e => { setPositionMode("custom"); setCustomPosition(e.target.value); }}
+                  disabled={tutorialMode}
                   style={{
                     width: 72, marginLeft: 6,
                     border: `1px solid ${positionMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
@@ -430,18 +469,19 @@ export default function AttributionConfigPane({
             <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>Target token</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <label style={radioStyle}>
-                <input type="radio" name="attr-token" checked={tokenMode === "auto"} onChange={() => setTokenMode("auto")} style={radioInputStyle} />
+                <input type="radio" name="attr-token" checked={tokenMode === "auto"} onChange={() => setTokenMode("auto")} disabled={tutorialMode} style={radioInputStyle} />
                 Top prediction
                 <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>— attribute the model&apos;s most likely next token</span>
               </label>
               <label style={{ ...radioStyle, alignItems: "flex-start" }}>
-                <input type="radio" name="attr-token" checked={tokenMode === "custom"} onChange={() => setTokenMode("custom")} style={{ ...radioInputStyle, marginTop: 2 }} />
+                <input type="radio" name="attr-token" checked={tokenMode === "custom"} onChange={() => setTokenMode("custom")} disabled={tutorialMode} style={{ ...radioInputStyle, marginTop: 2 }} />
                 <span style={{ flexShrink: 0 }}>Specify</span>
                 <input
                   type="text" placeholder={`e.g. " Mary"`}
                   value={customToken}
                   onFocus={() => setTokenMode("custom")}
                   onChange={e => { setTokenMode("custom"); setCustomToken(e.target.value); }}
+                  disabled={tutorialMode}
                   style={{
                     flex: 1, marginLeft: 6,
                     border: `1px solid ${tokenMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
@@ -476,6 +516,7 @@ export default function AttributionConfigPane({
               placeholder={`e.g. " John" — enables logit difference`}
               value={contrastiveToken}
               onChange={e => setContrastiveToken(e.target.value)}
+              disabled={tutorialMode}
               style={{
                 width: "100%",
                 border: `1px solid ${contrastiveToken.trim() ? "var(--color-accent)" : "var(--color-card-border)"}`,
