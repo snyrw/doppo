@@ -1,0 +1,391 @@
+"use client";
+
+import { useReducer, useRef, useCallback, useState, useEffect } from "react";
+import SandboxCanvas from "../components/SandboxCanvas";
+import ConfigPane from "../components/ConfigPane";
+import DlaConfigPane from "../components/DlaConfigPane";
+import AttributionConfigPane from "../components/AttributionConfigPane";
+import SteeringConfigPane from "../components/SteeringConfigPane";
+import AttentionConfigPane from "../components/AttentionConfigPane";
+import Navbar from "../components/Navbar";
+import type { LensCardData, HeatmapData } from "../components/LensCard";
+import type { DlaCardData, DlaData } from "../components/DlaCard";
+import type { AttributionCardData, AttributionData } from "../components/AttributionCard";
+import type { ActivationCardData, ActivationPatchResult } from "../components/ActivationCard";
+import type { SteeringCardData, SteeringResult } from "../components/SteeringCard";
+import type { AttentionCardData, AttentionData } from "../components/AttentionCard";
+import type { AnyCard } from "../components/SandboxCanvas";
+import TutorialDrawer from "./TutorialDrawer";
+import TutorialWelcomeModal from "./TutorialWelcomeModal";
+import TutorialCompleteModal from "./TutorialCompleteModal";
+import { TUTORIAL_CONFIGS } from "./steps";
+import rawTutorialData from "./data.json";
+
+type CanvasState = { panOffset: { x: number; y: number }; zoom: number };
+type State = { cards: AnyCard[]; canvas: CanvasState };
+type Action =
+  | { type: "ADD_CARD"; card: AnyCard }
+  | { type: "MOVE_CARD"; id: string; pos: { x: number; y: number } }
+  | { type: "SET_CANVAS"; canvas: CanvasState };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "ADD_CARD":   return { ...state, cards: [...state.cards, action.card] };
+    case "MOVE_CARD":  return { ...state, cards: state.cards.map(c => c.id === action.id ? { ...c, position: action.pos } : c) };
+    case "SET_CANVAS": return { ...state, canvas: action.canvas };
+    default:           return state;
+  }
+}
+
+const INITIAL_STATE: State = {
+  cards: [],
+  canvas: { panOffset: { x: 0, y: 0 }, zoom: 1 },
+};
+
+const WELCOME_KEY = "doppo_tutorial_welcome_seen";
+const DRAWER_KEY  = "doppo_tutorial_drawer_open";
+
+export default function TutorialClient() {
+  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  const [phase, setPhase] = useState<"welcome" | "active" | "complete">("welcome");
+  const [currentStep, setCurrentStep]       = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [drawerOpen, setDrawerOpen]         = useState(true);
+
+  const [openPane, setOpenPane] = useState<"lens" | "dla" | "attribution" | "attention" | "steering" | "activation" | null>(null);
+  const [addDropdownOpen, setAddDropdownOpen] = useState(false);
+  const addRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(DRAWER_KEY);
+      if (stored !== null) setDrawerOpen(stored === "true");
+      if (localStorage.getItem(WELCOME_KEY)) setPhase("active");
+    } catch {}
+  }, []);
+
+  const handleToggleDrawer = useCallback(() => {
+    setDrawerOpen(o => {
+      try { localStorage.setItem(DRAWER_KEY, String(!o)); } catch {}
+      return !o;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!addDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (addRef.current && !addRef.current.contains(e.target as Node)) {
+        setAddDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [addDropdownOpen]);
+
+  const dataReady = (rawTutorialData as { _ready?: boolean })._ready !== false;
+  const tutorialData = (rawTutorialData as { steps: Record<string, unknown> }).steps;
+
+  function panToPosition(position: { x: number; y: number }) {
+    const viewW = window.innerWidth - (drawerOpen ? 360 : 0);
+    const viewH = window.innerHeight - 50;
+    dispatch({
+      type: "SET_CANVAS",
+      canvas: {
+        panOffset: {
+          x: viewW / 2 - (position.x + 240),
+          y: viewH / 2 - (position.y + 180),
+        },
+        zoom: 1,
+      },
+    });
+  }
+
+  function advanceStep(stepIndex: number) {
+    setCompletedSteps(prev => new Set([...prev, stepIndex]));
+    if (stepIndex === 5) {
+      setPhase("complete");
+    } else {
+      setCurrentStep(stepIndex + 1);
+    }
+  }
+
+  function createCardFromData(stepIndex: number): AnyCard | null {
+    const raw = tutorialData[String(stepIndex)] as Record<string, unknown>;
+    if (!raw || !raw.data) return null;
+
+    const id = `tutorial-${stepIndex}`;
+    const base = {
+      id,
+      status: "result" as const,
+      modelName: raw.modelName as string,
+      position: raw.position as { x: number; y: number },
+      gpuTier: raw.gpuTier as string,
+      error: null,
+    };
+
+    switch (raw.cardType) {
+      case "logit-lens":
+        return {
+          ...base,
+          cardType: "logit-lens" as const,
+          prompt: raw.prompt as string,
+          data: raw.data as HeatmapData,
+        } as LensCardData;
+      case "attention-pattern":
+        return {
+          ...base,
+          cardType: "attention-pattern" as const,
+          prompt: raw.prompt as string,
+          data: raw.data as AttentionData,
+        } as AttentionCardData;
+      case "dla":
+        return {
+          ...base,
+          cardType: "dla" as const,
+          prompt: raw.prompt as string,
+          targetPosition: raw.targetPosition as number | "last",
+          targetToken: raw.targetToken as string | null,
+          contrastiveToken: raw.contrastiveToken as string | null,
+          data: raw.data as DlaData,
+        } as DlaCardData;
+      case "attribution":
+        return {
+          ...base,
+          cardType: "attribution" as const,
+          cleanPrompt: raw.cleanPrompt as string,
+          corruptedPrompt: raw.corruptedPrompt as string,
+          targetPosition: raw.targetPosition as number | "last",
+          targetToken: raw.targetToken as string | null,
+          contrastiveToken: raw.contrastiveToken as string | null,
+          verifyStatus: "idle" as const,
+          data: raw.data as AttributionData,
+        } as AttributionCardData;
+      case "activation":
+        return {
+          ...base,
+          cardType: "activation" as const,
+          cleanPrompt: raw.cleanPrompt as string,
+          k: raw.k as number,
+          parentAttributionId: raw.parentAttributionId as string,
+          data: raw.data as ActivationPatchResult,
+        } as ActivationCardData;
+      case "steering":
+        return {
+          ...base,
+          cardType: "steering" as const,
+          cleanPrompt: raw.cleanPrompt as string,
+          corruptedPrompt: raw.corruptedPrompt as string,
+          targetPosition: "last" as const,
+          targetToken: null,
+          components: raw.components as SteeringCardData["components"],
+          alpha: raw.alpha as number,
+          temperature: raw.temperature as number,
+          repetitionPenalty: raw.repetitionPenalty as number,
+          nTokens: raw.nTokens as number,
+          nPairs: raw.nPairs as number,
+          parentCardId: "",
+          data: raw.data as SteeringResult,
+        } as SteeringCardData;
+      default:
+        return null;
+    }
+  }
+
+  function handleTutorialRun(stepIndex: number) {
+    const card = createCardFromData(stepIndex);
+    if (!card) return;
+    dispatch({ type: "ADD_CARD", card });
+    panToPosition(card.position);
+    setOpenPane(null);
+    setAddDropdownOpen(false);
+    setTimeout(() => advanceStep(stepIndex), 300);
+  }
+
+  const stepToPaneType: Record<number, typeof openPane> = {
+    0: "lens",
+    1: "attention",
+    2: "dla",
+    3: "attribution",
+    4: "activation",
+    5: "steering",
+  };
+
+  const TECHNIQUE_LABELS: Record<number, string> = {
+    0: "Logit Lens",
+    1: "Attention Patterns",
+    2: "Direct Logit Attribution",
+    3: "Attribution Patching",
+    4: "Activation Patching",
+    5: "Steering",
+  };
+
+  if (!dataReady) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>
+        <Navbar />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ textAlign: "center", fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", fontSize: 13, lineHeight: 1.7 }}>
+            <p>Tutorial data not yet generated.</p>
+            <p>Run <code style={{ background: "var(--color-surface-border)", padding: "1px 6px", borderRadius: 3 }}>python scripts/generate_tutorial_data.py</code> to populate it.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>
+      <Navbar />
+
+      {phase === "welcome" && (
+        <TutorialWelcomeModal
+          onStart={() => {
+            setPhase("active");
+            try { localStorage.setItem(WELCOME_KEY, "1"); } catch {}
+          }}
+        />
+      )}
+
+      {phase === "complete" && (
+        <TutorialCompleteModal onDismiss={() => setPhase("active")} />
+      )}
+
+      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
+        <div ref={addRef} style={{ position: "absolute", top: 12, left: 12, zIndex: 35 }}>
+          <button
+            onClick={() => setAddDropdownOpen(o => !o)}
+            style={{
+              background: "var(--color-accent)", color: "var(--color-accent-fg)", border: "none",
+              borderRadius: 6, padding: "5px 10px", fontSize: 13, fontWeight: 600, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.01em",
+            }}
+          >
+            <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
+            Add
+          </button>
+
+          {addDropdownOpen && (
+            <div style={{
+              position: "absolute", top: "calc(100% + 6px)", left: 0, background: "var(--color-card)",
+              border: "1px solid var(--color-card-border)", borderRadius: 8,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.12)", overflow: "hidden", minWidth: 200, zIndex: 40,
+            }}>
+              {[0, 1, 2, 3, 4, 5].map(i => {
+                const isEnabled = i === currentStep && !completedSteps.has(i);
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      if (!isEnabled) return;
+                      const pane = stepToPaneType[i];
+                      setOpenPane(pane);
+                      setAddDropdownOpen(false);
+                    }}
+                    disabled={!isEnabled}
+                    style={{
+                      display: "block", width: "100%", padding: "10px 16px", textAlign: "left",
+                      background: "var(--color-card)", border: "none",
+                      borderBottom: i < 5 ? "1px solid var(--color-surface-border)" : "none",
+                      fontSize: 13, fontWeight: 500, cursor: isEnabled ? "pointer" : "default",
+                      color: isEnabled ? "var(--color-text)" : "var(--color-text-muted)",
+                      opacity: isEnabled ? 1 : 0.45,
+                      transition: "background 120ms",
+                    }}
+                  >
+                    {TECHNIQUE_LABELS[i]}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <ConfigPane
+            isOpen={openPane === "lens"}
+            availableModels={[]}
+            modelsLoading={false}
+            onSubmit={(_config) => handleTutorialRun(0)}
+            onClose={() => setOpenPane(null)}
+            tutorialMode
+            tutorialConfig={TUTORIAL_CONFIGS.lens}
+          />
+          <AttentionConfigPane
+            isOpen={openPane === "attention"}
+            availableModels={[]}
+            modelsLoading={false}
+            onSubmit={(_config) => handleTutorialRun(1)}
+            onClose={() => setOpenPane(null)}
+            tutorialMode
+            tutorialConfig={TUTORIAL_CONFIGS.attention}
+          />
+          <DlaConfigPane
+            isOpen={openPane === "dla"}
+            availableModels={[]}
+            modelsLoading={false}
+            onSubmit={(_config) => handleTutorialRun(2)}
+            onClose={() => setOpenPane(null)}
+            tutorialMode
+            tutorialConfig={TUTORIAL_CONFIGS.dla}
+          />
+          <AttributionConfigPane
+            isOpen={openPane === "attribution"}
+            availableModels={[]}
+            modelsLoading={false}
+            onSubmit={(_config) => handleTutorialRun(3)}
+            onClose={() => setOpenPane(null)}
+            tutorialMode
+            tutorialConfig={TUTORIAL_CONFIGS.attribution}
+          />
+          {/* Activation step reuses AttributionConfigPane — the extra `k` field is not
+              part of that pane's tutorialConfig type, so we cast via unknown. */}
+          <AttributionConfigPane
+            isOpen={openPane === "activation"}
+            availableModels={[]}
+            modelsLoading={false}
+            onSubmit={(_config) => handleTutorialRun(4)}
+            onClose={() => setOpenPane(null)}
+            tutorialMode
+            tutorialConfig={TUTORIAL_CONFIGS.activation as unknown as {
+              modelName: string;
+              cleanPrompt: string;
+              corruptedPrompt: string;
+              gpuTier: string;
+              targetPosition: number | "last";
+              targetToken: string | null;
+              contrastiveToken: string | null;
+            }}
+          />
+          <SteeringConfigPane
+            isOpen={openPane === "steering"}
+            availableModels={[]}
+            modelsLoading={false}
+            onSubmit={(_config) => handleTutorialRun(5)}
+            onClose={() => setOpenPane(null)}
+            tutorialMode
+            tutorialConfig={TUTORIAL_CONFIGS.steering}
+          />
+        </div>
+
+        <SandboxCanvas
+          cards={state.cards}
+          canvasState={state.canvas}
+          onCanvasChange={canvas => dispatch({ type: "SET_CANVAS", canvas })}
+          onMoveCard={(id, pos) => dispatch({ type: "MOVE_CARD", id, pos })}
+          onRemoveCard={() => {}}
+          onVerifyTopK={() => {}}
+          onSteerComponents={() => {}}
+          onRerunSteering={() => {}}
+          onSpawnEntropyCard={() => {}}
+          tutorialMode
+        />
+      </div>
+
+      <TutorialDrawer
+        isOpen={drawerOpen}
+        onToggle={handleToggleDrawer}
+        currentStep={currentStep}
+        completedSteps={completedSteps}
+        onStepSelect={i => setCurrentStep(i)}
+      />
+    </div>
+  );
+}

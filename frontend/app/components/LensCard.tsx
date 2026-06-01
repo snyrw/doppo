@@ -6,7 +6,7 @@ import { interpolateColor, getContrastColor } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
 import { CardDragHandle, CardLoadingState, CardErrorState } from "./CardShell";
 
-type HeatmapData = {
+export type HeatmapData = {
   x_labels: string[];
   y_labels: string[];
   heatmap_data: number[][];
