@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "../lib/auth-client";
 import { interpolateColor, interpolateColorDivergent } from "../lib/palette";
@@ -300,25 +301,24 @@ export default function HeroContent() {
           >
             Projects
           </button>
-          <span
+          <Link
+            href="/tutorial"
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 8,
               padding: "clamp(7px, 0.65vw, 12px) clamp(12px, 1.1vw, 22px)",
               borderRadius: 6,
               fontFamily: "var(--font-ibm-plex-sans), sans-serif",
               fontSize: "clamp(10px, 0.8vw, 14px)",
               fontWeight: 500,
               letterSpacing: "0.02em",
-              color: "var(--color-text-muted)",
+              color: "var(--color-text)",
               border: "1px solid var(--color-surface-border)",
-              cursor: "not-allowed",
-              userSelect: "none",
+              textDecoration: "none",
             }}
           >
-            Tutorial (coming soon)
-          </span>
+            Tutorial
+          </Link>
         </div>
 
         <div
