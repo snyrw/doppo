@@ -1,0 +1,74 @@
+{
+  "_ready": false,
+  "_note": "Run scripts/generate_tutorial_data.py to populate this file with real model results.",
+  "steps": {
+    "0": {
+      "cardType": "logit-lens",
+      "modelName": "openai-community/gpt2",
+      "prompt": "When Mary and John went to the store, John gave a drink to",
+      "gpuTier": "tl_small",
+      "position": { "x": 80, "y": 80 },
+      "data": null
+    },
+    "1": {
+      "cardType": "attention-pattern",
+      "modelName": "openai-community/gpt2",
+      "prompt": "When Mary and John went to the store, John gave a drink to",
+      "gpuTier": "tl_small",
+      "position": { "x": 700, "y": 80 },
+      "data": null
+    },
+    "2": {
+      "cardType": "dla",
+      "modelName": "openai-community/gpt2",
+      "prompt": "When Mary and John went to the store, John gave a drink to",
+      "gpuTier": "tl_small",
+      "targetPosition": "last",
+      "targetToken": " Mary",
+      "contrastiveToken": " John",
+      "position": { "x": 80, "y": 560 },
+      "data": null
+    },
+    "3": {
+      "cardType": "attribution",
+      "modelName": "openai-community/gpt2",
+      "cleanPrompt": "When Mary and John went to the store, John gave a drink to",
+      "corruptedPrompt": "When John and Mary went to the store, Mary gave a drink to",
+      "gpuTier": "tl_small",
+      "targetPosition": "last",
+      "targetToken": " Mary",
+      "contrastiveToken": " John",
+      "position": { "x": 700, "y": 560 },
+      "data": null
+    },
+    "4": {
+      "cardType": "activation",
+      "modelName": "openai-community/gpt2",
+      "cleanPrompt": "When Mary and John went to the store, John gave a drink to",
+      "corruptedPrompt": "When John and Mary went to the store, Mary gave a gift to",
+      "gpuTier": "tl_small",
+      "targetPosition": "last",
+      "targetToken": " Mary",
+      "contrastiveToken": " John",
+      "k": 10,
+      "parentAttributionId": "tutorial-3",
+      "position": { "x": 1320, "y": 80 },
+      "data": null
+    },
+    "5": {
+      "cardType": "steering",
+      "modelName": "Qwen/Qwen2.5-1.5B-Instruct",
+      "cleanPrompt": "The weather today is sunny and warm.",
+      "corruptedPrompt": "Le temps aujourd'hui est ensoleillé et chaud.",
+      "gpuTier": "tl_small",
+      "components": [{ "layer": 16, "head": null, "injectionType": "residual" }],
+      "alpha": 15.0,
+      "temperature": 1.0,
+      "repetitionPenalty": 1.0,
+      "nTokens": 30,
+      "nPairs": 20,
+      "position": { "x": 1320, "y": 560 },
+      "data": null
+    }
+  }
+}
