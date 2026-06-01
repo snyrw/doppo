@@ -79,6 +79,21 @@ export default function DlaConfigPane({
       setPrompt(tutorialConfig.prompt);
       setSelectedModel(tutorialConfig.modelName);
       setCustomRepoId("");
+      if (tutorialConfig.targetPosition === "last") {
+        setPositionMode("last");
+        setCustomPosition("");
+      } else {
+        setPositionMode("custom");
+        setCustomPosition(String(tutorialConfig.targetPosition));
+      }
+      if (tutorialConfig.targetToken === null) {
+        setTokenMode("auto");
+        setCustomToken("");
+      } else {
+        setTokenMode("custom");
+        setCustomToken(tutorialConfig.targetToken);
+      }
+      setContrastiveToken(tutorialConfig.contrastiveToken ?? "");
     }
   }, [tutorialMode, tutorialConfig]);
 

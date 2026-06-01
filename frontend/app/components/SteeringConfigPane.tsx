@@ -46,9 +46,6 @@ type SteeringConfigPaneProps = {
     corruptedPrompt: string;
     gpuTier: string;
     layer: number;
-    alpha: number;
-    nTokens: number;
-    nPairs: number;
   };
 };
 
@@ -108,6 +105,7 @@ export default function SteeringConfigPane({
       setCorruptedPrompt(tutorialConfig.corruptedPrompt);
       setSelectedModel(tutorialConfig.modelName);
       setCustomRepoId("");
+      setInjectionLayer(String(tutorialConfig.layer));
     }
   }, [tutorialMode, tutorialConfig]);
 
