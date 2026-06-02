@@ -47,12 +47,12 @@ const DRAWER_KEY  = "doppo_tutorial_drawer_open";
 
 export default function TutorialClient() {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
-  const [phase, setPhase] = useState<"welcome" | "active" | "complete">("welcome");
+  const [phase, setPhase] = useState<"welcome" | "active" | "complete" | null>(null);
   const [currentStep, setCurrentStep]       = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [drawerOpen, setDrawerOpen]         = useState(true);
 
-  const [openPane, setOpenPane] = useState<"lens" | "dla" | "attribution" | "attention" | "steering" | "activation" | null>(null);
+  const [openPane, setOpenPane] = useState<"lens" | "dla" | "attribution" | "attention" | "steering" | "steering2" | "activation" | null>(null);
   const [addDropdownOpen, setAddDropdownOpen] = useState(false);
   const addRef = useRef<HTMLDivElement>(null);
 
@@ -102,15 +102,16 @@ export default function TutorialClient() {
 
   function advanceStep(stepIndex: number) {
     setCompletedSteps(prev => new Set([...prev, stepIndex]));
-    if (stepIndex === 5) {
+    if (stepIndex === 6) {
       setPhase("complete");
     } else {
       setCurrentStep(stepIndex + 1);
     }
   }
 
-  function createCardFromData(stepIndex: number): AnyCard | null {
-    const raw = tutorialData[String(stepIndex)] as Record<string, unknown>;
+  function createCardFromData(stepIndex: number | string): AnyCard | null {
+    const dataKey = stepIndex === 6 ? "5b" : String(stepIndex);
+    const raw = tutorialData[dataKey] as Record<string, unknown>;
     if (!raw || !raw.data) return null;
 
     const id = `tutorial-${stepIndex}`;
@@ -201,6 +202,19 @@ export default function TutorialClient() {
     setTimeout(() => advanceStep(stepIndex), 300);
   }
 
+  function handleVerifyTopK(attributionCardId: string, _k: number) {
+    // In tutorial mode there's no live GPU call — add the pre-computed activation card.
+    if (completedSteps.has(4)) return;
+    const activationCard = createCardFromData(4);
+    if (!activationCard) return;
+    const attrCard = state.cards.find(c => c.id === attributionCardId);
+    if (attrCard) {
+      activationCard.position = { x: attrCard.position.x + 420, y: attrCard.position.y };
+    }
+    dispatch({ type: "ADD_CARD", card: activationCard });
+    setTimeout(() => advanceStep(4), 300);
+  }
+
   const stepToPaneType: Record<number, typeof openPane> = {
     0: "lens",
     1: "attention",
@@ -208,6 +222,7 @@ export default function TutorialClient() {
     3: "attribution",
     4: "activation",
     5: "steering",
+    6: "steering2",
   };
 
   const TECHNIQUE_LABELS: Record<number, string> = {
@@ -216,7 +231,8 @@ export default function TutorialClient() {
     2: "Direct Logit Attribution",
     3: "Attribution Patching",
     4: "Activation Patching",
-    5: "Steering",
+    5: "Steering · Layer 14",
+    6: "Steering · Layer 16",
   };
 
   if (!dataReady) {
@@ -270,7 +286,7 @@ export default function TutorialClient() {
               border: "1px solid var(--color-card-border)", borderRadius: 8,
               boxShadow: "0 4px 16px rgba(0,0,0,0.12)", overflow: "hidden", minWidth: 200, zIndex: 40,
             }}>
-              {[0, 1, 2, 3, 4, 5].map(i => {
+              {[0, 1, 2, 3, 5, 6].map((i, listIdx) => {
                 const isEnabled = i === currentStep && !completedSteps.has(i);
                 return (
                   <button
@@ -285,7 +301,7 @@ export default function TutorialClient() {
                     style={{
                       display: "block", width: "100%", padding: "10px 16px", textAlign: "left",
                       background: "var(--color-card)", border: "none",
-                      borderBottom: i < 5 ? "1px solid var(--color-surface-border)" : "none",
+                      borderBottom: listIdx < 5 ? "1px solid var(--color-surface-border)" : "none",
                       fontSize: 13, fontWeight: 500, cursor: isEnabled ? "pointer" : "default",
                       color: isEnabled ? "var(--color-text)" : "var(--color-text-muted)",
                       opacity: isEnabled ? 1 : 0.45,
@@ -361,7 +377,22 @@ export default function TutorialClient() {
             onSubmit={(_config) => handleTutorialRun(5)}
             onClose={() => setOpenPane(null)}
             tutorialMode
-            tutorialConfig={TUTORIAL_CONFIGS.steering}
+            tutorialConfig={{
+              ...TUTORIAL_CONFIGS.steering,
+              extraPairs: (tutorialData["5"] as Record<string, unknown>)?.extraPairs as Array<{ clean: string; corrupted: string }> | undefined,
+            }}
+          />
+          <SteeringConfigPane
+            isOpen={openPane === "steering2"}
+            availableModels={[]}
+            modelsLoading={false}
+            onSubmit={(_config) => handleTutorialRun(6)}
+            onClose={() => setOpenPane(null)}
+            tutorialMode
+            tutorialConfig={{
+              ...TUTORIAL_CONFIGS.steering2,
+              extraPairs: (tutorialData["5"] as Record<string, unknown>)?.extraPairs as Array<{ clean: string; corrupted: string }> | undefined,
+            }}
           />
         </div>
 
@@ -371,7 +402,7 @@ export default function TutorialClient() {
           onCanvasChange={canvas => dispatch({ type: "SET_CANVAS", canvas })}
           onMoveCard={(id, pos) => dispatch({ type: "MOVE_CARD", id, pos })}
           onRemoveCard={() => {}}
-          onVerifyTopK={() => {}}
+          onVerifyTopK={handleVerifyTopK}
           onSteerComponents={() => {}}
           onRerunSteering={() => {}}
           onSpawnEntropyCard={() => {}}
@@ -384,7 +415,7 @@ export default function TutorialClient() {
         onToggle={handleToggleDrawer}
         currentStep={currentStep}
         completedSteps={completedSteps}
-        onStepSelect={i => setCurrentStep(i)}
+        onStepSelect={() => {}}
       />
     </div>
   );

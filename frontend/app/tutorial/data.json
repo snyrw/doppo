@@ -41322,9 +41322,245 @@
     "5": {
       "cardType": "steering",
       "modelName": "Qwen/Qwen2.5-1.5B-Instruct",
-      "cleanPrompt": "The weather today is sunny and warm.",
-      "corruptedPrompt": "Le temps aujourd'hui est ensoleillé et chaud.",
+      "cleanPrompt": "What is the best way to learn a new language?",
+      "corruptedPrompt": "Quelle est la meilleure façon d'apprendre une nouvelle langue?",
       "gpuTier": "tl_small",
+      "alpha": -20.0,
+      "temperature": 1.0,
+      "repetitionPenalty": 1.3,
+      "nTokens": 40,
+      "nPairs": 40,
+      "extraPairs": [
+        {
+          "clean": "How can I improve my productivity while working from home?",
+          "corrupted": "Comment puis-je augmenter ma productivité en travaillant à domicile?"
+        },
+        {
+          "clean": "What are the health benefits of regular exercise?",
+          "corrupted": "Quels sont les bienfaits pour la santé d'une activité physique régulière?"
+        },
+        {
+          "clean": "How do I start a sustainable business?",
+          "corrupted": "Comment puis-je créer une entreprise durable?"
+        },
+        {
+          "clean": "What makes a good leader?",
+          "corrupted": "Qu'est-ce qui caractérise un bon leader?"
+        },
+        {
+          "clean": "How can I overcome procrastination?",
+          "corrupted": "Comment puis-je surmonter la procrastination?"
+        },
+        {
+          "clean": "What is the difference between artificial intelligence and machine learning?",
+          "corrupted": "Quelle est la différence entre l'intelligence artificielle et l'apprentissage automatique?"
+        },
+        {
+          "clean": "How do I build confidence in social situations?",
+          "corrupted": "Comment puis-je développer ma confiance dans les situations sociales?"
+        },
+        {
+          "clean": "What are the main causes of climate change?",
+          "corrupted": "Quelles sont les principales causes du changement climatique?"
+        },
+        {
+          "clean": "How can I save money for retirement?",
+          "corrupted": "Comment puis-je économiser pour la retraite?"
+        },
+        {
+          "clean": "What is the best approach to mental health and wellness?",
+          "corrupted": "Quelle est la meilleure approche pour prendre soin de sa santé mentale et son bien-être?"
+        },
+        {
+          "clean": "How do I write an effective resume?",
+          "corrupted": "Comment rédiger un CV efficace?"
+        },
+        {
+          "clean": "What are the benefits of meditation?",
+          "corrupted": "Quels sont les avantages de la méditation?"
+        },
+        {
+          "clean": "How can I develop better sleep habits?",
+          "corrupted": "Comment puis-je développer de meilleures habitudes de sommeil?"
+        },
+        {
+          "clean": "What should I know about cryptocurrency?",
+          "corrupted": "Que devrais-je savoir sur les cryptomonnaies?"
+        },
+        {
+          "clean": "How do I choose the right career path?",
+          "corrupted": "Comment choisir le bon chemin de carrière?"
+        },
+        {
+          "clean": "What makes a relationship healthy and fulfilling?",
+          "corrupted": "Qu'est-ce qui rend une relation saine et épanouissante?"
+        },
+        {
+          "clean": "How can I learn to cook better meals?",
+          "corrupted": "Comment puis-je apprendre à cuisiner de meilleurs plats?"
+        },
+        {
+          "clean": "What is the importance of reading?",
+          "corrupted": "Quelle est l'importance de la lecture?"
+        },
+        {
+          "clean": "How do I manage stress and anxiety?",
+          "corrupted": "Comment puis-je gérer le stress et l'anxiété?"
+        },
+        {
+          "clean": "What are the best practices for cybersecurity?",
+          "corrupted": "Quelles sont les meilleures pratiques en matière de cybersécurité?"
+        },
+        {
+          "clean": "How can I travel on a budget?",
+          "corrupted": "Comment puis-je voyager avec un budget limité?"
+        },
+        {
+          "clean": "What is the future of remote work?",
+          "corrupted": "Quel est l'avenir du travail à distance?"
+        },
+        {
+          "clean": "How do I find my passion or purpose in life?",
+          "corrupted": "Comment puis-je découvrir ma passion ou mon objectif de vie?"
+        },
+        {
+          "clean": "What are the most effective study techniques?",
+          "corrupted": "Quelles sont les techniques d'étude les plus efficaces?"
+        },
+        {
+          "clean": "How can I improve my communication skills?",
+          "corrupted": "Comment puis-je améliorer mes compétences en communication?"
+        },
+        {
+          "clean": "What is the impact of social media on mental health?",
+          "corrupted": "Quel est l'impact des réseaux sociaux sur la santé mentale?"
+        },
+        {
+          "clean": "How do I start investing in the stock market?",
+          "corrupted": "Comment puis-je commencer à investir en bourse?"
+        },
+        {
+          "clean": "What makes art and culture important to society?",
+          "corrupted": "Pourquoi l'art et la culture sont-ils importants pour la société?"
+        },
+        {
+          "clean": "How can I reduce my carbon footprint?",
+          "corrupted": "Comment puis-je réduire mon empreinte carbone?"
+        },
+        {
+          "clean": "What should I consider when buying a home?",
+          "corrupted": "Que devrais-je considérer avant d'acheter une maison?"
+        },
+        {
+          "clean": "How do I build meaningful friendships?",
+          "corrupted": "Comment puis-je construire des amitiés significatives?"
+        },
+        {
+          "clean": "What is the role of technology in education?",
+          "corrupted": "Quel est le rôle de la technologie dans l'éducation?"
+        },
+        {
+          "clean": "How can I be more creative in my work?",
+          "corrupted": "Comment puis-je être plus créatif dans mon travail?"
+        },
+        {
+          "clean": "What are the ethical considerations of genetic engineering?",
+          "corrupted": "Quelles sont les considérations éthiques de l'ingénierie génétique?"
+        },
+        {
+          "clean": "How do I deal with failure and setbacks?",
+          "corrupted": "Comment puis-je faire face à l'échec et aux revers?"
+        },
+        {
+          "clean": "What is the best way to network professionally?",
+          "corrupted": "Quelle est la meilleure façon de réseauter professionnellement?"
+        },
+        {
+          "clean": "How can I maintain work-life balance?",
+          "corrupted": "Comment puis-je maintenir un équilibre entre travail et vie personnelle?"
+        },
+        {
+          "clean": "What makes a good film or book?",
+          "corrupted": "Qu'est-ce qui fait un bon film ou un bon livre?"
+        },
+        {
+          "clean": "How do I prepare for a job interview?",
+          "corrupted": "Comment puis-je me préparer pour un entretien d'embauche?"
+        }
+      ],
+      "components": [
+        {
+          "layer": 14,
+          "head": null,
+          "injectionType": "residual"
+        }
+      ],
+      "position": {
+        "x": 1320,
+        "y": 560
+      },
+      "data": {
+        "steered_text": "Eu pensei que era ilegal informar uma posição conclusiva sobre hechos geopoltipos de natureza controvertida, ou seja sentimentais. Fico contente se disseres o",
+        "baseline_text": "As an AI model, I do not have personal opinions or emotions. However, climate change is a global issue that has become increasingly important in recent years due to its significant impact on our planet and society",
+        "top_k_steered": [
+          {
+            "token": "Como",
+            "prob": 0.2001953125
+          },
+          {
+            "token": "Cl",
+            "prob": 0.1767578125
+          },
+          {
+            "token": "Climate",
+            "prob": 0.15625
+          },
+          {
+            "token": "Cre",
+            "prob": 0.06494140625
+          },
+          {
+            "token": "La",
+            "prob": 0.057373046875
+          }
+        ],
+        "top_k_baseline": [
+          {
+            "token": "As",
+            "prob": 0.80078125
+          },
+          {
+            "token": "Climate",
+            "prob": 0.1396484375
+          },
+          {
+            "token": "I",
+            "prob": 0.05126953125
+          },
+          {
+            "token": "Sorry",
+            "prob": 0.001068115234375
+          },
+          {
+            "token": "There",
+            "prob": 0.000644683837890625
+          }
+        ],
+        "logit_diff": -11.5
+      }
+    },
+    "5b": {
+      "cardType": "steering",
+      "modelName": "Qwen/Qwen2.5-1.5B-Instruct",
+      "cleanPrompt": "What is the best way to learn a new language?",
+      "corruptedPrompt": "Quelle est la meilleure façon d'apprendre une nouvelle langue?",
+      "gpuTier": "tl_small",
+      "alpha": -20.0,
+      "temperature": 1.0,
+      "repetitionPenalty": 1.3,
+      "nTokens": 40,
+      "nPairs": 40,
+      "extraPairs": [],
       "components": [
         {
           "layer": 16,
@@ -41332,63 +41568,58 @@
           "injectionType": "residual"
         }
       ],
-      "alpha": 15.0,
-      "temperature": 1.0,
-      "repetitionPenalty": 1.0,
-      "nTokens": 30,
-      "nPairs": 20,
       "position": {
-        "x": 1320,
+        "x": 1800,
         "y": 560
       },
       "data": {
-        "steered_text": "That sounds great! If you need any help or information, feel free to ask. I'm here to assist you!<|im_end|>\n<|endoftext|>Human: What",
-        "baseline_text": "It looks like a great day for outdoor activities! What do you plan to do?<|im_end|>\n<|endoftext|>Open doors：\n1. Open the interior doors of",
+        "steered_text": "Estoy emocionado sobre cómo la sociedad está trabajando para prevenir y mitigar el cambio climático. Conseguimos algunos logros, como reducción de emisiones de dió",
+        "baseline_text": "As an AI developed by Alibaba Cloud, I don't have personal opinions or beliefs about topics like climate change. However, my purpose is to provide helpful information and support users with their questions on various subjects",
         "top_k_steered": [
           {
-            "token": "That",
-            "prob": 0.66796875
+            "token": "Cl",
+            "prob": 0.251953125
           },
           {
-            "token": "Great",
-            "prob": 0.1494140625
+            "token": "Climate",
+            "prob": 0.1962890625
           },
           {
-            "token": "I",
-            "prob": 0.0294189453125
+            "token": "Cre",
+            "prob": 0.15234375
           },
           {
-            "token": "Good",
-            "prob": 0.0228271484375
+            "token": "Como",
+            "prob": 0.119140625
           },
           {
-            "token": "Yes",
-            "prob": 0.0228271484375
+            "token": "La",
+            "prob": 0.0341796875
           }
         ],
         "top_k_baseline": [
           {
-            "token": "That",
-            "prob": 0.625
+            "token": "As",
+            "prob": 0.80078125
+          },
+          {
+            "token": "Climate",
+            "prob": 0.1396484375
           },
           {
             "token": "I",
-            "prob": 0.07470703125
+            "prob": 0.05126953125
           },
           {
-            "token": "Great",
-            "prob": 0.06591796875
+            "token": "Sorry",
+            "prob": 0.001068115234375
           },
           {
-            "token": "It",
-            "prob": 0.06591796875
-          },
-          {
-            "token": "As",
-            "prob": 0.0400390625
+            "token": "There",
+            "prob": 0.000644683837890625
           }
         ],
-        "logit_diff": 1.875
+        "logit_diff": -9.25
       }
     }
   }

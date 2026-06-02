@@ -114,7 +114,7 @@ export default function TutorialDrawer({
                   }}
                 >
                   <span style={{ width: 14, height: 14, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, fontFamily: "var(--font-ibm-plex-sans), sans-serif", background: isDone ? "var(--color-accent)" : isCurrent ? "var(--color-surface-border)" : "transparent", border: isDone ? "none" : "1px solid var(--color-surface-border)", color: isDone ? "var(--color-accent-fg)" : "var(--color-text-muted)" }}>
-                    {isDone ? "✓" : i + 1}
+                    {isDone ? "✓" : (s.badge ?? i + 1)}
                   </span>
                   <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, color: isCurrent || isViewing ? "var(--color-text)" : isDone ? "var(--color-text)" : "var(--color-text-muted)", fontWeight: isCurrent ? 600 : 400 }}>
                     {s.label}

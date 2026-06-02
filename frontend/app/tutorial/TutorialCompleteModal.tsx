@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Props = {
   onDismiss: () => void;
@@ -18,8 +19,27 @@ const READING_LIST = [
 ];
 
 export default function TutorialCompleteModal({ onDismiss }: Props) {
+  const router = useRouter();
+  const [fadingOut, setFadingOut] = useState(false);
+  const [destination, setDestination] = useState<"projects" | "canvas" | null>(null);
+
+  const handleGoToProjects = () => {
+    setDestination("projects");
+    setFadingOut(true);
+  };
+
+  const handleDismiss = () => {
+    setDestination("canvas");
+    setFadingOut(true);
+  };
+
   return (
     <div
+      onAnimationEnd={(e) => {
+        if (!fadingOut || e.target !== e.currentTarget) return;
+        if (destination === "projects") router.push("/projects");
+        else onDismiss();
+      }}
       style={{
         position: "fixed",
         inset: 0,
@@ -29,6 +49,9 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
+        animation: fadingOut
+          ? "fadeIn 180ms ease reverse forwards"
+          : "fadeIn 180ms ease",
       }}
     >
       <div
@@ -45,6 +68,7 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
           display: "flex",
           flexDirection: "column",
           gap: 20,
+          animation: "fadeUp 220ms ease",
         }}
       >
         <div>
@@ -58,7 +82,7 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
-            {`You’ve traced the IOI circuit end-to-end: from the logit lens showing when “ Mary” first appears, through the attention heads that spot the duplicate and suppress it, to the Name Movers that copy the answer — and verified the whole thing causally with activation patching.`}
+            {`You've traced the IOI circuit end-to-end: from the logit lens showing when " Mary" first appears, through the attention heads that spot the duplicate and suppress it, to the Name Movers that copy the answer — and verified the whole thing causally with activation patching.`}
           </p>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
             Step 6 showed the complementary approach: instead of asking how a behavior is implemented, you directly controlled it by injecting a learned direction in activation space. These two perspectives — circuit analysis and representation engineering — are the two main branches of mechanistic interpretability research today.
@@ -85,8 +109,8 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
         </div>
 
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-          <Link
-            href="/projects"
+          <button
+            onClick={handleGoToProjects}
             style={{
               padding: "10px 20px",
               background: "var(--color-accent)",
@@ -97,15 +121,12 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
               fontSize: 14,
               fontWeight: 600,
               cursor: "pointer",
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
             }}
           >
             Try it on your own model →
-          </Link>
+          </button>
           <button
-            onClick={onDismiss}
+            onClick={handleDismiss}
             style={{
               padding: "10px 20px",
               background: "none",

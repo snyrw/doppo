@@ -306,47 +306,45 @@ function AttributionCard({
                 ✓ Verified
               </span>
             ) : (
-              !tutorialMode && (
-                <>
-                  <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
-                    {K_OPTIONS.map(k => (
-                      <button
-                        key={k}
-                        onClick={() => setSelectedK(k)}
-                        style={{
-                          fontSize: 9, padding: "2px 5px",
-                          background: selectedK === k ? "var(--color-surface-border)" : "transparent",
-                          color: selectedK === k ? "var(--color-text)" : "var(--color-text-muted)",
-                          border: "none", cursor: "pointer", lineHeight: 1.4,
-                        }}
-                      >
-                        {k}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => onVerifyTopK(card.id, selectedK)}
-                    disabled={isVerifying}
-                    style={{
-                      fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                      background: isVerifying ? "var(--color-surface-border)" : "var(--color-accent)",
-                      color: isVerifying ? "var(--color-text-muted)" : "var(--color-accent-fg)",
-                      border: "none", borderRadius: 4, cursor: isVerifying ? "not-allowed" : "pointer",
-                      display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
-                      transition: "background 120ms",
-                    }}
-                  >
-                    {isVerifying ? (
-                      <>
-                        <div style={{ width: 8, height: 8, border: "1.5px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                        Verifying…
-                      </>
-                    ) : (
-                      `Verify →`
-                    )}
-                  </button>
-                </>
-              )
+              <>
+                <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
+                  {K_OPTIONS.map(k => (
+                    <button
+                      key={k}
+                      onClick={() => setSelectedK(k)}
+                      style={{
+                        fontSize: 9, padding: "2px 5px",
+                        background: selectedK === k ? "var(--color-surface-border)" : "transparent",
+                        color: selectedK === k ? "var(--color-text)" : "var(--color-text-muted)",
+                        border: "none", cursor: "pointer", lineHeight: 1.4,
+                      }}
+                    >
+                      {k}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => onVerifyTopK(card.id, selectedK)}
+                  disabled={isVerifying}
+                  style={{
+                    fontSize: 9, fontWeight: 600, padding: "2px 7px",
+                    background: isVerifying ? "var(--color-surface-border)" : "var(--color-accent)",
+                    color: isVerifying ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+                    border: "none", borderRadius: 4, cursor: isVerifying ? "not-allowed" : "pointer",
+                    display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+                    transition: "background 120ms",
+                  }}
+                >
+                  {isVerifying ? (
+                    <>
+                      <div style={{ width: 8, height: 8, border: "1.5px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                      Verifying…
+                    </>
+                  ) : (
+                    `Verify →`
+                  )}
+                </button>
+              </>
             )}
             {/* Steer buttons */}
             {!tutorialMode && (

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 type Props = {
   onStart: () => void;
 };
@@ -11,8 +13,15 @@ const LINKS = [
 ];
 
 export default function TutorialWelcomeModal({ onStart }: Props) {
+  const [fadingOut, setFadingOut] = useState(false);
+
+  const handleStart = () => setFadingOut(true);
+
   return (
     <div
+      onAnimationEnd={(e) => {
+        if (fadingOut && e.target === e.currentTarget) onStart();
+      }}
       style={{
         position: "fixed",
         inset: 0,
@@ -22,6 +31,9 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
+        animation: fadingOut
+          ? "fadeIn 180ms ease reverse forwards"
+          : "fadeIn 180ms ease",
       }}
     >
       <div
@@ -36,6 +48,7 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
           display: "flex",
           flexDirection: "column",
           gap: 20,
+          animation: "fadeUp 220ms ease",
         }}
       >
         <div>
@@ -79,7 +92,7 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
         </div>
 
         <button
-          onClick={onStart}
+          onClick={handleStart}
           style={{
             marginTop: 4,
             padding: "10px 20px",

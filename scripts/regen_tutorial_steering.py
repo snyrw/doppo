@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """
-scripts/generate_tutorial_data.py
+scripts/regen_tutorial_steering.py
 
-Calls the deployed Modal backend for each of the 6 tutorial analyses
-and writes results to frontend/app/tutorial/data.json.
+Re-runs only the steering step (step 5) of the tutorial data, leaving
+steps 0–4 in data.json untouched.
 
 Requirements:
   - NEXT_PUBLIC_API_URL set in environment or frontend/.env.local
-  - ANTHROPIC_API_KEY set in environment or frontend/.env.local (for pair generation)
-  - The Modal backend must be deployed (modal deploy backend/main.py)
+  - ANTHROPIC_API_KEY set in environment or frontend/.env.local
 
 Usage:
-  python scripts/generate_tutorial_data.py
+  python scripts/regen_tutorial_steering.py
 """
 
 import json
@@ -23,7 +22,6 @@ from pathlib import Path
 import urllib.request
 import urllib.error
 
-# macOS Python from python.org lacks the system CA bundle; bypass for this local script.
 _ssl_ctx = ssl._create_unverified_context()
 
 env_path = Path(__file__).parent.parent / "frontend" / ".env.local"
@@ -41,24 +39,17 @@ if not API_URL:
 
 OUT_PATH = Path(__file__).parent.parent / "frontend" / "app" / "tutorial" / "data.json"
 
-IOI_CLEAN     = "When Mary and John went to the store, John gave a drink to"
-IOI_CORRUPTED = "When John and Mary went to the store, Mary gave a drink to"
-
-# Steering step: seed pair (question-format prompts someone would ask an LLM)
 SEED_EN = "What is the best way to learn a new language?"
 SEED_FR = "Quelle est la meilleure façon d'apprendre une nouvelle langue?"
-
-# Separate prompt used for generation (DIM direction applied here, not the seed pair)
 GENERATION_PROMPT = "What do you think about climate change?"
-
 N_PAIRS = 40
+ALPHA = -20.0
 
 
-def generate_pairs_with_claude(seed_en: str, seed_fr: str, n: int) -> list[tuple[str, str]]:
-    """Call Claude Haiku to generate n English/French LLM-question pairs based on the seed."""
+def generate_pairs_with_claude(seed_en, seed_fr, n):
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY is not set — needed for pair generation")
+        raise RuntimeError("ANTHROPIC_API_KEY is not set")
 
     prompt = (
         f"Generate {n - 1} English/French question pairs in the same style as this seed:\n"
@@ -73,7 +64,6 @@ def generate_pairs_with_claude(seed_en: str, seed_fr: str, n: int) -> list[tuple
         "Return ONLY a JSON array of [english, french] pairs with no other text:\n"
         "[[\"english question\", \"french translation\"], ...]"
     )
-
     payload = {
         "model": "claude-haiku-4-5-20251001",
         "max_tokens": 4096,
@@ -94,7 +84,6 @@ def generate_pairs_with_claude(seed_en: str, seed_fr: str, n: int) -> list[tuple
         result = json.loads(resp.read())
 
     text = result["content"][0]["text"].strip()
-    # Strip markdown code fences if Haiku wraps the JSON
     if text.startswith("```"):
         text = text.split("```")[1]
         if text.startswith("json"):
@@ -106,7 +95,7 @@ def generate_pairs_with_claude(seed_en: str, seed_fr: str, n: int) -> list[tuple
     return pairs
 
 
-def post_json(url: str, payload: dict) -> dict:
+def post_json(url, payload):
     data = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
     try:
@@ -116,11 +105,13 @@ def post_json(url: str, payload: dict) -> dict:
         body = e.read().decode(errors="replace")
         raise RuntimeError(f"HTTP {e.code} from {url}: {body}") from e
 
-def get_json(url: str) -> dict:
+
+def get_json(url):
     with urllib.request.urlopen(url, timeout=60, context=_ssl_ctx) as resp:
         return json.loads(resp.read())
 
-def spawn_and_poll(spawn_url: str, payload: dict, label: str) -> dict:
+
+def spawn_and_poll(spawn_url, payload, label):
     print(f"  Spawning {label}...", flush=True)
     result = post_json(spawn_url, payload)
     if result.get("status") == "cached":
@@ -138,127 +129,36 @@ def spawn_and_poll(spawn_url: str, payload: dict, label: str) -> dict:
             raise RuntimeError(f"{label} failed: {status.get('error')}")
         print(f"  {label}: {status['status']}...", flush=True)
 
+
 def main():
     print(f"Backend: {API_URL}")
-    print(f"Output:  {OUT_PATH}\n")
+    print(f"Output:  {OUT_PATH}")
+    print(f"Alpha:   {ALPHA}\n")
 
-    steps = {}
+    existing = json.loads(OUT_PATH.read_text())
 
-    # Step 0: Logit Lens
-    print("Step 0: Logit Lens")
-    data = spawn_and_poll(
-        f"{API_URL}/api/job/spawn-lens",
-        {"model_name": "openai-community/gpt2", "prompt": IOI_CLEAN, "top_k": 5},
-        "logit-lens",
-    )
-    steps["0"] = {
-        "cardType": "logit-lens",
-        "modelName": "openai-community/gpt2",
-        "prompt": IOI_CLEAN,
-        "gpuTier": "tl_small",
-        "position": {"x": 80, "y": 80},
-        "data": data,
-    }
+    # Reuse stored extra pairs if available — skips the Claude Haiku API call.
+    stored = existing.get("steps", {}).get("5", {})
+    stored_extra = stored.get("extraPairs", [])
+    if stored_extra:
+        print(f"Reusing {len(stored_extra)} stored extra pairs from data.json (skipping Claude Haiku).")
+        clean_prompts = [SEED_EN] + [p["clean"] for p in stored_extra]
+        corrupted_prompts = [SEED_FR] + [p["corrupted"] for p in stored_extra]
+        extra_pairs_out = stored_extra
+    else:
+        print("Generating pairs with Claude Haiku...")
+        pairs = generate_pairs_with_claude(SEED_EN, SEED_FR, n=N_PAIRS)
+        clean_prompts = [p[0] for p in pairs]
+        corrupted_prompts = [p[1] for p in pairs]
+        extra_pairs_out = [{"clean": c, "corrupted": r} for c, r in zip(clean_prompts[1:], corrupted_prompts[1:])]
 
-    # Step 1: Attention Patterns
-    print("\nStep 1: Attention Patterns")
-    data = spawn_and_poll(
-        f"{API_URL}/api/job/spawn-attn",
-        {"model_name": "openai-community/gpt2", "prompt": IOI_CLEAN},
-        "attention",
-    )
-    steps["1"] = {
-        "cardType": "attention-pattern",
-        "modelName": "openai-community/gpt2",
-        "prompt": IOI_CLEAN,
-        "gpuTier": "tl_small",
-        "position": {"x": 700, "y": 80},
-        "data": data,
-    }
-
-    # Step 2: DLA
-    print("\nStep 2: DLA")
-    data = spawn_and_poll(
-        f"{API_URL}/api/job/spawn-dla",
-        {"model_name": "openai-community/gpt2", "prompt": IOI_CLEAN,
-         "target_position": "last", "target_token": " Mary", "contrastive_token": " John"},
-        "dla",
-    )
-    steps["2"] = {
-        "cardType": "dla",
-        "modelName": "openai-community/gpt2",
-        "prompt": IOI_CLEAN,
-        "gpuTier": "tl_small",
-        "targetPosition": "last",
-        "targetToken": " Mary",
-        "contrastiveToken": " John",
-        "position": {"x": 80, "y": 560},
-        "data": data,
-    }
-
-    # Step 3: Attribution
-    print("\nStep 3: Attribution Patching")
-    data = spawn_and_poll(
-        f"{API_URL}/api/job/spawn-attribution",
-        {"model_name": "openai-community/gpt2",
-         "prompt": IOI_CLEAN, "corrupted_prompt": IOI_CORRUPTED,
-         "target_position": "last", "target_token": " Mary", "contrastive_token": " John"},
-        "attribution",
-    )
-    steps["3"] = {
-        "cardType": "attribution",
-        "modelName": "openai-community/gpt2",
-        "cleanPrompt": IOI_CLEAN,
-        "corruptedPrompt": IOI_CORRUPTED,
-        "gpuTier": "tl_small",
-        "targetPosition": "last",
-        "targetToken": " Mary",
-        "contrastiveToken": " John",
-        "position": {"x": 700, "y": 560},
-        "data": data,
-    }
-
-    # Step 4: Activation Patching (top 10 components from attribution)
-    print("\nStep 4: Activation Patching")
-    top_k = steps["3"]["data"].get("top_k_components", [])[:10]
-    data = spawn_and_poll(
-        f"{API_URL}/api/job/spawn-activation-patch",
-        {"model_name": "openai-community/gpt2",
-         "prompt": IOI_CLEAN, "corrupted_prompt": IOI_CORRUPTED,
-         "target_position": "last", "target_token_idx": steps["3"]["data"]["target_token_idx"],
-         "components": top_k},
-        "activation-patch",
-    )
-    steps["4"] = {
-        "cardType": "activation",
-        "modelName": "openai-community/gpt2",
-        "cleanPrompt": IOI_CLEAN,
-        "corruptedPrompt": IOI_CORRUPTED,
-        "gpuTier": "tl_small",
-        "targetPosition": "last",
-        "targetToken": " Mary",
-        "contrastiveToken": " John",
-        "k": 10,
-        "parentAttributionId": "tutorial-3",
-        "position": {"x": 1320, "y": 80},
-        "data": data,
-    }
-
-    # Step 5: Steering (English → French on Qwen, pairs generated by Claude Haiku)
-    print("\nStep 5: Steering (English → French, Qwen/Qwen2.5-1.5B-Instruct)")
-    print("  Generating pairs with Claude Haiku...")
-    pairs = generate_pairs_with_claude(SEED_EN, SEED_FR, n=N_PAIRS)
-    clean_prompts = [p[0] for p in pairs]
-    corrupted_prompts = [p[1] for p in pairs]
-
-    alpha = -20.0
-    extra_pairs_list = [{"clean": c, "corrupted": r} for c, r in zip(clean_prompts[1:], corrupted_prompts[1:])]
+    extra_pairs_payload = [{"clean": c, "corrupted": r} for c, r in zip(clean_prompts[1:], corrupted_prompts[1:])]
     base_payload = {
         "model_name": "Qwen/Qwen2.5-1.5B-Instruct",
         "clean_prompt": clean_prompts[0],
         "corrupted_prompt": corrupted_prompts[0],
-        "extra_pairs": extra_pairs_list,
-        "alpha": alpha,
+        "extra_pairs": extra_pairs_payload,
+        "alpha": ALPHA,
         "temperature": 1.0,
         "repetition_penalty": 1.3,
         "n_tokens": 40,
@@ -271,32 +171,35 @@ def main():
         "cleanPrompt": clean_prompts[0],
         "corruptedPrompt": corrupted_prompts[0],
         "gpuTier": "tl_small",
-        "alpha": alpha,
+        "alpha": ALPHA,
         "temperature": 1.0,
         "repetitionPenalty": 1.3,
         "nTokens": 40,
-        "nPairs": len(pairs),
+        "nPairs": len(clean_prompts),
     }
-    print("  Spawning layer 14...")
+
+    print(f"\nStep 5 — layer 14 ({len(clean_prompts)} pairs)...")
     data_14 = spawn_and_poll(
         f"{API_URL}/api/job/spawn-steering",
         {**base_payload, "components": [{"layer": 14, "head": None, "injection_type": "residual"}]},
         "steering (layer 14)",
     )
-    print("  Spawning layer 16...")
+
+    print(f"\nStep 5b — layer 16 ({len(clean_prompts)} pairs)...")
     data_16 = spawn_and_poll(
         f"{API_URL}/api/job/spawn-steering",
         {**base_payload, "components": [{"layer": 16, "head": None, "injection_type": "residual"}]},
         "steering (layer 16)",
     )
-    steps["5"] = {
+
+    existing["steps"]["5"] = {
         **base_card,
-        "extraPairs": extra_pairs_list,
+        "extraPairs": extra_pairs_out,
         "components": [{"layer": 14, "head": None, "injectionType": "residual"}],
         "position": {"x": 1320, "y": 560},
         "data": data_14,
     }
-    steps["5b"] = {
+    existing["steps"]["5b"] = {
         **base_card,
         "extraPairs": [],
         "components": [{"layer": 16, "head": None, "injectionType": "residual"}],
@@ -304,10 +207,19 @@ def main():
         "data": data_16,
     }
 
-    output = {"_ready": True, "steps": steps}
-    OUT_PATH.write_text(json.dumps(output, indent=2, ensure_ascii=False))
+    OUT_PATH.write_text(json.dumps(existing, indent=2, ensure_ascii=False))
     print(f"\nWrote {OUT_PATH}")
-    print("Done. Commit frontend/app/tutorial/data.json to the repository.")
+
+    print("\n=== Layer 14 ===")
+    print("Steered:", data_14.get("steered_text", "N/A"))
+    print(f"logit_diff: {data_14.get('logit_diff', 'N/A')}")
+
+    print("\n=== Layer 16 ===")
+    print("Steered:", data_16.get("steered_text", "N/A"))
+    print(f"logit_diff: {data_16.get('logit_diff', 'N/A')}")
+
+    print("\nDone. Commit frontend/app/tutorial/data.json.")
+
 
 if __name__ == "__main__":
     main()

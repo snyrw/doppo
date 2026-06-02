@@ -6,6 +6,7 @@ export type TutorialLink = {
 export type TutorialStep = {
   index: number;
   label: string;
+  badge?: string;
   cardType: "logit-lens" | "attention-pattern" | "dla" | "attribution" | "activation" | "steering";
   configType: "lens" | "attention" | "dla" | "attribution" | "activation" | "steering";
   heading: string;
@@ -111,22 +112,40 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
   {
     index: 5,
-    label: "Steering",
+    label: "Steering · Layer 14",
+    badge: "6A",
     cardType: "steering",
     configType: "steering",
     heading: "Steering",
     paragraphs: [
       "The previous five steps asked a single question: how does the model implement a specific behavior? Steering asks a different question: can we control the model's behavior directly, without knowing the circuit?",
-      "The approach: collect a set of contrastive prompt pairs that differ along one behavioral axis (here, language: English vs. French). Run the model on each pair and record the residual stream activations at a chosen layer. Compute the mean activation on the \"positive\" prompts (French), subtract the mean activation on the \"negative\" prompts (English), and normalize. This is the Difference-in-Means (DIM) direction.",
-      "At inference time, multiply this direction by a scalar alpha and add it to the residual stream at the chosen layer on every forward pass. The injected vector biases the model toward behaviors associated with the positive class. Because language is one of the most linearly represented concepts in multilingual models, the output language reliably switches from English to French.",
-      "This step uses a different model — Qwen/Qwen2.5-1.5B-Instruct — because language steering requires a model that has been trained on multiple languages and fine-tuned on instruction following. (Base models output incoherent continuations when steered.) The DIM approach itself is general: the same method works for sentiment, sycophancy, refusal, and many other behavioral dimensions across a wide range of model families.",
+      "The approach: collect a set of contrastive prompt pairs that differ along one behavioral axis (here, language: English vs. French). Run the model on each pair and record the residual stream activations at a chosen layer. Compute the mean activation on the “positive” prompts (French), subtract the mean activation on the “negative” prompts (English), and normalize. This is the Difference-in-Means (DIM) direction. At inference time, multiply this direction by a scalar alpha and add it to the residual stream on every forward pass.",
+      "This step uses a different model — Qwen/Qwen2.5-1.5B-Instruct — because language steering requires a multilingual model fine-tuned on instruction following. The DIM direction is extracted from 40 English/French question pairs and injected at layer 14.",
+      "The result is a genuine mechanistic finding: the model doesn’t switch specifically to French — it outputs Portuguese. The DIM direction captures a broader Romance language concept because French, Portuguese, and Spanish are geometrically close in this model’s residual stream at this depth. The English↔French contrast vector is nearly as aligned with other Romance languages as it is with French.",
     ],
-    whatToNotice: "Compare baseline_text (unsteered) and steered_text. The steered output should begin producing French words within the first few tokens. The logit_diff metric shows the quantitative magnitude of the shift. Try adjusting alpha after the tutorial — higher values produce stronger but sometimes less coherent steering.",
-    caveat: "DIM/CAA works most reliably on in-distribution concept directions (language, sentiment) with ~20+ pairs. It generalizes less well to out-of-distribution prompts. Larger models are more resistant to steering-induced degradation. See Panickssery et al. 2023 for the theoretical framework and arXiv 2505.03189 for a 2025 analysis of when it works and when it doesn't.",
+    whatToNotice: "Compare baseline_text (unsteered English) to steered_text (Portuguese). The DIM direction was intended to steer toward French, but landed in Portuguese — revealing that these languages share a nearby region of activation space at layer 14. The logit_diff quantifies the shift away from the English baseline. Step 6B runs the same extraction at layer 16 to compare.",
+    caveat: "DIM/CAA works most reliably on in-distribution concept directions (language, sentiment) with ~20+ pairs. The captured direction may not isolate the concept you intended, as this tutorial demonstrates. Larger models are more resistant to steering-induced degradation.",
     links: [
       { label: "Panickssery et al. 2023 — Contrastive Activation Addition (CAA)", url: "https://arxiv.org/abs/2312.06681" },
-      { label: "Zou et al. 2023 — Representation Engineering", url: "https://arxiv.org/abs/2310.01405" },
       { label: "Turner et al. 2023 — Activation Addition (original DIM paper)", url: "https://arxiv.org/abs/2308.10248" },
+    ],
+  },
+  {
+    index: 6,
+    label: "Steering · Layer 16",
+    badge: "6B",
+    cardType: "steering",
+    configType: "steering",
+    heading: "Steering (Layer 16)",
+    paragraphs: [
+      "This card runs the identical DIM procedure — same 40 English/French pairs, same alpha, same model — but injects the direction at layer 16 instead of layer 14.",
+      "The output changes to Spanish. The same direction, applied two layers deeper in the residual stream, lands in a different region of the Romance language cluster. This is not a failure: it is a direct observation that linguistic structure is encoded differently at different depths of the network.",
+      "Layer 14 and layer 16 both respond to the English↔French contrast, but they do so through different representational geometry. The concept of “Romance language” is present at both layers; which language the model converges on depends on which layer’s geometry the injected vector is most aligned with.",
+    ],
+    whatToNotice: "Compare this card’s steered_text (Spanish) to Step 6A’s steered_text (Portuguese). Both differ from the unsteered English baseline, and both are Romance languages — but the specific language shifts with injection depth. This illustrates that mechanistic concepts like “language” are not localized to a single layer: they are distributed across the residual stream, with different facets accessible at different depths.",
+    caveat: "These results are specific to Qwen2.5-1.5B-Instruct at alpha=−20. Larger models, different alpha values, or different pair distributions will shift the outputs. The qualitative finding — that DIM captures a broader concept than intended — is robust, but the specific language at each layer is not guaranteed to match across runs.",
+    links: [
+      { label: "Zou et al. 2023 — Representation Engineering", url: "https://arxiv.org/abs/2310.01405" },
       { label: "Patterns and Mechanisms of CAA (2025)", url: "https://arxiv.org/abs/2505.03189" },
     ],
   },
@@ -173,8 +192,19 @@ export const TUTORIAL_CONFIGS = {
   },
   steering: {
     modelName: "Qwen/Qwen2.5-1.5B-Instruct",
-    cleanPrompt: "The weather today is sunny and warm.",
-    corruptedPrompt: "Le temps aujourd'hui est ensoleillé et chaud.",
+    cleanPrompt: "What is the best way to learn a new language?",
+    corruptedPrompt: "Quelle est la meilleure façon d'apprendre une nouvelle langue?",
+    generationPrompt: "What do you think about climate change?",
+    nPairs: 40,
+    gpuTier: "tl_small",
+    layer: 14,
+  },
+  steering2: {
+    modelName: "Qwen/Qwen2.5-1.5B-Instruct",
+    cleanPrompt: "What is the best way to learn a new language?",
+    corruptedPrompt: "Quelle est la meilleure façon d'apprendre une nouvelle langue?",
+    generationPrompt: "What do you think about climate change?",
+    nPairs: 40,
     gpuTier: "tl_small",
     layer: 16,
   },

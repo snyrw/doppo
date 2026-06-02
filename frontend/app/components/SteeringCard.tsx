@@ -230,7 +230,7 @@ function SteeringCard({
           </span>
           <input
             type="range"
-            min={-3} max={3} step={0.25}
+            min={-50} max={50} step={1}
             value={localAlpha}
             disabled={tutorialMode}
             onChange={e => {
