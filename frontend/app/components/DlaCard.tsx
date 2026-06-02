@@ -43,6 +43,7 @@ type DlaCardProps = {
   onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
+  tutorialMode?: boolean;
 };
 
 
@@ -74,6 +75,7 @@ function DlaCard({
   onDragMove,
   onDragEnd,
   onRemove,
+  tutorialMode,
 }: DlaCardProps) {
   const [view, setView] = React.useState<"layer" | "head" | "top">("layer");
   const [elapsedMs, setElapsedMs] = React.useState(0);
@@ -208,13 +210,15 @@ function DlaCard({
           <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {card.prompt}
           </span>
-          <button
-            onPointerDown={e => e.stopPropagation()}
-            onClick={() => onRemove(card.id)}
-            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
-          >
-            ×
-          </button>
+          {!tutorialMode && (
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => onRemove(card.id)}
+              style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+            >
+              ×
+            </button>
+          )}
         </div>
 
         {/* Row 2: controls (result only) */}

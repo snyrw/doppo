@@ -35,6 +35,7 @@ type AttentionCardProps = {
   onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
+  tutorialMode?: boolean;
 };
 
 const CELL_SIZE = 8;
@@ -135,6 +136,7 @@ function AttentionCard({
   onDragMove,
   onDragEnd,
   onRemove,
+  tutorialMode,
 }: AttentionCardProps) {
   const [currentLayer, setCurrentLayer] = React.useState(0);
   const [selectedCell, setSelectedCell] = React.useState<SelectedCell>(null);
@@ -319,13 +321,15 @@ function AttentionCard({
           <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {card.prompt}
           </span>
-          <button
-            onPointerDown={e => e.stopPropagation()}
-            onClick={() => onRemove(card.id)}
-            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
-          >
-            ×
-          </button>
+          {!tutorialMode && (
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => onRemove(card.id)}
+              style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+            >
+              ×
+            </button>
+          )}
         </div>
 
         {data && (

@@ -26,6 +26,13 @@ type ConfigPaneProps = {
   modelsLoading: boolean;
   onSubmit: (config: { modelName: string; prompt: string; gpuTier?: string; topK: number }) => void;
   onClose: () => void;
+  tutorialMode?: boolean;
+  tutorialConfig?: {
+    modelName: string;
+    prompt: string;
+    gpuTier: string;
+    topK: number;
+  };
 };
 
 const DEFAULT_PROMPT = "The capital of France is Paris. The capital of Germany is";
@@ -37,6 +44,8 @@ export default function ConfigPane({
   modelsLoading,
   onSubmit,
   onClose,
+  tutorialMode,
+  tutorialConfig,
 }: ConfigPaneProps) {
   const { data: session } = useSession();
   const [selectedModel, setSelectedModel] = useState("");
@@ -57,6 +66,15 @@ export default function ConfigPane({
       setSelectedModel(availableModels[0].id);
     }
   }, [availableModels, selectedModel, customRepoId]);
+
+  useEffect(() => {
+    if (tutorialMode && tutorialConfig) {
+      setPrompt(tutorialConfig.prompt);
+      setSelectedModel(tutorialConfig.modelName);
+      setCustomRepoId("");
+      setTopK(tutorialConfig.topK);
+    }
+  }, [tutorialMode, tutorialConfig]);
 
   const doReset = () => {
     setSelectedModel(availableModels[0]?.id ?? "");
@@ -186,132 +204,145 @@ export default function ConfigPane({
         {/* Form body */}
         <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
 
-          {/* Featured models */}
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
-              Featured Models
-            </label>
-
-            {modelsLoading ? (
-              <div style={{ fontSize: 12, color: "var(--color-text-muted)", padding: "12px 0" }}>Loading models…</div>
-            ) : (
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 7,
-                maxHeight: 260,
-                overflowY: "auto",
-                paddingRight: 2,
-              }}>
-                {availableModels.map(m => {
-                  const isSelected = selectedModel === m.id && !usingCustom;
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => selectFeaturedModel(m.id)}
-                      title={m.description}
-                      style={{
-                        border: `1.5px solid ${isSelected ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                        borderRadius: 7,
-                        padding: "8px 9px",
-                        background: isSelected ? "var(--color-surface-border)" : "var(--color-card)",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        transition: "border-color 120ms, background 120ms",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 3,
-                      }}
-                      onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-accent)"; }}
-                      onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-card-border)"; }}
-                    >
-                      <span style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "var(--color-accent)" : "var(--color-text)", lineHeight: 1.3 }}>
-                        {m.display_name}
-                      </span>
-                      <span style={{
-                        fontSize: 10,
-                        color: "var(--color-text-muted)",
-                        lineHeight: 1.4,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                      }}>
-                        {m.description}
-                      </span>
-                      {!session && m.gpu_tier !== "tl_small" && (
-                        <span style={{ fontSize: 9, color: "#d97706", marginTop: 1, letterSpacing: "0.02em" }}>
-                          Sign in to run
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+          {/* Featured models / model selection */}
+          {tutorialMode ? (
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
+                Model
+              </label>
+              <div style={{ padding: "8px 16px 4px", fontSize: 12, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+                {tutorialConfig?.modelName}
               </div>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-              or
-            </span>
-            <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
-          </div>
-
-          {/* Any HuggingFace model */}
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
-              Any HuggingFace Model
-            </label>
-            <div style={{ display: "flex", gap: 6 }}>
-              <input
-                type="text"
-                placeholder="username/model-name"
-                value={customRepoId}
-                onChange={e => handleCustomRepoChange(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && customRepoId.trim()) validateCustomRepo(); }}
-                style={{
-                  flex: 1,
-                  border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                  borderRadius: 6,
-                  padding: "6px 8px",
-                  fontSize: 11,
-                  fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                  color: "var(--color-text)",
-                  background: "var(--color-bg)",
-                  outline: "none",
-                  transition: "border-color 120ms",
-                }}
-              />
-              <button
-                onClick={validateCustomRepo}
-                disabled={!customRepoId.trim() || customValidating}
-                style={{
-                  border: "1px solid var(--color-card-border)",
-                  borderRadius: 6,
-                  padding: "6px 10px",
-                  fontSize: 11,
-                  background: "var(--color-surface-border)",
-                  color: "var(--color-text-muted)",
-                  cursor: (!customRepoId.trim() || customValidating) ? "not-allowed" : "pointer",
-                  opacity: (!customRepoId.trim() || customValidating) ? 0.5 : 1,
-                  whiteSpace: "nowrap",
-                  transition: "background 120ms",
-                }}
-              >
-                {customValidating ? "…" : "Validate"}
-              </button>
             </div>
-            {customValidation && (
-              <p style={{ marginTop: 6, fontSize: 11, color: customValidation.valid ? "#16a34a" : "#dc2626", margin: "6px 0 0" }}>
-                {customValidation.valid
-                  ? `✓ Valid — ${customValidation.gpu_tier ? TIER_LABELS[customValidation.gpu_tier] ?? customValidation.gpu_tier : "unknown GPU"}`
-                  : `✗ ${customValidation.reason}`}
-              </p>
-            )}
-          </div>
+          ) : (
+            <>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
+                  Featured Models
+                </label>
+
+                {modelsLoading ? (
+                  <div style={{ fontSize: 12, color: "var(--color-text-muted)", padding: "12px 0" }}>Loading models…</div>
+                ) : (
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 7,
+                    maxHeight: 260,
+                    overflowY: "auto",
+                    paddingRight: 2,
+                  }}>
+                    {availableModels.map(m => {
+                      const isSelected = selectedModel === m.id && !usingCustom;
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={() => selectFeaturedModel(m.id)}
+                          title={m.description}
+                          style={{
+                            border: `1.5px solid ${isSelected ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                            borderRadius: 7,
+                            padding: "8px 9px",
+                            background: isSelected ? "var(--color-surface-border)" : "var(--color-card)",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            transition: "border-color 120ms, background 120ms",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 3,
+                          }}
+                          onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-accent)"; }}
+                          onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-card-border)"; }}
+                        >
+                          <span style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "var(--color-accent)" : "var(--color-text)", lineHeight: 1.3 }}>
+                            {m.display_name}
+                          </span>
+                          <span style={{
+                            fontSize: 10,
+                            color: "var(--color-text-muted)",
+                            lineHeight: 1.4,
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}>
+                            {m.description}
+                          </span>
+                          {!session && m.gpu_tier !== "tl_small" && (
+                            <span style={{ fontSize: 9, color: "#d97706", marginTop: 1, letterSpacing: "0.02em" }}>
+                              Sign in to run
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
+                <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  or
+                </span>
+                <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
+              </div>
+
+              {/* Any HuggingFace model */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
+                  Any HuggingFace Model
+                </label>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input
+                    type="text"
+                    placeholder="username/model-name"
+                    value={customRepoId}
+                    onChange={e => handleCustomRepoChange(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter" && customRepoId.trim()) validateCustomRepo(); }}
+                    style={{
+                      flex: 1,
+                      border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                      borderRadius: 6,
+                      padding: "6px 8px",
+                      fontSize: 11,
+                      fontFamily: "var(--font-ibm-plex-sans), sans-serif",
+                      color: "var(--color-text)",
+                      background: "var(--color-bg)",
+                      outline: "none",
+                      transition: "border-color 120ms",
+                    }}
+                  />
+                  <button
+                    onClick={validateCustomRepo}
+                    disabled={!customRepoId.trim() || customValidating}
+                    style={{
+                      border: "1px solid var(--color-card-border)",
+                      borderRadius: 6,
+                      padding: "6px 10px",
+                      fontSize: 11,
+                      background: "var(--color-surface-border)",
+                      color: "var(--color-text-muted)",
+                      cursor: (!customRepoId.trim() || customValidating) ? "not-allowed" : "pointer",
+                      opacity: (!customRepoId.trim() || customValidating) ? 0.5 : 1,
+                      whiteSpace: "nowrap",
+                      transition: "background 120ms",
+                    }}
+                  >
+                    {customValidating ? "…" : "Validate"}
+                  </button>
+                </div>
+                {customValidation && (
+                  <p style={{ marginTop: 6, fontSize: 11, color: customValidation.valid ? "#16a34a" : "#dc2626", margin: "6px 0 0" }}>
+                    {customValidation.valid
+                      ? `✓ Valid — ${customValidation.gpu_tier ? TIER_LABELS[customValidation.gpu_tier] ?? customValidation.gpu_tier : "unknown GPU"}`
+                      : `✗ ${customValidation.reason}`}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Prompt */}
           <div style={{ marginBottom: 20 }}>
@@ -321,6 +352,7 @@ export default function ConfigPane({
             <textarea
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
+              disabled={tutorialMode}
               rows={5}
               style={{
                 width: "100%",
@@ -335,6 +367,7 @@ export default function ConfigPane({
                 fontFamily: "inherit",
                 lineHeight: 1.5,
                 boxSizing: "border-box",
+                ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
               }}
             />
             <TokenPreview tokens={tokenPreview.tokens} loading={tokenPreview.loading} />
@@ -356,7 +389,8 @@ export default function ConfigPane({
               </span>
               <button
                 onClick={() => setTopK(k => Math.max(1, k - 1))}
-                style={{ fontSize: 11, width: 18, height: 22, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, cursor: "pointer", color: "var(--color-text-muted)", padding: 0 }}
+                disabled={tutorialMode}
+                style={{ fontSize: 11, width: 18, height: 22, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, cursor: tutorialMode ? "default" : "pointer", color: "var(--color-text-muted)", padding: 0 }}
               >
                 −
               </button>
@@ -365,7 +399,8 @@ export default function ConfigPane({
               </span>
               <button
                 onClick={() => setTopK(k => Math.min(10, k + 1))}
-                style={{ fontSize: 11, width: 18, height: 22, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, cursor: "pointer", color: "var(--color-text-muted)", padding: 0 }}
+                disabled={tutorialMode}
+                style={{ fontSize: 11, width: 18, height: 22, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, cursor: tutorialMode ? "default" : "pointer", color: "var(--color-text-muted)", padding: 0 }}
               >
                 +
               </button>

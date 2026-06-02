@@ -22,6 +22,7 @@ type EntropyCardProps = {
   onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
+  tutorialMode?: boolean;
 };
 
 const INNER_W = 210;
@@ -40,7 +41,7 @@ function makePath(vals: number[], maxVal: number, w: number, h: number): string 
     .join(" ");
 }
 
-function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove }: EntropyCardProps) {
+function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, tutorialMode }: EntropyCardProps) {
   const [hoveredLayer, setHoveredLayer] = React.useState<number | null>(null);
 
   const { entropyData, yLabels, xLabels } = card;
@@ -132,13 +133,15 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove }
         }}>
           H · {card.modelName.split("/").pop()}
         </span>
-        <button
-          onPointerDown={e => e.stopPropagation()}
-          onClick={() => onRemove(card.id)}
-          style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
-        >
-          ×
-        </button>
+        {!tutorialMode && (
+          <button
+            onPointerDown={e => e.stopPropagation()}
+            onClick={() => onRemove(card.id)}
+            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+          >
+            ×
+          </button>
+        )}
       </div>
 
       <div style={{ padding: "8px 6px 6px", position: "relative" }}>

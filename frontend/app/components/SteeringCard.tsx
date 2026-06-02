@@ -54,6 +54,7 @@ type SteeringCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   onRerun: (cardId: string, newAlpha: number) => void;
+  tutorialMode?: boolean;
 };
 
 function formatElapsed(ms: number): string {
@@ -76,6 +77,7 @@ function SteeringCard({
   onDragEnd,
   onRemove,
   onRerun,
+  tutorialMode,
 }: SteeringCardProps) {
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
@@ -189,13 +191,15 @@ function SteeringCard({
         <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {card.components.map(componentLabel).join(" + ") || "residual"}
         </span>
-        <button
-          onPointerDown={e => e.stopPropagation()}
-          onClick={() => onRemove(card.id)}
-          style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
-        >
-          ×
-        </button>
+        {!tutorialMode && (
+          <button
+            onPointerDown={e => e.stopPropagation()}
+            onClick={() => onRemove(card.id)}
+            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+          >
+            ×
+          </button>
+        )}
       </div>
 
       {/* Injection info + alpha slider row */}
@@ -228,6 +232,7 @@ function SteeringCard({
             type="range"
             min={-3} max={3} step={0.25}
             value={localAlpha}
+            disabled={tutorialMode}
             onChange={e => {
               const val = parseFloat(e.target.value);
               setLocalAlpha(val);
@@ -241,12 +246,12 @@ function SteeringCard({
                 }, 2000);
               }
             }}
-            style={{ width: 80, accentColor: "var(--color-accent)", cursor: "pointer" }}
+            style={{ width: 80, accentColor: "var(--color-accent)", cursor: tutorialMode ? "not-allowed" : "pointer", ...(tutorialMode ? { opacity: 0.45 } : {}) }}
           />
           {debouncing && (
             <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", userSelect: "none" }}>⋯</span>
           )}
-          {card.status !== "loading" && localAlpha !== card.alpha && (
+          {!tutorialMode && card.status !== "loading" && localAlpha !== card.alpha && (
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={() => {

@@ -31,6 +31,7 @@ type SandboxCanvasProps = {
   onSteerComponents: (sourceCardId: string, components: SteeringComponent[]) => void;
   onRerunSteering: (cardId: string, newAlpha: number) => void;
   onSpawnEntropyCard: (lensCardId: string) => void;
+  tutorialMode?: boolean;
 };
 
 export default function SandboxCanvas({
@@ -43,6 +44,7 @@ export default function SandboxCanvas({
   onSteerComponents,
   onRerunSteering,
   onSpawnEntropyCard,
+  tutorialMode,
 }: SandboxCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -160,6 +162,7 @@ export default function SandboxCanvas({
       onDragMove,
       onDragEnd,
       onRemove: onRemoveCard,
+      tutorialMode,
     };
     switch (card.cardType) {
       case "dla":
