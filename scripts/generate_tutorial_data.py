@@ -15,13 +15,17 @@ Usage:
 
 import json
 import os
+import ssl
 import sys
 import time
 from pathlib import Path
 import urllib.request
 import urllib.error
 
-env_path = Path(__file__).parent.parent / ".env.local"
+# macOS Python from python.org lacks the system CA bundle; bypass for this local script.
+_ssl_ctx = ssl._create_unverified_context()
+
+env_path = Path(__file__).parent.parent / "frontend" / ".env.local"
 if env_path.exists():
     for line in env_path.read_text().splitlines():
         line = line.strip()
@@ -65,11 +69,15 @@ ENGLISH_FRENCH_PAIRS = [
 def post_json(url: str, payload: dict) -> dict:
     data = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
-    with urllib.request.urlopen(req, timeout=600) as resp:
-        return json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req, timeout=600, context=_ssl_ctx) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        raise RuntimeError(f"HTTP {e.code} from {url}: {body}") from e
 
 def get_json(url: str) -> dict:
-    with urllib.request.urlopen(url, timeout=60) as resp:
+    with urllib.request.urlopen(url, timeout=60, context=_ssl_ctx) as resp:
         return json.loads(resp.read())
 
 def spawn_and_poll(spawn_url: str, payload: dict, label: str) -> dict:
@@ -78,7 +86,7 @@ def spawn_and_poll(spawn_url: str, payload: dict, label: str) -> dict:
     if result.get("status") == "cached":
         print(f"  {label}: cache hit", flush=True)
         return result["data"]
-    job_id = result["jobId"]
+    job_id = result["job_id"]
     print(f"  {label}: job {job_id}, polling...", flush=True)
     while True:
         time.sleep(5)
@@ -153,7 +161,7 @@ def main():
     data = spawn_and_poll(
         f"{API_URL}/api/job/spawn-attribution",
         {"model_name": "openai-community/gpt2",
-         "clean_prompt": IOI_CLEAN, "corrupted_prompt": IOI_CORRUPTED,
+         "prompt": IOI_CLEAN, "corrupted_prompt": IOI_CORRUPTED,
          "target_position": "last", "target_token": " Mary", "contrastive_token": " John"},
         "attribution",
     )
@@ -176,9 +184,9 @@ def main():
     data = spawn_and_poll(
         f"{API_URL}/api/job/spawn-activation-patch",
         {"model_name": "openai-community/gpt2",
-         "clean_prompt": IOI_CLEAN, "corrupted_prompt": IOI_CORRUPTED,
+         "prompt": IOI_CLEAN, "corrupted_prompt": IOI_CORRUPTED,
          "target_position": "last", "target_token_idx": steps["3"]["data"]["target_token_idx"],
-         "top_k_components": top_k},
+         "components": top_k},
         "activation-patch",
     )
     steps["4"] = {
@@ -214,7 +222,6 @@ def main():
             "n_tokens": 30,
             "generation_prompt": clean_prompts[0],
             "target_position": "last",
-            "target_token": None,
         },
         "steering",
     )

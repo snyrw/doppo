@@ -15,13 +15,13 @@ modal deploy backend/main.py    # deploy backend (requires Modal credentials)
 - **Modal async in `api()`:** All route handlers in the `api()` FastAPI function are `async def`. Use `.aio()` variants for every Modal call: `.spawn.aio()`, `FunctionCall.from_id.aio()`, `.get.aio(timeout=0)`, `.cancel.aio()`. Sync versions cause `AsyncUsageWarning` and block the event loop.
 - **`injection_type` vs `injectionType`:** Frontend `SteeringComponent` uses camelCase `injectionType`; the backend Pydantic model expects snake_case `injection_type`. `spawn-steering/route.ts` maps this before sending. Any new steering-related endpoint must do the same.
 - **Backend deploys on push, not commit:** GitHub Actions only triggers on `git push` to `main`. Local commits to `backend/main.py` are not deployed until pushed.
-- **New card type checklist:** update `AnyCard` union in `SandboxCanvas.tsx`, add a case to `renderCard()`, add a branch to `serializeCard()` in `projects/helpers.ts`, add optional fields to `SerializedCard` in `actions.ts`, add `?? default` in DB restore blocks in `projects/page.tsx` and `share/[shareId]/page.tsx`.
+- **New card type checklist:** update `AnyCard` union in `SandboxCanvas.tsx`, add a case to `renderCard()`, add a branch to `serializeCard()` in `projects/helpers.ts`, add optional fields to `SerializedCard` in `actions.ts`, add `?? default` in DB restore blocks in `projects/page.tsx` and `share/[shareId]/page.tsx`, add `tutorialMode?: boolean` prop + hide remove button (and any mutation-only controls) when true — see Tutorial mode section in `.claude/rules/frontend.md`.
 - **`/api/run-steering` payload changes:** sync all three fetch bodies in `projects/hooks/useSteeringHandlers.ts` — `steerComponents`, `rerunSteering`, `addStandaloneSteer`.
 - **Drizzle migrations in bash:** `drizzle-kit migrate/push` hangs in non-TTY. Use `.mjs` workaround — see `.claude/rules/database.md`.
 - **GPU tier labels:** always import from `frontend/app/lib/tiers.ts`. Never redefine inline.
-- **Auth gate:** All GPU inference requires authentication and credits — there is no anonymous inference tier. Credits billing is live. Always verify `userId` ownership before mutating DB rows.
+- **Auth gate:** All GPU inference requires authentication and credits — there is no anonymous inference tier. Credits billing is live. Always verify `userId` ownership before mutating DB rows. Exception: `/tutorial` is publicly accessible but serves pre-computed static data — no live GPU calls.
 - **Stripe (deferred):** Checkout and webhook routes are fully implemented but gated by missing env vars (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`). To activate: (1) set those three vars in Railway, (2) register `https://doppo.tools/api/stripe/webhook` in the Stripe dashboard for `checkout.session.completed` and `checkout.session.async_payment_succeeded`. No code changes needed — the guards in `api/credits/checkout/route.ts` and `api/stripe/webhook/route.ts` will fall through automatically.
-- **Planned: on-rails tutorial** — a pre-computed, scripted walkthrough of all six analysis tools (logit lens → DLA → attribution → activation patch → steering → attn) on a fixed model/prompt, served as static data (no GPU). Replaces anon access as the discovery/onboarding path. Not yet implemented; spec TBD.
+- **Tutorial (`/tutorial`):** Pre-computed, no-auth walkthrough of all six tools — IOI circuit on GPT-2 Small (steps 1–5) and English→French DIM steering on Qwen2.5-1.5B-Instruct (step 6). Results live in `frontend/app/tutorial/data.json` (committed, imported at build time — no GPU at runtime). To regenerate: `python scripts/generate_tutorial_data.py` (reads `frontend/.env.local` for `NEXT_PUBLIC_API_URL`, calls the Modal backend directly, ~5–10 min), then commit the file. **Script calls Modal `api()` endpoints directly** (not Next.js routes), so: responses are snake_case (`job_id` not `jobId`); `SpawnAttributionRequest` and `SpawnActivationPatchRequest` use `prompt` for the clean prompt; `SpawnSteeringRequest` uses `clean_prompt`.
 
 ## Backend (backend/main.py)
 
@@ -89,6 +89,7 @@ All frontend source lives under `frontend/app/`.
 - `frontend/app/lib/stream-sse.ts` — `readSSEStream()` / `parseSSE()` async generators for SSE consumption
 - `frontend/app/lib/api-helpers.ts` — shared route utilities: `requireAuth()`, `fetchUpstream()`, `validateGpuTier()`, `resolveModelTier()`
 - `frontend/app/share/[shareId]/` — `page.tsx` (server) + `ShareCanvas.tsx` (client, noop callbacks)
+- `frontend/app/tutorial/` — `page.tsx` (server) + `TutorialClient.tsx` (orchestrator) + `TutorialDrawer.tsx` + `TutorialWelcomeModal.tsx` + `TutorialCompleteModal.tsx` + `steps.ts` (content + configs) + `data.json` (pre-computed results)
 
 ## API contracts
 
