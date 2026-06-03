@@ -52,7 +52,7 @@ export default function TutorialClient() {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [drawerOpen, setDrawerOpen]         = useState(true);
 
-  const [openPane, setOpenPane] = useState<"lens" | "dla" | "attribution" | "attention" | "steering" | "steering2" | "activation" | null>(null);
+  const [openPane, setOpenPane] = useState<"lens" | "dla" | "attribution" | "attention" | "steering" | "activation" | null>(null);
   const [addDropdownOpen, setAddDropdownOpen] = useState(false);
   const addRef = useRef<HTMLDivElement>(null);
 
@@ -192,6 +192,24 @@ export default function TutorialClient() {
     }
   }
 
+  function handleBothSteeringRun() {
+    const card6 = createCardFromData(6);
+    const card7 = createCardFromData(7);
+    if (!card6) return;
+    dispatch({ type: "ADD_CARD", card: card6 });
+    if (card7) {
+      card7.position = { x: card6.position.x + 500, y: card6.position.y };
+      dispatch({ type: "ADD_CARD", card: card7 });
+    }
+    panToPosition(card6.position);
+    setOpenPane(null);
+    setAddDropdownOpen(false);
+    setTimeout(() => {
+      setCompletedSteps(prev => new Set([...prev, 6, 7]));
+      setPhase("complete");
+    }, 300);
+  }
+
   function handleTutorialRun(stepIndex: number) {
     const card = createCardFromData(stepIndex);
     if (!card) return;
@@ -222,7 +240,6 @@ export default function TutorialClient() {
     4: "attribution",
     5: "activation",
     6: "steering",
-    7: "steering2",
   };
 
   const TECHNIQUE_LABELS: Record<number, string> = {
@@ -231,8 +248,7 @@ export default function TutorialClient() {
     3: "Direct Logit Attribution",
     4: "Attribution Patching",
     5: "Activation Patching",
-    6: "Steering · Layer 14",
-    7: "Steering · Layer 16",
+    6: "Steering",
   };
 
   if (!dataReady) {
@@ -286,8 +302,10 @@ export default function TutorialClient() {
               border: "1px solid var(--color-card-border)", borderRadius: 8,
               boxShadow: "0 4px 16px rgba(0,0,0,0.12)", overflow: "hidden", minWidth: 200, zIndex: 40,
             }}>
-              {[1, 2, 3, 4, 6, 7].map((i, listIdx) => {
-                const isEnabled = i === currentStep && !completedSteps.has(i);
+              {[1, 2, 3, 4, 6].map((i, listIdx) => {
+                const isEnabled = i === 6
+                  ? (currentStep === 6 || currentStep === 7) && !completedSteps.has(6)
+                  : i === currentStep && !completedSteps.has(i);
                 return (
                   <button
                     key={i}
@@ -301,7 +319,7 @@ export default function TutorialClient() {
                     style={{
                       display: "block", width: "100%", padding: "10px 16px", textAlign: "left",
                       background: "var(--color-card)", border: "none",
-                      borderBottom: listIdx < 5 ? "1px solid var(--color-surface-border)" : "none",
+                      borderBottom: listIdx < 4 ? "1px solid var(--color-surface-border)" : "none",
                       fontSize: 13, fontWeight: 500, cursor: isEnabled ? "pointer" : "default",
                       color: isEnabled ? "var(--color-text)" : "var(--color-text-muted)",
                       opacity: isEnabled ? 1 : 0.45,
@@ -374,23 +392,11 @@ export default function TutorialClient() {
             isOpen={openPane === "steering"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(6)}
+            onSubmit={(_config) => handleBothSteeringRun()}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={{
               ...TUTORIAL_CONFIGS.steering,
-              extraPairs: (tutorialData["5"] as Record<string, unknown>)?.extraPairs as Array<{ clean: string; corrupted: string }> | undefined,
-            }}
-          />
-          <SteeringConfigPane
-            isOpen={openPane === "steering2"}
-            availableModels={[]}
-            modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(7)}
-            onClose={() => setOpenPane(null)}
-            tutorialMode
-            tutorialConfig={{
-              ...TUTORIAL_CONFIGS.steering2,
               extraPairs: (tutorialData["5"] as Record<string, unknown>)?.extraPairs as Array<{ clean: string; corrupted: string }> | undefined,
             }}
           />

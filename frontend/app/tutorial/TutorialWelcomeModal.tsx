@@ -71,6 +71,9 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
             This tutorial assumes some level of familiarity with neural network and transformer concepts, which introductions to have been provided below.
           </p>
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
+            (Note: This tutorial is currently in a WIP stage, and writing and logic are undergoing active changes.)
+          </p>
         </div>
 
         <div>

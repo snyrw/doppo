@@ -317,7 +317,7 @@ export default function HeroContent() {
               textDecoration: "none",
             }}
           >
-            Tutorial
+            Tutorial (WIP)
           </Link>
         </div>
 
