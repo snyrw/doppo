@@ -388,6 +388,11 @@ class _TLBase:
 
         yield json.dumps({"stage": "tokenizing"})
         tokens = self.model.to_tokens(prompt)
+        if tokens.shape[1] > MAX_PROMPT_TOKENS:
+            raise ValueError(
+                f"Prompt too long: {tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
+                "Shorten your prompt."
+            )
         pos = _resolve_pos(tokens, target_position)
 
         yield json.dumps({"stage": "forward_pass"})
@@ -983,6 +988,11 @@ class _TLBase:
 
         yield json.dumps({"stage": "tokenizing"})
         tokens = self.model.to_tokens(prompt)
+        if tokens.shape[1] > MAX_PROMPT_TOKENS:
+            raise ValueError(
+                f"Prompt too long: {tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
+                "Shorten your prompt."
+            )
 
         yield json.dumps({"stage": "forward_pass"})
         _, cache = self.model.run_with_cache(tokens)
