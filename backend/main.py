@@ -487,6 +487,11 @@ class _TLBase:
 
         yield json.dumps({"stage": "tokenizing"})
         clean_tokens = self.model.to_tokens(clean_prompt)
+        if clean_tokens.shape[1] > MAX_PROMPT_TOKENS:
+            raise ValueError(
+                f"Prompt too long: {clean_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
+                "Shorten your prompt."
+            )
         corrupted_tokens = self.model.to_tokens(corrupted_prompt)
         pos = _resolve_pos(clean_tokens, target_position)
 
@@ -662,6 +667,11 @@ class _TLBase:
 
         yield json.dumps({"stage": "tokenizing"})
         clean_tokens = self.model.to_tokens(clean_prompt)
+        if clean_tokens.shape[1] > MAX_PROMPT_TOKENS:
+            raise ValueError(
+                f"Prompt too long: {clean_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
+                "Shorten your prompt."
+            )
         corrupted_tokens = self.model.to_tokens(corrupted_prompt)
         pos = _resolve_pos(clean_tokens, target_position)
         top_components = components[:k]
@@ -1061,6 +1071,11 @@ class _TLBase:
 
         TOKEN_CAP = 30
         tokens = self.model.to_tokens(prompt)
+        if tokens.shape[1] > MAX_PROMPT_TOKENS:
+            raise ValueError(
+                f"Prompt too long: {tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
+                "Shorten your prompt."
+            )
         truncated = tokens.shape[1] > TOKEN_CAP
         if truncated:
             tokens = tokens[:, :TOKEN_CAP]
