@@ -7,7 +7,7 @@ Stack: Next.js, FastAPI, TransformerLens 3.0, Modal (serverless GPU), Neon + Bet
 
 ```
 cd frontend && npm run dev      # frontend: localhost:3000
-modal deploy backend/main.py    # deploy backend (requires Modal credentials)
+modal deploy -m backend.main    # deploy backend (requires Modal credentials)
 ```
 
 ## Behavioral rules

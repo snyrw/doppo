@@ -1,9 +1,10 @@
 # backend/tests/test_integration.py
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from main import app, TransformerLensSmall
+from backend.config import app
+from backend.main import TransformerLensSmall
 
 
 @app.local_entrypoint()

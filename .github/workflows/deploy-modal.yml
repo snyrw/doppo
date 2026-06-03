@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "backend/main.py"
+      - "backend/**"
 
 jobs:
   deploy:
@@ -25,4 +25,4 @@ jobs:
         env:
           MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
           MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
-        run: modal deploy backend/main.py
+        run: modal deploy -m backend.main

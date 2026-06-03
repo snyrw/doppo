@@ -2,7 +2,8 @@
 import pytest
 from unittest.mock import patch
 from fastapi.testclient import TestClient
-from main import create_app, FEATURED_MODELS
+from backend.main import create_app
+from backend.config import FEATURED_MODELS
 
 
 @pytest.fixture(scope="module")
@@ -40,7 +41,7 @@ class TestListModels:
 
 class TestValidateModel:
     def test_valid_model_returns_200(self, client):
-        with patch("main.validate_hf_repo") as mock:
+        with patch("backend.routes.utils.validate_hf_repo") as mock:
             mock.return_value = {"valid": True, "gpu_tier": "tl_small", "reason": "ok"}
             response = client.post("/api/validate-model", json={"repo_id": "openai-community/gpt2"})
         assert response.status_code == 200
@@ -49,7 +50,7 @@ class TestValidateModel:
         assert data["gpu_tier"] == "tl_small"
 
     def test_invalid_model_returns_400(self, client):
-        with patch("main.validate_hf_repo") as mock:
+        with patch("backend.routes.utils.validate_hf_repo") as mock:
             mock.return_value = {"valid": False, "gpu_tier": None, "reason": "not found"}
             response = client.post("/api/validate-model", json={"repo_id": "nonexistent/model"})
         assert response.status_code == 400
@@ -98,7 +99,7 @@ class TestSpawnLens:
 
     def test_valid_request_returns_job_id(self, client):
         mock_cls = self._mock_resolve("abc-123")
-        with patch("main._resolve_model", return_value=(mock_cls, "openai-community/gpt2")):
+        with patch("backend.main._resolve_model", return_value=(mock_cls, "openai-community/gpt2")):
             response = client.post("/api/job/spawn-lens", json={
                 "model_name": "gpt2-small",
                 "prompt": "The cat sat",
@@ -109,7 +110,7 @@ class TestSpawnLens:
 
     def test_bad_model_returns_400(self, client):
         from fastapi import HTTPException
-        with patch("main._resolve_model", side_effect=HTTPException(status_code=400, detail="model not found")):
+        with patch("backend.main._resolve_model", side_effect=HTTPException(status_code=400, detail="model not found")):
             response = client.post("/api/job/spawn-lens", json={
                 "model_name": "bad/model",
                 "prompt": "hello",

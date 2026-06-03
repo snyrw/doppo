@@ -1,3 +1,4 @@
 import sys
 import os
-sys.path.insert(0, os.path.dirname(__file__))
+# Add project root so 'backend' is importable as a package
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

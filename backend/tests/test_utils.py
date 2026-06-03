@@ -2,7 +2,10 @@
 import json
 import pytest
 from types import SimpleNamespace
-from main import _detect_gpu_tier, _bump_tier, _resolve_pos, _sse_error
+from backend.validation import _detect_gpu_tier
+from backend.main import _bump_tier
+from backend.inference import _resolve_pos
+from backend.config import _sse_error
 
 
 # ── _detect_gpu_tier ──────────────────────────────────────────────────────────
