@@ -40,6 +40,7 @@ tl_image = (
 # tl_large   → A100-80GB  (10–25B models; A100 fits ~25B comfortably in bfloat16)
 # tl_xlarge  → H200       (25–69B models; H200 141 GB fits up to ~65B comfortably in bfloat16)
 # tl_xxlarge → B200       (70B–100B; B200 192 GB gives ~52 GB headroom for 70B weights + TL cache)
+MAX_PROMPT_TOKENS = 48
 FEATURED_MODELS: dict[str, dict] = {
     # ── GPT-2 ────────────────────────────────────────────────────────────────
     "gpt2-small": {
