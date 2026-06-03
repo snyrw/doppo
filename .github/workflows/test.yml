@@ -1,0 +1,69 @@
+# .github/workflows/test.yml
+name: Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request_target:
+    types: [opened, synchronize, labeled]
+
+jobs:
+  unit:
+    name: Backend unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements-dev.txt
+
+      - name: Run tests
+        run: pytest backend/tests/test_utils.py backend/tests/test_api.py -v
+
+  frontend:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: frontend
+        run: npm test
+
+  gpu-integration:
+    name: GPU integration test
+    runs-on: ubuntu-latest
+    # Runs on: push to main, OR PR with gpu-tests label, OR PR by repo owner
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request_target' && (
+        github.actor == github.repository_owner ||
+        contains(github.event.pull_request.labels.*.name, 'gpu-tests')
+      ))
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Modal
+        run: pip install modal
+
+      - name: Run GPU smoke test
+        env:
+          MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+          MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+        run: modal run backend/tests/test_integration.py
