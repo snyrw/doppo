@@ -794,6 +794,14 @@ class _TLBase:
 
         yield json.dumps({"stage": "computing"})
 
+        _cap_tokens = self.model.to_tokens(clean_prompt)
+        if _cap_tokens.shape[1] > MAX_PROMPT_TOKENS:
+            raise ValueError(
+                f"Prompt too long: {_cap_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
+                "Shorten your prompt."
+            )
+        del _cap_tokens
+
         # Apply chat template for instruct-tuned models so generation is in-distribution.
         # Base models (GPT-2, Qwen base, etc.) have no chat_template and get text as-is.
         def _fmt(text: str) -> str:
