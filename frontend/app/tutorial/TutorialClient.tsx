@@ -47,7 +47,7 @@ const DRAWER_KEY  = "doppo_tutorial_drawer_open";
 
 export default function TutorialClient() {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
-  const [phase, setPhase] = useState<"welcome" | "active" | "complete" | null>(null);
+  const [phase, setPhase] = useState<"welcome" | "active" | "complete" | null>("welcome");
   const [currentStep, setCurrentStep]       = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [drawerOpen, setDrawerOpen]         = useState(true);
@@ -60,7 +60,7 @@ export default function TutorialClient() {
     try {
       const stored = localStorage.getItem(DRAWER_KEY);
       if (stored !== null) setDrawerOpen(stored === "true");
-      if (localStorage.getItem(WELCOME_KEY)) setPhase("active");
+      // if (localStorage.getItem(WELCOME_KEY)) setPhase("active");
     } catch {}
   }, []);
 
@@ -102,7 +102,7 @@ export default function TutorialClient() {
 
   function advanceStep(stepIndex: number) {
     setCompletedSteps(prev => new Set([...prev, stepIndex]));
-    if (stepIndex === 6) {
+    if (stepIndex === 7) {
       setPhase("complete");
     } else {
       setCurrentStep(stepIndex + 1);
@@ -110,7 +110,7 @@ export default function TutorialClient() {
   }
 
   function createCardFromData(stepIndex: number | string): AnyCard | null {
-    const dataKey = stepIndex === 6 ? "5b" : String(stepIndex);
+    const dataKey = stepIndex === 7 ? "5b" : String(Number(stepIndex) - 1);
     const raw = tutorialData[dataKey] as Record<string, unknown>;
     if (!raw || !raw.data) return null;
 
@@ -204,35 +204,35 @@ export default function TutorialClient() {
 
   function handleVerifyTopK(attributionCardId: string, _k: number) {
     // In tutorial mode there's no live GPU call — add the pre-computed activation card.
-    if (completedSteps.has(4)) return;
-    const activationCard = createCardFromData(4);
+    if (completedSteps.has(5)) return;
+    const activationCard = createCardFromData(5);
     if (!activationCard) return;
     const attrCard = state.cards.find(c => c.id === attributionCardId);
     if (attrCard) {
       activationCard.position = { x: attrCard.position.x + 420, y: attrCard.position.y };
     }
     dispatch({ type: "ADD_CARD", card: activationCard });
-    setTimeout(() => advanceStep(4), 300);
+    setTimeout(() => advanceStep(5), 300);
   }
 
   const stepToPaneType: Record<number, typeof openPane> = {
-    0: "lens",
-    1: "attention",
-    2: "dla",
-    3: "attribution",
-    4: "activation",
-    5: "steering",
-    6: "steering2",
+    1: "lens",
+    2: "attention",
+    3: "dla",
+    4: "attribution",
+    5: "activation",
+    6: "steering",
+    7: "steering2",
   };
 
   const TECHNIQUE_LABELS: Record<number, string> = {
-    0: "Logit Lens",
-    1: "Attention Patterns",
-    2: "Direct Logit Attribution",
-    3: "Attribution Patching",
-    4: "Activation Patching",
-    5: "Steering · Layer 14",
-    6: "Steering · Layer 16",
+    1: "Logit Lens",
+    2: "Attention Patterns",
+    3: "Direct Logit Attribution",
+    4: "Attribution Patching",
+    5: "Activation Patching",
+    6: "Steering · Layer 14",
+    7: "Steering · Layer 16",
   };
 
   if (!dataReady) {
@@ -286,7 +286,7 @@ export default function TutorialClient() {
               border: "1px solid var(--color-card-border)", borderRadius: 8,
               boxShadow: "0 4px 16px rgba(0,0,0,0.12)", overflow: "hidden", minWidth: 200, zIndex: 40,
             }}>
-              {[0, 1, 2, 3, 5, 6].map((i, listIdx) => {
+              {[1, 2, 3, 4, 6, 7].map((i, listIdx) => {
                 const isEnabled = i === currentStep && !completedSteps.has(i);
                 return (
                   <button
@@ -319,7 +319,7 @@ export default function TutorialClient() {
             isOpen={openPane === "lens"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(0)}
+            onSubmit={(_config) => handleTutorialRun(1)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={TUTORIAL_CONFIGS.lens}
@@ -328,7 +328,7 @@ export default function TutorialClient() {
             isOpen={openPane === "attention"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(1)}
+            onSubmit={(_config) => handleTutorialRun(2)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={TUTORIAL_CONFIGS.attention}
@@ -337,7 +337,7 @@ export default function TutorialClient() {
             isOpen={openPane === "dla"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(2)}
+            onSubmit={(_config) => handleTutorialRun(3)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={TUTORIAL_CONFIGS.dla}
@@ -346,7 +346,7 @@ export default function TutorialClient() {
             isOpen={openPane === "attribution"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(3)}
+            onSubmit={(_config) => handleTutorialRun(4)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={TUTORIAL_CONFIGS.attribution}
@@ -357,7 +357,7 @@ export default function TutorialClient() {
             isOpen={openPane === "activation"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(4)}
+            onSubmit={(_config) => handleTutorialRun(5)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={TUTORIAL_CONFIGS.activation as unknown as {
@@ -374,7 +374,7 @@ export default function TutorialClient() {
             isOpen={openPane === "steering"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(5)}
+            onSubmit={(_config) => handleTutorialRun(6)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={{
@@ -386,7 +386,7 @@ export default function TutorialClient() {
             isOpen={openPane === "steering2"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(6)}
+            onSubmit={(_config) => handleTutorialRun(7)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={{
@@ -416,6 +416,7 @@ export default function TutorialClient() {
         currentStep={currentStep}
         completedSteps={completedSteps}
         onStepSelect={() => {}}
+        onContinueIntro={() => advanceStep(0)}
       />
     </div>
   );

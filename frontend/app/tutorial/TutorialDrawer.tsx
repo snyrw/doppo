@@ -9,6 +9,7 @@ type Props = {
   currentStep: number;
   completedSteps: Set<number>;
   onStepSelect: (index: number) => void;
+  onContinueIntro: () => void;
 };
 
 export default function TutorialDrawer({
@@ -17,6 +18,7 @@ export default function TutorialDrawer({
   currentStep,
   completedSteps,
   onStepSelect,
+  onContinueIntro,
 }: Props) {
   const [viewStep, setViewStep] = useState(currentStep);
 
@@ -25,6 +27,18 @@ export default function TutorialDrawer({
   }, [currentStep]);
 
   const step = TUTORIAL_STEPS[viewStep];
+
+  // Render part label whenever it changes between adjacent steps
+  const stepListItems = TUTORIAL_STEPS.map((s, i) => {
+    const prevPart = i > 0 ? TUTORIAL_STEPS[i - 1].part : undefined;
+    const showPartHeader = s.part && s.part !== prevPart;
+    return { step: s, index: i, showPartHeader };
+  });
+
+  const isIntroStep = !step.cardType;
+  const stepLabel = isIntroStep
+    ? "Introduction"
+    : `Step ${viewStep} of ${TUTORIAL_STEPS.length - 1}`;
 
   return (
     <>
@@ -82,44 +96,61 @@ export default function TutorialDrawer({
             flexShrink: 0,
             borderBottom: "1px solid var(--color-surface-border)",
             padding: "12px 16px 10px",
+            maxHeight: "35%",
+            overflowY: "auto",
           }}
         >
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 8px" }}>
             Steps
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {TUTORIAL_STEPS.map((s, i) => {
+            {stepListItems.map(({ step: s, index: i, showPartHeader }) => {
               const isDone = completedSteps.has(i);
               const isCurrent = i === currentStep;
               const isViewing = i === viewStep;
               const canNavigate = isDone || isCurrent;
 
               return (
-                <button
-                  key={i}
-                  onPointerDown={e => e.stopPropagation()}
-                  onClick={() => { if (canNavigate) { setViewStep(i); onStepSelect(i); } }}
-                  disabled={!canNavigate}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "4px 6px",
-                    background: isViewing ? "var(--color-surface-border)" : "none",
-                    border: "none",
-                    borderRadius: 4,
-                    cursor: canNavigate ? "pointer" : "default",
-                    textAlign: "left",
-                    transition: "background 100ms",
-                  }}
-                >
-                  <span style={{ width: 14, height: 14, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, fontFamily: "var(--font-ibm-plex-sans), sans-serif", background: isDone ? "var(--color-accent)" : isCurrent ? "var(--color-surface-border)" : "transparent", border: isDone ? "none" : "1px solid var(--color-surface-border)", color: isDone ? "var(--color-accent-fg)" : "var(--color-text-muted)" }}>
-                    {isDone ? "✓" : (s.badge ?? i + 1)}
-                  </span>
-                  <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, color: isCurrent || isViewing ? "var(--color-text)" : isDone ? "var(--color-text)" : "var(--color-text-muted)", fontWeight: isCurrent ? 600 : 400 }}>
-                    {s.label}
-                  </span>
-                </button>
+                <div key={i}>
+                  {showPartHeader && (
+                    <p style={{
+                      fontFamily: "var(--font-ibm-plex-sans), sans-serif",
+                      fontSize: 9,
+                      fontWeight: 600,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      color: "var(--color-text-muted)",
+                      margin: "8px 6px 4px",
+                    }}>
+                      {s.part}
+                    </p>
+                  )}
+                  <button
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={() => { if (canNavigate) { setViewStep(i); onStepSelect(i); } }}
+                    disabled={!canNavigate}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "4px 6px",
+                      width: "100%",
+                      background: isViewing ? "var(--color-surface-border)" : "none",
+                      border: "none",
+                      borderRadius: 4,
+                      cursor: canNavigate ? "pointer" : "default",
+                      textAlign: "left",
+                      transition: "background 100ms",
+                    }}
+                  >
+                    <span style={{ width: 14, height: 14, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, fontFamily: "var(--font-ibm-plex-sans), sans-serif", background: isDone ? "var(--color-accent)" : isCurrent ? "var(--color-surface-border)" : "transparent", border: isDone ? "none" : "1px solid var(--color-surface-border)", color: isDone ? "var(--color-accent-fg)" : "var(--color-text-muted)" }}>
+                      {isDone ? "✓" : (s.badge ?? (i === 0 ? "·" : i))}
+                    </span>
+                    <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, color: isCurrent || isViewing ? "var(--color-text)" : isDone ? "var(--color-text)" : "var(--color-text-muted)", fontWeight: isCurrent ? 600 : 400 }}>
+                      {s.label}
+                    </span>
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -127,28 +158,34 @@ export default function TutorialDrawer({
 
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 32px" }}>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 8px" }}>
-            Step {viewStep + 1} of {TUTORIAL_STEPS.length}
+            {stepLabel}
           </p>
           <h2 style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 16, fontWeight: 600, color: "var(--color-text)", margin: "0 0 16px", letterSpacing: "-0.01em" }}>
             {step.heading}
           </h2>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
-            {step.paragraphs.map((p, i) => (
-              <p key={i} style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
-                {p}
-              </p>
-            ))}
+            {step.paragraphs.map((p, i) =>
+              typeof p === "string" ? (
+                <p key={i} style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
+                  {p}
+                </p>
+              ) : (
+                <img key={i} src={p.src} alt={p.alt} style={{ width: "100%", borderRadius: 6, display: "block" }} />
+              )
+            )}
           </div>
 
-          <div style={{ background: "var(--color-surface-border)", borderRadius: 6, padding: "12px 14px", marginBottom: step.caveat ? 16 : 20 }}>
-            <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 6px" }}>
-              What to notice
-            </p>
-            <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 12, lineHeight: 1.7, color: "var(--color-text)", margin: 0 }}>
-              {step.whatToNotice}
-            </p>
-          </div>
+          {step.whatToNotice && (
+            <div style={{ background: "var(--color-surface-border)", borderRadius: 6, padding: "12px 14px", marginBottom: step.caveat ? 16 : 20 }}>
+              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 6px" }}>
+                What to notice
+              </p>
+              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 12, lineHeight: 1.7, color: "var(--color-text)", margin: 0 }}>
+                {step.whatToNotice}
+              </p>
+            </div>
+          )}
 
           {step.caveat && (
             <div style={{ border: "1px solid var(--color-surface-border)", borderRadius: 6, padding: "12px 14px", marginBottom: 20 }}>
@@ -162,7 +199,7 @@ export default function TutorialDrawer({
           )}
 
           {step.links.length > 0 && (
-            <div>
+            <div style={{ marginBottom: isIntroStep && viewStep === currentStep ? 20 : 0 }}>
               <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 8px" }}>
                 References
               </p>
@@ -181,6 +218,27 @@ export default function TutorialDrawer({
                 ))}
               </div>
             </div>
+          )}
+
+          {isIntroStep && viewStep === currentStep && (
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={onContinueIntro}
+              style={{
+                marginTop: 4,
+                padding: "9px 18px",
+                background: "var(--color-accent)",
+                color: "var(--color-accent-fg)",
+                border: "none",
+                borderRadius: 6,
+                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Start Part 1 →
+            </button>
           )}
         </div>
       </div>

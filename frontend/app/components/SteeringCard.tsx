@@ -310,7 +310,7 @@ function SteeringCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (

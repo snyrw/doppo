@@ -7,11 +7,12 @@ export type TutorialStep = {
   index: number;
   label: string;
   badge?: string;
-  cardType: "logit-lens" | "attention-pattern" | "dla" | "attribution" | "activation" | "steering";
-  configType: "lens" | "attention" | "dla" | "attribution" | "activation" | "steering";
+  part?: string;
+  cardType?: "logit-lens" | "attention-pattern" | "dla" | "attribution" | "activation" | "steering";
+  configType?: "lens" | "attention" | "dla" | "attribution" | "activation" | "steering";
   heading: string;
-  paragraphs: string[];
-  whatToNotice: string;
+  paragraphs: (string | { type: "image"; src: string; alt: string })[];
+  whatToNotice?: string;
   caveat?: string;
   links: TutorialLink[];
 };
@@ -19,34 +20,51 @@ export type TutorialStep = {
 export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     index: 0,
+    label: "Introduction",
+    heading: "Replicating Key Works",
+    paragraphs: [
+      "Mechanistic interpretability asks how specific behaviors are implemented inside a neural network, i.e., which components are causally responsible and through what algorithm. Doppo currently covers parts of two white-box approaches that the field has developed to try and answer these questions: circuit analysis that identifies the subgraph of components implementing a behavior; representation engineering controls the model by directly manipulating its internal representations.",
+      "Part 1 starts from an early circuit tracing work that covered the IOI circuit in GPT-2 Small, a canonical benchmark from Wang et al. 2022. Indirect Object Identification (predicting the indirect object in sentences like 'John gave a drink to ___') requires tracking multiple named entities. Wang et al. identified a small subgraph of ~26 attention heads that implement this, making IOI the first complete circuit found in a production language model. It established that transformers contain identifiable, interpretable subgraphs. The circuit has since been shown to persist across training stages and model scales (Tigges et al. 2024), and methods like circuit tracing and attribution graphs take this to a much higher degree of complexity. The good thing is that IOI can be replicated on nearly every transformer, which will allow use to reproduce the key findings: logit lens tracing when the correct answer first appears, attention patterns revealing head specialization, and causal verification via activation patching.",
+      "Part 2 switches to a more recent open model while asking a different question. Instead of asking how a behavior is implemented, it asks: can you directly control the model's representations? Difference-in-means (DIM) vectors extract a direction in activation space from contrastive prompt pairs and injects it at inference time. Turner et al. 2023 and Panickssery et al. 2023 showed this reliably steers model behavior, and work like Arditi et al. 2024 has shown that this approach can be used to bypass safety mechanisms in open-source models. Subsequent work has also examined its precision and failure modes. This part makes an somewhat interesting failure mode visible by showing that steering can land somewhere other than where you aimed, with the reason is itself being an interesting mechanistic finding.",
+    ],
+    links: [
+      { label: "Wang et al. 2022 — IOI circuit paper", url: "https://arxiv.org/abs/2211.00593" },
+      { label: "Tigges et al. 2024 — IOI circuit consistent across training and scale", url: "https://arxiv.org/abs/2407.10827" },
+      { label: "Turner et al. 2023 — Activation Addition", url: "https://arxiv.org/abs/2308.10248" },
+      { label: "Panickssery et al. 2023 — Contrastive Activation Addition (CAA)", url: "https://arxiv.org/abs/2312.06681" },
+    ],
+  },
+  {
+    index: 1,
     label: "Logit Lens",
+    part: "Part 1 · IOI Circuit",
     cardType: "logit-lens",
     configType: "lens",
     heading: "Logit Lens",
     paragraphs: [
       "Transformers build up a prediction by passing a \"residual stream\" through a sequence of attention and MLP layers. Each layer reads from and writes to this shared stream. The final layer's output is projected through the unembedding matrix W_U to produce logits over the vocabulary.",
-      "The logit lens applies that same projection at every intermediate layer, not just the last one. This lets you watch the model's implicit prediction evolve as it processes the input — a layer-by-layer film of the model committing to an answer.",
-      "The heatmap shows, for each token position and each layer, the probability of the most-likely next token under the raw logit lens. Bright cells at a position mean the model already has a confident prediction at that layer; dark cells mean it doesn't yet.",
-      "We're running this on the IOI (Indirect Object Identification) task from Wang et al. 2022 — a canonical benchmark in mechanistic interpretability. The prompt \"When Mary and John went to the store, John gave a drink to\" has a single correct continuation: \" Mary\" (the indirect object). What's striking is how late the model commits to this answer — only in the final three layers does \" Mary\" rise to the top.",
+      "The logit lens applies that same projection at every intermediate layer, not just the last one. This lets you watch the model's implicit prediction evolve as it processes the input.",
+      "There are several different metrics for the logit lens to measure, but the default that we load into is next-token probability. This works across all layers at every token position to show the next most-likely token. Bright cells at a position mean the model already has a confident prediction at that layer; dark cells mean it doesn't yet.",
+      "Logit lens cards also have 5 separate modes, including top-1 probability, KL divergence from the final layer, next-token rank, and entropy.",
+      "As previously mentioned, we're directly adapting this from the IOI (Indirect Object Identification) task from Wang et al. 2022. The prompt \"When Mary and John went to the store, John gave a drink to\" has a single correct continuation: \" Mary\" (the indirect object). Can you notice when the model commits to an answer here? How do these five metrics measure model behavior differently?",
     ],
     whatToNotice: "Look at the final token position (the last column). Notice which layer is the first where \" Mary\" appears at high probability. This phase transition at layers 7–9 is the signature of the S-Inhibition and Name Mover heads firing.",
     links: [
       { label: "Wang et al. 2022 — IOI circuit paper", url: "https://arxiv.org/abs/2211.00593" },
-      { label: "LogitLens4LLMs (2025) — extending to modern architectures", url: "https://arxiv.org/abs/2503.11667" },
       { label: "Tuned Lens — learned affine correction for rotated-basis models", url: "https://arxiv.org/pdf/2303.08112" },
     ],
   },
   {
-    index: 1,
+    index: 2,
     label: "Attention Patterns",
+    part: "Part 1 · IOI Circuit",
     cardType: "attention-pattern",
     configType: "attention",
     heading: "Attention Patterns",
     paragraphs: [
-      "Attention heads compute a weighted average of value vectors, where the weights come from a softmax over query-key dot products. The attention pattern — the matrix of weights — tells you what each head \"looks at\" when computing its output for a given position.",
-      "Visualizing attention patterns across all heads reveals functional specialization: different heads in the same model learn to implement qualitatively different algorithms. The IOI circuit identified three distinct head classes whose patterns are visible here.",
-      "Duplicate Token heads (layers 0–3) attend from the second occurrence of \"John\" back to the first, flagging the repeated name. S-Inhibition heads (layers 7–8, especially 7.3, 7.9, 8.6, 8.10) attend from the final token back to those duplicate positions and write a suppression signal that prevents the Name Movers from copying the wrong name. Name Mover heads (layers 9–10, especially 9.9, 9.6, 10.0) attend from the final token directly to \"Mary\" and copy it to the output.",
-      "Each of these head classes has a visually distinctive pattern shape. The Duplicate Token heads show a backward diagonal at the S2 position. The Name Movers show a sharp spike on the IO token (\"Mary\") from the END position.",
+      "Attention heads compute a weighted average of value vectors, where the weights come from a softmax over query-key dot products. The attention pattern themselves essentially tell you what each head \"looks at\" when computing its output for a given position.",
+      { type: "image", src: "/figure2_wang.png", alt: "Figure 2 from Wang et al. 2022 showing attention head roles in the IOI circuit" },
+      "Visualizing attention patterns across all heads reveals functional specialization: different heads in the same model learn to implement qualitatively different algorithms. Although is it quite difficult to tell what certain heads are doing with 100% precision, the above is a graphic from Wang et al., 2022 describing the some of the heads prompt we use here.",
     ],
     whatToNotice: "Navigate to layer 9 and look at head 9.9. Its attention from the END position focuses almost entirely on \" Mary\". That single head is doing a substantial share of the work of producing the correct answer.",
     links: [
@@ -55,13 +73,14 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     ],
   },
   {
-    index: 2,
+    index: 3,
     label: "Direct Logit Attribution",
+    part: "Part 1 · IOI Circuit",
     cardType: "dla",
     configType: "dla",
     heading: "Direct Logit Attribution",
     paragraphs: [
-      "The residual stream is additive: every attention head and MLP layer writes a vector into it, and these vectors sum linearly to form the final representation. Because the unembedding matrix W_U is also linear, each component's contribution can be projected directly onto the logit direction for any token — giving a signed scalar per component.",
+      "The residual stream is additive: every attention head and MLP layer writes a vector into it, and these vectors sum linearly to form the final representation. Because the unembedding matrix W_U is also linear, each component's contribution can be projected directly onto the logit direction for any token.",
       "Direct Logit Attribution (DLA) applies this decomposition to compute how much each attention head and each MLP layer directly contributes to logit(\" Mary\") − logit(\" John\"), the metric that captures whether the model prefers the correct answer.",
       "The bar chart shows all 144 attention heads in GPT-2 Small. Most are essentially zero. A handful tower above the baseline: the Name Mover heads (9.6, 9.9, 10.0) each contribute +0.5 to +1.5 logit units in favor of \" Mary\". The Negative Name Movers (10.7, 11.10) contribute −0.5 to −1.0 — a hedging mechanism that reduces overconfidence.",
       "DLA is the fastest first-pass screening tool for identifying which components matter. But it has a critical limitation: it measures only direct effects. A head can be causally necessary for the correct answer without having high DLA, if it acts earlier in the circuit (e.g. S-Inhibition heads set up the Name Movers but don't write directly to the output direction).",
@@ -73,8 +92,9 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     ],
   },
   {
-    index: 3,
+    index: 4,
     label: "Attribution Patching",
+    part: "Part 1 · IOI Circuit",
     cardType: "attribution",
     configType: "attribution",
     heading: "Attribution Patching",
@@ -92,8 +112,9 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     ],
   },
   {
-    index: 4,
+    index: 5,
     label: "Activation Patching",
+    part: "Part 1 · IOI Circuit",
     cardType: "activation",
     configType: "activation",
     heading: "Activation Patching",
@@ -111,17 +132,18 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     ],
   },
   {
-    index: 5,
+    index: 6,
     label: "Steering · Layer 14",
     badge: "6A",
+    part: "Part 2 · Activation Steering",
     cardType: "steering",
     configType: "steering",
     heading: "Steering",
     paragraphs: [
       "The previous five steps asked a single question: how does the model implement a specific behavior? Steering asks a different question: can we control the model's behavior directly, without knowing the circuit?",
-      "The approach: collect a set of contrastive prompt pairs that differ along one behavioral axis (here, language: English vs. French). Run the model on each pair and record the residual stream activations at a chosen layer. Compute the mean activation on the “positive” prompts (French), subtract the mean activation on the “negative” prompts (English), and normalize. This is the Difference-in-Means (DIM) direction. At inference time, multiply this direction by a scalar alpha and add it to the residual stream on every forward pass.",
+      "The approach: collect a set of contrastive prompt pairs that differ along one behavioral axis (here, language: English vs. French). Run the model on each pair and record the residual stream activations at a chosen layer. Compute the mean activation on the 'positive' prompts (French), subtract the mean activation on the 'negative' prompts (English), and normalize. This is the Difference-in-Means (DIM) direction. At inference time, multiply this direction by a scalar alpha and add it to the residual stream on every forward pass.",
       "This step uses a different model — Qwen/Qwen2.5-1.5B-Instruct — because language steering requires a multilingual model fine-tuned on instruction following. The DIM direction is extracted from 40 English/French question pairs and injected at layer 14.",
-      "The result is a genuine mechanistic finding: the model doesn’t switch specifically to French — it outputs Portuguese. The DIM direction captures a broader Romance language concept because French, Portuguese, and Spanish are geometrically close in this model’s residual stream at this depth. The English↔French contrast vector is nearly as aligned with other Romance languages as it is with French.",
+      "The result is a genuine mechanistic finding: the model doesn't switch specifically to French — it outputs Portuguese. The DIM direction captures a broader Romance language concept because French, Portuguese, and Spanish are geometrically close in this model's residual stream at this depth. The English↔French contrast vector is nearly as aligned with other Romance languages as it is with French.",
     ],
     whatToNotice: "Compare baseline_text (unsteered English) to steered_text (Portuguese). The DIM direction was intended to steer toward French, but landed in Portuguese — revealing that these languages share a nearby region of activation space at layer 14. The logit_diff quantifies the shift away from the English baseline. Step 6B runs the same extraction at layer 16 to compare.",
     caveat: "DIM/CAA works most reliably on in-distribution concept directions (language, sentiment) with ~20+ pairs. The captured direction may not isolate the concept you intended, as this tutorial demonstrates. Larger models are more resistant to steering-induced degradation.",
@@ -131,18 +153,19 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     ],
   },
   {
-    index: 6,
+    index: 7,
     label: "Steering · Layer 16",
     badge: "6B",
+    part: "Part 2 · Activation Steering",
     cardType: "steering",
     configType: "steering",
     heading: "Steering (Layer 16)",
     paragraphs: [
       "This card runs the identical DIM procedure — same 40 English/French pairs, same alpha, same model — but injects the direction at layer 16 instead of layer 14.",
       "The output changes to Spanish. The same direction, applied two layers deeper in the residual stream, lands in a different region of the Romance language cluster. This is not a failure: it is a direct observation that linguistic structure is encoded differently at different depths of the network.",
-      "Layer 14 and layer 16 both respond to the English↔French contrast, but they do so through different representational geometry. The concept of “Romance language” is present at both layers; which language the model converges on depends on which layer’s geometry the injected vector is most aligned with.",
+      "Layer 14 and layer 16 both respond to the English↔French contrast, but they do so through different representational geometry. The concept of 'Romance language' is present at both layers; which language the model converges on depends on which layer's geometry the injected vector is most aligned with.",
     ],
-    whatToNotice: "Compare this card’s steered_text (Spanish) to Step 6A’s steered_text (Portuguese). Both differ from the unsteered English baseline, and both are Romance languages — but the specific language shifts with injection depth. This illustrates that mechanistic concepts like “language” are not localized to a single layer: they are distributed across the residual stream, with different facets accessible at different depths.",
+    whatToNotice: "Compare this card's steered_text (Spanish) to Step 6A's steered_text (Portuguese). Both differ from the unsteered English baseline, and both are Romance languages — but the specific language shifts with injection depth. This illustrates that mechanistic concepts like 'language' are not localized to a single layer: they are distributed across the residual stream, with different facets accessible at different depths.",
     caveat: "These results are specific to Qwen2.5-1.5B-Instruct at alpha=−20. Larger models, different alpha values, or different pair distributions will shift the outputs. The qualitative finding — that DIM captures a broader concept than intended — is robust, but the specific language at each layer is not guaranteed to match across runs.",
     links: [
       { label: "Zou et al. 2023 — Representation Engineering", url: "https://arxiv.org/abs/2310.01405" },

@@ -514,7 +514,7 @@ function LensCard({
         </div>
       )}
 
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
 
       {card.status === "result" && card.data && (
         <div style={{ overflow: "auto", padding: 6, background: "var(--color-card)" }}>

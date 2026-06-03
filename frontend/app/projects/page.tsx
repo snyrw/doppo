@@ -182,6 +182,7 @@ function Projects() {
   const [shareCopied, setShareCopied] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [creditsToast, setCreditsToast] = useState(false);
   const addRef = useRef<HTMLDivElement>(null);
   const projectsRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -199,6 +200,16 @@ function Projects() {
       router.replace("/");
     }
   }, [sessionPending, session, router]);
+
+  useEffect(() => {
+    if (searchParams.get("credits") !== "success") return;
+    window.dispatchEvent(new CustomEvent("credits-updated"));
+    setCreditsToast(true);
+    router.replace("/projects" + (searchParams.get("id") ? `?id=${searchParams.get("id")}` : ""));
+    const t = setTimeout(() => setCreditsToast(false), 4000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Close add dropdown + sub-panes on outside click
   useEffect(() => {
@@ -458,6 +469,27 @@ function Projects() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>
       <Navbar />
+
+      {creditsToast && (
+        <div style={{
+          position: "fixed",
+          bottom: 24,
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "var(--color-card)",
+          border: "1px solid var(--color-card-border)",
+          borderRadius: 8,
+          padding: "10px 18px",
+          fontSize: 12,
+          fontFamily: "var(--font-ibm-plex-sans), sans-serif",
+          color: "var(--color-text)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+          zIndex: 300,
+          whiteSpace: "nowrap",
+        }}>
+          Credits added successfully
+        </div>
+      )}
 
       {/* Canvas area — relative so the "Add Lens +" button can float over it */}
       <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
