@@ -20,6 +20,21 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: process.env.NODE_ENV === "production",
+    sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }) => {
+      if (resend && process.env.RESEND_FROM_EMAIL) {
+        const { error } = await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL,
+          to: user.email,
+          subject: "Reset your Doppo password",
+          html: `<p>Click <a href="${url}">here</a> to reset your password. This link expires in 1 hour.</p>`,
+        });
+        if (error) throw new Error(`Resend error: ${error.message}`);
+      } else if (process.env.NODE_ENV === "production") {
+        throw new Error("Resend is not configured — RESEND_API_KEY or RESEND_FROM_EMAIL missing");
+      } else {
+        console.log(`[DEV] Reset password for ${user.email}: ${url}`);
+      }
+    },
   },
   socialProviders: {
     github: {
