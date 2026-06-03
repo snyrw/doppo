@@ -5,6 +5,7 @@ import { usePalette } from "../hooks/usePalette";
 import { interpolateColor, getContrastColor } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
 import { CardDragHandle, CardLoadingState, CardErrorState } from "./CardShell";
+import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 
 export type HeatmapData = {
   x_labels: string[];
@@ -41,6 +42,7 @@ type LensCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   onSpawnEntropy?: () => void;
+  entropyCardExists?: boolean;
   tutorialMode?: boolean;
 };
 
@@ -91,30 +93,6 @@ function computeCellColorValue(
   return topProb;
 }
 
-function computeCellTooltip(
-  inRankMode: boolean, rank: number | null,
-  inEntropyMode: boolean, entropy: number | null,
-  inKlMode: boolean, klVal: number | null,
-  inTokensMode: boolean,
-  xLabel: string, yIndex: number, prob: number,
-  topkTokens: string[][][] | undefined,
-  topkProbs: number[][][] | undefined,
-  xIndex: number
-): string {
-  if (inRankMode && rank !== null)
-    return `Token: ${xLabel}\nLayer: ${yIndex}\nRank of final top-1: ${rank}`;
-  if (inEntropyMode && entropy !== null)
-    return `Token: ${xLabel}\nLayer: ${yIndex}\nH = ${entropy.toFixed(3)} nats`;
-  if (inKlMode && klVal !== null)
-    return `Token: ${xLabel}\nLayer: ${yIndex}\nKL from final: ${klVal.toFixed(3)} nats`;
-  if (inTokensMode && topkTokens && topkProbs)
-    return `Top predictions at "${xLabel}", layer ${yIndex}:\n${
-      topkTokens[yIndex][xIndex]
-        .map((t, i) => `${(topkProbs[yIndex][xIndex][i] * 100).toFixed(1)}%  ${JSON.stringify(t)}`)
-        .join("\n")
-    }`;
-  return `Token: ${xLabel}\nLayer: ${yIndex}\nProb: ${(prob * 100).toFixed(2)}%`;
-}
 
 function LensCard({
   card,
@@ -124,6 +102,7 @@ function LensCard({
   onDragEnd,
   onRemove,
   onSpawnEntropy,
+  entropyCardExists,
   tutorialMode,
 }: LensCardProps) {
   const palette = usePalette();
@@ -132,6 +111,7 @@ function LensCard({
   const [pinnedCol, setPinnedCol] = React.useState<number | null>(null);
   const [activeLayer, setActiveLayer] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
+  const [tooltip, setTooltip] = React.useState<TooltipState>(null);
 
   // Layer stride/range state — null range means use all layers
   const [stride, setStride] = React.useState(1);
@@ -388,12 +368,12 @@ function LensCard({
               </div>
             )}
 
-            {/* Entropy spawn button — only visible in H mode */}
-            {!tutorialMode && mode === "entropy" && hasEntropy && onSpawnEntropy && (
+            {/* Entropy spawn button — visible whenever entropy data exists */}
+            {!tutorialMode && hasEntropy && onSpawnEntropy && (
               <button
-                onClick={onSpawnEntropy}
-                title="Spawn entropy sparkline card"
-                style={{ fontSize: 9, padding: "2px 5px", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 4, color: "var(--color-text-muted)", cursor: "pointer", flexShrink: 0, lineHeight: 1.4 }}
+                onClick={entropyCardExists ? undefined : onSpawnEntropy}
+                title={entropyCardExists ? "Entropy card already open" : "Spawn entropy sparkline card"}
+                style={{ fontSize: 9, padding: "2px 5px", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 4, color: entropyCardExists ? "var(--color-surface-border)" : "var(--color-text-muted)", cursor: entropyCardExists ? "default" : "pointer", flexShrink: 0, lineHeight: 1.4, opacity: entropyCardExists ? 0.4 : 1 }}
               >
                 ↗
               </button>
@@ -517,7 +497,7 @@ function LensCard({
       {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
 
       {card.status === "result" && card.data && (
-        <div style={{ overflow: "auto", padding: 6, background: "var(--color-card)" }}>
+        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--color-card)" }}>
           <div style={{ display: "inline-flex", flexDirection: "column", gap: rowGap }}>
             {/* X-axis labels */}
             <div style={{ display: "flex", gap: COL_GAP }}>
@@ -597,22 +577,58 @@ function LensCard({
                       ? "0.5px solid var(--color-card-border)"
                       : "0.5px solid var(--color-surface-border)";
 
-                    const tooltipText = computeCellTooltip(
-                      inRankMode, rank,
-                      inEntropyMode, entropy,
-                      inKlMode, klVal,
-                      inTokensMode,
-                      card.data!.x_labels[xIndex], yIndex, prob,
-                      card.data!.topk_tokens, card.data!.topk_probs,
-                      xIndex
-                    );
-
                     const showRankNumber = inRankMode && rank !== null && rank <= 50;
+
+                    const xLabel = card.data!.x_labels[xIndex];
+                    const tooltipContent: React.ReactNode = inRankMode && rank !== null ? (
+                      <>
+                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
+                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        </div>
+                        <div>rank <span style={{ fontWeight: 600 }}>#{rank}</span></div>
+                      </>
+                    ) : inEntropyMode && entropy !== null ? (
+                      <>
+                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
+                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        </div>
+                        <div style={{ fontVariantNumeric: "tabular-nums" }}>H = <span style={{ fontWeight: 600 }}>{entropy.toFixed(3)}</span> nats</div>
+                      </>
+                    ) : inKlMode && klVal !== null ? (
+                      <>
+                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
+                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        </div>
+                        <div style={{ fontVariantNumeric: "tabular-nums" }}>KL = <span style={{ fontWeight: 600 }}>{klVal.toFixed(3)}</span> nats</div>
+                      </>
+                    ) : inTokensMode && card.data!.topk_tokens && card.data!.topk_probs ? (
+                      <>
+                        <div style={{ color: "var(--color-text-muted)", marginBottom: 4 }}>
+                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        </div>
+                        {card.data!.topk_tokens[yIndex][xIndex].map((t, i) => (
+                          <div key={i} style={{ display: "flex", gap: 10, fontVariantNumeric: "tabular-nums" }}>
+                            <span style={{ color: "var(--color-text-muted)", minWidth: 30, textAlign: "right" }}>
+                              {(card.data!.topk_probs![yIndex][xIndex][i] * 100).toFixed(1)}%
+                            </span>
+                            <span style={{ fontWeight: i === 0 ? 600 : 400 }}>{JSON.stringify(t)}</span>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
+                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        </div>
+                        <div style={{ fontVariantNumeric: "tabular-nums" }}>p = <span style={{ fontWeight: 600 }}>{(prob * 100).toFixed(2)}%</span></div>
+                      </>
+                    );
 
                     return (
                       <div
                         key={`${yIndex}-${xIndex}`}
-                        title={tooltipText}
+                        onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: tooltipContent })}
+                        onMouseLeave={() => setTooltip(null)}
                         style={{
                           width: cellWidth,
                           height: cellHeight,
@@ -648,6 +664,7 @@ function LensCard({
           </div>
         </div>
       )}
+      {tooltip && <HoverTooltip x={tooltip.x} y={tooltip.y}>{tooltip.content}</HoverTooltip>}
     </div>
   );
 }

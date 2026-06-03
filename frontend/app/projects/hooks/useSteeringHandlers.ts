@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { Dispatch, RefObject } from "react";
 import { updateProject } from "@/app/actions";
-import { autoArrangePos, serializeCard } from "../helpers";
+import { findSpawnPos, serializeCard } from "../helpers";
 import type { AppAction, AppState } from "../types";
 import type { AttributionCardData } from "@/app/components/AttributionCard";
 import type { ActivationCardData } from "@/app/components/ActivationCard";
@@ -84,7 +84,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       id: steeringId, cardType: "steering", status: "loading", modelName,
       cleanPrompt, corruptedPrompt, generationPrompt: undefined,
       targetPosition, targetToken, components,
-      alpha: 1.0, temperature: 1.0, repetitionPenalty: 1.3, nTokens: 50, nPairs: 1, extraPairs: [],
+      alpha: 1.0, temperature: 1.0, repetitionPenalty: 1.3, nTokens: 100, nPairs: 1, extraPairs: [],
       parentCardId: sourceCardId, data: null, error: null,
       position: { x: sourceCard.position.x + 440, y: sourceCard.position.y },
       gpuTier, startedAt,
@@ -96,7 +96,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       try {
         spawnRes = await fetch("/api/job/spawn-steering", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 50, temperature: 1.0, repetitionPenalty: 1.3 }),
+          body: JSON.stringify({ cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 100, temperature: 1.0, repetitionPenalty: 1.3 }),
         });
       } catch (err) {
         dispatch({ type: "CARD_ERRORED", id: steeringId, error: err instanceof Error ? err.message : "Network error" });
@@ -122,7 +122,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
         const pid = projectIdRef.current;
         if (pid) {
           const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-          updateProject(pid, [...existing, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken, components, alpha: 1.0, temperature: 1.0, repetitionPenalty: 1.3, nTokens: 50, nPairs: 1, extraPairs: [], parentCardId: sourceCardId }], stateRef.current.canvas).catch(console.error);
+          updateProject(pid, [...existing, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken, components, alpha: 1.0, temperature: 1.0, repetitionPenalty: 1.3, nTokens: 100, nPairs: 1, extraPairs: [], parentCardId: sourceCardId }], stateRef.current.canvas).catch(console.error);
         }
       });
     })();
@@ -185,9 +185,9 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
     const steeringCard: SteeringCardData = {
       id: steeringId, cardType: "steering", status: "loading", modelName,
       cleanPrompt, corruptedPrompt, generationPrompt, targetPosition, targetToken: null,
-      components, alpha: 1.0, temperature, repetitionPenalty, nTokens: 50, nPairs,
+      components, alpha: 1.0, temperature, repetitionPenalty, nTokens: 100, nPairs,
       extraPairs: extraPairs ?? [], parentCardId: "", data: null, error: null,
-      position: autoArrangePos(stateRef.current.lensCards.length),
+      position: findSpawnPos(stateRef.current.lensCards),
       gpuTier, startedAt,
     };
     dispatch({ type: "ADD_CARD", card: steeringCard });
@@ -197,7 +197,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       try {
         spawnRes = await fetch("/api/job/spawn-steering", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cleanPrompt, corruptedPrompt, generationPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 50, extraPairs: extraPairs ?? null, temperature, repetitionPenalty }),
+          body: JSON.stringify({ cleanPrompt, corruptedPrompt, generationPrompt, modelName, gpuTier, targetPosition, components, alpha: 1.0, nTokens: 100, extraPairs: extraPairs ?? null, temperature, repetitionPenalty }),
         });
       } catch (err) {
         dispatch({ type: "CARD_ERRORED", id: steeringId, error: err instanceof Error ? err.message : "Network error" });
@@ -223,7 +223,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
         const pid = projectIdRef.current;
         if (pid) {
           const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-          updateProject(pid, [...existing, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, generationPrompt, data: data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken: null, components, alpha: 1.0, temperature, repetitionPenalty, nTokens: 50, nPairs, extraPairs: extraPairs ?? [], parentCardId: "" }], stateRef.current.canvas).catch(console.error);
+          updateProject(pid, [...existing, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, generationPrompt, data: data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken: null, components, alpha: 1.0, temperature, repetitionPenalty, nTokens: 100, nPairs, extraPairs: extraPairs ?? [], parentCardId: "" }], stateRef.current.canvas).catch(console.error);
         }
       });
     })();
