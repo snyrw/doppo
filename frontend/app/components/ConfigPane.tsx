@@ -6,6 +6,8 @@ import { TIER_LABELS } from "../lib/tiers";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import TokenPreview from "./TokenPreview";
 
+const MAX_PROMPT_TOKENS = 48;
+
 type ModelInfo = {
   id: string;
   display_name: string;
@@ -123,7 +125,9 @@ export default function ConfigPane({
     }
   };
 
-  const canRun = usingCustom ? (customValidation?.valid === true) : selectedModel !== "";
+  const tokenCount = tokenPreview.tokens?.length ?? 0;
+  const overTokenLimit = tokenPreview.tokens !== null && tokenCount > MAX_PROMPT_TOKENS;
+  const canRun = !overTokenLimit && (usingCustom ? (customValidation?.valid === true) : selectedModel !== "");
 
   const selectedGpuTier = usingCustom
     ? (customValidation?.gpu_tier ?? null)
