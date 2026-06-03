@@ -1289,10 +1289,7 @@ def _resolve_pos(tokens, target_position: int | str) -> int:
     return int(tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
 
 
-@app.function(image=web_image, secrets=[hf_secret])
-@modal.concurrent(max_inputs=50)
-@modal.asgi_app()
-def api():
+def create_app():
     from fastapi import FastAPI, HTTPException
     from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel, Field
@@ -1656,3 +1653,10 @@ def api():
         return {"cancelled": True}
 
     return web_app
+
+
+@app.function(image=web_image, secrets=[hf_secret])
+@modal.concurrent(max_inputs=50)
+@modal.asgi_app()
+def api():
+    return create_app()
