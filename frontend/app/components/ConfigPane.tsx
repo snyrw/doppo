@@ -375,6 +375,11 @@ export default function ConfigPane({
               }}
             />
             <TokenPreview tokens={tokenPreview.tokens} loading={tokenPreview.loading} />
+            {overTokenLimit && (
+              <p style={{ margin: "4px 0 0", fontSize: 11, color: "#dc2626" }}>
+                Prompt too long — {tokenCount} / {MAX_PROMPT_TOKENS} tokens. Trim to {MAX_PROMPT_TOKENS} or fewer.
+              </p>
+            )}
           </div>
         </div>
 
