@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { Dispatch, RefObject } from "react";
 import { updateProject } from "@/app/actions";
-import { autoArrangePos, serializeCard } from "../helpers";
+import { findSpawnPos, serializeCard } from "../helpers";
 import type { AppAction, AppState, HeatmapData } from "../types";
 import type { LensCardData } from "@/app/components/LensCard";
 import type { DlaCardData, DlaData } from "@/app/components/DlaCard";
@@ -78,7 +78,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
     const card: LensCardData = {
       id, cardType: "logit-lens", status: "loading", modelName, prompt, topK,
       data: null, error: null,
-      position: autoArrangePos(stateRef.current.lensCards.length),
+      position: findSpawnPos(stateRef.current.lensCards),
       gpuTier, startedAt,
     };
     dispatch({ type: "ADD_CARD", card });
@@ -129,7 +129,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
     const card: DlaCardData = {
       id, cardType: "dla", status: "loading", modelName, prompt,
       data: null, error: null,
-      position: autoArrangePos(stateRef.current.lensCards.length),
+      position: findSpawnPos(stateRef.current.lensCards),
       gpuTier, startedAt, targetPosition, targetToken, contrastiveToken,
     };
     dispatch({ type: "ADD_CARD", card });
@@ -180,7 +180,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
     const card: AttributionCardData = {
       id, cardType: "attribution", status: "loading", modelName, cleanPrompt, corruptedPrompt,
       data: null, error: null,
-      position: autoArrangePos(stateRef.current.lensCards.length),
+      position: findSpawnPos(stateRef.current.lensCards),
       gpuTier, startedAt, targetPosition, targetToken, contrastiveToken, verifyStatus: "idle",
     };
     dispatch({ type: "ADD_CARD", card });
@@ -286,6 +286,8 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
   const spawnEntropyCard = useCallback((lensCardId: string) => {
     const lensCard = stateRef.current.lensCards.find(c => c.id === lensCardId) as LensCardData | undefined;
     if (!lensCard?.data?.entropy_data) return;
+    const alreadyExists = stateRef.current.lensCards.some(c => c.cardType === "entropy" && (c as EntropyCardData).parentLensId === lensCardId);
+    if (alreadyExists) return;
     const entropyCard: EntropyCardData = {
       id: crypto.randomUUID(), cardType: "entropy", status: "result",
       modelName: lensCard.modelName, prompt: lensCard.prompt,
@@ -311,7 +313,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
     const card: AttentionCardData = {
       id, cardType: "attention-pattern", status: "loading", modelName, prompt,
       data: null, error: null,
-      position: autoArrangePos(stateRef.current.lensCards.length),
+      position: findSpawnPos(stateRef.current.lensCards),
       gpuTier, startedAt,
     };
     dispatch({ type: "ADD_CARD", card });

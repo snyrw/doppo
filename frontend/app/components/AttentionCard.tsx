@@ -89,8 +89,9 @@ const AttentionMatrixCanvas = React.memo(function AttentionMatrixCanvas({
 
   function getCellAt(e: React.MouseEvent<HTMLCanvasElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
-    const k = Math.floor((e.clientX - rect.left) / CELL_SIZE);
-    const q = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+    const cellPx = rect.width / n;
+    const k = Math.floor((e.clientX - rect.left) / cellPx);
+    const q = Math.floor((e.clientY - rect.top) / cellPx);
     return k >= 0 && k < n && q >= 0 && q < n ? { q, k } : null;
   }
 
@@ -270,6 +271,10 @@ function AttentionCard({
           0%, 100% { box-shadow: 0 0 0 1.5px var(--color-accent), 0 0 6px 1px var(--color-accent); }
           50%       { box-shadow: 0 0 0 1.5px var(--color-accent), 0 0 14px 4px var(--color-accent); }
         }
+        .attn-browse::-webkit-scrollbar { height: 4px; }
+        .attn-browse::-webkit-scrollbar-track { background: transparent; }
+        .attn-browse::-webkit-scrollbar-thumb { background: var(--color-card-border); border-radius: 2px; }
+        .attn-browse::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
       `}</style>
 
       {/* Hover popup */}
@@ -383,7 +388,7 @@ function AttentionCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
 
       {/* Result */}
       {data && (
@@ -392,6 +397,7 @@ function AttentionCard({
           <div
             onPointerDown={e => e.stopPropagation()}
             onWheel={e => e.stopPropagation()}
+            className="attn-browse"
             style={{ overflowX: "auto", overflowY: "hidden", background: "var(--color-card)" }}
           >
             <div style={{ display: "flex", gap: 8, padding: "8px 10px" }}>
@@ -541,6 +547,7 @@ function AttentionCard({
               <div
                 onPointerDown={e => e.stopPropagation()}
                 onWheel={e => e.stopPropagation()}
+                className="attn-browse"
                 style={{ overflowX: "auto", background: "var(--color-panel)" }}
               >
                 <div style={{ display: "flex", gap: 8, padding: "8px 10px" }}>
@@ -552,7 +559,7 @@ function AttentionCard({
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: 5,
+                        position: "relative",
                       }}>
                         <span style={{ fontSize: 8, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-accent)", fontWeight: 700 }}>
                           L{layer}·H{head}
@@ -560,7 +567,7 @@ function AttentionCard({
                         <button
                           onPointerDown={e => e.stopPropagation()}
                           onClick={() => handleUnpin(layer, head)}
-                          style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", padding: "0 2px", lineHeight: 1 }}
+                          style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", padding: "0 2px", lineHeight: 1, position: "absolute", right: 0 }}
                         >×</button>
                       </div>
                       <AttentionMatrixCanvas

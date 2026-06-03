@@ -5,6 +5,7 @@ import { interpolateColorDivergent } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
 import type { SteeringComponent } from "./SteeringCard";
 import { CardDragHandle, CardLoadingState, CardErrorState } from "./CardShell";
+import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 
 export type TopKComponent = {
   layer: number;
@@ -306,47 +307,45 @@ function AttributionCard({
                 ✓ Verified
               </span>
             ) : (
-              !tutorialMode && (
-                <>
-                  <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
-                    {K_OPTIONS.map(k => (
-                      <button
-                        key={k}
-                        onClick={() => setSelectedK(k)}
-                        style={{
-                          fontSize: 9, padding: "2px 5px",
-                          background: selectedK === k ? "var(--color-surface-border)" : "transparent",
-                          color: selectedK === k ? "var(--color-text)" : "var(--color-text-muted)",
-                          border: "none", cursor: "pointer", lineHeight: 1.4,
-                        }}
-                      >
-                        {k}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => onVerifyTopK(card.id, selectedK)}
-                    disabled={isVerifying}
-                    style={{
-                      fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                      background: isVerifying ? "var(--color-surface-border)" : "var(--color-accent)",
-                      color: isVerifying ? "var(--color-text-muted)" : "var(--color-accent-fg)",
-                      border: "none", borderRadius: 4, cursor: isVerifying ? "not-allowed" : "pointer",
-                      display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
-                      transition: "background 120ms",
-                    }}
-                  >
-                    {isVerifying ? (
-                      <>
-                        <div style={{ width: 8, height: 8, border: "1.5px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                        Verifying…
-                      </>
-                    ) : (
-                      `Verify →`
-                    )}
-                  </button>
-                </>
-              )
+              <>
+                <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
+                  {K_OPTIONS.map(k => (
+                    <button
+                      key={k}
+                      onClick={() => setSelectedK(k)}
+                      style={{
+                        fontSize: 9, padding: "2px 5px",
+                        background: selectedK === k ? "var(--color-surface-border)" : "transparent",
+                        color: selectedK === k ? "var(--color-text)" : "var(--color-text-muted)",
+                        border: "none", cursor: "pointer", lineHeight: 1.4,
+                      }}
+                    >
+                      {k}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => onVerifyTopK(card.id, selectedK)}
+                  disabled={isVerifying}
+                  style={{
+                    fontSize: 9, fontWeight: 600, padding: "2px 7px",
+                    background: isVerifying ? "var(--color-surface-border)" : "var(--color-accent)",
+                    color: isVerifying ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+                    border: "none", borderRadius: 4, cursor: isVerifying ? "not-allowed" : "pointer",
+                    display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
+                    transition: "background 120ms",
+                  }}
+                >
+                  {isVerifying ? (
+                    <>
+                      <div style={{ width: 8, height: 8, border: "1.5px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                      Verifying…
+                    </>
+                  ) : (
+                    `Verify →`
+                  )}
+                </button>
+              </>
             )}
             {/* Steer buttons */}
             {!tutorialMode && (
@@ -405,11 +404,11 @@ function AttributionCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (
-        <div style={{ overflow: "auto", padding: 6, background: "var(--color-card)" }}>
+        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--color-card)" }}>
           {view === "layer" ? (
             <LayerView data={card.data} absMax={absMax} />
           ) : (
@@ -422,14 +421,15 @@ function AttributionCard({
 }
 
 function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) {
+  const [tooltip, setTooltip] = React.useState<TooltipState>(null);
   return (
+    <>
     <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
       {data.y_labels.map((label, i) => {
         const val = data.layer_attribution[i];
         const color = interpolateColorDivergent("rdbu", val, absMax);
         const barFrac = Math.abs(val) / absMax;
         const isPositive = val >= 0;
-        const tooltip = `${label}: ${val >= 0 ? "+" : ""}${val.toFixed(3)}`;
 
         return (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
@@ -437,7 +437,8 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
               {label}
             </div>
             <div
-              title={tooltip}
+              onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span style={{ fontWeight: 600 }}>{label}</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
+              onMouseLeave={() => setTooltip(null)}
               style={{ width: LAYER_BAR_W, height: LAYER_CELL_H, flexShrink: 0, display: "flex", alignItems: "stretch", borderRadius: 2, overflow: "hidden", background: "var(--color-surface-border)", position: "relative" }}
             >
               <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "var(--color-card-border)", zIndex: 1 }} />
@@ -461,6 +462,8 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
         );
       })}
     </div>
+    {tooltip && <HoverTooltip x={tooltip.x} y={tooltip.y}>{tooltip.content}</HoverTooltip>}
+    </>
   );
 }
 
@@ -473,7 +476,9 @@ function HeadView({
   onToggleComponent: (comp: SteeringComponent) => void;
   tutorialMode?: boolean;
 }) {
+  const [tooltip, setTooltip] = React.useState<TooltipState>(null);
   return (
+    <>
     <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
       <div style={{ display: "flex", gap: COL_GAP }}>
         <div style={{ width: Y_LABEL_W, flexShrink: 0 }} />
@@ -497,12 +502,12 @@ function HeadView({
           </div>
           {data.head_attribution[li].map((val, hi) => {
             const color = interpolateColorDivergent("rdbu", val, absMax);
-            const tooltip = `${label} H${hi}: ${val >= 0 ? "+" : ""}${val.toFixed(3)}`;
             const isSelected = selectedComponents.some(c => c.layer === li && c.head === hi);
             return (
               <div
                 key={hi}
-                title={tooltip}
+                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span style={{ fontWeight: 600 }}>{label}</span>{" H"}{hi}<br /><span style={{ fontVariantNumeric: "tabular-nums" }}>{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
+                onMouseLeave={() => setTooltip(null)}
                 onPointerDown={e => e.stopPropagation()}
                 onClick={tutorialMode ? undefined : () => onToggleComponent({ layer: li, head: hi, injectionType: "attn_head" })}
                 style={{
@@ -519,6 +524,8 @@ function HeadView({
         </div>
       ))}
     </div>
+    {tooltip && <HoverTooltip x={tooltip.x} y={tooltip.y}>{tooltip.content}</HoverTooltip>}
+    </>
   );
 }
 

@@ -1,16 +1,26 @@
 "use client";
 
+import { useState } from "react";
+
 type Props = {
   onStart: () => void;
 };
 
 const LINKS = [
-  { label: "Wang et al. 2022 — Interpretability in the Wild (IOI circuit paper)", url: "https://arxiv.org/abs/2211.00593" },
-  { label: "ARENA Chapter 1 — Mechanistic Interpretability curriculum", url: "https://learn.arena.education/chapter1_transformer_interp/21_ioi/" },
-  { label: "Neel Nanda — IOI walkthrough", url: "https://www.neelnanda.io/mechanistic-interpretability/walkthrough-ioi" },
+  { label: "3Blue1Brown — Transformers, the tech behind LLMs", url: "https://www.youtube.com/watch?v=wjZofJX0v4M" },
+  { label: "ARENA - Chapter 0 & 1", url: "https://learn.arena.education/"},
+  { label: "Andrej Karpathy - Let's reproduce GPT-2 (124M)", url: "https://www.youtube.com/watch?v=l8pRSuU81PU"}, 
+  { label: "Elhage et al., 2021 — A Mathematical Framework for Transformer Circuits", url: "https://transformer-circuits.pub/2021/framework/index.html" },
 ];
 
 export default function TutorialWelcomeModal({ onStart }: Props) {
+  const [fadingOut, setFadingOut] = useState(false);
+
+  const handleStart = () => {
+    setFadingOut(true);
+    setTimeout(onStart, 180);
+  };
+
   return (
     <div
       style={{
@@ -22,6 +32,9 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
+        animation: fadingOut
+          ? "fadeIn 180ms ease reverse forwards"
+          : "fadeIn 180ms ease",
       }}
     >
       <div
@@ -36,6 +49,7 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
           display: "flex",
           flexDirection: "column",
           gap: 20,
+          animation: "fadeUp 220ms ease",
         }}
       >
         <div>
@@ -43,25 +57,25 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
             Tutorial
           </p>
           <h1 style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 22, fontWeight: 500, color: "var(--color-text)", margin: 0, lineHeight: 1.4, letterSpacing: "-0.01em" }}>
-            Six tools for reading a transformer
+            Welcome to Doppo!
           </h1>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
-            Mechanistic interpretability tries to reverse-engineer the algorithms implemented by neural networks — not just what they do, but how they do it. These six tools are the core of that toolkit.
+            As part of a goal to explain mechanistic interpretability concepts to as many people as possible, this site contains a tutorial section that allows you to verify results from foundational papers live in the sandbox. Completing this will hopefully allow one to understand basic interpretability techniques that can then be applied to any TransformerLens model available on the site.
           </p>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
-            For steps 1–5 you'll trace a complete circuit in GPT-2 Small using the Indirect Object Identification task — a canonical benchmark from Wang et al. 2022 where the model must predict the indirect object of a sentence. Step 6 pivots to a different question: instead of tracing how a behavior is implemented, can you directly control it?
+            There are 2 parts with 7 total stages. 1–5 trace a circuit in GPT-2 Small using an Indirect Object Identification (IOI) task, which is a canonical benchmark from Wang et al. 2022 where the model must predict the indirect object of a sentence. Part 2 pivots to a different question: instead of tracing how a behavior is implemented, can you directly control it? We do this via steering (blah blah blah)...
           </p>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
-            Each step loads pre-computed results instantly — no GPU required. Configure and run each analysis using the Add + button, as you would in a real project.
+            This tutorial assumes some level of familiarity with neural network and transformer concepts, which introductions to have been provided below.
           </p>
         </div>
 
         <div>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 8px" }}>
-            Background reading
+            Supporting Content (In no particular order)
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             {LINKS.map(l => (
@@ -79,7 +93,7 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
         </div>
 
         <button
-          onClick={onStart}
+          onClick={handleStart}
           style={{
             marginTop: 4,
             padding: "10px 20px",

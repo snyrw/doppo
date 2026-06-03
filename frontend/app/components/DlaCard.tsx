@@ -4,6 +4,7 @@ import React from "react";
 import { interpolateColorDivergent } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
 import { CardDragHandle, CardLoadingState, CardErrorState } from "./CardShell";
+import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 
 export type DlaData = {
   target_token: string;
@@ -111,7 +112,7 @@ function DlaCard({
     if (view === "layer") {
       // split view: two half-bars + 4px gap; single view: one full bar
       const barArea = card.data.layer_attn_dla != null
-        ? HALF_BAR_W + 4 + HALF_BAR_W
+        ? HALF_BAR_W + 4 + HALF_BAR_W + 2 * COL_GAP
         : LAYER_BAR_W;
       return Y_LABEL_W + barArea + 48 + 12;
     }
@@ -288,11 +289,11 @@ function DlaCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (
-        <div style={{ overflow: "auto", padding: 6, background: "var(--color-card)" }}>
+        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--color-card)" }}>
           {view === "layer" ? (
             <LayerView data={card.data} absMax={absMax} />
           ) : view === "head" ? (
@@ -306,15 +307,18 @@ function DlaCard({
   );
 }
 
-function DivergingBar({ val, absMax, width = LAYER_BAR_W, height = LAYER_CELL_H, tooltip }: {
-  val: number; absMax: number; width?: number; height?: number; tooltip?: string;
+function DivergingBar({ val, absMax, width = LAYER_BAR_W, height = LAYER_CELL_H, tooltipContent }: {
+  val: number; absMax: number; width?: number; height?: number; tooltipContent?: React.ReactNode;
 }) {
+  const [hover, setHover] = React.useState<{ x: number; y: number } | null>(null);
   const color = interpolateColorDivergent("rdbu", val, absMax);
   const barFrac = Math.abs(val) / absMax;
   const isPositive = val >= 0;
   return (
+    <>
     <div
-      title={tooltip}
+      onMouseEnter={(e) => tooltipContent && setHover({ x: e.clientX, y: e.clientY })}
+      onMouseLeave={() => setHover(null)}
       style={{ width, height, flexShrink: 0, display: "flex", alignItems: "stretch", borderRadius: 2, overflow: "hidden", background: "var(--color-surface-border)", position: "relative" }}
     >
       <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "var(--color-card-border)", zIndex: 1 }} />
@@ -331,6 +335,8 @@ function DivergingBar({ val, absMax, width = LAYER_BAR_W, height = LAYER_CELL_H,
         </>
       )}
     </div>
+    {hover && tooltipContent && <HoverTooltip x={hover.x} y={hover.y}>{tooltipContent}</HoverTooltip>}
+    </>
   );
 }
 
@@ -360,14 +366,14 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
           </div>
           {hasAttnMlp ? (
             <>
-              <DivergingBar val={data.embed_dla} absMax={absMax} width={LAYER_BAR_W + 4} tooltip={`Embed: ${data.embed_dla >= 0 ? "+" : ""}${data.embed_dla.toFixed(3)}`} />
+              <DivergingBar val={data.embed_dla} absMax={absMax} width={LAYER_BAR_W + 4} tooltipContent={<><span style={{ fontWeight: 600 }}>Embed</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
               <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
             </>
           ) : (
             <>
-              <DivergingBar val={data.embed_dla} absMax={absMax} tooltip={`Embed: ${data.embed_dla >= 0 ? "+" : ""}${data.embed_dla.toFixed(3)}`} />
+              <DivergingBar val={data.embed_dla} absMax={absMax} tooltipContent={<><span style={{ fontWeight: 600 }}>Embed</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
               <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
@@ -381,9 +387,27 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
         const combined = data.layer_dla[i];
         const attnVal = hasAttnMlp ? data.layer_attn_dla[i] : null;
         const mlpVal = hasAttnMlp ? data.layer_mlp_dla[i] : null;
-        const tooltip = hasAttnMlp
-          ? `${label}: attn ${attnVal! >= 0 ? "+" : ""}${attnVal!.toFixed(3)}, MLP ${mlpVal! >= 0 ? "+" : ""}${mlpVal!.toFixed(3)}, total ${combined >= 0 ? "+" : ""}${combined.toFixed(3)}`
-          : `${label}: ${combined >= 0 ? "+" : ""}${combined.toFixed(3)}`;
+        const tooltipContent: React.ReactNode = hasAttnMlp ? (
+          <>
+            <div style={{ fontWeight: 600, marginBottom: 3 }}>{label}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, fontVariantNumeric: "tabular-nums" }}>
+              <div style={{ display: "flex", gap: 14, justifyContent: "space-between" }}>
+                <span style={{ color: "var(--color-text-muted)" }}>Attn</span>
+                <span>{attnVal! >= 0 ? "+" : ""}{attnVal!.toFixed(3)}</span>
+              </div>
+              <div style={{ display: "flex", gap: 14, justifyContent: "space-between" }}>
+                <span style={{ color: "var(--color-text-muted)" }}>MLP</span>
+                <span>{mlpVal! >= 0 ? "+" : ""}{mlpVal!.toFixed(3)}</span>
+              </div>
+              <div style={{ borderTop: "1px solid var(--color-surface-border)", paddingTop: 2, marginTop: 1, display: "flex", gap: 14, justifyContent: "space-between" }}>
+                <span style={{ color: "var(--color-text-muted)" }}>Total</span>
+                <span style={{ fontWeight: 600 }}>{combined >= 0 ? "+" : ""}{combined.toFixed(3)}</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <><span style={{ fontWeight: 600 }}>{label}</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{combined >= 0 ? "+" : ""}{combined.toFixed(3)}</span></>
+        );
 
         return (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
@@ -393,12 +417,12 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
 
             {hasAttnMlp ? (
               <>
-                <DivergingBar val={attnVal!} absMax={absMax} width={HALF_BAR_W} tooltip={tooltip} />
+                <DivergingBar val={attnVal!} absMax={absMax} width={HALF_BAR_W} tooltipContent={tooltipContent} />
                 <div style={{ width: 4, flexShrink: 0 }} />
-                <DivergingBar val={mlpVal!} absMax={absMax} width={HALF_BAR_W} tooltip={tooltip} />
+                <DivergingBar val={mlpVal!} absMax={absMax} width={HALF_BAR_W} tooltipContent={tooltipContent} />
               </>
             ) : (
-              <DivergingBar val={combined} absMax={absMax} tooltip={tooltip} />
+              <DivergingBar val={combined} absMax={absMax} tooltipContent={tooltipContent} />
             )}
 
             <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
@@ -412,7 +436,9 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
 }
 
 function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
+  const [tooltip, setTooltip] = React.useState<TooltipState>(null);
   return (
+    <>
     <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
       {/* X-axis: head labels */}
       <div style={{ display: "flex", gap: COL_GAP }}>
@@ -446,11 +472,11 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
           </div>
           {data.head_dla[li].map((val, hi) => {
             const color = interpolateColorDivergent("rdbu", val, absMax);
-            const tooltip = `${label} H${hi}: ${val >= 0 ? "+" : ""}${val.toFixed(3)}`;
             return (
               <div
                 key={hi}
-                title={tooltip}
+                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span style={{ fontWeight: 600 }}>{label}</span>{" H"}{hi}<br /><span style={{ fontVariantNumeric: "tabular-nums" }}>{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
+                onMouseLeave={() => setTooltip(null)}
                 style={{
                   width: HEAD_CELL_SIZE,
                   height: HEAD_CELL_SIZE,
@@ -466,6 +492,8 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
         </div>
       ))}
     </div>
+    {tooltip && <HoverTooltip x={tooltip.x} y={tooltip.y}>{tooltip.content}</HoverTooltip>}
+    </>
   );
 }
 
@@ -490,7 +518,7 @@ function TopView({ data, absMax }: { data: DlaData; absMax: number }) {
           <div style={{ width: Y_LABEL_W + 14, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
             {label}
           </div>
-          <DivergingBar val={val} absMax={absMax} width={TOP_BAR_W} height={LAYER_CELL_H} tooltip={`${label}: ${val >= 0 ? "+" : ""}${val.toFixed(3)}`} />
+          <DivergingBar val={val} absMax={absMax} width={TOP_BAR_W} height={LAYER_CELL_H} tooltipContent={<><span style={{ fontWeight: 600 }}>{label}</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></>} />
           <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
             {val >= 0 ? "+" : ""}{val.toFixed(2)}
           </span>

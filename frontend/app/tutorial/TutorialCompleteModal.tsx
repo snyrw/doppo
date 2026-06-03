@@ -1,14 +1,14 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Props = {
   onDismiss: () => void;
 };
 
 const READING_LIST = [
-  { label: "Wang et al. 2022 — IOI circuit paper (the experiment you just ran)", url: "https://arxiv.org/abs/2211.00593" },
-  { label: "Neel Nanda — IOI walkthrough (with paper authors)", url: "https://www.neelnanda.io/mechanistic-interpretability/walkthrough-ioi" },
+  { label: "Nanda - How To Become A Mechanistic Interpretability Researcher", url: "https://www.alignmentforum.org/posts/jP9KDyMkchuv6tHwm/how-to-become-a-mechanistic-interpretability-researcher"},
   { label: "ARENA Chapter 1 — full mech-interp curriculum", url: "https://learn.arena.education/chapter1_transformer_interp/21_ioi/" },
   { label: "Nanda — Attribution Patching at Industrial Scale", url: "https://www.neelnanda.io/mechanistic-interpretability/attribution-patching" },
   { label: "Panickssery et al. 2023 — Contrastive Activation Addition", url: "https://arxiv.org/abs/2312.06681" },
@@ -18,6 +18,19 @@ const READING_LIST = [
 ];
 
 export default function TutorialCompleteModal({ onDismiss }: Props) {
+  const router = useRouter();
+  const [fadingOut, setFadingOut] = useState(false);
+
+  const handleGoToProjects = () => {
+    setFadingOut(true);
+    setTimeout(() => router.push("/projects"), 180);
+  };
+
+  const handleDismiss = () => {
+    setFadingOut(true);
+    setTimeout(onDismiss, 180);
+  };
+
   return (
     <div
       style={{
@@ -29,6 +42,9 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
         alignItems: "center",
         justifyContent: "center",
         padding: 24,
+        animation: fadingOut
+          ? "fadeIn 180ms ease reverse forwards"
+          : "fadeIn 180ms ease",
       }}
     >
       <div
@@ -45,23 +61,24 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
           display: "flex",
           flexDirection: "column",
           gap: 20,
+          animation: "fadeUp 220ms ease",
         }}
       >
         <div>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 10px" }}>
-            Complete
+            Tutorial Finished
           </p>
           <h1 style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 22, fontWeight: 500, color: "var(--color-text)", margin: 0, lineHeight: 1.4, letterSpacing: "-0.01em" }}>
-            Circuit traced.
+            Complete!
           </h1>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
-            {`You’ve traced the IOI circuit end-to-end: from the logit lens showing when “ Mary” first appears, through the attention heads that spot the duplicate and suppress it, to the Name Movers that copy the answer — and verified the whole thing causally with activation patching.`}
+            {`Part 1 allowed you to trace the IOI circuit end-to-end: from the logit lens showing when " Mary" first appears, through the attention heads that spot the duplicate and suppress it, to the Name Movers that copy the answer, and verified the whole thing causally with activation patching.`}
           </p>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
-            Step 6 showed the complementary approach: instead of asking how a behavior is implemented, you directly controlled it by injecting a learned direction in activation space. These two perspectives — circuit analysis and representation engineering — are the two main branches of mechanistic interpretability research today.
+            Part 2 showed a separate approach: instead of asking how a behavior is implemented, you directly controlled it by injecting a learned direction in activation space. The focus of those doing interpretability has expanded greatly in scope from these tasks, both perspectives (circuit analysis and representation engineering) are important branches of mechanistic interpretability research today.
           </p>
         </div>
 
@@ -85,8 +102,8 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
         </div>
 
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-          <Link
-            href="/projects"
+          <button
+            onClick={handleGoToProjects}
             style={{
               padding: "10px 20px",
               background: "var(--color-accent)",
@@ -97,15 +114,12 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
               fontSize: 14,
               fontWeight: 600,
               cursor: "pointer",
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
             }}
           >
             Try it on your own model →
-          </Link>
+          </button>
           <button
-            onClick={onDismiss}
+            onClick={handleDismiss}
             style={{
               padding: "10px 20px",
               background: "none",

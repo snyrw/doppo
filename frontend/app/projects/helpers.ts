@@ -3,8 +3,8 @@ import type { LensCardData } from "../components/LensCard";
 import type { DlaCardData } from "../components/DlaCard";
 import type { AttentionCardData } from "../components/AttentionCard";
 
-const CARD_COL_WIDTH = 360;
-const CARD_ROW_HEIGHT = 320;
+const CARD_COL_WIDTH = 380;
+const CARD_ROW_HEIGHT = 480;
 const GRID_MARGIN = 40;
 
 export function autoArrangePos(index: number): { x: number; y: number } {
@@ -14,6 +14,23 @@ export function autoArrangePos(index: number): { x: number; y: number } {
     x: GRID_MARGIN + col * (CARD_COL_WIDTH + GRID_MARGIN),
     y: GRID_MARGIN + row * (CARD_ROW_HEIGHT + GRID_MARGIN),
   };
+}
+
+// Find the first grid position not visually occupied by any existing card.
+// Checked against estimated bounding boxes so two rapid spawns never land
+// on top of each other even if stateRef hasn't flushed yet.
+export function findSpawnPos(cards: { position: { x: number; y: number } }[]): { x: number; y: number } {
+  for (let i = 0; i < 200; i++) {
+    const candidate = autoArrangePos(i);
+    const clear = cards.every(
+      c =>
+        Math.abs(c.position.x - candidate.x) >= CARD_COL_WIDTH ||
+        Math.abs(c.position.y - candidate.y) >= CARD_ROW_HEIGHT
+    );
+    if (clear) return candidate;
+  }
+  const maxY = cards.reduce((m, c) => Math.max(m, c.position.y), 0);
+  return { x: GRID_MARGIN, y: maxY + CARD_ROW_HEIGHT + GRID_MARGIN };
 }
 
 export function serializeCard(c: AnyCard) {

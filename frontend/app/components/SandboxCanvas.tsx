@@ -177,8 +177,10 @@ export default function SandboxCanvas({
         return <EntropyCard key={card.id} {...sharedProps} card={card as EntropyCardData} />;
       case "attention-pattern":
         return <AttentionCard key={card.id} {...sharedProps} card={card as AttentionCardData} />;
-      default:
-        return <LensCard key={card.id} {...sharedProps} card={card as LensCardData} onSpawnEntropy={() => onSpawnEntropyCard(card.id)} />;
+      default: {
+        const hasEntropyChild = cards.some(c => c.cardType === "entropy" && (c as EntropyCardData).parentLensId === card.id);
+        return <LensCard key={card.id} {...sharedProps} card={card as LensCardData} onSpawnEntropy={() => onSpawnEntropyCard(card.id)} entropyCardExists={hasEntropyChild} />;
+      }
     }
   }
 

@@ -44,8 +44,11 @@ type SteeringConfigPaneProps = {
     modelName: string;
     cleanPrompt: string;
     corruptedPrompt: string;
+    generationPrompt?: string;
+    nPairs?: number;
     gpuTier: string;
     layer: number;
+    extraPairs?: Array<{ clean: string; corrupted: string }>;
   };
 };
 
@@ -103,9 +106,13 @@ export default function SteeringConfigPane({
     if (tutorialMode && tutorialConfig) {
       setCleanPrompt(tutorialConfig.cleanPrompt);
       setCorruptedPrompt(tutorialConfig.corruptedPrompt);
-      setSelectedModel(tutorialConfig.modelName);
-      setCustomRepoId("");
+      setCustomRepoId(tutorialConfig.modelName);
+      setSelectedModel("");
+      setCustomValidation({ valid: true, gpu_tier: tutorialConfig.gpuTier, reason: "" });
       setInjectionLayer(String(tutorialConfig.layer));
+      setMode("research");
+      if (tutorialConfig.generationPrompt) setGenerationPrompt(tutorialConfig.generationPrompt);
+      if (tutorialConfig.extraPairs) setExtraPairs(tutorialConfig.extraPairs);
     }
   }, [tutorialMode, tutorialConfig]);
 
@@ -314,19 +321,9 @@ export default function SteeringConfigPane({
       {/* Form body */}
       <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
 
-        {/* Featured models / model selection */}
-        {tutorialMode ? (
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
-              Model
-            </label>
-            <div style={{ padding: "8px 16px 4px", fontSize: 12, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
-              {tutorialConfig?.modelName}
-            </div>
-          </div>
-        ) : (
+        {/* Featured models */}
+        {!tutorialMode && (
           <>
-            {/* Featured models */}
             <div style={{ marginBottom: 20 }}>
               <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
                 Featured Models
@@ -371,91 +368,92 @@ export default function SteeringConfigPane({
                 </div>
               )}
             </div>
-
-            {/* Divider */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
               <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>or</span>
               <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
             </div>
-
-            {/* Any HuggingFace model */}
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
-                Any HuggingFace Model
-              </label>
-              <div style={{ display: "flex", gap: 6 }}>
-                <input
-                  type="text"
-                  placeholder="username/model-name"
-                  value={customRepoId}
-                  onChange={e => handleCustomRepoChange(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && customRepoId.trim()) validateCustomRepo(); }}
-                  style={{
-                    flex: 1, border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                    borderRadius: 6, padding: "6px 8px", fontSize: 11,
-                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
-                    transition: "border-color 120ms",
-                  }}
-                />
-                <button
-                  onClick={validateCustomRepo}
-                  disabled={!customRepoId.trim() || customValidating}
-                  style={{
-                    border: "1px solid var(--color-card-border)", borderRadius: 6, padding: "6px 10px",
-                    fontSize: 11, background: "var(--color-surface-border)", color: "var(--color-text-muted)",
-                    cursor: (!customRepoId.trim() || customValidating) ? "not-allowed" : "pointer",
-                    opacity: (!customRepoId.trim() || customValidating) ? 0.5 : 1,
-                    whiteSpace: "nowrap", transition: "background 120ms",
-                  }}
-                >
-                  {customValidating ? "…" : "Validate"}
-                </button>
-              </div>
-              {customValidation && (
-                <p style={{ marginTop: 6, fontSize: 11, color: customValidation.valid ? "#16a34a" : "#dc2626", margin: "6px 0 0" }}>
-                  {customValidation.valid
-                    ? `✓ Valid — ${customValidation.gpu_tier ? TIER_LABELS[customValidation.gpu_tier] ?? customValidation.gpu_tier : "unknown GPU"}`
-                    : `✗ ${customValidation.reason}`}
-                </p>
-              )}
-            </div>
           </>
         )}
 
-        {/* Mode toggle */}
-        {!tutorialMode && (
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
-              Mode
-            </label>
-            <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 6, overflow: "hidden" }}>
-              {(["quick", "research"] as const).map((m, i) => (
-                <button
-                  key={m}
-                  onClick={() => { setMode(m); if (m === "quick") { setExtraPairs([]); setGenerateError(null); } }}
-                  style={{
-                    flex: 1, padding: "6px 0", fontSize: 11,
-                    fontWeight: mode === m ? 600 : 400,
-                    border: "none",
-                    borderRight: i === 0 ? "1px solid var(--color-card-border)" : "none",
-                    background: mode === m ? "var(--color-surface-border)" : "transparent",
-                    color: mode === m ? "var(--color-text)" : "var(--color-text-muted)",
-                    cursor: "pointer", transition: "background 120ms, color 120ms",
-                  }}
-                >
-                  {m === "quick" ? "Quick  (1 pair)" : `Research  (up to ${pairCap} pairs)`}
-                </button>
-              ))}
-            </div>
-            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
-              {mode === "quick"
-                ? "Single pair — fast iteration, higher noise. Good for exploring whether a concept steers at all."
-                : "Averages DIM vectors across multiple LLM-generated pairs — lower noise, more reliable. CAA-style."}
-            </p>
+        {/* Any HuggingFace model */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
+            Any HuggingFace Model
+          </label>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              type="text"
+              placeholder="username/model-name"
+              value={customRepoId}
+              onChange={e => handleCustomRepoChange(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && customRepoId.trim()) validateCustomRepo(); }}
+              disabled={tutorialMode}
+              style={{
+                flex: 1, border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                borderRadius: 6, padding: "6px 8px", fontSize: 11,
+                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
+                color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
+                transition: "border-color 120ms",
+                ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
+              }}
+            />
+            <button
+              onClick={validateCustomRepo}
+              disabled={tutorialMode || !customRepoId.trim() || customValidating}
+              style={{
+                border: "1px solid var(--color-card-border)", borderRadius: 6, padding: "6px 10px",
+                fontSize: 11, background: "var(--color-surface-border)", color: "var(--color-text-muted)",
+                cursor: (tutorialMode || !customRepoId.trim() || customValidating) ? "not-allowed" : "pointer",
+                opacity: (tutorialMode || !customRepoId.trim() || customValidating) ? 0.5 : 1,
+                whiteSpace: "nowrap", transition: "background 120ms",
+              }}
+            >
+              {customValidating ? "…" : "Validate"}
+            </button>
           </div>
-        )}
+          {customValidation && (
+            <p style={{ marginTop: 6, fontSize: 11, color: customValidation.valid ? "#16a34a" : "#dc2626", margin: "6px 0 0" }}>
+              {customValidation.valid
+                ? `✓ Valid — ${customValidation.gpu_tier ? TIER_LABELS[customValidation.gpu_tier] ?? customValidation.gpu_tier : "unknown GPU"}`
+                : `✗ ${customValidation.reason}`}
+            </p>
+          )}
+        </div>
+
+        {/* Mode toggle */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
+            Mode
+          </label>
+          <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 6, overflow: "hidden" }}>
+            {(["quick", "research"] as const).map((m, i) => (
+              <button
+                key={m}
+                onClick={() => { if (tutorialMode) return; setMode(m); if (m === "quick") { setExtraPairs([]); setGenerateError(null); } }}
+                disabled={tutorialMode}
+                style={{
+                  flex: 1, padding: "6px 0", fontSize: 11,
+                  fontWeight: mode === m ? 600 : 400,
+                  border: "none",
+                  borderRight: i === 0 ? "1px solid var(--color-card-border)" : "none",
+                  background: mode === m ? "var(--color-surface-border)" : "transparent",
+                  color: mode === m ? "var(--color-text)" : "var(--color-text-muted)",
+                  cursor: tutorialMode ? "default" : "pointer",
+                  transition: "background 120ms, color 120ms",
+                  ...(tutorialMode ? { opacity: mode === m ? 1 : 0.45 } : {}),
+                }}
+              >
+                {m === "quick" ? "Quick  (1 pair)" : `Research  (up to ${pairCap} pairs)`}
+              </button>
+            ))}
+          </div>
+          <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+            {mode === "quick"
+              ? "Single pair — fast iteration, higher noise. Good for exploring whether a concept steers at all."
+              : "Averages DIM vectors across multiple LLM-generated pairs — lower noise, more reliable. CAA-style."}
+          </p>
+        </div>
 
         {/* Seed pair (research) / prompt pair (quick) */}
         <div
@@ -555,52 +553,60 @@ export default function SteeringConfigPane({
         </div>
 
         {/* Research mode: LLM pair generation */}
-        {!tutorialMode && mode === "research" && (
+        {mode === "research" && (
           <div style={{ marginBottom: 20, borderTop: "1px solid var(--color-surface-border)", paddingTop: 16 }}>
             <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
               Generate Dataset Pairs with Claude
             </label>
-            {!session && (
+            {!tutorialMode && !session && (
               <p style={{ margin: "0 0 8px", fontSize: 10, color: "#d97706", lineHeight: 1.5 }}>
                 Sign in to generate pairs.
               </p>
             )}
             <textarea
-              value={conceptDescription}
+              value={tutorialMode ? "English → French (LLM-style questions)" : conceptDescription}
               onChange={e => setConceptDescription(e.target.value)}
               rows={2}
               placeholder={`Describe the steering concept — e.g. "the model mentions Paris" or "confident vs. hesitant tone"`}
-              disabled={!session}
+              disabled={tutorialMode || !session}
               style={{
-                width: "100%", border: `1px solid ${conceptDescription.trim() && session ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                width: "100%", border: `1px solid ${!tutorialMode && conceptDescription.trim() && session ? "var(--color-accent)" : "var(--color-card-border)"}`,
                 borderRadius: 6, padding: "8px 10px", fontSize: 11, color: "var(--color-text)",
-                background: session ? "var(--color-bg)" : "var(--color-surface-border)",
+                background: tutorialMode || !session ? "var(--color-surface-border)" : "var(--color-bg)",
                 resize: "vertical", outline: "none", fontFamily: "inherit", lineHeight: 1.5,
-                boxSizing: "border-box", opacity: session ? 1 : 0.6,
+                boxSizing: "border-box",
+                opacity: tutorialMode ? 0.7 : session ? 1 : 0.6,
+                cursor: tutorialMode ? "default" : "auto",
               }}
             />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, gap: 8 }}>
               <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>
-                {extraPairs.length > 0
-                  ? `${totalPairs} pairs total (seed + ${extraPairs.length} generated)`
-                  : `Will generate ${pairCap - 1} pairs (${pairCap} total with seed)`}
+                {tutorialMode
+                  ? `${tutorialConfig?.nPairs ?? 40} pairs total`
+                  : extraPairs.length > 0
+                    ? `${totalPairs} pairs total (seed + ${extraPairs.length} generated)`
+                    : `Will generate ${pairCap - 1} pairs (${pairCap} total with seed)`}
               </span>
               <button
                 onClick={handleGenerate}
-                disabled={!canGenerate}
+                disabled={tutorialMode || !canGenerate}
                 style={{
                   border: "none", borderRadius: 6, padding: "5px 12px",
                   fontSize: 11, fontWeight: 500,
-                  background: canGenerate ? "var(--color-accent)" : "var(--color-surface-border)",
-                  color: canGenerate ? "var(--color-accent-fg)" : "var(--color-text-muted)",
-                  cursor: canGenerate ? "pointer" : "not-allowed",
+                  background: !tutorialMode && canGenerate ? "var(--color-accent)" : "var(--color-surface-border)",
+                  color: !tutorialMode && canGenerate ? "var(--color-accent-fg)" : "var(--color-text-muted)",
+                  cursor: tutorialMode || !canGenerate ? "not-allowed" : "pointer",
                   whiteSpace: "nowrap", transition: "background 120ms", flexShrink: 0,
+                  opacity: tutorialMode ? 0.7 : 1,
                 }}
               >
-                {generating ? "Generating…" : extraPairs.length > 0 ? "Regenerate" : "Generate pairs"}
+                {tutorialMode
+                  ? `${tutorialConfig?.nPairs ?? 40} pairs generated`
+                  : generating ? "Generating…"
+                  : extraPairs.length > 0 ? "Regenerate" : "Generate pairs"}
               </button>
             </div>
-            {generateError && (
+            {!tutorialMode && generateError && (
               <p style={{ margin: "6px 0 0", fontSize: 10, color: "#dc2626", lineHeight: 1.5 }}>
                 ✗ {generateError}
               </p>
@@ -613,12 +619,14 @@ export default function SteeringConfigPane({
                   <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)" }}>
                     Generated pairs ({extraPairs.length})
                   </span>
-                  <button
-                    onClick={() => setExtraPairs([])}
-                    style={{ fontSize: 9, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}
-                  >
-                    Clear all
-                  </button>
+                  {!tutorialMode && (
+                    <button
+                      onClick={() => setExtraPairs([])}
+                      style={{ fontSize: 9, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}
+                    >
+                      Clear all
+                    </button>
+                  )}
                 </div>
                 <div style={{ maxHeight: 180, overflowY: "auto", display: "flex", flexDirection: "column", gap: 3 }}>
                   {extraPairs.map((pair, i) => (
@@ -638,12 +646,14 @@ export default function SteeringConfigPane({
                           {pair.corrupted}
                         </div>
                       </div>
-                      <button
-                        onClick={() => removePair(i)}
-                        style={{ fontSize: 11, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 1px", flexShrink: 0, lineHeight: 1, marginTop: 1 }}
-                      >
-                        ×
-                      </button>
+                      {!tutorialMode && (
+                        <button
+                          onClick={() => removePair(i)}
+                          style={{ fontSize: 11, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 1px", flexShrink: 0, lineHeight: 1, marginTop: 1 }}
+                        >
+                          ×
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -732,6 +742,7 @@ export default function SteeringConfigPane({
             <textarea
               value={generationPrompt}
               onChange={e => setGenerationPrompt(e.target.value)}
+              disabled={tutorialMode}
               rows={2}
               placeholder={`Leave empty to use the clean prompt.`}
               style={{
@@ -740,6 +751,7 @@ export default function SteeringConfigPane({
                 background: "var(--color-bg)", resize: "vertical", outline: "none",
                 fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
                 transition: "border-color 120ms",
+                ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
               }}
             />
             <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
@@ -758,7 +770,8 @@ export default function SteeringConfigPane({
               type="range" min={0.1} max={2.0} step={0.1}
               value={temperature}
               onChange={e => setTemperature(parseFloat(e.target.value))}
-              style={{ width: "100%", accentColor: "var(--color-accent)", cursor: "pointer" }}
+              disabled={tutorialMode}
+              style={{ width: "100%", accentColor: "var(--color-accent)", cursor: tutorialMode ? "not-allowed" : "pointer", ...(tutorialMode ? { opacity: 0.45 } : {}) }}
             />
             <p style={{ margin: "4px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
               Lower = more deterministic. 1.0 = standard sampling. Prevents repetition loops from heavy steering.
@@ -776,7 +789,8 @@ export default function SteeringConfigPane({
               type="range" min={1.0} max={2.0} step={0.05}
               value={repetitionPenalty}
               onChange={e => setRepetitionPenalty(parseFloat(e.target.value))}
-              style={{ width: "100%", accentColor: "var(--color-accent)", cursor: "pointer" }}
+              disabled={tutorialMode}
+              style={{ width: "100%", accentColor: "var(--color-accent)", cursor: tutorialMode ? "not-allowed" : "pointer", ...(tutorialMode ? { opacity: 0.45 } : {}) }}
             />
             <p style={{ margin: "4px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
               Divides logits for already-generated tokens. 1.0 = no penalty; 1.3 = moderate (default).

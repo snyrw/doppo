@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, Suspense } from "react";
 import { LOW_BALANCE_THRESHOLD_MICROS } from "@/app/lib/rates";
+import { BuyCreditsModal } from "./BuyCreditsModal";
 
 function formatMicros(micros: number): string {
   return `$${(micros / 1_000_000).toFixed(2)}`;
@@ -31,7 +32,14 @@ function useCreditsBalance() {
 function CreditsButtonInner() {
   const { balanceMicros } = useCreditsBalance();
   const [open, setOpen] = useState(false);
+  const [buyOpen, setBuyOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = () => { setBuyOpen(true); setOpen(false); };
+    window.addEventListener("open-buy-credits", handler);
+    return () => window.removeEventListener("open-buy-credits", handler);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -144,25 +152,23 @@ function CreditsButtonInner() {
           )}
 
           <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "7px 10px",
-              background: "var(--color-bg)",
-              border: "1px solid var(--color-card-border)",
-              borderRadius: 6,
-            }}>
-              <span style={{ fontSize: 13 }}>🚧</span>
-              <span style={{
+            <button
+              onClick={() => { setBuyOpen(true); setOpen(false); }}
+              style={{
+                width: "100%",
+                padding: "7px 10px",
+                background: "var(--color-bg)",
+                border: "1px solid var(--color-card-border)",
+                borderRadius: 6,
+                cursor: "pointer",
                 fontSize: 11,
-                color: "var(--color-text-muted)",
+                color: "var(--color-text)",
                 fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                lineHeight: 1.4,
-              }}>
-                Purchasing coming soon
-              </span>
-            </div>
+                textAlign: "left",
+              }}
+            >
+              Add credits →
+            </button>
             <span style={{
               fontSize: 10,
               color: "var(--color-text-muted)",
@@ -176,6 +182,7 @@ function CreditsButtonInner() {
         </div>
       )}
     </div>
+      {buyOpen && <BuyCreditsModal onClose={() => setBuyOpen(false)} />}
     </>
   );
 }

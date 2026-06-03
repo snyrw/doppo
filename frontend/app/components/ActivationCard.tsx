@@ -5,6 +5,7 @@ import { interpolateColorDivergent } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
 import type { SteeringComponent } from "./SteeringCard";
 import { CardDragHandle, CardErrorState } from "./CardShell";
+import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 
 export type VerifiedComponent = {
   layer: number;
@@ -68,10 +69,10 @@ function getStageLabel(stage: string | undefined, elapsedMs: number): string {
 }
 
 function matchLabel(effect: number): { text: string; color: string; bg: string; border: string } {
-  if (effect < 0) return { text: "Suppress", color: "#9333ea", bg: "rgba(147,51,234,0.08)", border: "rgba(147,51,234,0.25)" };
-  if (effect > 0.7) return { text: "Strong", color: "#16a34a", bg: "rgba(22,163,74,0.08)", border: "rgba(22,163,74,0.25)" };
-  if (effect > 0.3) return { text: "Partial", color: "#d97706", bg: "rgba(217,119,6,0.08)", border: "rgba(217,119,6,0.25)" };
-  return { text: "Weak", color: "#dc2626", bg: "rgba(220,38,38,0.08)", border: "rgba(220,38,38,0.25)" };
+  if (effect < 0) return { text: "Counter", color: "#9333ea", bg: "rgba(147,51,234,0.08)", border: "rgba(147,51,234,0.25)" };
+  if (effect > 0.7) return { text: "High", color: "#16a34a", bg: "rgba(22,163,74,0.08)", border: "rgba(22,163,74,0.25)" };
+  if (effect > 0.3) return { text: "Mid", color: "#d97706", bg: "rgba(217,119,6,0.08)", border: "rgba(217,119,6,0.25)" };
+  return { text: "Low", color: "#dc2626", bg: "rgba(220,38,38,0.08)", border: "rgba(220,38,38,0.25)" };
 }
 
 function spearmanCorrelation(xs: number[], ys: number[]): number {
@@ -102,6 +103,7 @@ function ActivationCard({
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
   const [selectedComponents, setSelectedComponents] = React.useState<SteeringComponent[]>([]);
+  const [tooltip, setTooltip] = React.useState<TooltipState>(null);
 
   React.useEffect(() => {
     if (card.status !== "loading") return;
@@ -229,7 +231,7 @@ function ActivationCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (
@@ -239,11 +241,11 @@ function ActivationCard({
             <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", width: 52, flexShrink: 0 }}>Component</span>
             <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", flex: 1 }}>Attribution</span>
             <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", flex: 1 }}>Effect</span>
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", width: 44, flexShrink: 0, textAlign: "right" }}>Match</span>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", width: 52, flexShrink: 0, textAlign: "right" }}>Match</span>
           </div>
 
           {/* Rows */}
-          <div style={{ overflow: "auto", background: "var(--color-card)" }}>
+          <div style={{ overflowY: "auto", overflowX: "hidden", background: "var(--color-card)" }}>
             {card.data.components.map((comp, i) => {
               const match = matchLabel(comp.actual_effect);
               const attrColor = interpolateColorDivergent("rdbu", comp.attribution_score, attrAbsMax);
@@ -253,7 +255,21 @@ function ActivationCard({
               const label = comp.component_type === "attn_head"
                 ? `L${comp.layer}·H${comp.head}`
                 : `L${comp.layer}·MLP`;
-              const tooltip = `${label}: attribution ${comp.attribution_score >= 0 ? "+" : ""}${comp.attribution_score.toFixed(3)}, effect ${(comp.actual_effect * 100).toFixed(1)}%`;
+              const tooltipContent = (
+                <>
+                  <div style={{ fontWeight: 600, marginBottom: 3 }}>{label}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2, fontVariantNumeric: "tabular-nums" }}>
+                    <div style={{ display: "flex", gap: 14, justifyContent: "space-between" }}>
+                      <span style={{ color: "var(--color-text-muted)" }}>attr</span>
+                      <span>{comp.attribution_score >= 0 ? "+" : ""}{comp.attribution_score.toFixed(3)}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 14, justifyContent: "space-between" }}>
+                      <span style={{ color: "var(--color-text-muted)" }}>effect</span>
+                      <span>{(comp.actual_effect * 100).toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </>
+              );
 
               const steeringComp: SteeringComponent = {
                 layer: comp.layer,
@@ -267,7 +283,8 @@ function ActivationCard({
               return (
                 <div
                   key={i}
-                  title={tooltip}
+                  onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: tooltipContent })}
+                  onMouseLeave={() => setTooltip(null)}
                   onPointerDown={e => e.stopPropagation()}
                   onClick={tutorialMode ? undefined : () => setSelectedComponents(prev =>
                     isSelected
@@ -303,7 +320,7 @@ function ActivationCard({
                     color: match.color, background: match.bg,
                     border: `1px solid ${match.border}`,
                     borderRadius: 3, padding: "1px 4px",
-                    width: 44, textAlign: "center", flexShrink: 0,
+                    width: 52, textAlign: "center", flexShrink: 0,
                   }}>
                     {match.text}
                   </span>
@@ -335,6 +352,7 @@ function ActivationCard({
           )}
         </>
       )}
+      {tooltip && <HoverTooltip x={tooltip.x} y={tooltip.y}>{tooltip.content}</HoverTooltip>}
     </div>
   );
 }

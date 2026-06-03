@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signIn, signUp, signOut, useSession } from "../lib/auth-client";
+import { signIn, signUp, signOut, useSession, requestPasswordReset } from "../lib/auth-client";
 
-type Mode = "signin" | "signup" | "verify";
+type Mode = "signin" | "signup" | "verify" | "forgot" | "forgot-sent";
 
 export default function AuthButtons() {
   const { data: session } = useSession();
@@ -11,7 +11,6 @@ export default function AuthButtons() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<"github" | null>(null);
@@ -21,7 +20,6 @@ export default function AuthButtons() {
     setError("");
     setEmail("");
     setPassword("");
-    setName("");
     setOpen(true);
   };
 
@@ -40,9 +38,14 @@ export default function AuthButtons() {
     setError("");
     try {
       if (mode === "signup") {
-        const { error: err } = await signUp.email({ email, password, name });
+        const { error: err } = await signUp.email({ email, password, name: email });
         if (err) throw new Error(err.message);
         setMode("verify");
+        return;
+      } else if (mode === "forgot") {
+        const { error: err } = await requestPasswordReset({ email, redirectTo: "/reset-password" });
+        if (err) throw new Error(err.message);
+        setMode("forgot-sent");
         return;
       } else {
         const { error: err } = await signIn.email({ email, password });
@@ -79,6 +82,14 @@ export default function AuthButtons() {
     boxSizing: "border-box",
     outline: "none",
     fontFamily: "inherit",
+  };
+
+  const modalTitle: Record<Mode, string> = {
+    signin: "Log In",
+    signup: "Sign Up",
+    verify: "Check your email",
+    forgot: "Forgot password",
+    "forgot-sent": "Check your email",
   };
 
   if (session?.user) {
@@ -121,16 +132,22 @@ export default function AuthButtons() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, marginTop: 0, color: "var(--color-text)" }}>
-              {mode === "signin" ? "Log In" : mode === "signup" ? "Sign Up" : "Check your email"}
+              {modalTitle[mode]}
             </h2>
-            {mode === "verify" && (
+
+            {/* Confirmation states */}
+            {(mode === "verify" || mode === "forgot-sent") && (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
-                  We sent a verification link to <strong style={{ color: "var(--color-text)" }}>{email}</strong>. Click it to activate your account.
+                  {mode === "verify"
+                    ? <>We sent a verification link to <strong style={{ color: "var(--color-text)" }}>{email}</strong>. Click it to activate your account.</>
+                    : <>We sent a password reset link to <strong style={{ color: "var(--color-text)" }}>{email}</strong>. Check your inbox.</>}
                 </p>
-                <p style={{ margin: 0, fontSize: 11, color: "var(--color-text-muted)" }}>
-                  (In local dev, the link is printed to the server console instead.)
-                </p>
+                {mode === "verify" && (
+                  <p style={{ margin: 0, fontSize: 11, color: "var(--color-text-muted)" }}>
+                    (In local dev, the link is printed to the server console instead.)
+                  </p>
+                )}
                 <button
                   className="btn-accent"
                   style={{ borderRadius: 6, padding: "8px 0", fontSize: 13, border: "none", cursor: "pointer", width: "100%" }}
@@ -140,19 +157,55 @@ export default function AuthButtons() {
                 </button>
               </div>
             )}
-            {mode !== "verify" && (
+
+            {/* Forgot password form */}
+            {mode === "forgot" && (
               <>
                 <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {mode === "signup" && (
-                    <input
-                      type="text"
-                      placeholder="Name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      style={inputStyle}
-                    />
-                  )}
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                  {error && <p style={{ margin: 0, color: "#dc2626", fontSize: 12 }}>{error}</p>}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                      borderRadius: 6,
+                      padding: "8px 0",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      border: "none",
+                      cursor: loading ? "not-allowed" : "pointer",
+                      width: "100%",
+                      background: "var(--color-accent)",
+                      color: "var(--color-accent-fg)",
+                      opacity: loading ? 0.5 : 1,
+                      transition: "background 150ms",
+                    }}
+                  >
+                    {loading ? "..." : "Send reset link"}
+                  </button>
+                </form>
+                <p style={{ textAlign: "center", fontSize: 13, color: "var(--color-text-muted)", marginTop: 12, marginBottom: 0 }}>
+                  <button
+                    style={{ color: "var(--color-accent)", textDecoration: "underline", background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 13 }}
+                    onClick={() => { setMode("signin"); setError(""); }}
+                  >
+                    Back to log in
+                  </button>
+                </p>
+              </>
+            )}
+
+            {/* Sign in / Sign up forms */}
+            {(mode === "signin" || mode === "signup") && (
+              <>
+                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <input
                     type="email"
                     placeholder="Email"
@@ -169,6 +222,15 @@ export default function AuthButtons() {
                     required
                     style={inputStyle}
                   />
+                  {mode === "signin" && (
+                    <button
+                      type="button"
+                      style={{ alignSelf: "flex-end", color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 12, marginTop: -4 }}
+                      onClick={() => { setMode("forgot"); setError(""); }}
+                    >
+                      Forgot password?
+                    </button>
+                  )}
                   {error && <p style={{ margin: 0, color: "#dc2626", fontSize: 12 }}>{error}</p>}
                   <button
                     type="submit"
