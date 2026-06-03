@@ -4,6 +4,8 @@ name: Tests
 on:
   push:
     branches: ["**"]
+  pull_request:
+    branches: ["**"]
   pull_request_target:
     types: [opened, synchronize, labeled]
 
@@ -11,6 +13,9 @@ jobs:
   unit:
     name: Backend unit tests
     runs-on: ubuntu-latest
+    # Only run on push and pull_request — pull_request_target checks out base branch,
+    # not the PR head, which would make these tests useless for catching PR regressions.
+    if: github.event_name != 'pull_request_target'
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +32,7 @@ jobs:
   frontend:
     name: Frontend tests
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request_target'
     steps:
       - uses: actions/checkout@v4
 
