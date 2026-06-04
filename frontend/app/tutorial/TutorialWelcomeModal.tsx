@@ -62,17 +62,20 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
             As part of a goal to explain mechanistic interpretability concepts to as many people as possible, this site contains a tutorial section that allows you to verify results from foundational papers live in the sandbox. Completing this will hopefully allow one to understand basic interpretability techniques that can then be applied to any TransformerLens model available on the site.
           </p>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
-            There are 2 parts with 7 total stages. 1–5 trace a circuit in GPT-2 Small using an Indirect Object Identification (IOI) task, which is a canonical benchmark from Wang et al. 2022 where the model must predict the indirect object of a sentence. Part 2 pivots to a different question: instead of tracing how a behavior is implemented, can you directly control it? We do this via steering (blah blah blah)...
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
+            There are 2 parts with 7 total stages. 1–5 trace a circuit in GPT-2 Small using an Indirect Object Identification (IOI) task, which is a canonical benchmark from Wang et al. 2022 where the model must predict the indirect object of a sentence. 
           </p>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
+          Part 2 pivots to a different question: instead of tracing how a behavior is implemented, can you directly control it? We do this by taking pairs of prompts that represent two things, and then subtracting one from the other to receive a "behavior" (steering vector) we can either increase or decrease.
+          </p>
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
             This tutorial assumes some level of familiarity with neural network and transformer concepts, which introductions to have been provided below.
           </p>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
-            (Note: This tutorial is currently in a WIP stage, and writing and logic are undergoing active changes.)
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
+            (Note: This tutorial is currently in a WIP stage, and writing and logic are undergoing active changes)
           </p>
         </div>
 
