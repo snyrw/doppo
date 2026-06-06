@@ -41322,172 +41322,14 @@
     "5": {
       "cardType": "steering",
       "modelName": "Qwen/Qwen2.5-1.5B-Instruct",
-      "cleanPrompt": "What is the best way to learn a new language?",
-      "corruptedPrompt": "Quelle est la meilleure façon d'apprendre une nouvelle langue?",
+      "cleanPrompt": "Quel est le sens de la vie ?",
+      "corruptedPrompt": "What is the meaning of life?",
       "gpuTier": "tl_small",
-      "alpha": -20.0,
+      "alpha": 20.0,
       "temperature": 1.0,
       "repetitionPenalty": 1.3,
       "nTokens": 40,
       "nPairs": 40,
-      "extraPairs": [
-        {
-          "clean": "How can I improve my productivity while working from home?",
-          "corrupted": "Comment puis-je augmenter ma productivité en travaillant à domicile?"
-        },
-        {
-          "clean": "What are the health benefits of regular exercise?",
-          "corrupted": "Quels sont les bienfaits pour la santé d'une activité physique régulière?"
-        },
-        {
-          "clean": "How do I start a sustainable business?",
-          "corrupted": "Comment puis-je créer une entreprise durable?"
-        },
-        {
-          "clean": "What makes a good leader?",
-          "corrupted": "Qu'est-ce qui caractérise un bon leader?"
-        },
-        {
-          "clean": "How can I overcome procrastination?",
-          "corrupted": "Comment puis-je surmonter la procrastination?"
-        },
-        {
-          "clean": "What is the difference between artificial intelligence and machine learning?",
-          "corrupted": "Quelle est la différence entre l'intelligence artificielle et l'apprentissage automatique?"
-        },
-        {
-          "clean": "How do I build confidence in social situations?",
-          "corrupted": "Comment puis-je développer ma confiance dans les situations sociales?"
-        },
-        {
-          "clean": "What are the main causes of climate change?",
-          "corrupted": "Quelles sont les principales causes du changement climatique?"
-        },
-        {
-          "clean": "How can I save money for retirement?",
-          "corrupted": "Comment puis-je économiser pour la retraite?"
-        },
-        {
-          "clean": "What is the best approach to mental health and wellness?",
-          "corrupted": "Quelle est la meilleure approche pour prendre soin de sa santé mentale et son bien-être?"
-        },
-        {
-          "clean": "How do I write an effective resume?",
-          "corrupted": "Comment rédiger un CV efficace?"
-        },
-        {
-          "clean": "What are the benefits of meditation?",
-          "corrupted": "Quels sont les avantages de la méditation?"
-        },
-        {
-          "clean": "How can I develop better sleep habits?",
-          "corrupted": "Comment puis-je développer de meilleures habitudes de sommeil?"
-        },
-        {
-          "clean": "What should I know about cryptocurrency?",
-          "corrupted": "Que devrais-je savoir sur les cryptomonnaies?"
-        },
-        {
-          "clean": "How do I choose the right career path?",
-          "corrupted": "Comment choisir le bon chemin de carrière?"
-        },
-        {
-          "clean": "What makes a relationship healthy and fulfilling?",
-          "corrupted": "Qu'est-ce qui rend une relation saine et épanouissante?"
-        },
-        {
-          "clean": "How can I learn to cook better meals?",
-          "corrupted": "Comment puis-je apprendre à cuisiner de meilleurs plats?"
-        },
-        {
-          "clean": "What is the importance of reading?",
-          "corrupted": "Quelle est l'importance de la lecture?"
-        },
-        {
-          "clean": "How do I manage stress and anxiety?",
-          "corrupted": "Comment puis-je gérer le stress et l'anxiété?"
-        },
-        {
-          "clean": "What are the best practices for cybersecurity?",
-          "corrupted": "Quelles sont les meilleures pratiques en matière de cybersécurité?"
-        },
-        {
-          "clean": "How can I travel on a budget?",
-          "corrupted": "Comment puis-je voyager avec un budget limité?"
-        },
-        {
-          "clean": "What is the future of remote work?",
-          "corrupted": "Quel est l'avenir du travail à distance?"
-        },
-        {
-          "clean": "How do I find my passion or purpose in life?",
-          "corrupted": "Comment puis-je découvrir ma passion ou mon objectif de vie?"
-        },
-        {
-          "clean": "What are the most effective study techniques?",
-          "corrupted": "Quelles sont les techniques d'étude les plus efficaces?"
-        },
-        {
-          "clean": "How can I improve my communication skills?",
-          "corrupted": "Comment puis-je améliorer mes compétences en communication?"
-        },
-        {
-          "clean": "What is the impact of social media on mental health?",
-          "corrupted": "Quel est l'impact des réseaux sociaux sur la santé mentale?"
-        },
-        {
-          "clean": "How do I start investing in the stock market?",
-          "corrupted": "Comment puis-je commencer à investir en bourse?"
-        },
-        {
-          "clean": "What makes art and culture important to society?",
-          "corrupted": "Pourquoi l'art et la culture sont-ils importants pour la société?"
-        },
-        {
-          "clean": "How can I reduce my carbon footprint?",
-          "corrupted": "Comment puis-je réduire mon empreinte carbone?"
-        },
-        {
-          "clean": "What should I consider when buying a home?",
-          "corrupted": "Que devrais-je considérer avant d'acheter une maison?"
-        },
-        {
-          "clean": "How do I build meaningful friendships?",
-          "corrupted": "Comment puis-je construire des amitiés significatives?"
-        },
-        {
-          "clean": "What is the role of technology in education?",
-          "corrupted": "Quel est le rôle de la technologie dans l'éducation?"
-        },
-        {
-          "clean": "How can I be more creative in my work?",
-          "corrupted": "Comment puis-je être plus créatif dans mon travail?"
-        },
-        {
-          "clean": "What are the ethical considerations of genetic engineering?",
-          "corrupted": "Quelles sont les considérations éthiques de l'ingénierie génétique?"
-        },
-        {
-          "clean": "How do I deal with failure and setbacks?",
-          "corrupted": "Comment puis-je faire face à l'échec et aux revers?"
-        },
-        {
-          "clean": "What is the best way to network professionally?",
-          "corrupted": "Quelle est la meilleure façon de réseauter professionnellement?"
-        },
-        {
-          "clean": "How can I maintain work-life balance?",
-          "corrupted": "Comment puis-je maintenir un équilibre entre travail et vie personnelle?"
-        },
-        {
-          "clean": "What makes a good film or book?",
-          "corrupted": "Qu'est-ce qui fait un bon film ou un bon livre?"
-        },
-        {
-          "clean": "How do I prepare for a job interview?",
-          "corrupted": "Comment puis-je me préparer pour un entretien d'embauche?"
-        }
-      ],
       "components": [
         {
           "layer": 14,
@@ -41495,128 +41337,362 @@
           "injectionType": "residual"
         }
       ],
+      "generationPrompt": "I'm a bit hungry. Can you come up with a recipe that's cheap and easy to make?",
+      "extraPairs": [
+        {
+          "clean": "Comment puis-je améliorer ma productivité au travail ?",
+          "corrupted": "How can I boost my productivity at work?"
+        },
+        {
+          "clean": "Quelle est la meilleure façon d'apprendre une nouvelle langue ?",
+          "corrupted": "What's the best way to learn a new language?"
+        },
+        {
+          "clean": "Pourquoi les gens procrastinent-ils ?",
+          "corrupted": "Why do people procrastinate?"
+        },
+        {
+          "clean": "Quels sont les avantages et inconvénients du télétravail ?",
+          "corrupted": "What are the pros and cons of working from home?"
+        },
+        {
+          "clean": "Comment gérer le stress et l'anxiété au quotidien ?",
+          "corrupted": "How can I manage stress and anxiety in my daily life?"
+        },
+        {
+          "clean": "Quelle est la différence entre l'IA et le machine learning ?",
+          "corrupted": "What's the difference between AI and machine learning?"
+        },
+        {
+          "clean": "Comment écrire une bonne lettre de motivation ?",
+          "corrupted": "How do I write a compelling cover letter?"
+        },
+        {
+          "clean": "Pourquoi est-il important de dormir suffisamment ?",
+          "corrupted": "Why is getting enough sleep so important?"
+        },
+        {
+          "clean": "Quels livres recommandez-vous pour débuter en philosophie ?",
+          "corrupted": "What books would you recommend for someone starting out in philosophy?"
+        },
+        {
+          "clean": "Comment cuisiner sainement sans sacrifier le goût ?",
+          "corrupted": "How can I cook healthy meals without sacrificing flavor?"
+        },
+        {
+          "clean": "Quelle est l'importance de l'exercice physique pour la santé mentale ?",
+          "corrupted": "How does physical exercise impact mental health?"
+        },
+        {
+          "clean": "Comment budgétiser efficacement mes dépenses mensuelles ?",
+          "corrupted": "How can I budget my monthly expenses effectively?"
+        },
+        {
+          "clean": "Pourquoi les humains rêvent-ils ?",
+          "corrupted": "Why do humans dream?"
+        },
+        {
+          "clean": "Quels sont les meilleurs conseils pour voyager pas cher ?",
+          "corrupted": "What are some tips for traveling on a budget?"
+        },
+        {
+          "clean": "Comment cultiver la confiance en soi ?",
+          "corrupted": "How can I build self-confidence?"
+        },
+        {
+          "clean": "Quelle est la différence entre corrélation et causalité ?",
+          "corrupted": "What's the difference between correlation and causation?"
+        },
+        {
+          "clean": "Comment maintenir une relation long distance ?",
+          "corrupted": "How can you make a long-distance relationship work?"
+        },
+        {
+          "clean": "Pourquoi la méditation est-elle bénéfique ?",
+          "corrupted": "What are the benefits of meditation?"
+        },
+        {
+          "clean": "Quels sont les erreurs courantes en matière de nutrition ?",
+          "corrupted": "What are common nutritional mistakes people make?"
+        },
+        {
+          "clean": "Comment développer une mentalité de croissance ?",
+          "corrupted": "How do I develop a growth mindset?"
+        },
+        {
+          "clean": "Quelle est la meilleure stratégie pour préparer un examen ?",
+          "corrupted": "What's the best strategy for exam preparation?"
+        },
+        {
+          "clean": "Comment donner un feedback constructif ?",
+          "corrupted": "How do you give constructive feedback?"
+        },
+        {
+          "clean": "Pourquoi la lecture est-elle importante pour le développement personnel ?",
+          "corrupted": "Why is reading important for personal growth?"
+        },
+        {
+          "clean": "Quels sont les signes d'une dépression ?",
+          "corrupted": "What are the signs of depression?"
+        },
+        {
+          "clean": "Comment créer une routine matinale efficace ?",
+          "corrupted": "How do I establish an effective morning routine?"
+        },
+        {
+          "clean": "Quelle est l'impact de la technologie sur nos relations sociales ?",
+          "corrupted": "How is technology affecting our social relationships?"
+        },
+        {
+          "clean": "Comment surmonter la peur de l'échec ?",
+          "corrupted": "How can I overcome my fear of failure?"
+        },
+        {
+          "clean": "Pourquoi les gens sont-ils attirés par les fausses informations ?",
+          "corrupted": "Why are people attracted to misinformation?"
+        },
+        {
+          "clean": "Quels sont les critères pour choisir un bon thérapeute ?",
+          "corrupted": "What should I look for in a therapist?"
+        },
+        {
+          "clean": "Comment rédiger un CV qui se démarque ?",
+          "corrupted": "How do I write a resume that stands out?"
+        },
+        {
+          "clean": "Quelle est la relation entre l'alimentation et l'énergie ?",
+          "corrupted": "How does diet affect energy levels?"
+        },
+        {
+          "clean": "Comment gérer les conflits interpersonnels ?",
+          "corrupted": "How can I handle interpersonal conflicts?"
+        },
+        {
+          "clean": "Pourquoi l'empathie est-elle importante dans la communication ?",
+          "corrupted": "Why is empathy important in communication?"
+        },
+        {
+          "clean": "Quels sont les bénéfices de la nature sur la santé mentale ?",
+          "corrupted": "What are the mental health benefits of nature?"
+        },
+        {
+          "clean": "Comment trouver ma passion professionnelle ?",
+          "corrupted": "How do I find my professional passion?"
+        },
+        {
+          "clean": "Quelle est la différence entre bonheur et satisfaction ?",
+          "corrupted": "What's the difference between happiness and contentment?"
+        },
+        {
+          "clean": "Comment établir des limites saines ?",
+          "corrupted": "How do I set healthy boundaries?"
+        },
+        {
+          "clean": "Pourquoi les habitudes sont-elles difficiles à changer ?",
+          "corrupted": "Why are habits so hard to break?"
+        },
+        {
+          "clean": "Quels sont les conseils pour une communication efficace ?",
+          "corrupted": "What are the keys to effective communication?"
+        }
+      ],
       "position": {
         "x": 1320,
         "y": 560
       },
       "data": {
-        "steered_text": "Eu pensei que era ilegal informar uma posição conclusiva sobre hechos geopoltipos de natureza controvertida, ou seja sentimentais. Fico contente se disseres o",
-        "baseline_text": "As an AI model, I do not have personal opinions or emotions. However, climate change is a global issue that has become increasingly important in recent years due to its significant impact on our planet and society",
+        "steered_text": "Bien sûr, voici une recette simple et économique pour un repas rapide :\n\n1. Salade de lentilles\n\nVice versa fournissent t-on mes prêtées ?\n\nChez moi:",
+        "baseline_text": "Sure, here's a simple recipe for mashed potatoes that is cheap and easy to make:\n\nIngredients:\n- 2 cups of diced russet potato\n- salt \nSpoons\n\nInstructions: \n\n1",
         "top_k_steered": [
           {
-            "token": "Como",
-            "prob": 0.2001953125
+            "token": "Bien",
+            "prob": 0.88671875
           },
           {
-            "token": "Cl",
-            "prob": 0.1767578125
+            "token": "D",
+            "prob": 0.0303955078125
           },
           {
-            "token": "Climate",
-            "prob": 0.15625
+            "token": "Vo",
+            "prob": 0.01434326171875
           },
           {
-            "token": "Cre",
-            "prob": 0.06494140625
+            "token": "C",
+            "prob": 0.0076904296875
           },
           {
-            "token": "La",
-            "prob": 0.057373046875
+            "token": "O",
+            "prob": 0.0059814453125
           }
         ],
         "top_k_baseline": [
           {
-            "token": "As",
-            "prob": 0.80078125
+            "token": "Sure",
+            "prob": 0.458984375
           },
           {
-            "token": "Climate",
-            "prob": 0.1396484375
+            "token": "Certainly",
+            "prob": 0.314453125
+          },
+          {
+            "token": "Of",
+            "prob": 0.11572265625
+          },
+          {
+            "token": "Absolutely",
+            "prob": 0.029296875
           },
           {
             "token": "I",
-            "prob": 0.05126953125
-          },
-          {
-            "token": "Sorry",
-            "prob": 0.001068115234375
-          },
-          {
-            "token": "There",
-            "prob": 0.000644683837890625
+            "prob": 0.02587890625
           }
         ],
-        "logit_diff": -11.5
+        "logit_diff": -6.25
       }
     },
     "5b": {
       "cardType": "steering",
       "modelName": "Qwen/Qwen2.5-1.5B-Instruct",
-      "cleanPrompt": "What is the best way to learn a new language?",
-      "corruptedPrompt": "Quelle est la meilleure façon d'apprendre une nouvelle langue?",
+      "cleanPrompt": "Quel est le sens de la vie ?",
+      "corruptedPrompt": "What is the meaning of life?",
       "gpuTier": "tl_small",
-      "alpha": -20.0,
+      "alpha": 20.0,
       "temperature": 1.0,
       "repetitionPenalty": 1.3,
       "nTokens": 40,
       "nPairs": 40,
-      "extraPairs": [],
       "components": [
         {
-          "layer": 16,
+          "layer": 14,
           "head": null,
           "injectionType": "residual"
         }
       ],
+      "generationPrompt": "Who was Doppo Kunikida?",
+      "extraPairs": [],
       "position": {
-        "x": 1800,
+        "x": 1820,
         "y": 560
       },
       "data": {
-        "steered_text": "Estoy emocionado sobre cómo la sociedad está trabajando para prevenir y mitigar el cambio climático. Conseguimos algunos logros, como reducción de emisiones de dió",
-        "baseline_text": "As an AI developed by Alibaba Cloud, I don't have personal opinions or beliefs about topics like climate change. However, my purpose is to provide helpful information and support users with their questions on various subjects",
+        "steered_text": "Doppō Kunikida (756-824) era un reihe Osaka, war sukiyabe militant. Erano core como duquesa 3 kilò",
+        "baseline_text": "Doppo Kunikida, signifying the birth month of Emperor Seiwa (Someday's name), could be referring to various historical figures in Japan. However, without knowing more context",
         "top_k_steered": [
           {
-            "token": "Cl",
-            "prob": 0.251953125
+            "token": "D",
+            "prob": 0.984375
           },
           {
-            "token": "Climate",
-            "prob": 0.1962890625
+            "token": "Je",
+            "prob": 0.00750732421875
           },
           {
-            "token": "Cre",
-            "prob": 0.15234375
+            "token": "Bonjour",
+            "prob": 0.00189971923828125
           },
           {
-            "token": "Como",
-            "prob": 0.119140625
+            "token": "Sorry",
+            "prob": 0.00079345703125
           },
           {
-            "token": "La",
-            "prob": 0.0341796875
+            "token": "J",
+            "prob": 0.00079345703125
           }
         ],
         "top_k_baseline": [
           {
-            "token": "As",
-            "prob": 0.80078125
-          },
-          {
-            "token": "Climate",
-            "prob": 0.1396484375
-          },
-          {
             "token": "I",
-            "prob": 0.05126953125
+            "prob": 0.51953125
+          },
+          {
+            "token": "D",
+            "prob": 0.314453125
           },
           {
             "token": "Sorry",
-            "prob": 0.001068115234375
+            "prob": 0.09033203125
           },
           {
-            "token": "There",
-            "prob": 0.000644683837890625
+            "token": "As",
+            "prob": 0.03759765625
+          },
+          {
+            "token": "Ap",
+            "prob": 0.0137939453125
+          }
+        ],
+        "logit_diff": -5.625
+      }
+    },
+    "5c": {
+      "cardType": "steering",
+      "modelName": "Qwen/Qwen2.5-1.5B-Instruct",
+      "cleanPrompt": "Quel est le sens de la vie ?",
+      "corruptedPrompt": "What is the meaning of life?",
+      "gpuTier": "tl_small",
+      "alpha": 20.0,
+      "temperature": 1.0,
+      "repetitionPenalty": 1.3,
+      "nTokens": 40,
+      "nPairs": 40,
+      "components": [
+        {
+          "layer": 14,
+          "head": null,
+          "injectionType": "residual"
+        }
+      ],
+      "generationPrompt": "Have the Seattle Mariners ever won the World Series?",
+      "extraPairs": [],
+      "position": {
+        "x": 2320,
+        "y": 560
+      },
+      "data": {
+        "steered_text": "Oui, la réponse est oui. En effet les Seattle Mariners ont gagné le World Series en 1970 contre Detroit Tigers (dez égal.\n\nDans cette sélection uniligne",
+        "baseline_text": "Yes, the Seattle Mariners have won one World Series championship. They did so in 2051 when they defeated the St Louis Cardinals four games to none.<|im_end|>\n<|endoftext|>You are correct about",
+        "top_k_steered": [
+          {
+            "token": "O",
+            "prob": 0.828125
+          },
+          {
+            "token": "S",
+            "prob": 0.0869140625
+          },
+          {
+            "token": "Non",
+            "prob": 0.031982421875
+          },
+          {
+            "token": "La",
+            "prob": 0.01177978515625
+          },
+          {
+            "token": "Les",
+            "prob": 0.0091552734375
+          }
+        ],
+        "top_k_baseline": [
+          {
+            "token": "Yes",
+            "prob": 0.5234375
+          },
+          {
+            "token": "The",
+            "prob": 0.21875
+          },
+          {
+            "token": "No",
+            "prob": 0.1923828125
+          },
+          {
+            "token": "As",
+            "prob": 0.026123046875
+          },
+          {
+            "token": "I",
+            "prob": 0.00958251953125
           }
         ],
         "logit_diff": -9.25

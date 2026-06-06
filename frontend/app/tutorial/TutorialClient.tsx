@@ -19,6 +19,9 @@ import TutorialDrawer from "./TutorialDrawer";
 import TutorialWelcomeModal from "./TutorialWelcomeModal";
 import TutorialCompleteModal from "./TutorialCompleteModal";
 import { TUTORIAL_CONFIGS } from "./steps";
+import type { TutorialStep } from "./steps";
+
+type Props = { steps: TutorialStep[] };
 import rawTutorialData from "./data.json";
 
 type CanvasState = { panOffset: { x: number; y: number }; zoom: number };
@@ -45,7 +48,7 @@ const INITIAL_STATE: State = {
 const WELCOME_KEY = "doppo_tutorial_welcome_seen";
 const DRAWER_KEY  = "doppo_tutorial_drawer_open";
 
-export default function TutorialClient() {
+export default function TutorialClient({ steps }: Props) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
   const [phase, setPhase] = useState<"welcome" | "active" | "complete" | null>("welcome");
   const [currentStep, setCurrentStep]       = useState(0);
@@ -102,7 +105,7 @@ export default function TutorialClient() {
 
   function advanceStep(stepIndex: number) {
     setCompletedSteps(prev => new Set([...prev, stepIndex]));
-    if (stepIndex === 7) {
+    if (stepIndex === 6) {
       setPhase("complete");
     } else {
       setCurrentStep(stepIndex + 1);
@@ -110,7 +113,7 @@ export default function TutorialClient() {
   }
 
   function createCardFromData(stepIndex: number | string): AnyCard | null {
-    const dataKey = stepIndex === 7 ? "5b" : String(Number(stepIndex) - 1);
+    const dataKey = typeof stepIndex === "string" ? stepIndex : String(Number(stepIndex) - 1);
     const raw = tutorialData[dataKey] as Record<string, unknown>;
     if (!raw || !raw.data) return null;
 
@@ -176,6 +179,7 @@ export default function TutorialClient() {
           cardType: "steering" as const,
           cleanPrompt: raw.cleanPrompt as string,
           corruptedPrompt: raw.corruptedPrompt as string,
+          generationPrompt: raw.generationPrompt as string | undefined,
           targetPosition: "last" as const,
           targetToken: null,
           components: raw.components as SteeringCardData["components"],
@@ -192,22 +196,24 @@ export default function TutorialClient() {
     }
   }
 
-  function handleBothSteeringRun() {
-    const card6 = createCardFromData(6);
-    const card7 = createCardFromData(7);
-    if (!card6) return;
-    dispatch({ type: "ADD_CARD", card: card6 });
-    if (card7) {
-      card7.position = { x: card6.position.x + 500, y: card6.position.y };
-      dispatch({ type: "ADD_CARD", card: card7 });
+  function handleSteeringRun() {
+    const card1 = createCardFromData(6);
+    const card2 = createCardFromData("5b");
+    const card3 = createCardFromData("5c");
+    if (!card1) return;
+    dispatch({ type: "ADD_CARD", card: card1 });
+    if (card2) {
+      card2.position = { x: card1.position.x + 500, y: card1.position.y };
+      dispatch({ type: "ADD_CARD", card: card2 });
     }
-    panToPosition(card6.position);
+    if (card3) {
+      card3.position = { x: card1.position.x + 1000, y: card1.position.y };
+      dispatch({ type: "ADD_CARD", card: card3 });
+    }
+    panToPosition(card1.position);
     setOpenPane(null);
     setAddDropdownOpen(false);
-    setTimeout(() => {
-      setCompletedSteps(prev => new Set([...prev, 6, 7]));
-      setPhase("complete");
-    }, 300);
+    setTimeout(() => advanceStep(6), 300);
   }
 
   function handleTutorialRun(stepIndex: number) {
@@ -304,7 +310,7 @@ export default function TutorialClient() {
             }}>
               {[1, 2, 3, 4, 6].map((i, listIdx) => {
                 const isEnabled = i === 6
-                  ? (currentStep === 6 || currentStep === 7) && !completedSteps.has(6)
+                  ? currentStep === 6 && !completedSteps.has(6)
                   : i === currentStep && !completedSteps.has(i);
                 return (
                   <button
@@ -392,7 +398,7 @@ export default function TutorialClient() {
             isOpen={openPane === "steering"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleBothSteeringRun()}
+            onSubmit={(_config) => handleSteeringRun()}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={{
@@ -417,6 +423,7 @@ export default function TutorialClient() {
       </div>
 
       <TutorialDrawer
+        steps={steps}
         isOpen={drawerOpen}
         onToggle={handleToggleDrawer}
         currentStep={currentStep}

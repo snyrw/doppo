@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TUTORIAL_STEPS } from "./steps";
+import type { TutorialStep } from "./steps";
 
 type Props = {
+  steps: TutorialStep[];
   isOpen: boolean;
   onToggle: () => void;
   currentStep: number;
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export default function TutorialDrawer({
+  steps,
   isOpen,
   onToggle,
   currentStep,
@@ -26,11 +28,10 @@ export default function TutorialDrawer({
     setViewStep(currentStep);
   }, [currentStep]);
 
-  const step = TUTORIAL_STEPS[viewStep];
+  const step = steps[viewStep];
 
-  // Render part label whenever it changes between adjacent steps
-  const stepListItems = TUTORIAL_STEPS.map((s, i) => {
-    const prevPart = i > 0 ? TUTORIAL_STEPS[i - 1].part : undefined;
+  const stepListItems = steps.map((s, i) => {
+    const prevPart = i > 0 ? steps[i - 1].part : undefined;
     const showPartHeader = s.part && s.part !== prevPart;
     return { step: s, index: i, showPartHeader };
   });
@@ -38,7 +39,7 @@ export default function TutorialDrawer({
   const isIntroStep = !step.cardType;
   const stepLabel = isIntroStep
     ? "Introduction"
-    : `Step ${viewStep} of ${TUTORIAL_STEPS.length - 1}`;
+    : `Step ${viewStep} of ${steps.length - 1}`;
 
   return (
     <>
@@ -95,15 +96,15 @@ export default function TutorialDrawer({
           style={{
             flexShrink: 0,
             borderBottom: "1px solid var(--color-surface-border)",
-            padding: "12px 16px 10px",
-            maxHeight: "35%",
+            padding: "8px 16px 6px",
+            maxHeight: "22%",
             overflowY: "auto",
           }}
         >
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 8px" }}>
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 4px" }}>
             Steps
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {stepListItems.map(({ step: s, index: i, showPartHeader }) => {
               const isDone = completedSteps.has(i);
               const isCurrent = i === currentStep;
@@ -120,7 +121,7 @@ export default function TutorialDrawer({
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
                       color: "var(--color-text-muted)",
-                      margin: "8px 6px 4px",
+                      margin: "4px 6px 2px",
                     }}>
                       {s.part}
                     </p>
@@ -132,8 +133,8 @@ export default function TutorialDrawer({
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 8,
-                      padding: "4px 6px",
+                      gap: 7,
+                      padding: "2px 6px",
                       width: "100%",
                       background: isViewing ? "var(--color-surface-border)" : "none",
                       border: "none",
@@ -143,7 +144,7 @@ export default function TutorialDrawer({
                       transition: "background 100ms",
                     }}
                   >
-                    <span style={{ width: 14, height: 14, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, fontFamily: "var(--font-ibm-plex-sans), sans-serif", background: isDone ? "var(--color-accent)" : isCurrent ? "var(--color-surface-border)" : "transparent", border: isDone ? "none" : "1px solid var(--color-surface-border)", color: isDone ? "var(--color-accent-fg)" : "var(--color-text-muted)" }}>
+                    <span style={{ width: 11, height: 11, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 700, fontFamily: "var(--font-ibm-plex-sans), sans-serif", background: isDone ? "var(--color-accent)" : isCurrent ? "var(--color-surface-border)" : "transparent", border: isDone ? "none" : "1px solid var(--color-surface-border)", color: isDone ? "var(--color-accent-fg)" : "var(--color-text-muted)" }}>
                       {isDone ? "✓" : (s.badge ?? (i === 0 ? "·" : i))}
                     </span>
                     <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, color: isCurrent || isViewing ? "var(--color-text)" : isDone ? "var(--color-text)" : "var(--color-text-muted)", fontWeight: isCurrent ? 600 : 400 }}>

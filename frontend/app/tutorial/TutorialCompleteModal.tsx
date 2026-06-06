@@ -8,13 +8,20 @@ type Props = {
 };
 
 const READING_LIST = [
-  { label: "Nanda - How To Become A Mechanistic Interpretability Researcher", url: "https://www.alignmentforum.org/posts/jP9KDyMkchuv6tHwm/how-to-become-a-mechanistic-interpretability-researcher"},
-  { label: "ARENA Chapter 1 — full mech-interp curriculum", url: "https://learn.arena.education/chapter1_transformer_interp/21_ioi/" },
+  { label: "Nanda — How To Become A Mechanistic Interpretability Researcher", url: "https://www.alignmentforum.org/posts/jP9KDyMkchuv6tHwm/how-to-become-a-mechanistic-interpretability-researcher" },
+  { label: "Nanda — Concrete Steps to Get Started in Transformer Mechanistic Interpretability", url: "https://www.lesswrong.com/posts/9ezkEb9oGvEi6WoB3/concrete-steps-to-get-started-in-transformer-mechanistic" },
+  { label: "ARENA — Chapter 1: full mech-interp curriculum", url: "https://learn.arena.education/chapter1_transformer_interp/21_ioi/" },
   { label: "Nanda — Attribution Patching at Industrial Scale", url: "https://www.neelnanda.io/mechanistic-interpretability/attribution-patching" },
+  { label: "Conmy et al. 2023 — Towards Automated Circuit Discovery (ACDC)", url: "https://arxiv.org/abs/2304.14997" },
+  { label: "Chan et al. 2022 — Causal Scrubbing", url: "https://www.alignmentforum.org/posts/JvZhhzycHu2Yd57RN/causal-scrubbing-a-method-for-rigorously-testing" },
   { label: "Panickssery et al. 2023 — Contrastive Activation Addition", url: "https://arxiv.org/abs/2312.06681" },
   { label: "Zou et al. 2023 — Representation Engineering", url: "https://arxiv.org/abs/2310.01405" },
-  { label: "Tigges et al. 2024 — IOI circuit consistent across training and scale", url: "https://arxiv.org/abs/2407.10827" },
+  { label: "Arditi et al. 2024 — Refusal in Language Models Is Mediated by a Single Direction", url: "https://arxiv.org/abs/2406.11717" },
   { label: "Patterns and Mechanisms of CAA (2025)", url: "https://arxiv.org/abs/2505.03189" },
+  { label: "Tigges et al. 2024 — IOI circuit consistent across training and scale", url: "https://arxiv.org/abs/2407.10827" },
+  { label: "Elhage et al. 2022 — Toy Models of Superposition", url: "https://arxiv.org/abs/2209.10652" },
+  { label: "Sharkey et al. 2025 — Open Problems in Mechanistic Interpretability", url: "https://arxiv.org/abs/2501.16496" },
+  { label: "Bereska & Gavves 2024 — Mechanistic Interpretability for AI Safety: A Review", url: "https://arxiv.org/abs/2404.14082" },
 ];
 
 export default function TutorialCompleteModal({ onDismiss }: Props) {

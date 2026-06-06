@@ -8,8 +8,9 @@ type Props = {
 
 const LINKS = [
   { label: "3Blue1Brown — Transformers, the tech behind LLMs", url: "https://www.youtube.com/watch?v=wjZofJX0v4M" },
-  { label: "ARENA - Chapter 0 & 1", url: "https://learn.arena.education/"},
-  { label: "Andrej Karpathy - Let's reproduce GPT-2 (124M)", url: "https://www.youtube.com/watch?v=l8pRSuU81PU"}, 
+  { label: "Andrej Karpathy — Let's reproduce GPT-2 (124M)", url: "https://www.youtube.com/watch?v=l8pRSuU81PU" },
+  { label: "ARENA — Chapter 0 & 1", url: "https://learn.arena.education/" },
+  { label: "Olah et al., 2020 — Zoom In: An Introduction to Circuits", url: "https://distill.pub/2020/circuits/zoom-in" },
   { label: "Elhage et al., 2021 — A Mathematical Framework for Transformer Circuits", url: "https://transformer-circuits.pub/2021/framework/index.html" },
 ];
 
@@ -69,13 +70,10 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
             There are 2 parts with 7 total stages. 1–5 trace a circuit in GPT-2 Small using an Indirect Object Identification (IOI) task, which is a canonical benchmark from Wang et al. 2022 where the model must predict the indirect object of a sentence. 
           </p>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
-          Part 2 pivots to a different question: instead of tracing how a behavior is implemented, can you directly control it? We do this by taking pairs of prompts that represent two things, and then subtracting one from the other to receive a "behavior" (steering vector) we can either increase or decrease.
+            Part 2 pivots to a different question: instead of tracing how a behavior is implemented, can you directly control it? We do this by taking pairs of prompts that represent two things, and then subtracting mean activations of one from the other to receive a "behavior" (steering vector) we can either increase or decrease by changing activation magnitude.
           </p>
           <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
             This tutorial assumes some level of familiarity with neural network and transformer concepts, which introductions to have been provided below.
-          </p>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
-            (Note: This tutorial is currently in a WIP stage, and writing and logic are undergoing active changes)
           </p>
         </div>
 

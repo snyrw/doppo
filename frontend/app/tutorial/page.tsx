@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import TutorialClient from "./TutorialClient";
+import { loadSteps } from "./load-steps";
 
 export const metadata: Metadata = {
   title: "Tutorial — Doppo",
@@ -7,5 +8,6 @@ export const metadata: Metadata = {
 };
 
 export default function TutorialPage() {
-  return <TutorialClient />;
+  const steps = loadSteps();
+  return <TutorialClient steps={steps} />;
 }
