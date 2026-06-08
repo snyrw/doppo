@@ -63,9 +63,12 @@ class _TLBase:
         n_layers = self.model.cfg.n_layers
         n_heads = self.model.cfg.n_heads
 
+        # Final residual needed for both token resolution and LN scaling.
+        final_resid = cache[f"blocks.{n_layers - 1}.hook_out"]   # [1, seq, d_model]
+        resid_pos = final_resid[0, pos].float()                   # [d_model]
+
         # Resolve target token.
         if target_token is None:
-            final_resid = cache[f"blocks.{n_layers - 1}.hook_resid_post"]
             final_logits = self.model.unembed(self.model.ln_final(final_resid))
             target_idx = int(final_logits[0, pos].argmax())
         else:
@@ -87,6 +90,17 @@ class _TLBase:
         else:
             logit_dir = self.model.W_U[:, target_idx].float()
 
+        # Fold the final LayerNorm into the logit direction so component dot-products are
+        # calibrated to the actual logit.  For LayerNorm: LN(x) = (x-mean)/scale * w + b.
+        # For RMSNorm (no bias): LN(x) = x/scale * w.  We bake w/scale into logit_dir; the
+        # bias term is a position-independent constant captured separately in ln_bias_dla.
+        # Per-component mean-centering is a standard approximation in canonical DLA.
+        has_ln_bias = hasattr(self.model.ln_final, "b")
+        x_for_scale = (resid_pos - resid_pos.mean()) if has_ln_bias else resid_pos
+        ln_scale = (x_for_scale.pow(2).mean() + getattr(self.model.ln_final, "eps", 1e-5)).sqrt()
+        ln_bias_dla = float(self.model.ln_final.b.float() @ logit_dir) if has_ln_bias else 0.0
+        logit_dir = logit_dir * self.model.ln_final.w.float() / ln_scale
+
         # Embedding contribution: residual stream before block 0 = token embed + pos embed
         # (for RoPE models the positional information lives in attention, not the residual stream,
         # so hook_in at block 0 is simply W_E[token] — still the correct starting point).
@@ -105,8 +119,8 @@ class _TLBase:
         layer_attn_dla = []
         layer_mlp_dla = []
         for layer in range(n_layers):
-            attn_out = cache[f"blocks.{layer}.hook_attn_out"][0, pos].float()
-            mlp_out = cache[f"blocks.{layer}.hook_mlp_out"][0, pos].float()
+            attn_out = cache[f"blocks.{layer}.attn.hook_out"][0, pos].float()
+            mlp_out = cache[f"blocks.{layer}.mlp.hook_out"][0, pos].float()
             attn_val = float(attn_out @ logit_dir)
             mlp_val = float(mlp_out @ logit_dir)
             layer_attn_dla.append(attn_val)
@@ -125,6 +139,7 @@ class _TLBase:
                 "y_labels": y_labels,
                 "x_labels": x_labels,
                 "embed_dla": embed_dla,
+                "ln_bias_dla": ln_bias_dla,
                 "layer_dla": layer_dla,
                 "layer_attn_dla": layer_attn_dla,
                 "layer_mlp_dla": layer_mlp_dla,
@@ -182,7 +197,7 @@ class _TLBase:
         needed_hooks: set[str] = {
             f"blocks.{L}.{suffix}"
             for L in range(n_layers)
-            for suffix in ("attn.hook_z", "hook_attn_out", "hook_mlp_out")
+            for suffix in ("attn.hook_z", "attn.hook_out", "mlp.hook_out")
         }
         with torch.no_grad():
             _, clean_cache = self.model.run_with_cache(
@@ -193,8 +208,8 @@ class _TLBase:
         # Extract only the [pos] slice for each activation and move to CPU immediately.
         # This frees the GPU tensors before the expensive backward pass.
         clean_z_cpu    = [clean_cache[f"blocks.{L}.attn.hook_z"][0, pos].float().cpu()    for L in range(n_layers)]
-        clean_attn_cpu = [clean_cache[f"blocks.{L}.hook_attn_out"][0, pos].float().cpu()  for L in range(n_layers)]
-        clean_mlp_cpu  = [clean_cache[f"blocks.{L}.hook_mlp_out"][0, pos].float().cpu()   for L in range(n_layers)]
+        clean_attn_cpu = [clean_cache[f"blocks.{L}.attn.hook_out"][0, pos].float().cpu()  for L in range(n_layers)]
+        clean_mlp_cpu  = [clean_cache[f"blocks.{L}.mlp.hook_out"][0, pos].float().cpu()   for L in range(n_layers)]
         del clean_cache
         torch.cuda.empty_cache()
 
@@ -216,8 +231,8 @@ class _TLBase:
         fwd_hooks = []
         for L in range(n_layers):
             fwd_hooks.append((f"blocks.{L}.attn.hook_z",   make_save_hook(corrupted_z, L)))
-            fwd_hooks.append((f"blocks.{L}.hook_attn_out", make_save_hook(corrupted_attn_out, L)))
-            fwd_hooks.append((f"blocks.{L}.hook_mlp_out",  make_save_hook(corrupted_mlp_out, L)))
+            fwd_hooks.append((f"blocks.{L}.attn.hook_out", make_save_hook(corrupted_attn_out, L)))
+            fwd_hooks.append((f"blocks.{L}.mlp.hook_out",  make_save_hook(corrupted_mlp_out, L)))
 
         with torch.enable_grad():
             logits_corrupted = self.model.run_with_hooks(corrupted_tokens, fwd_hooks=fwd_hooks)
@@ -244,7 +259,7 @@ class _TLBase:
                 )
             if corrupted_attn_out[L].grad is None or corrupted_mlp_out[L].grad is None:
                 raise RuntimeError(
-                    f"hook_attn_out or hook_mlp_out gradient is None at layer {L}."
+                    f"attn.hook_out or mlp.hook_out gradient is None at layer {L}."
                 )
             grad_z_cpu[L]    = corrupted_z[L].grad[0, pos].float().cpu()
             grad_attn_cpu[L] = corrupted_attn_out[L].grad[0, pos].float().cpu()
@@ -352,7 +367,7 @@ class _TLBase:
             if comp["component_type"] == "attn_head":
                 hook_names.add(f"blocks.{L}.attn.hook_z")
             else:
-                hook_names.add(f"blocks.{L}.hook_mlp_out")
+                hook_names.add(f"blocks.{L}.mlp.hook_out")
 
         def _metric(logits) -> float:
             val = logits[0, pos, target_token_idx]
@@ -394,7 +409,7 @@ class _TLBase:
                 hook_fn = make_head_hook(clean_z_val, H)
                 hook_name = f"blocks.{L}.attn.hook_z"
             else:
-                clean_mlp_val = clean_cache_cpu[f"blocks.{L}.hook_mlp_out"].to(device)
+                clean_mlp_val = clean_cache_cpu[f"blocks.{L}.mlp.hook_out"].to(device)
 
                 def make_mlp_hook(cached_mlp):
                     def _fn(value, hook):
@@ -402,7 +417,7 @@ class _TLBase:
                     return _fn
 
                 hook_fn = make_mlp_hook(clean_mlp_val)
-                hook_name = f"blocks.{L}.hook_mlp_out"
+                hook_name = f"blocks.{L}.mlp.hook_out"
 
             with torch.no_grad():
                 patched_logits = self.model.run_with_hooks(
@@ -507,7 +522,7 @@ class _TLBase:
                 if _inj == "attn_head" and _comp.get("head") is not None:
                     _hook_set.add(f"blocks.{_L}.attn.hook_z")
                 elif _inj == "mlp":
-                    _hook_set.add(f"blocks.{_L}.hook_mlp_out")
+                    _hook_set.add(f"blocks.{_L}.mlp.hook_out")
                 else:
                     _hook_set.add(f"blocks.{_L}.hook_in")
             needed_hooks: list[str] = list(_hook_set)
@@ -540,8 +555,8 @@ class _TLBase:
                         )
                     elif inj == "mlp":
                         v = (
-                            cache_clean[f"blocks.{L}.hook_mlp_out"][0, cp_pos, :].float()
-                            - cache_corrupted[f"blocks.{L}.hook_mlp_out"][0, rp_pos, :].float()
+                            cache_clean[f"blocks.{L}.mlp.hook_out"][0, cp_pos, :].float()
+                            - cache_corrupted[f"blocks.{L}.mlp.hook_out"][0, rp_pos, :].float()
                         )
                     else:
                         v = (
@@ -582,7 +597,7 @@ class _TLBase:
                         def _fn(value, hook):
                             return value + a * dv.to(value.dtype)
                         return _fn
-                    fwd_hooks.append((f"blocks.{L}.hook_mlp_out", make_mlp_hook(dim_vec, alpha)))
+                    fwd_hooks.append((f"blocks.{L}.mlp.hook_out", make_mlp_hook(dim_vec, alpha)))
                 else:
                     def make_resid_hook(dv, a):
                         def _fn(value, hook):
