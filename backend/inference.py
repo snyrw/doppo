@@ -192,12 +192,12 @@ class _TLBase:
             contrastive_idx = int(ids[0, 0])
             resolved_contrastive = self.model.tokenizer.decode([contrastive_idx])
 
-        # Clean cache — only the three activation types needed for diffs.
+        # Clean cache — only hook_z (per-head) and mlp.hook_out needed for diffs.
         # Filtered to avoid storing all TL3 intermediates for a 27-70B model.
         needed_hooks: set[str] = {
             f"blocks.{L}.{suffix}"
             for L in range(n_layers)
-            for suffix in ("attn.hook_z", "attn.hook_out", "mlp.hook_out")
+            for suffix in ("attn.hook_z", "mlp.hook_out")
         }
         with torch.no_grad():
             _, clean_cache = self.model.run_with_cache(
@@ -207,9 +207,8 @@ class _TLBase:
 
         # Extract only the [pos] slice for each activation and move to CPU immediately.
         # This frees the GPU tensors before the expensive backward pass.
-        clean_z_cpu    = [clean_cache[f"blocks.{L}.attn.hook_z"][0, pos].float().cpu()    for L in range(n_layers)]
-        clean_attn_cpu = [clean_cache[f"blocks.{L}.attn.hook_out"][0, pos].float().cpu()  for L in range(n_layers)]
-        clean_mlp_cpu  = [clean_cache[f"blocks.{L}.mlp.hook_out"][0, pos].float().cpu()   for L in range(n_layers)]
+        clean_z_cpu   = [clean_cache[f"blocks.{L}.attn.hook_z"][0, pos].float().cpu()   for L in range(n_layers)]
+        clean_mlp_cpu = [clean_cache[f"blocks.{L}.mlp.hook_out"][0, pos].float().cpu()  for L in range(n_layers)]
         del clean_cache
         torch.cuda.empty_cache()
 
@@ -218,7 +217,6 @@ class _TLBase:
         yield json.dumps({"stage": "corrupted_forward_backward"})
 
         corrupted_z: dict[int, torch.Tensor] = {}
-        corrupted_attn_out: dict[int, torch.Tensor] = {}
         corrupted_mlp_out: dict[int, torch.Tensor] = {}
 
         def make_save_hook(d: dict, key: int):
@@ -230,9 +228,8 @@ class _TLBase:
 
         fwd_hooks = []
         for L in range(n_layers):
-            fwd_hooks.append((f"blocks.{L}.attn.hook_z",   make_save_hook(corrupted_z, L)))
-            fwd_hooks.append((f"blocks.{L}.attn.hook_out", make_save_hook(corrupted_attn_out, L)))
-            fwd_hooks.append((f"blocks.{L}.mlp.hook_out",  make_save_hook(corrupted_mlp_out, L)))
+            fwd_hooks.append((f"blocks.{L}.attn.hook_z",  make_save_hook(corrupted_z, L)))
+            fwd_hooks.append((f"blocks.{L}.mlp.hook_out", make_save_hook(corrupted_mlp_out, L)))
 
         with torch.enable_grad():
             logits_corrupted = self.model.run_with_hooks(corrupted_tokens, fwd_hooks=fwd_hooks)
@@ -244,12 +241,10 @@ class _TLBase:
 
         # Move gradients and corrupted activations to CPU before the computation loop,
         # then free all GPU tensors. Attribution math on CPU is negligible time.
-        grad_z_cpu    = {}
-        grad_attn_cpu = {}
-        grad_mlp_cpu  = {}
-        corrupted_z_cpu    = {}
-        corrupted_attn_cpu = {}
-        corrupted_mlp_cpu  = {}
+        grad_z_cpu   = {}
+        grad_mlp_cpu = {}
+        corrupted_z_cpu   = {}
+        corrupted_mlp_cpu = {}
 
         for L in range(n_layers):
             if corrupted_z[L].grad is None:
@@ -257,18 +252,16 @@ class _TLBase:
                     f"hook_z gradient is None at layer {L}. "
                     "The TL3 bridge may be detaching activations — cannot compute attribution."
                 )
-            if corrupted_attn_out[L].grad is None or corrupted_mlp_out[L].grad is None:
+            if corrupted_mlp_out[L].grad is None:
                 raise RuntimeError(
-                    f"attn.hook_out or mlp.hook_out gradient is None at layer {L}."
+                    f"mlp.hook_out gradient is None at layer {L}."
                 )
-            grad_z_cpu[L]    = corrupted_z[L].grad[0, pos].float().cpu()
-            grad_attn_cpu[L] = corrupted_attn_out[L].grad[0, pos].float().cpu()
-            grad_mlp_cpu[L]  = corrupted_mlp_out[L].grad[0, pos].float().cpu()
-            corrupted_z_cpu[L]    = corrupted_z[L][0, pos].float().cpu()
-            corrupted_attn_cpu[L] = corrupted_attn_out[L][0, pos].float().cpu()
-            corrupted_mlp_cpu[L]  = corrupted_mlp_out[L][0, pos].float().cpu()
+            grad_z_cpu[L]   = corrupted_z[L].grad[0, pos].float().cpu()
+            grad_mlp_cpu[L] = corrupted_mlp_out[L].grad[0, pos].float().cpu()
+            corrupted_z_cpu[L]   = corrupted_z[L][0, pos].float().cpu()
+            corrupted_mlp_cpu[L] = corrupted_mlp_out[L][0, pos].float().cpu()
 
-        del logits_corrupted, metric, corrupted_z, corrupted_attn_out, corrupted_mlp_out
+        del logits_corrupted, metric, corrupted_z, corrupted_mlp_out
         torch.cuda.empty_cache()
 
         yield json.dumps({"stage": "computing_attribution"})
@@ -292,16 +285,14 @@ class _TLBase:
 
         layer_attribution: list[float] = []
         for L in range(n_layers):
-            attn_diff = clean_attn_cpu[L] - corrupted_attn_cpu[L]
-            mlp_diff  = clean_mlp_cpu[L]  - corrupted_mlp_cpu[L]
-            layer_attribution.append(float(
-                (attn_diff * grad_attn_cpu[L]).sum() + (mlp_diff * grad_mlp_cpu[L]).sum()
-            ))
+            mlp_diff = clean_mlp_cpu[L] - corrupted_mlp_cpu[L]
+            mlp_attr = float((mlp_diff * grad_mlp_cpu[L]).sum())
+            layer_attribution.append(sum(head_attribution[L]) + mlp_attr)
             all_components.append({
                 "layer": L,
                 "head": -1,
                 "component_type": "mlp",
-                "attribution_score": float((mlp_diff * grad_mlp_cpu[L]).sum()),
+                "attribution_score": mlp_attr,
             })
 
         all_components.sort(key=lambda c: abs(c["attribution_score"]), reverse=True)
