@@ -106,7 +106,7 @@ def create_app():
     web_app = FastAPI()
     web_app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],
+        allow_origins=["http://localhost:3000", "https://doppo.tools"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
