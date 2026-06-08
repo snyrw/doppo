@@ -375,7 +375,8 @@ class _TLBase:
             )
             clean_metric = _metric(self.model(clean_tokens))
             corrupted_metric = _metric(self.model(corrupted_tokens))
-        total_diff = max(abs(clean_metric - corrupted_metric), 1e-8)
+        signed_diff = clean_metric - corrupted_metric
+        total_diff = signed_diff if abs(signed_diff) >= 1e-8 else 1e-8
 
         # CPU-offload the clean cache so it doesn't compete with the k patching
         # forward passes for the limited headroom above model weights.
@@ -389,25 +390,30 @@ class _TLBase:
             H = comp.get("head", -1)
 
             if comp["component_type"] == "attn_head":
-                clean_z_val = clean_cache_cpu[f"blocks.{L}.attn.hook_z"][:, :, H, :].to(device)
+                # Slice only the target position — shape [d_head].
+                # hook_z is [batch, pos, n_heads, d_head] (pre-W_O, per-head).
+                clean_z_val = clean_cache_cpu[f"blocks.{L}.attn.hook_z"][0, pos, H, :].to(device)
 
-                def make_head_hook(cached_z, head_idx):
+                def make_head_hook(cached_z, head_idx, target_pos):
                     def _fn(value, hook):
-                        value[:, :, head_idx, :] = cached_z
+                        value[:, target_pos, head_idx, :] = cached_z
                         return value
                     return _fn
 
-                hook_fn = make_head_hook(clean_z_val, H)
+                hook_fn = make_head_hook(clean_z_val, H, pos)
                 hook_name = f"blocks.{L}.attn.hook_z"
             else:
-                clean_mlp_val = clean_cache_cpu[f"blocks.{L}.mlp.hook_out"].to(device)
+                # Slice only the target position — shape [d_model].
+                # mlp.hook_out is [batch, pos, d_model].
+                clean_mlp_val = clean_cache_cpu[f"blocks.{L}.mlp.hook_out"][0, pos, :].to(device)
 
-                def make_mlp_hook(cached_mlp):
+                def make_mlp_hook(cached_mlp, target_pos):
                     def _fn(value, hook):
-                        return cached_mlp
+                        value[:, target_pos, :] = cached_mlp
+                        return value
                     return _fn
 
-                hook_fn = make_mlp_hook(clean_mlp_val)
+                hook_fn = make_mlp_hook(clean_mlp_val, pos)
                 hook_name = f"blocks.{L}.mlp.hook_out"
 
             with torch.no_grad():
@@ -451,6 +457,7 @@ class _TLBase:
         temperature: float = 1.0,
         repetition_penalty: float = 1.3,
         generation_prompt: str | None = None,
+        method: str = "caa",
     ):
         import json
         import torch
@@ -503,6 +510,11 @@ class _TLBase:
             # Each component gets its own accumulator tensor (initialized on first pair).
             comp_accumulators: list[torch.Tensor | None] = [None] * len(components)
 
+            # "caa"    → hook_out (resid_post, after the full block — captures what the layer contributes).
+            # "actadd" → hook_in  (resid_pre, before the block — captures the incoming residual stream).
+            def _resid_hook_name(L: int) -> str:
+                return f"blocks.{L}.hook_out" if method == "caa" else f"blocks.{L}.hook_in"
+
             # Pre-compute the set of hook names needed so run_with_cache only stores
             # the activations we actually read. Drops each forward pass's cache from
             # ~64 MB to a few KB, making multi-pair runs fast.
@@ -515,7 +527,7 @@ class _TLBase:
                 elif _inj == "mlp":
                     _hook_set.add(f"blocks.{_L}.mlp.hook_out")
                 else:
-                    _hook_set.add(f"blocks.{_L}.hook_in")
+                    _hook_set.add(_resid_hook_name(_L))
             needed_hooks: list[str] = list(_hook_set)
 
             for pair in all_pairs:
@@ -551,8 +563,8 @@ class _TLBase:
                         )
                     else:
                         v = (
-                            cache_clean[f"blocks.{L}.hook_in"][0, cp_pos, :].float()
-                            - cache_corrupted[f"blocks.{L}.hook_in"][0, rp_pos, :].float()
+                            cache_clean[_resid_hook_name(L)][0, cp_pos, :].float()
+                            - cache_corrupted[_resid_hook_name(L)][0, rp_pos, :].float()
                         )
                     comp_accumulators[ci] = v if comp_accumulators[ci] is None else comp_accumulators[ci] + v
 
@@ -560,7 +572,7 @@ class _TLBase:
 
             torch.cuda.empty_cache()
 
-            # Normalize the averaged vector for each component.
+            # Average accumulated difference vectors; alpha scales them directly (no unit normalization).
             pos = _resolve_pos(gen_tokens, target_position)
             n_pairs = len(all_pairs)
             dim_vectors = []
@@ -569,11 +581,14 @@ class _TLBase:
                 H = comp.get("head")
                 inj = comp.get("injection_type", "residual")
                 avg_v = comp_accumulators[ci] / n_pairs
-                dim_vectors.append((L, H, inj, avg_v / (avg_v.norm() + 1e-8)))
+                dim_vectors.append((L, H, inj, avg_v))
 
             # Build hooks with factory functions to avoid Python late-binding closure bug.
             # Cast dv to value.dtype inside each hook — DIM vectors are float32 but model
             # activations are bfloat16 (loaded with dtype=torch.bfloat16).
+            # CAA: inject from the last prompt token onward, leaving earlier context unsteered.
+            # ActAdd: inject at all positions (standard algebraic value editing).
+            anchor = gen_tokens.shape[1] - 1
             fwd_hooks = []
             for L, H, inj, dim_vec in dim_vectors:
                 if inj == "attn_head" and H is not None:
@@ -589,12 +604,19 @@ class _TLBase:
                             return value + a * dv.to(value.dtype)
                         return _fn
                     fwd_hooks.append((f"blocks.{L}.mlp.hook_out", make_mlp_hook(dim_vec, alpha)))
+                elif method == "caa":
+                    def make_caa_hook(dv, a, anch):
+                        def _fn(value, hook):
+                            value[:, anch:, :] = value[:, anch:, :] + a * dv.to(value.dtype)
+                            return value
+                        return _fn
+                    fwd_hooks.append((_resid_hook_name(L), make_caa_hook(dim_vec, alpha, anchor)))
                 else:
-                    def make_resid_hook(dv, a):
+                    def make_actadd_hook(dv, a):
                         def _fn(value, hook):
                             return value + a * dv.to(value.dtype)
                         return _fn
-                    fwd_hooks.append((f"blocks.{L}.hook_in", make_resid_hook(dim_vec, alpha)))
+                    fwd_hooks.append((_resid_hook_name(L), make_actadd_hook(dim_vec, alpha)))
 
             # Closure: apply repetition penalty to already-generated tokens, then sample.
             # Penalizes only the generated portion to avoid interfering with deliberate
@@ -864,11 +886,13 @@ class _TLBase:
         temperature: float = 1.0,
         repetition_penalty: float = 1.3,
         generation_prompt: str | None = None,
+        method: str = "caa",
     ) -> dict:
         import json
         for chunk_str in self.run_steering.local(
             clean_prompt, corrupted_prompt, target_position, components or [], alpha,
-            n_tokens, extra_pairs, temperature, repetition_penalty, generation_prompt
+            n_tokens, extra_pairs, temperature, repetition_penalty, generation_prompt,
+            method,
         ):
             chunk = json.loads(chunk_str)
             if chunk.get("stage") == "done":

@@ -60,6 +60,7 @@ def create_router(resolve_model, hf_token):
             [c.model_dump() for c in request.components], request.alpha,
             request.n_tokens, request.extra_pairs, request.temperature,
             request.repetition_penalty, request.generation_prompt,
+            request.method,
         )
         return {"job_id": fc.object_id}
 
