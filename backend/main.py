@@ -104,7 +104,10 @@ def create_app():
     def _resolver(*a, **kw):
         return _resolve_model(*a, **kw)
 
-    web_app = FastAPI()
+    # Disable auto-generated docs: router-level dependencies don't gate /docs,
+    # /redoc, or /openapi.json, which would otherwise expose the full API schema
+    # to anyone with the public Modal URL.
+    web_app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     web_app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:3000", "https://doppo.tools"],
