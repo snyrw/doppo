@@ -168,6 +168,11 @@ class _TLBase:
                 "Shorten your prompt."
             )
         corrupted_tokens = self.model.to_tokens(corrupted_prompt)
+        if corrupted_tokens.shape[1] > MAX_PROMPT_TOKENS:
+            raise ValueError(
+                f"Corrupted prompt too long: {corrupted_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
+                "Shorten your prompt."
+            )
         pos = _resolve_pos(clean_tokens, target_position)
 
         n_layers = self.model.cfg.n_layers
@@ -339,6 +344,11 @@ class _TLBase:
                 "Shorten your prompt."
             )
         corrupted_tokens = self.model.to_tokens(corrupted_prompt)
+        if corrupted_tokens.shape[1] > MAX_PROMPT_TOKENS:
+            raise ValueError(
+                f"Corrupted prompt too long: {corrupted_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
+                "Shorten your prompt."
+            )
         pos = _resolve_pos(clean_tokens, target_position)
         top_components = components[:k]
 
@@ -467,12 +477,22 @@ class _TLBase:
 
         yield json.dumps({"stage": "computing"})
 
-        _cap_tokens = self.model.to_tokens(clean_prompt)
-        if _cap_tokens.shape[1] > MAX_PROMPT_TOKENS:
-            raise ValueError(
-                f"Prompt too long: {_cap_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
-                "Shorten your prompt."
-            )
+        # Enforce the token cap on every prompt this method runs forward passes
+        # over — corrupted and generation prompts cost the same GPU time as clean.
+        # (extra_pairs strings are bounded by the schema's char cap + pair count.)
+        for _label, _text in (
+            ("Prompt", clean_prompt),
+            ("Corrupted prompt", corrupted_prompt),
+            ("Generation prompt", generation_prompt),
+        ):
+            if not _text:
+                continue
+            _cap_tokens = self.model.to_tokens(_text)
+            if _cap_tokens.shape[1] > MAX_PROMPT_TOKENS:
+                raise ValueError(
+                    f"{_label} too long: {_cap_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
+                    "Shorten your prompt."
+                )
         del _cap_tokens
 
         # Apply chat template for instruct-tuned models so generation is in-distribution.
