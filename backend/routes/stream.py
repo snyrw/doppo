@@ -4,6 +4,7 @@ from fastapi.responses import StreamingResponse
 from ..schemas import (
     LensRequest, DlaRequest, AttributionRequest,
     ActivationPatchRequest, SteeringRequest, AttentionRequest,
+    dump_list,
 )
 from ..config import _sse_error
 
@@ -67,7 +68,7 @@ def create_router(resolve_model, hf_token):
                 async for chunk in cls(model_id=model_id).run_activation_patch.remote_gen.aio(
                     request.prompt, request.corrupted_prompt, request.target_position,
                     request.target_token_idx, request.contrastive_token_idx,
-                    [c.model_dump() for c in request.components], request.k,
+                    dump_list(request.components), request.k,
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:
@@ -83,10 +84,8 @@ def create_router(resolve_model, hf_token):
             try:
                 async for chunk in cls(model_id=model_id).run_steering.remote_gen.aio(
                     request.clean_prompt, request.corrupted_prompt, request.target_position,
-                    [c.model_dump() for c in request.components], request.alpha,
-                    request.n_tokens,
-                    [p.model_dump() for p in request.extra_pairs] if request.extra_pairs else None,
-                    request.temperature,
+                    dump_list(request.components), request.alpha,
+                    request.n_tokens, dump_list(request.extra_pairs), request.temperature,
                     request.repetition_penalty, request.generation_prompt,
                     request.method,
                 ):

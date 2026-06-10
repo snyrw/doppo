@@ -6,6 +6,7 @@ from fastapi import APIRouter
 from ..schemas import (
     LensRequest, DlaRequest, AttributionRequest,
     ActivationPatchRequest, SteeringRequest, AttentionRequest,
+    dump_list,
 )
 
 
@@ -50,7 +51,7 @@ def create_router(resolve_model, hf_token):
         fc = await cls(model_id=model_id).run_activation_patch_result.spawn.aio(
             request.prompt, request.corrupted_prompt, request.target_position,
             request.target_token_idx, request.contrastive_token_idx,
-            [c.model_dump() for c in request.components], request.k,
+            dump_list(request.components), request.k,
         )
         return {"job_id": fc.object_id}
 
@@ -59,10 +60,8 @@ def create_router(resolve_model, hf_token):
         cls, model_id = resolve_model(request.model_name, bump=False, hf_token=hf_token)
         fc = await cls(model_id=model_id).run_steering_result.spawn.aio(
             request.clean_prompt, request.corrupted_prompt, request.target_position,
-            [c.model_dump() for c in request.components], request.alpha,
-            request.n_tokens,
-            [p.model_dump() for p in request.extra_pairs] if request.extra_pairs else None,
-            request.temperature,
+            dump_list(request.components), request.alpha,
+            request.n_tokens, dump_list(request.extra_pairs), request.temperature,
             request.repetition_penalty, request.generation_prompt,
             request.method,
         )
