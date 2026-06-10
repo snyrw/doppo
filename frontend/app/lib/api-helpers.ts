@@ -11,6 +11,18 @@ export const SSE_HEADERS = {
   "Connection": "keep-alive",
 } as const;
 
+/**
+ * Headers for any request to the Modal GPU backend. Attaches the shared bearer
+ * secret so the backend (which has no user/credit awareness) only accepts calls
+ * from this server. BACKEND_API_SECRET is server-only — never NEXT_PUBLIC.
+ */
+export function backendHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
+  const secret = process.env.BACKEND_API_SECRET;
+  if (secret) headers["Authorization"] = `Bearer ${secret}`;
+  return headers;
+}
+
 export type GpuTier = "tl_small" | "tl_medium" | "tl_large" | "tl_xlarge" | "tl_xxlarge";
 
 export function validateGpuTier(tier: unknown): tier is GpuTier {
@@ -54,7 +66,7 @@ export async function fetchUpstream(
   try {
     upstream = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: backendHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
     });
   } catch (err) {

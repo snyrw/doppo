@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/app/db";
 import { heatmapCache, activeJobs } from "@/app/schema";
 import { getHeatmap } from "@/app/lib/r2";
-import { requireAuth, resolveModelTier, validateGpuTier } from "@/app/lib/api-helpers";
+import { requireAuth, resolveModelTier, validateGpuTier, backendHeaders } from "@/app/lib/api-helpers";
 import { checkBalance } from "@/app/lib/credits";
 
 export async function POST(request: NextRequest) {
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   const spawnRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/spawn-lens`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: backendHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ prompt, model_name: modelName, top_k: resolvedTopK }),
   });
   if (!spawnRes.ok) {

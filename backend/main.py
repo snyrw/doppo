@@ -2,7 +2,7 @@ import os
 import modal
 
 from .config import (
-    app, FEATURED_MODELS, web_image, hf_secret,
+    app, FEATURED_MODELS, web_image, hf_secret, backend_auth_secret,
     _TL_KWARGS, _TL_LARGE_KWARGS, _TL_XLARGE_KWARGS, _TL_XXLARGE_KWARGS,
 )
 from .inference import _TLBase
@@ -89,8 +89,9 @@ def _resolve_model(model_name: str, bump: bool = False, hf_token: str | None = N
 # ── FastAPI app ────────────────────────────────────────────────────────────────
 
 def create_app():
-    from fastapi import FastAPI
+    from fastapi import Depends, FastAPI
     from fastapi.middleware.cors import CORSMiddleware
+    from .auth import require_secret
     from .routes.stream import create_router as stream_routes
     from .routes.jobs import create_router as job_routes
     from .routes.utils import create_router as util_routes
@@ -111,13 +112,16 @@ def create_app():
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    web_app.include_router(util_routes(hf_token))
-    web_app.include_router(stream_routes(_resolver, hf_token))
-    web_app.include_router(job_routes(_resolver, hf_token))
+    # Gate every route behind the shared bearer secret — only the Next.js proxy
+    # (which authenticates the user and bills credits) may call the backend.
+    guard = [Depends(require_secret)]
+    web_app.include_router(util_routes(hf_token), dependencies=guard)
+    web_app.include_router(stream_routes(_resolver, hf_token), dependencies=guard)
+    web_app.include_router(job_routes(_resolver, hf_token), dependencies=guard)
     return web_app
 
 
-@app.function(image=web_image, secrets=[hf_secret])
+@app.function(image=web_image, secrets=[hf_secret, backend_auth_secret])
 @modal.concurrent(max_inputs=50)
 @modal.asgi_app()
 def api():
