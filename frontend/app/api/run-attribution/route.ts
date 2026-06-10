@@ -11,6 +11,7 @@ import {
   fetchUpstream,
   validateGpuTier,
   resolveModelTier,
+  MAX_PROMPT_CHARS,
 } from "@/app/lib/api-helpers";
 import { checkBalance, deductJobCost } from "@/app/lib/credits";
 
@@ -40,20 +41,20 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
-  if (typeof cleanPrompt !== "string" || cleanPrompt.length < 1 || cleanPrompt.length > 8000) {
+  if (typeof cleanPrompt !== "string" || cleanPrompt.length < 1 || cleanPrompt.length > MAX_PROMPT_CHARS) {
     return new Response(
-      JSON.stringify({ error: "cleanPrompt must be a non-empty string of at most 8000 characters" }),
+      JSON.stringify({ error: `cleanPrompt must be a non-empty string of at most ${MAX_PROMPT_CHARS} characters` }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
   if (
     typeof corruptedPrompt !== "string" ||
     corruptedPrompt.length < 1 ||
-    corruptedPrompt.length > 8000
+    corruptedPrompt.length > MAX_PROMPT_CHARS
   ) {
     return new Response(
       JSON.stringify({
-        error: "corruptedPrompt must be a non-empty string of at most 8000 characters",
+        error: `corruptedPrompt must be a non-empty string of at most ${MAX_PROMPT_CHARS} characters`,
       }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );

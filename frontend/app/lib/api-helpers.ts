@@ -23,6 +23,12 @@ export function backendHeaders(extra?: Record<string, string>): Record<string, s
   return headers;
 }
 
+/** Must match MAX_PROMPT_CHARS in backend/schemas.py — the backend 422s anything longer. */
+export const MAX_PROMPT_CHARS = 2000;
+
+/** Must match MAX_EXTRA_PAIRS in backend/schemas.py (largest tier pair cap). */
+export const MAX_EXTRA_PAIRS = 40;
+
 export type GpuTier = "tl_small" | "tl_medium" | "tl_large" | "tl_xlarge" | "tl_xxlarge";
 
 export function validateGpuTier(tier: unknown): tier is GpuTier {

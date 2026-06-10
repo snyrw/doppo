@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/app/db";
 import { heatmapCache, activeJobs } from "@/app/schema";
 import { getHeatmap } from "@/app/lib/r2";
-import { requireAuth, resolveModelTier, validateGpuTier, backendHeaders } from "@/app/lib/api-helpers";
+import { requireAuth, resolveModelTier, validateGpuTier, backendHeaders, MAX_PROMPT_CHARS } from "@/app/lib/api-helpers";
 import { checkBalance } from "@/app/lib/credits";
 
 export async function POST(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
   if (typeof modelName !== "string" || modelName.length < 1 || modelName.length > 200)
     return Response.json({ error: "Invalid modelName" }, { status: 400 });
-  if (typeof prompt !== "string" || prompt.length < 1 || prompt.length > 8000)
+  if (typeof prompt !== "string" || prompt.length < 1 || prompt.length > MAX_PROMPT_CHARS)
     return Response.json({ error: "Invalid prompt" }, { status: 400 });
   if (gpuTier !== undefined && !validateGpuTier(gpuTier))
     return Response.json({ error: "Invalid gpuTier" }, { status: 400 });

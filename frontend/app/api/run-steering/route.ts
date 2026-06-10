@@ -11,6 +11,8 @@ import {
   fetchUpstream,
   validateGpuTier,
   resolveModelTier,
+  MAX_PROMPT_CHARS,
+  MAX_EXTRA_PAIRS,
 } from "@/app/lib/api-helpers";
 import { checkBalance, deductJobCost } from "@/app/lib/credits";
 
@@ -52,20 +54,20 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
-  if (typeof cleanPrompt !== "string" || cleanPrompt.length < 1 || cleanPrompt.length > 8000) {
+  if (typeof cleanPrompt !== "string" || cleanPrompt.length < 1 || cleanPrompt.length > MAX_PROMPT_CHARS) {
     return new Response(
-      JSON.stringify({ error: "cleanPrompt must be a non-empty string of at most 8000 characters" }),
+      JSON.stringify({ error: `cleanPrompt must be a non-empty string of at most ${MAX_PROMPT_CHARS} characters` }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
   if (
     typeof corruptedPrompt !== "string" ||
     corruptedPrompt.length < 1 ||
-    corruptedPrompt.length > 8000
+    corruptedPrompt.length > MAX_PROMPT_CHARS
   ) {
     return new Response(
       JSON.stringify({
-        error: "corruptedPrompt must be a non-empty string of at most 8000 characters",
+        error: `corruptedPrompt must be a non-empty string of at most ${MAX_PROMPT_CHARS} characters`,
       }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
@@ -82,6 +84,12 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
+  if (extraPairs != null && (!Array.isArray(extraPairs) || extraPairs.length > MAX_EXTRA_PAIRS)) {
+    return new Response(
+      JSON.stringify({ error: `extraPairs must be an array of at most ${MAX_EXTRA_PAIRS} pairs` }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
   if (typeof alpha !== "number" || alpha < -100 || alpha > 100) {
     return new Response(
       JSON.stringify({ error: "alpha must be a number between -100 and 100" }),
@@ -95,7 +103,7 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
-  if (nPairs !== undefined && (!Number.isInteger(nPairs) || nPairs < 1 || nPairs > 40)) {
+  if (nPairs !== undefined && (!Number.isInteger(nPairs) || nPairs < 1 || nPairs > MAX_EXTRA_PAIRS)) {
     return new Response(
       JSON.stringify({ error: "nPairs must be an integer between 1 and 40" }),
       { status: 400, headers: { "Content-Type": "application/json" } }

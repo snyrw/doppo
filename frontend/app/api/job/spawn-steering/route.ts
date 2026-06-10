@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/app/db";
 import { steeringCache, activeJobs } from "@/app/schema";
 import { getHeatmap } from "@/app/lib/r2";
-import { requireAuth, resolveModelTier, validateGpuTier, backendHeaders } from "@/app/lib/api-helpers";
+import { requireAuth, resolveModelTier, validateGpuTier, backendHeaders, MAX_PROMPT_CHARS, MAX_EXTRA_PAIRS } from "@/app/lib/api-helpers";
 import { checkBalance } from "@/app/lib/credits";
 
 export async function POST(request: NextRequest) {
@@ -20,14 +20,16 @@ export async function POST(request: NextRequest) {
 
   if (typeof modelName !== "string" || modelName.length < 1 || modelName.length > 200)
     return Response.json({ error: "Invalid modelName" }, { status: 400 });
-  if (typeof cleanPrompt !== "string" || cleanPrompt.length < 1 || cleanPrompt.length > 8000)
+  if (typeof cleanPrompt !== "string" || cleanPrompt.length < 1 || cleanPrompt.length > MAX_PROMPT_CHARS)
     return Response.json({ error: "Invalid cleanPrompt" }, { status: 400 });
-  if (typeof corruptedPrompt !== "string" || corruptedPrompt.length < 1 || corruptedPrompt.length > 8000)
+  if (typeof corruptedPrompt !== "string" || corruptedPrompt.length < 1 || corruptedPrompt.length > MAX_PROMPT_CHARS)
     return Response.json({ error: "Invalid corruptedPrompt" }, { status: 400 });
   if (gpuTier !== undefined && !validateGpuTier(gpuTier))
     return Response.json({ error: "Invalid gpuTier" }, { status: 400 });
   if (typeof nTokens !== "number" || !Number.isInteger(nTokens) || nTokens < 1 || nTokens > 500)
     return Response.json({ error: "nTokens must be an integer between 1 and 500" }, { status: 400 });
+  if (extraPairs != null && (!Array.isArray(extraPairs) || extraPairs.length > MAX_EXTRA_PAIRS))
+    return Response.json({ error: `extraPairs must be an array of at most ${MAX_EXTRA_PAIRS} pairs` }, { status: 400 });
 
   const resolvedTier = await resolveModelTier(modelName);
   if (!resolvedTier) return Response.json({ error: "Model not found or invalid." }, { status: 400 });
