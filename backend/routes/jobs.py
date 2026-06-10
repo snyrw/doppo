@@ -69,7 +69,7 @@ def create_router(resolve_model, hf_token):
     @router.get("/api/job/{job_id}")
     async def poll_job(job_id: str):
         try:
-            fc = modal.functions.FunctionCall.from_id(job_id)
+            fc = await modal.functions.FunctionCall.from_id.aio(job_id)
             result = await fc.get.aio(timeout=0)
             return {"status": "done", "data": result}
         except TimeoutError:
@@ -80,7 +80,7 @@ def create_router(resolve_model, hf_token):
     @router.delete("/api/job/{job_id}")
     async def cancel_job_endpoint(job_id: str):
         try:
-            fc = modal.functions.FunctionCall.from_id(job_id)
+            fc = await modal.functions.FunctionCall.from_id.aio(job_id)
             await fc.cancel.aio()
         except Exception:
             pass
