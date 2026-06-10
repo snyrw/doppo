@@ -106,17 +106,25 @@ function DlaCard({
     return Math.max(1e-9, ...card.data.head_dla.flatMap(row => row.map(Math.abs)));
   }, [card.data, view]);
 
-  // Card width: layer view fixed; head view expands with n_heads
+  // Card width: layer/top views fixed; head view expands with n_heads.
+  // 12 = body padding, 2 = card border (border-box via Tailwind preflight),
+  // VALUE_W = right-aligned numeric column.
   const cardWidth = React.useMemo(() => {
+    const PAD = 12 + 2;
+    const VALUE_W = 44;
     if (!card.data || card.status !== "result") return 280;
     if (view === "layer") {
-      // split view: two half-bars + 4px gap; single view: one full bar
+      // split view: two half-bars + 4px spacer (4 flex gaps); single view: one full bar (2 flex gaps)
       const barArea = card.data.layer_attn_dla != null
-        ? HALF_BAR_W + 4 + HALF_BAR_W + 2 * COL_GAP
-        : LAYER_BAR_W;
-      return Y_LABEL_W + barArea + 48 + 12;
+        ? HALF_BAR_W + 4 + HALF_BAR_W + 4 * COL_GAP
+        : LAYER_BAR_W + 2 * COL_GAP;
+      return Y_LABEL_W + barArea + VALUE_W + PAD;
     }
-    return Y_LABEL_W + (HEAD_CELL_SIZE + COL_GAP) * card.data.x_labels.length + 12;
+    if (view === "head") {
+      return Y_LABEL_W + (HEAD_CELL_SIZE + COL_GAP) * card.data.x_labels.length + PAD;
+    }
+    // top view: wider label column + single bar + value
+    return (Y_LABEL_W + 14) + TOP_BAR_W + VALUE_W + 2 * COL_GAP + PAD;
   }, [card.data, card.status, view]);
 
   return (

@@ -168,8 +168,9 @@ function LensCard({
   const cellWidth = card.data ? computeCellWidth(card.data.x_labels) : 24;
   const rowGap = mode === "tokens" && card.data?.topk_tokens != null ? 2 : 0;
 
+  // 12 = body padding, 2 = card border (border-box via Tailwind preflight)
   const heatmapPx = card.data
-    ? Y_LABEL_W + (cellWidth + COL_GAP) * card.data.x_labels.length + 12
+    ? Y_LABEL_W + (cellWidth + COL_GAP) * card.data.x_labels.length + 12 + 2
     : null;
 
   const handleColClick = (i: number) => {
@@ -204,9 +205,9 @@ function LensCard({
         boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",
-        minWidth: 280,
-        ...(card.status === "loading" ? { width: 280, height: 200 } : {}),
-        ...(card.status === "error" ? { width: 280 } : {}),
+        // No minWidth in result state: small heatmaps (few tokens) size to content
+        ...(card.status === "loading" ? { minWidth: 280, width: 280, height: 200 } : {}),
+        ...(card.status === "error" ? { minWidth: 280, width: 280 } : {}),
         ...(card.status === "result" && heatmapPx ? { width: heatmapPx } : {}),
       }}
     >
@@ -344,7 +345,7 @@ function LensCard({
         {card.status === "result" && (
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{ padding: "4px 10px", borderTop: "1px solid var(--color-surface-border)", display: "flex", alignItems: "center", gap: 6 }}
+            style={{ padding: "4px 10px", borderTop: "1px solid var(--color-surface-border)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
           >
             {canToggle && (
               <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}>

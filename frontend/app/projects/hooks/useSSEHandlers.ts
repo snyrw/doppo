@@ -99,9 +99,17 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
         dispatch({ type: "CARD_ERRORED", id, ...handleSpawnError(spawnRes.status, err) });
         return;
       }
+      // stateRef lags the dispatch above, so append the new card explicitly
+      const persist = (data: unknown) => {
+        const pid = projectIdRef.current;
+        if (!pid) return;
+        const existing = stateRef.current.lensCards.filter(c => c.status === "result" && c.id !== id).map(serializeCard);
+        updateProject(pid, [...existing, { id, cardType: "logit-lens" as const, modelName, prompt, topK, data: data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas).catch(console.error);
+      };
       const body = await spawnRes.json() as { status?: string; jobId?: string; data?: HeatmapData };
       if (body.status === "cached" && body.data) {
         dispatch({ type: "CARD_RESOLVED", id, data: body.data });
+        persist(body.data);
         return;
       }
       if (!body.jobId) {
@@ -111,11 +119,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       await pollUntilDone(body.jobId, id, startedAt, dispatch, (data) => {
         dispatch({ type: "CARD_RESOLVED", id, data: data as HeatmapData });
         window.dispatchEvent(new CustomEvent("credits-updated"));
-        const pid = projectIdRef.current;
-        if (pid) {
-          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-          updateProject(pid, [...existing, { id, cardType: "logit-lens" as const, modelName, prompt, topK, data: data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas).catch(console.error);
-        }
+        persist(data);
       });
     })();
   }, [dispatch, projectIdRef, stateRef]);
@@ -150,9 +154,16 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
         dispatch({ type: "CARD_ERRORED", id, ...handleSpawnError(spawnRes.status, err) });
         return;
       }
+      const persist = (data: unknown) => {
+        const pid = projectIdRef.current;
+        if (!pid) return;
+        const existing = stateRef.current.lensCards.filter(c => c.status === "result" && c.id !== id).map(serializeCard);
+        updateProject(pid, [...existing, { id, cardType: "dla" as const, modelName, prompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
+      };
       const body = await spawnRes.json() as { status?: string; jobId?: string; data?: DlaData };
       if (body.status === "cached" && body.data) {
         dispatch({ type: "DLA_CARD_RESOLVED", id, data: body.data });
+        persist(body.data);
         return;
       }
       if (!body.jobId) {
@@ -162,11 +173,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       await pollUntilDone(body.jobId, id, startedAt, dispatch, (data) => {
         dispatch({ type: "DLA_CARD_RESOLVED", id, data: data as DlaData });
         window.dispatchEvent(new CustomEvent("credits-updated"));
-        const pid = projectIdRef.current;
-        if (pid) {
-          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-          updateProject(pid, [...existing, { id, cardType: "dla" as const, modelName, prompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
-        }
+        persist(data);
       });
     })();
   }, [dispatch, projectIdRef, stateRef]);
@@ -201,9 +208,16 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
         dispatch({ type: "CARD_ERRORED", id, ...handleSpawnError(spawnRes.status, err) });
         return;
       }
+      const persist = (data: unknown) => {
+        const pid = projectIdRef.current;
+        if (!pid) return;
+        const existing = stateRef.current.lensCards.filter(c => c.status === "result" && c.id !== id).map(serializeCard);
+        updateProject(pid, [...existing, { id, cardType: "attribution" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
+      };
       const body = await spawnRes.json() as { status?: string; jobId?: string; data?: AttributionData };
       if (body.status === "cached" && body.data) {
         dispatch({ type: "ATTRIBUTION_CARD_RESOLVED", id, data: body.data });
+        persist(body.data);
         return;
       }
       if (!body.jobId) {
@@ -213,11 +227,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       await pollUntilDone(body.jobId, id, startedAt, dispatch, (data) => {
         dispatch({ type: "ATTRIBUTION_CARD_RESOLVED", id, data: data as AttributionData });
         window.dispatchEvent(new CustomEvent("credits-updated"));
-        const pid = projectIdRef.current;
-        if (pid) {
-          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-          updateProject(pid, [...existing, { id, cardType: "attribution" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: data as Record<string, unknown>, position: card.position, gpuTier, targetPosition, targetToken, contrastiveToken }], stateRef.current.canvas).catch(console.error);
-        }
+        persist(data);
       });
     })();
   }, [dispatch, projectIdRef, stateRef]);
@@ -260,9 +270,16 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
         dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
         return;
       }
+      const persist = (data: unknown) => {
+        const pid = projectIdRef.current;
+        if (!pid) return;
+        const existing = stateRef.current.lensCards.filter(c => c.status === "result" && c.id !== activationId).map(serializeCard);
+        updateProject(pid, [...existing, { id: activationId, cardType: "activation" as const, modelName: attrCard.modelName, prompt: attrCard.cleanPrompt, data: data as Record<string, unknown>, position: activationCard.position, gpuTier: attrCard.gpuTier, parentAttributionId: attributionCardId }], stateRef.current.canvas).catch(console.error);
+      };
       const body = await spawnRes.json() as { status?: string; jobId?: string; data?: ActivationPatchResult };
       if (body.status === "cached" && body.data) {
         dispatch({ type: "ACTIVATION_CARD_RESOLVED", id: activationId, data: body.data, parentAttributionId: attributionCardId });
+        persist(body.data);
         return;
       }
       if (!body.jobId) {
@@ -273,11 +290,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       await pollUntilDone(body.jobId, activationId, startedAt, dispatch, (data) => {
         dispatch({ type: "ACTIVATION_CARD_RESOLVED", id: activationId, data: data as ActivationPatchResult, parentAttributionId: attributionCardId });
         window.dispatchEvent(new CustomEvent("credits-updated"));
-        const pid = projectIdRef.current;
-        if (pid) {
-          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-          updateProject(pid, [...existing, { id: activationId, cardType: "activation" as const, modelName: attrCard.modelName, prompt: attrCard.cleanPrompt, data: data as Record<string, unknown>, position: activationCard.position, gpuTier: attrCard.gpuTier, parentAttributionId: attributionCardId }], stateRef.current.canvas).catch(console.error);
-        }
+        persist(data);
       });
       dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId });
     })();
@@ -334,9 +347,16 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
         dispatch({ type: "CARD_ERRORED", id, ...handleSpawnError(spawnRes.status, err) });
         return;
       }
+      const persist = (data: unknown) => {
+        const pid = projectIdRef.current;
+        if (!pid) return;
+        const existing = stateRef.current.lensCards.filter(c => c.status === "result" && c.id !== id).map(serializeCard);
+        updateProject(pid, [...existing, { id, cardType: "attention-pattern" as const, modelName, prompt, data: data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas).catch(console.error);
+      };
       const body = await spawnRes.json() as { status?: string; jobId?: string; data?: AttentionData };
       if (body.status === "cached" && body.data) {
         dispatch({ type: "ATTENTION_CARD_RESOLVED", id, data: body.data });
+        persist(body.data);
         return;
       }
       if (!body.jobId) {
@@ -346,11 +366,7 @@ export function useSSEHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       await pollUntilDone(body.jobId, id, startedAt, dispatch, (data) => {
         dispatch({ type: "ATTENTION_CARD_RESOLVED", id, data: data as AttentionData });
         window.dispatchEvent(new CustomEvent("credits-updated"));
-        const pid = projectIdRef.current;
-        if (pid) {
-          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-          updateProject(pid, [...existing, { id, cardType: "attention-pattern" as const, modelName, prompt, data: data as Record<string, unknown>, position: card.position, gpuTier }], stateRef.current.canvas).catch(console.error);
-        }
+        persist(data);
       });
     })();
   }, [dispatch, projectIdRef, stateRef]);

@@ -82,13 +82,9 @@ function SteeringCard({
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
   const [localAlpha, setLocalAlpha] = React.useState(card.alpha);
-  const [debouncing, setDebouncing] = React.useState(false);
-  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync local alpha if the card is re-run externally (alpha stored in card updates).
   React.useEffect(() => { setLocalAlpha(card.alpha); }, [card.alpha]);
-  // Cancel any pending debounce on unmount.
-  React.useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   React.useEffect(() => {
     if (card.status !== "loading") return;
@@ -233,33 +229,13 @@ function SteeringCard({
             min={-50} max={50} step={1}
             value={localAlpha}
             disabled={tutorialMode}
-            onChange={e => {
-              const val = parseFloat(e.target.value);
-              setLocalAlpha(val);
-              if (debounceRef.current) clearTimeout(debounceRef.current);
-              if (card.status !== "loading") {
-                setDebouncing(true);
-                debounceRef.current = setTimeout(() => {
-                  debounceRef.current = null;
-                  setDebouncing(false);
-                  onRerun(card.id, val);
-                }, 2000);
-              }
-            }}
+            onChange={e => setLocalAlpha(parseFloat(e.target.value))}
             style={{ width: 80, accentColor: "var(--color-accent)", cursor: tutorialMode ? "not-allowed" : "pointer", ...(tutorialMode ? { opacity: 0.45 } : {}) }}
           />
-          {debouncing && (
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", userSelect: "none" }}>⋯</span>
-          )}
           {!tutorialMode && card.status !== "loading" && localAlpha !== card.alpha && (
             <button
               onPointerDown={e => e.stopPropagation()}
-              onClick={() => {
-                if (debounceRef.current) clearTimeout(debounceRef.current);
-                debounceRef.current = null;
-                setDebouncing(false);
-                onRerun(card.id, localAlpha);
-              }}
+              onClick={() => onRerun(card.id, localAlpha)}
               style={{
                 fontSize: 9, fontWeight: 600, padding: "2px 7px",
                 background: "var(--color-accent)", color: "var(--color-accent-fg)",

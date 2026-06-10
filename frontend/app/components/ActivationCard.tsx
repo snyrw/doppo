@@ -137,7 +137,7 @@ function ActivationCard({
         left: card.position.x,
         top: card.position.y,
         zIndex: 10,
-        width: 300,
+        width: 320,
         background: "var(--color-card)",
         borderRadius: 8,
         border: "1px solid var(--color-card-border)",
@@ -237,8 +237,9 @@ function ActivationCard({
       {card.status === "result" && card.data && (
         <>
           {/* Column headers */}
-          <div style={{ display: "flex", alignItems: "center", padding: "6px 10px 4px", gap: 6, borderBottom: "1px solid var(--color-surface-border)" }}>
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", width: 52, flexShrink: 0 }}>Component</span>
+          {/* borderLeft matches the 3px selection border on rows so columns line up */}
+          <div style={{ display: "flex", alignItems: "center", padding: "6px 10px 4px", gap: 6, borderBottom: "1px solid var(--color-surface-border)", borderLeft: "3px solid transparent" }}>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", width: 64, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden" }}>Component</span>
             <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", flex: 1 }}>Attribution</span>
             <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", flex: 1 }}>Effect</span>
             <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", width: 52, flexShrink: 0, textAlign: "right" }}>Match</span>
@@ -300,7 +301,7 @@ function ActivationCard({
                   }}
                 >
                   {/* Component label */}
-                  <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", width: 52, flexShrink: 0, fontWeight: 600 }}>
+                  <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", width: 64, flexShrink: 0, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {label}
                   </span>
 

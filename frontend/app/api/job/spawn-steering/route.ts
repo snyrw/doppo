@@ -41,15 +41,21 @@ export async function POST(request: NextRequest) {
   const resolvedTemp = temperature ?? 1.0;
   const resolvedRepPenalty = repetitionPenalty ?? 1.3;
 
-  const cacheKey = createHash("sha256")
-    .update(`${userId}:${modelName}:${cleanPrompt}:${corruptedPrompt}:${alpha}:${nTokens}:${resolvedTemp}:${resolvedRepPenalty}:${JSON.stringify(components)}`)
-    .digest("hex");
+  // Generation with temperature > 0 is non-deterministic sampling — serving a cached
+  // result would silently pin one sample forever. Only cache deterministic (argmax) runs.
+  const cacheKey = resolvedTemp <= 0
+    ? createHash("sha256")
+        .update(`${userId}:${modelName}:${cleanPrompt}:${corruptedPrompt}:${alpha}:${nTokens}:${resolvedTemp}:${resolvedRepPenalty}:${JSON.stringify(components)}`)
+        .digest("hex")
+    : null;
 
-  const cached = await db.select({ r2Key: steeringCache.r2Key }).from(steeringCache).where(eq(steeringCache.id, cacheKey)).limit(1);
-  if (cached.length > 0 && cached[0].r2Key) {
-    const data = await getHeatmap(cached[0].r2Key);
-    db.update(steeringCache).set({ lastAccessedAt: new Date() }).where(eq(steeringCache.id, cacheKey)).catch(console.error);
-    return Response.json({ status: "cached", data });
+  if (cacheKey) {
+    const cached = await db.select({ r2Key: steeringCache.r2Key }).from(steeringCache).where(eq(steeringCache.id, cacheKey)).limit(1);
+    if (cached.length > 0 && cached[0].r2Key) {
+      const data = await getHeatmap(cached[0].r2Key);
+      db.update(steeringCache).set({ lastAccessedAt: new Date() }).where(eq(steeringCache.id, cacheKey)).catch(console.error);
+      return Response.json({ status: "cached", data });
+    }
   }
 
   const { allowed } = await checkBalance(userId, resolvedTier);
