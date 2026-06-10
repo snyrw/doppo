@@ -1,3 +1,5 @@
+import logging
+
 import modal
 from fastapi import APIRouter
 
@@ -74,8 +76,9 @@ def create_router(resolve_model, hf_token):
             return {"status": "done", "data": result}
         except TimeoutError:
             return {"status": "running"}
-        except Exception as e:
-            return {"status": "error", "error": str(e)}
+        except Exception:
+            logging.exception("poll_job failed for job_id=%s", job_id)
+            return {"status": "error", "error": "Internal error while polling job."}
 
     @router.delete("/api/job/{job_id}")
     async def cancel_job_endpoint(job_id: str):
