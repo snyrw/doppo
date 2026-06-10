@@ -1,24 +1,31 @@
 from pydantic import BaseModel, Field
 
+# Coarse upper bound on any user-supplied prompt string, measured in CHARACTERS.
+# The worker enforces the real semantic limit of MAX_PROMPT_TOKENS = 48 tokens;
+# since one token can be many characters, this sits well above the char-length of
+# a valid 48-token prompt and only exists to reject abusive megabyte payloads at
+# the schema layer before tokenization runs.
+MAX_PROMPT_CHARS = 2000
+
 
 class LensRequest(BaseModel):
-    prompt: str
-    model_name: str
+    prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)
+    model_name: str = Field(..., max_length=200)
     top_k: int = Field(default=5, ge=1, le=100)
 
 
 class DlaRequest(BaseModel):
-    prompt: str
-    model_name: str
+    prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)
+    model_name: str = Field(..., max_length=200)
     target_position: int | str = "last"
     target_token: str | None = None
     contrastive_token: str | None = None
 
 
 class AttributionRequest(BaseModel):
-    prompt: str            # clean prompt
-    corrupted_prompt: str
-    model_name: str
+    prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)            # clean prompt
+    corrupted_prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)
+    model_name: str = Field(..., max_length=200)
     target_position: int | str = "last"
     target_token: str | None = None
     contrastive_token: str | None = None
@@ -26,9 +33,9 @@ class AttributionRequest(BaseModel):
 
 
 class ActivationPatchRequest(BaseModel):
-    prompt: str            # clean prompt
-    corrupted_prompt: str
-    model_name: str
+    prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)            # clean prompt
+    corrupted_prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)
+    model_name: str = Field(..., max_length=200)
     target_position: int | str = "last"
     target_token_idx: int = Field(..., ge=0)
     contrastive_token_idx: int | None = Field(default=None, ge=0)
@@ -43,10 +50,10 @@ class SteeringComponentRequest(BaseModel):
 
 
 class SteeringRequest(BaseModel):
-    model_name: str
-    clean_prompt: str
-    corrupted_prompt: str
-    generation_prompt: str | None = None  # separate probe prompt; falls back to clean_prompt
+    model_name: str = Field(..., max_length=200)
+    clean_prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)
+    corrupted_prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)
+    generation_prompt: str | None = Field(default=None, max_length=MAX_PROMPT_CHARS)  # separate probe prompt; falls back to clean_prompt
     target_position: int | str = "last"
     components: list[SteeringComponentRequest]
     alpha: float = Field(default=1.0, ge=-100.0, le=100.0)
@@ -58,14 +65,14 @@ class SteeringRequest(BaseModel):
 
 
 class AttentionRequest(BaseModel):
-    prompt: str
-    model_name: str
+    prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)
+    model_name: str = Field(..., max_length=200)
 
 
 class ValidateModelRequest(BaseModel):
-    repo_id: str
+    repo_id: str = Field(..., max_length=200)
 
 
 class TokenizeRequest(BaseModel):
-    model_name: str
-    text: str
+    model_name: str = Field(..., max_length=200)
+    text: str = Field(..., max_length=MAX_PROMPT_CHARS)
