@@ -1,13 +1,19 @@
+from collections import OrderedDict
+
 from fastapi import APIRouter, HTTPException
 
 from ..schemas import TokenizeRequest, ValidateModelRequest
 from ..config import FEATURED_MODELS
 from ..validation import validate_hf_repo
 
+# Bound the per-worker tokenizer cache so a flood of distinct model IDs can't grow
+# memory without limit (each entry downloads + holds a tokenizer).
+_TOKENIZER_CACHE_MAX = 16
+
 
 def create_router(hf_token):
     router = APIRouter()
-    _tokenizer_cache: dict = {}
+    _tokenizer_cache: "OrderedDict[str, object]" = OrderedDict()
 
     @router.post("/api/tokenize")
     def tokenize_text(request: TokenizeRequest):
@@ -24,10 +30,14 @@ def create_router(hf_token):
         hf_model_id = entry["model_id"] if entry else request.model_name
         tok_token = hf_token if (entry is None or entry.get("requires_hf_token")) else None
 
-        if hf_model_id not in _tokenizer_cache:
+        if hf_model_id in _tokenizer_cache:
+            _tokenizer_cache.move_to_end(hf_model_id)  # mark as most-recently-used
+        else:
             _tokenizer_cache[hf_model_id] = AutoTokenizer.from_pretrained(
                 hf_model_id, token=tok_token
             )
+            if len(_tokenizer_cache) > _TOKENIZER_CACHE_MAX:
+                _tokenizer_cache.popitem(last=False)  # evict least-recently-used
 
         tokenizer = _tokenizer_cache[hf_model_id]
         ids = tokenizer.encode(request.text, add_special_tokens=True)
