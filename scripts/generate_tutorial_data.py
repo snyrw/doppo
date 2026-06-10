@@ -106,9 +106,19 @@ def generate_pairs_with_claude(seed_en: str, seed_fr: str, n: int) -> list[tuple
     return pairs
 
 
+def _backend_headers(extra=None):
+    """The Modal backend requires the shared bearer secret on every route.
+    BACKEND_API_SECRET is read from the env (or frontend/.env.local above)."""
+    headers = dict(extra or {})
+    secret = os.environ.get("BACKEND_API_SECRET", "")
+    if secret:
+        headers["Authorization"] = f"Bearer {secret}"
+    return headers
+
+
 def post_json(url: str, payload: dict) -> dict:
     data = json.dumps(payload).encode()
-    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+    req = urllib.request.Request(url, data=data, headers=_backend_headers({"Content-Type": "application/json"}), method="POST")
     try:
         with urllib.request.urlopen(req, timeout=600, context=_ssl_ctx) as resp:
             return json.loads(resp.read())
@@ -117,7 +127,8 @@ def post_json(url: str, payload: dict) -> dict:
         raise RuntimeError(f"HTTP {e.code} from {url}: {body}") from e
 
 def get_json(url: str) -> dict:
-    with urllib.request.urlopen(url, timeout=60, context=_ssl_ctx) as resp:
+    req = urllib.request.Request(url, headers=_backend_headers())
+    with urllib.request.urlopen(req, timeout=60, context=_ssl_ctx) as resp:
         return json.loads(resp.read())
 
 def spawn_and_poll(spawn_url: str, payload: dict, label: str) -> dict:
