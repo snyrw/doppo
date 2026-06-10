@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 # Coarse upper bound on any user-supplied prompt string, measured in CHARACTERS.
@@ -32,6 +34,12 @@ class AttributionRequest(BaseModel):
     top_n: int = Field(default=30, ge=1, le=200)
 
 
+class ActivationComponent(BaseModel):
+    layer: int = Field(..., ge=0)
+    component_type: Literal["attn_head", "mlp"]
+    head: int | None = Field(default=None, ge=0)
+
+
 class ActivationPatchRequest(BaseModel):
     prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)            # clean prompt
     corrupted_prompt: str = Field(..., max_length=MAX_PROMPT_CHARS)
@@ -39,14 +47,19 @@ class ActivationPatchRequest(BaseModel):
     target_position: int | str = "last"
     target_token_idx: int = Field(..., ge=0)
     contrastive_token_idx: int | None = Field(default=None, ge=0)
-    components: list[dict]
+    components: list[ActivationComponent]
     k: int = Field(default=10, ge=1, le=100)
 
 
 class SteeringComponentRequest(BaseModel):
-    layer: int
-    head: int | None = None
-    injection_type: str = "residual"  # "attn_head" | "mlp" | "residual"
+    layer: int = Field(..., ge=0)
+    head: int | None = Field(default=None, ge=0)
+    injection_type: Literal["attn_head", "mlp", "residual"] = "residual"
+
+
+class SteeringPair(BaseModel):
+    clean: str = Field(..., max_length=MAX_PROMPT_CHARS)
+    corrupted: str = Field(..., max_length=MAX_PROMPT_CHARS)
 
 
 class SteeringRequest(BaseModel):
@@ -58,7 +71,7 @@ class SteeringRequest(BaseModel):
     components: list[SteeringComponentRequest]
     alpha: float = Field(default=1.0, ge=-100.0, le=100.0)
     n_tokens: int = Field(default=50, ge=1, le=500)
-    extra_pairs: list[dict] | None = None  # [{clean, corrupted}] for CAA-mode averaging
+    extra_pairs: list[SteeringPair] | None = None  # for CAA-mode averaging
     temperature: float = Field(default=1.0, ge=0.0, le=5.0)
     repetition_penalty: float = Field(default=1.3, ge=0.5, le=5.0)
     method: str = "caa"  # "caa" (hook_out, anchored injection) | "actadd" (hook_in, all-position injection)

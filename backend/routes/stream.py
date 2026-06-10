@@ -67,7 +67,7 @@ def create_router(resolve_model, hf_token):
                 async for chunk in cls(model_id=model_id).run_activation_patch.remote_gen.aio(
                     request.prompt, request.corrupted_prompt, request.target_position,
                     request.target_token_idx, request.contrastive_token_idx,
-                    request.components, request.k,
+                    [c.model_dump() for c in request.components], request.k,
                 ):
                     yield f"data: {chunk}\n\n"
             except Exception as e:
@@ -84,7 +84,9 @@ def create_router(resolve_model, hf_token):
                 async for chunk in cls(model_id=model_id).run_steering.remote_gen.aio(
                     request.clean_prompt, request.corrupted_prompt, request.target_position,
                     [c.model_dump() for c in request.components], request.alpha,
-                    request.n_tokens, request.extra_pairs, request.temperature,
+                    request.n_tokens,
+                    [p.model_dump() for p in request.extra_pairs] if request.extra_pairs else None,
+                    request.temperature,
                     request.repetition_penalty, request.generation_prompt,
                     request.method,
                 ):
