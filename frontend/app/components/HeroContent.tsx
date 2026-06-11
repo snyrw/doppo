@@ -545,7 +545,7 @@ function InferenceTab() {
       <div>
         <SectionLabel>Infrastructure</SectionLabel>
         <FactList items={[
-          ["Runtime",    "Modal serverless — billed per second of GPU compute, no idle cost"],
+          ["Runtime",    "Modal serverless — billed per second at exactly our GPU + CPU + memory cost, no markup"],
           ["Framework",  "TransformerLens 3.0 running PyTorch 2.6"],
           ["Cold start", "First request loads model weights — expect 30–120s depending on model size"],
           ["Caching",    "Logit lens, DLA, and attribution results are stored; repeat queries on the same model and prompt don't consume credits"],

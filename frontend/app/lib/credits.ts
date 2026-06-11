@@ -1,7 +1,12 @@
 import { db } from "@/app/db";
 import { userCredits, creditLedger } from "@/app/schema";
 import { eq, sql } from "drizzle-orm";
-import { TIER_RATES_MICROS_PER_SEC, FREE_MONTHLY_GRANT_MICROS } from "./rates";
+import {
+  TIER_RATES_MICROS_PER_SEC,
+  CPU_RATE_MICROS_PER_CORE_SEC,
+  MEM_RATE_MICROS_PER_GIB_SEC,
+  FREE_MONTHLY_GRANT_MICROS,
+} from "./rates";
 
 export const MINIMUM_JOB_COST_MICROS: Record<string, number> = {
   tl_small:   Math.ceil( 90 * TIER_RATES_MICROS_PER_SEC.tl_small),
@@ -74,14 +79,19 @@ export async function deductFixedCost(
 export async function deductJobCost(
   userId: string,
   tier: string,
-  executionTimeMs: number
+  executionTimeMs: number,
+  usage?: { cpuCoreS?: number; memGibS?: number }
 ): Promise<number> {
   const rate = TIER_RATES_MICROS_PER_SEC[tier];
   if (rate === undefined) throw new Error(`Unknown GPU tier: ${tier}`);
   // Balance may go negative if a job runs longer than the pre-flight floor estimate.
   // This is intentional: we do not interrupt in-flight jobs, and the floor guard
   // prevents starting jobs with clearly insufficient balance.
-  const costMicros = Math.ceil((executionTimeMs * rate) / 1000);
+  const costMicros = Math.ceil(
+    (executionTimeMs * rate) / 1000 +
+    (usage?.cpuCoreS ?? 0) * CPU_RATE_MICROS_PER_CORE_SEC +
+    (usage?.memGibS ?? 0) * MEM_RATE_MICROS_PER_GIB_SEC
+  );
   await db
     .update(userCredits)
     .set({ balanceMicros: sql`${userCredits.balanceMicros} - ${costMicros}` })
