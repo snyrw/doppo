@@ -11,29 +11,37 @@ from .validation import validate_hf_repo
 
 # ── GPU-tier Modal classes ─────────────────────────────────────────────────────
 
+# scaledown_window_s must match each tier's scaledown_window in config.py —
+# it is billed idle time, attributed to the first call on each container.
+
 @app.cls(gpu="L4", **_TL_KWARGS)
 class TransformerLensSmall(_TLBase):
     model_id: str = modal.parameter()
+    scaledown_window_s = _TL_KWARGS["scaledown_window"]
 
 
 @app.cls(gpu="L40S", **_TL_KWARGS)
 class TransformerLensMedium(_TLBase):
     model_id: str = modal.parameter()
+    scaledown_window_s = _TL_KWARGS["scaledown_window"]
 
 
 @app.cls(gpu="A100-80GB", **_TL_LARGE_KWARGS)
 class TransformerLensLarge(_TLBase):
     model_id: str = modal.parameter()
+    scaledown_window_s = _TL_LARGE_KWARGS["scaledown_window"]
 
 
 @app.cls(gpu="H200", **_TL_XLARGE_KWARGS)
 class TransformerLensXLarge(_TLBase):
     model_id: str = modal.parameter()
+    scaledown_window_s = _TL_XLARGE_KWARGS["scaledown_window"]
 
 
 @app.cls(gpu="B200", **_TL_XXLARGE_KWARGS)
 class TransformerLensXXLarge(_TLBase):
     model_id: str = modal.parameter()
+    scaledown_window_s = _TL_XXLARGE_KWARGS["scaledown_window"]
 
 
 # ── Routing table ──────────────────────────────────────────────────────────────

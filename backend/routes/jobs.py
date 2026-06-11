@@ -72,6 +72,11 @@ def create_router(resolve_model, hf_token):
         try:
             fc = await modal.functions.FunctionCall.from_id.aio(job_id)
             result = await fc.get.aio(timeout=0)
+            # New result wrappers return {"data", "duration_ms", "cpu_core_s",
+            # "mem_gib_s"}; jobs spawned before that deploy return the bare
+            # data dict.
+            if isinstance(result, dict) and set(result.keys()) == {"data", "duration_ms", "cpu_core_s", "mem_gib_s"}:
+                return {"status": "done", **result}
             return {"status": "done", "data": result}
         except TimeoutError:
             return {"status": "running"}

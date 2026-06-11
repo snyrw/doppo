@@ -16,11 +16,17 @@ def test_gpu_smoke():
     """
     print("Running GPU smoke test: GPT-2 Small logit lens...")
 
-    result = TransformerLensSmall(model_id="openai-community/gpt2").run_logit_lens_result.remote(
+    wrapped = TransformerLensSmall(model_id="openai-community/gpt2").run_logit_lens_result.remote(
         "The Eiffel Tower is in", 5
     )
 
-    assert isinstance(result, dict), f"Expected dict, got {type(result)}: {result}"
+    assert isinstance(wrapped, dict), f"Expected dict, got {type(wrapped)}: {wrapped}"
+    assert set(wrapped.keys()) == {"data", "duration_ms", "cpu_core_s", "mem_gib_s"}, \
+        f"Unexpected result envelope keys: {list(wrapped.keys())}"
+    assert wrapped["duration_ms"] > 0, "duration_ms should be positive"
+    assert wrapped["cpu_core_s"] > 0 and wrapped["mem_gib_s"] > 0, \
+        "resource usage should be positive"
+    result = wrapped["data"]
     assert "heatmap_data" in result, f"Missing heatmap_data. Keys: {list(result.keys())}"
     assert isinstance(result["heatmap_data"], list) and len(result["heatmap_data"]) > 0, \
         "heatmap_data should be a non-empty list"

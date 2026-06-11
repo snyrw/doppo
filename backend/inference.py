@@ -19,14 +19,45 @@ def _resolve_pos(tokens, target_position: int | str) -> int:
 
 # ── TransformerBridge inference ───────────────────────────────────────────────
 
+# Modal bills CPU and memory at max(request, usage); these are the default
+# request floors (0.125 cores, 128 MiB) for containers with no explicit request.
+_CPU_FLOOR_CORES = 0.125
+_MEM_FLOOR_GIB = 0.125
+
+
+def _read_rss_gib() -> float:
+    """Current process resident set size in GiB (Linux only)."""
+    try:
+        with open("/proc/self/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) / (1024 * 1024)  # kB → GiB
+    except (OSError, ValueError, IndexError):
+        pass
+    return 0.0
+
+
+def _cpu_seconds() -> float:
+    import os
+    t = os.times()
+    return t.user + t.system
+
+
 class _TLBase:
     model_id: str  # declared on each concrete subclass via modal.parameter()
+    # Idle seconds Modal keeps (and bills) this container after its last call.
+    # Overridden per tier class in main.py to match config.py scaledown_window.
+    scaledown_window_s: int = 30
 
     @modal.enter()
     def load_model(self):
+        import time
+
         import torch
         from transformer_lens.model_bridge import TransformerBridge
 
+        boot_wall_start = time.time()
+        boot_cpu_start = _cpu_seconds()
         torch.set_grad_enabled(False)
 
         self.model = TransformerBridge.boot_transformers(
@@ -40,6 +71,58 @@ class _TLBase:
         for _ in range(3):
             self.model(dummy)
         torch.cuda.empty_cache()
+
+        # Modal bills the container from boot through the post-idle scaledown,
+        # not just method execution. Meter boot here and attribute it (plus the
+        # scaledown window) to the first call this container serves, so user
+        # billing matches our Modal bill with no margin.
+        self._boot_wall_s = time.time() - boot_wall_start
+        self._boot_cpu_s = _cpu_seconds() - boot_cpu_start
+        self._boot_rss_gib = _read_rss_gib()
+        self._boot_attributed = False
+
+    def _final_result(self, gen, name: str) -> dict:
+        """Consume a streaming run generator; return its done payload plus the
+        Modal-billable resource usage of this call: wall time (GPU-seconds),
+        CPU core-seconds, and memory GiB-seconds, each floored at Modal's
+        billing minimums. The first call on a fresh container also carries the
+        boot and scaledown-window cost."""
+        import json
+        import time
+
+        wall_start = time.time()
+        cpu_start = _cpu_seconds()
+        rss_start = _read_rss_gib()
+
+        data = None
+        for chunk_str in gen:
+            chunk = json.loads(chunk_str)
+            if chunk.get("stage") == "done":
+                data = chunk["data"]
+                break
+        if data is None:
+            raise RuntimeError(f"{name} produced no done event")
+
+        wall_s = time.time() - wall_start
+        rss_avg_gib = max((rss_start + _read_rss_gib()) / 2, _MEM_FLOOR_GIB)
+        cpu_core_s = max(_cpu_seconds() - cpu_start, _CPU_FLOOR_CORES * wall_s)
+        mem_gib_s = rss_avg_gib * wall_s
+
+        if not self._boot_attributed:
+            self._boot_attributed = True
+            idle_s = float(self.scaledown_window_s)
+            wall_s += self._boot_wall_s + idle_s
+            cpu_core_s += max(self._boot_cpu_s, _CPU_FLOOR_CORES * self._boot_wall_s)
+            cpu_core_s += _CPU_FLOOR_CORES * idle_s
+            mem_gib_s += max(self._boot_rss_gib, _MEM_FLOOR_GIB) * self._boot_wall_s
+            mem_gib_s += rss_avg_gib * idle_s
+
+        return {
+            "data": data,
+            "duration_ms": int(wall_s * 1000),
+            "cpu_core_s": round(cpu_core_s, 3),
+            "mem_gib_s": round(mem_gib_s, 3),
+        }
 
     @modal.method()
     def run_dla(self, prompt: str, target_position: int | str = "last", target_token: str | None = None, contrastive_token: str | None = None):
@@ -822,21 +905,11 @@ class _TLBase:
 
     @modal.method()
     def run_logit_lens_result(self, prompt: str, top_k: int = 5) -> dict:
-        import json
-        for chunk_str in self.run_logit_lens.local(prompt, top_k):
-            chunk = json.loads(chunk_str)
-            if chunk.get("stage") == "done":
-                return chunk["data"]
-        raise RuntimeError("run_logit_lens produced no done event")
+        return self._final_result(self.run_logit_lens.local(prompt, top_k), "run_logit_lens")
 
     @modal.method()
     def run_attn_result(self, prompt: str) -> dict:
-        import json
-        for chunk_str in self.run_attn.local(prompt):
-            chunk = json.loads(chunk_str)
-            if chunk.get("stage") == "done":
-                return chunk["data"]
-        raise RuntimeError("run_attn produced no done event")
+        return self._final_result(self.run_attn.local(prompt), "run_attn")
 
     @modal.method()
     def run_dla_result(
@@ -846,12 +919,10 @@ class _TLBase:
         target_token: str | None = None,
         contrastive_token: str | None = None,
     ) -> dict:
-        import json
-        for chunk_str in self.run_dla.local(prompt, target_position, target_token, contrastive_token):
-            chunk = json.loads(chunk_str)
-            if chunk.get("stage") == "done":
-                return chunk["data"]
-        raise RuntimeError("run_dla produced no done event")
+        return self._final_result(
+            self.run_dla.local(prompt, target_position, target_token, contrastive_token),
+            "run_dla",
+        )
 
     @modal.method()
     def run_attribution_result(
@@ -863,14 +934,12 @@ class _TLBase:
         contrastive_token: str | None = None,
         top_n: int = 30,
     ) -> dict:
-        import json
-        for chunk_str in self.run_attribution.local(
-            clean_prompt, corrupted_prompt, target_position, target_token, contrastive_token, top_n
-        ):
-            chunk = json.loads(chunk_str)
-            if chunk.get("stage") == "done":
-                return chunk["data"]
-        raise RuntimeError("run_attribution produced no done event")
+        return self._final_result(
+            self.run_attribution.local(
+                clean_prompt, corrupted_prompt, target_position, target_token, contrastive_token, top_n
+            ),
+            "run_attribution",
+        )
 
     @modal.method()
     def run_activation_patch_result(
@@ -883,15 +952,13 @@ class _TLBase:
         components: list[dict] | None = None,
         k: int = 10,
     ) -> dict:
-        import json
-        for chunk_str in self.run_activation_patch.local(
-            clean_prompt, corrupted_prompt, target_position, target_token_idx, contrastive_token_idx,
-            components or [], k
-        ):
-            chunk = json.loads(chunk_str)
-            if chunk.get("stage") == "done":
-                return chunk["data"]
-        raise RuntimeError("run_activation_patch produced no done event")
+        return self._final_result(
+            self.run_activation_patch.local(
+                clean_prompt, corrupted_prompt, target_position, target_token_idx, contrastive_token_idx,
+                components or [], k
+            ),
+            "run_activation_patch",
+        )
 
     @modal.method()
     def run_steering_result(
@@ -908,13 +975,11 @@ class _TLBase:
         generation_prompt: str | None = None,
         method: str = "caa",
     ) -> dict:
-        import json
-        for chunk_str in self.run_steering.local(
-            clean_prompt, corrupted_prompt, target_position, components or [], alpha,
-            n_tokens, extra_pairs, temperature, repetition_penalty, generation_prompt,
-            method,
-        ):
-            chunk = json.loads(chunk_str)
-            if chunk.get("stage") == "done":
-                return chunk["data"]
-        raise RuntimeError("run_steering produced no done event")
+        return self._final_result(
+            self.run_steering.local(
+                clean_prompt, corrupted_prompt, target_position, components or [], alpha,
+                n_tokens, extra_pairs, temperature, repetition_penalty, generation_prompt,
+                method,
+            ),
+            "run_steering",
+        )
