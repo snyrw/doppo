@@ -1,14 +1,44 @@
 # backend/tests/test_api.py
+import os
 import pytest
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from backend.main import create_app
 from backend.config import FEATURED_MODELS
 
+# Every route is gated by the shared bearer secret (backend/auth.py); the
+# dependency reads BACKEND_API_SECRET from the env on each request.
+TEST_SECRET = "test-backend-secret"
+
 
 @pytest.fixture(scope="module")
 def client():
-    return TestClient(create_app())
+    os.environ["BACKEND_API_SECRET"] = TEST_SECRET
+    c = TestClient(create_app())
+    c.headers.update({"Authorization": f"Bearer {TEST_SECRET}"})
+    return c
+
+
+# ── auth gate ─────────────────────────────────────────────────────────────────
+
+class TestAuthGate:
+    def test_missing_header_returns_401(self, client):
+        response = client.get("/api/models", headers={"Authorization": ""})
+        assert response.status_code == 401
+
+    def test_wrong_secret_returns_401(self, client):
+        response = client.get("/api/models", headers={"Authorization": "Bearer wrong"})
+        assert response.status_code == 401
+
+    def test_unconfigured_backend_returns_503(self, client, monkeypatch):
+        monkeypatch.delenv("BACKEND_API_SECRET", raising=False)
+        response = client.get("/api/models")
+        assert response.status_code == 503
+
+    def test_docs_are_disabled(self, client):
+        # Router-level auth doesn't gate FastAPI's auto docs, so they must be off.
+        for path in ("/docs", "/redoc", "/openapi.json"):
+            assert client.get(path).status_code == 404
 
 
 # ── /api/models ───────────────────────────────────────────────────────────────
@@ -132,7 +162,59 @@ class TestSpawnLens:
         assert response.status_code == 422
 
 
+# ── /api/job/spawn-activation-patch ──────────────────────────────────────────
+
+class TestSpawnActivationPatch:
+    def _mock_cls(self, job_id="ap-job"):
+        mock_fc = MagicMock()
+        mock_fc.object_id = job_id
+        mock_method = MagicMock()
+        mock_method.spawn = MagicMock()
+        mock_method.spawn.aio = AsyncMock(return_value=mock_fc)
+        mock_instance = MagicMock()
+        mock_instance.run_activation_patch_result = mock_method
+        return MagicMock(return_value=mock_instance)
+
+    def test_mlp_component_with_sentinel_head_is_accepted(self, client):
+        # Attribution results encode MLP components as head=-1 and the frontend
+        # forwards top_k_components verbatim — the schema must not reject them.
+        with patch("backend.main._resolve_model", return_value=(self._mock_cls(), "openai-community/gpt2")):
+            response = client.post("/api/job/spawn-activation-patch", json={
+                "model_name": "gpt2-small",
+                "prompt": "clean",
+                "corrupted_prompt": "corrupted",
+                "target_token_idx": 1,
+                "components": [
+                    {"layer": 9, "component_type": "attn_head", "head": 6},
+                    {"layer": 8, "component_type": "mlp", "head": -1},
+                ],
+            })
+        assert response.status_code == 200
+        assert response.json() == {"job_id": "ap-job"}
+
+
+# ── /api/job/spawn-steering ──────────────────────────────────────────────────
+
+class TestSpawnSteering:
+    def test_too_many_extra_pairs_returns_422(self, client):
+        response = client.post("/api/job/spawn-steering", json={
+            "model_name": "gpt2-small",
+            "clean_prompt": "clean",
+            "corrupted_prompt": "corrupted",
+            "components": [{"layer": 5}],
+            "extra_pairs": [{"clean": "a", "corrupted": "b"}] * 41,  # cap is 40
+        })
+        assert response.status_code == 422
+
+
 # ── /api/job/{job_id} GET (poll) ──────────────────────────────────────────────
+
+def _mock_from_id(mock_fc=None, side_effect=None):
+    """Routes call `await FunctionCall.from_id.aio(job_id)` — mock the .aio attr."""
+    m = MagicMock()
+    m.aio = AsyncMock(return_value=mock_fc, side_effect=side_effect)
+    return m
+
 
 class TestPollJob:
     def test_done_state(self, client):
@@ -150,7 +232,7 @@ class TestPollJob:
         mock_fc.get = MagicMock()
         mock_fc.get.aio = AsyncMock(return_value=done_data)
 
-        with patch("modal.functions.FunctionCall.from_id", return_value=mock_fc):
+        with patch("modal.functions.FunctionCall.from_id", _mock_from_id(mock_fc)):
             response = client.get("/api/job/fake-job-id")
 
         assert response.status_code == 200
@@ -163,7 +245,7 @@ class TestPollJob:
         mock_fc.get = MagicMock()
         mock_fc.get.aio = AsyncMock(side_effect=TimeoutError())
 
-        with patch("modal.functions.FunctionCall.from_id", return_value=mock_fc):
+        with patch("modal.functions.FunctionCall.from_id", _mock_from_id(mock_fc)):
             response = client.get("/api/job/fake-job-id")
 
         assert response.json() == {"status": "running"}
@@ -173,12 +255,14 @@ class TestPollJob:
         mock_fc.get = MagicMock()
         mock_fc.get.aio = AsyncMock(side_effect=RuntimeError("inference failed"))
 
-        with patch("modal.functions.FunctionCall.from_id", return_value=mock_fc):
+        with patch("modal.functions.FunctionCall.from_id", _mock_from_id(mock_fc)):
             response = client.get("/api/job/fake-job-id")
 
         body = response.json()
         assert body["status"] == "error"
-        assert "inference failed" in body["error"]
+        # Raw exception text must NOT leak to the client — only a generic message.
+        assert "inference failed" not in body["error"]
+        assert body["error"] == "Internal error while polling job."
 
 
 # ── /api/job/{job_id} DELETE (cancel) ────────────────────────────────────────
@@ -189,7 +273,7 @@ class TestCancelJob:
         mock_fc.cancel = MagicMock()
         mock_fc.cancel.aio = AsyncMock()
 
-        with patch("modal.functions.FunctionCall.from_id", return_value=mock_fc):
+        with patch("modal.functions.FunctionCall.from_id", _mock_from_id(mock_fc)):
             response = client.delete("/api/job/fake-job-id")
 
         assert response.status_code == 200
@@ -197,7 +281,7 @@ class TestCancelJob:
 
     def test_cancel_graceful_on_error(self, client):
         # Even if FunctionCall raises, endpoint should return cancelled: True
-        with patch("modal.functions.FunctionCall.from_id", side_effect=Exception("already gone")):
+        with patch("modal.functions.FunctionCall.from_id", _mock_from_id(side_effect=Exception("already gone"))):
             response = client.delete("/api/job/fake-job-id")
 
         assert response.status_code == 200

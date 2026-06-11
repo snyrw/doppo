@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { requireAuth } from "../../lib/api-helpers";
+import { requireAuth, backendHeaders, MAX_PROMPT_CHARS } from "../../lib/api-helpers";
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (body.text !== undefined && (typeof body.text !== "string" || body.text.length > 8000)) {
+  if (body.text !== undefined && (typeof body.text !== "string" || body.text.length > MAX_PROMPT_CHARS)) {
     return new Response(
-      JSON.stringify({ error: "text must be a string of at most 8000 characters" }),
+      JSON.stringify({ error: `text must be a string of at most ${MAX_PROMPT_CHARS} characters` }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   try {
     upstream = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tokenize`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: backendHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ model_name: body.model_name, text: body.text ?? "" }),
     });
   } catch (err) {

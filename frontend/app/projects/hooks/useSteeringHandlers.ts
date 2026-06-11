@@ -107,9 +107,17 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
         dispatch({ type: "CARD_ERRORED", id: steeringId, ...handleSpawnError(spawnRes.status, err) });
         return;
       }
+      // stateRef lags the dispatch above, so append the new card explicitly
+      const persist = (data: SteeringResult) => {
+        const pid = projectIdRef.current;
+        if (!pid) return;
+        const existing = stateRef.current.lensCards.filter(c => c.status === "result" && c.id !== steeringId).map(serializeCard);
+        updateProject(pid, [...existing, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: data as unknown as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken, components, alpha: 1.0, temperature: 1.0, repetitionPenalty: 1.3, nTokens: 100, nPairs: 1, extraPairs: [], parentCardId: sourceCardId }], stateRef.current.canvas).catch(console.error);
+      };
       const body = await spawnRes.json() as { status?: string; jobId?: string; data?: SteeringResult };
       if (body.status === "cached" && body.data) {
         dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: body.data });
+        persist(body.data);
         return;
       }
       if (!body.jobId) {
@@ -119,11 +127,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       await pollSteering(body.jobId, steeringId, startedAt, dispatch, (data) => {
         dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data });
         window.dispatchEvent(new CustomEvent("credits-updated"));
-        const pid = projectIdRef.current;
-        if (pid) {
-          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-          updateProject(pid, [...existing, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, data: data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken, components, alpha: 1.0, temperature: 1.0, repetitionPenalty: 1.3, nTokens: 100, nPairs: 1, extraPairs: [], parentCardId: sourceCardId }], stateRef.current.canvas).catch(console.error);
-        }
+        persist(data);
       });
     })();
   }, [dispatch, projectIdRef, stateRef]);
@@ -151,9 +155,18 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
         dispatch({ type: "CARD_ERRORED", id: cardId, ...handleSpawnError(spawnRes.status, err) });
         return;
       }
+      // stateRef still shows this card as "loading" when the result lands, so a plain
+      // result-filter would drop it from the save — substitute the updated card explicitly.
+      const persist = (data: SteeringResult) => {
+        const pid = projectIdRef.current;
+        if (!pid) return;
+        const others = stateRef.current.lensCards.filter(c => c.status === "result" && c.id !== cardId).map(serializeCard);
+        updateProject(pid, [...others, serializeCard({ ...card, status: "result", alpha: newAlpha, data, error: null })], stateRef.current.canvas).catch(console.error);
+      };
       const body = await spawnRes.json() as { status?: string; jobId?: string; data?: SteeringResult };
       if (body.status === "cached" && body.data) {
         dispatch({ type: "STEERING_CARD_RESOLVED", id: cardId, data: body.data });
+        persist(body.data);
         return;
       }
       if (!body.jobId) {
@@ -163,11 +176,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       await pollSteering(body.jobId, cardId, startedAt, dispatch, (data) => {
         dispatch({ type: "STEERING_CARD_RESOLVED", id: cardId, data });
         window.dispatchEvent(new CustomEvent("credits-updated"));
-        const pid = projectIdRef.current;
-        if (pid) {
-          const updated = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-          updateProject(pid, updated, stateRef.current.canvas).catch(console.error);
-        }
+        persist(data);
       });
     })();
   }, [dispatch, projectIdRef, stateRef]);
@@ -208,9 +217,16 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
         dispatch({ type: "CARD_ERRORED", id: steeringId, ...handleSpawnError(spawnRes.status, err) });
         return;
       }
+      const persist = (data: SteeringResult) => {
+        const pid = projectIdRef.current;
+        if (!pid) return;
+        const existing = stateRef.current.lensCards.filter(c => c.status === "result" && c.id !== steeringId).map(serializeCard);
+        updateProject(pid, [...existing, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, generationPrompt, data: data as unknown as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken: null, components, alpha: 1.0, temperature, repetitionPenalty, nTokens: 100, nPairs, extraPairs: extraPairs ?? [], parentCardId: "" }], stateRef.current.canvas).catch(console.error);
+      };
       const body = await spawnRes.json() as { status?: string; jobId?: string; data?: SteeringResult };
       if (body.status === "cached" && body.data) {
         dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data: body.data });
+        persist(body.data);
         return;
       }
       if (!body.jobId) {
@@ -220,11 +236,7 @@ export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) 
       await pollSteering(body.jobId, steeringId, startedAt, dispatch, (data) => {
         dispatch({ type: "STEERING_CARD_RESOLVED", id: steeringId, data });
         window.dispatchEvent(new CustomEvent("credits-updated"));
-        const pid = projectIdRef.current;
-        if (pid) {
-          const existing = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
-          updateProject(pid, [...existing, { id: steeringId, cardType: "steering" as const, modelName, prompt: cleanPrompt, corruptedPrompt, generationPrompt, data: data as Record<string, unknown>, position: steeringCard.position, gpuTier, targetPosition, targetToken: null, components, alpha: 1.0, temperature, repetitionPenalty, nTokens: 100, nPairs, extraPairs: extraPairs ?? [], parentCardId: "" }], stateRef.current.canvas).catch(console.error);
-        }
+        persist(data);
       });
     })();
   }, [dispatch, projectIdRef, stateRef]);

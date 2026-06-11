@@ -6,7 +6,7 @@ import {
   attributionCache, activationPatchCache, steeringCache,
 } from "@/app/schema";
 import { putHeatmap } from "@/app/lib/r2";
-import { requireAuth } from "@/app/lib/api-helpers";
+import { requireAuth, backendHeaders } from "@/app/lib/api-helpers";
 import { deductJobCost } from "@/app/lib/credits";
 
 export async function GET(
@@ -24,7 +24,9 @@ export async function GET(
   if (rows[0].userId !== userId) return Response.json({ error: "Unauthorized" }, { status: 403 });
   const job = rows[0];
 
-  const pollRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${jobId}`);
+  const pollRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${jobId}`, {
+    headers: backendHeaders(),
+  });
   if (!pollRes.ok) return Response.json({ status: "error", error: `Poll failed (${pollRes.status})` });
 
   const result = await pollRes.json() as { status: string; data?: unknown; error?: string };
@@ -81,7 +83,7 @@ export async function DELETE(
   if (rows.length > 0 && rows[0].userId !== userId)
     return Response.json({ error: "Unauthorized" }, { status: 403 });
 
-  await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${jobId}`, { method: "DELETE" }).catch(console.error);
+  await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${jobId}`, { method: "DELETE", headers: backendHeaders() }).catch(console.error);
   await db.delete(activeJobs).where(eq(activeJobs.id, jobId)).catch(console.error);
 
   return Response.json({ cancelled: true });

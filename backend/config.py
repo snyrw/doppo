@@ -6,6 +6,8 @@ app = modal.App("logitlensviz")
 
 model_volume = modal.Volume.from_name("model-weights-vol-v2", create_if_missing=True, version=2)
 hf_secret = modal.Secret.from_name("huggingface-secret")
+# Shared bearer secret gating the web app — must define BACKEND_API_SECRET.
+backend_auth_secret = modal.Secret.from_name("backend-auth-secret")
 
 VOLUME_MOUNT = "/model-cache"
 _HF_CACHE_ENV = {
