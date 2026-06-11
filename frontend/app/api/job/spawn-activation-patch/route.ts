@@ -6,6 +6,7 @@ import { activationPatchCache, activeJobs } from "@/app/schema";
 import { getHeatmap } from "@/app/lib/r2";
 import { requireAuth, resolveModelTier, validateGpuTier, backendHeaders, MAX_PROMPT_CHARS } from "@/app/lib/api-helpers";
 import { checkBalance } from "@/app/lib/credits";
+import { countActiveJobs, MAX_ACTIVE_JOBS_PER_USER } from "@/app/lib/jobs";
 
 export async function POST(request: NextRequest) {
   const { cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetTokenIdx, contrastiveTokenIdx, components, k } =
@@ -24,12 +25,12 @@ export async function POST(request: NextRequest) {
   if (gpuTier !== undefined && !validateGpuTier(gpuTier))
     return Response.json({ error: "Invalid gpuTier" }, { status: 400 });
 
-  const resolvedTier = await resolveModelTier(modelName);
-  if (!resolvedTier) return Response.json({ error: "Model not found or invalid." }, { status: 400 });
-
   const authResult = await requireAuth();
   if (!("userId" in authResult)) return authResult;
   const { userId } = authResult;
+
+  const resolvedTier = await resolveModelTier(modelName);
+  if (!resolvedTier) return Response.json({ error: "Model not found or invalid." }, { status: 400 });
 
   const cacheKey = createHash("sha256")
     .update(userId).update(modelName).update(cleanPrompt).update(corruptedPrompt)
@@ -43,6 +44,9 @@ export async function POST(request: NextRequest) {
     db.update(activationPatchCache).set({ lastAccessedAt: new Date() }).where(eq(activationPatchCache.id, cacheKey)).catch(console.error);
     return Response.json({ status: "cached", data });
   }
+
+  if ((await countActiveJobs(userId)) >= MAX_ACTIVE_JOBS_PER_USER)
+    return Response.json({ error: "Too many jobs in flight. Wait for one to finish." }, { status: 429 });
 
   const { allowed } = await checkBalance(userId, resolvedTier);
   if (!allowed) return Response.json({ error: "Insufficient credits. Add credits to continue." }, { status: 402 });

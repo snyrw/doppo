@@ -6,6 +6,7 @@ import { steeringCache, activeJobs } from "@/app/schema";
 import { getHeatmap } from "@/app/lib/r2";
 import { requireAuth, resolveModelTier, validateGpuTier, backendHeaders, MAX_PROMPT_CHARS, MAX_EXTRA_PAIRS } from "@/app/lib/api-helpers";
 import { checkBalance } from "@/app/lib/credits";
+import { countActiveJobs, MAX_ACTIVE_JOBS_PER_USER } from "@/app/lib/jobs";
 
 export async function POST(request: NextRequest) {
   const { cleanPrompt, corruptedPrompt, generationPrompt, modelName, gpuTier, targetPosition, components, alpha, nTokens, extraPairs, temperature, repetitionPenalty } =
@@ -31,12 +32,12 @@ export async function POST(request: NextRequest) {
   if (extraPairs != null && (!Array.isArray(extraPairs) || extraPairs.length > MAX_EXTRA_PAIRS))
     return Response.json({ error: `extraPairs must be an array of at most ${MAX_EXTRA_PAIRS} pairs` }, { status: 400 });
 
-  const resolvedTier = await resolveModelTier(modelName);
-  if (!resolvedTier) return Response.json({ error: "Model not found or invalid." }, { status: 400 });
-
   const authResult = await requireAuth();
   if (!("userId" in authResult)) return authResult;
   const { userId } = authResult;
+
+  const resolvedTier = await resolveModelTier(modelName);
+  if (!resolvedTier) return Response.json({ error: "Model not found or invalid." }, { status: 400 });
 
   const resolvedTemp = temperature ?? 1.0;
   const resolvedRepPenalty = repetitionPenalty ?? 1.3;
@@ -57,6 +58,9 @@ export async function POST(request: NextRequest) {
       return Response.json({ status: "cached", data });
     }
   }
+
+  if ((await countActiveJobs(userId)) >= MAX_ACTIVE_JOBS_PER_USER)
+    return Response.json({ error: "Too many jobs in flight. Wait for one to finish." }, { status: 429 });
 
   const { allowed } = await checkBalance(userId, resolvedTier);
   if (!allowed) return Response.json({ error: "Insufficient credits. Add credits to continue." }, { status: 402 });
