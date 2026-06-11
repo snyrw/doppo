@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import Anthropic from "@anthropic-ai/sdk";
 import { auth } from "@/app/lib/auth";
 import { headers } from "next/headers";
@@ -40,13 +41,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Sign in to generate pairs" }, { status: 401 });
   }
 
-  const { concept, primaryClean, primaryCorrupted, gpuTier, nPairs } =
+  const { concept, primaryClean, primaryCorrupted, gpuTier } =
     (await request.json()) as {
       concept: string;
       primaryClean: string;
       primaryCorrupted: string;
-      gpuTier?: string;
-      nPairs?: number;
+      gpuTier: string;
     };
 
   // Input validation
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
   }
   if (!validateGpuTier(gpuTier)) {
     return new Response(
-      JSON.stringify({ error: "gpuTier must be one of: tl_small, tl_medium, tl_large, tl_xlarge" }),
+      JSON.stringify({ error: "gpuTier must be one of: tl_small, tl_medium, tl_large, tl_xlarge, tl_xxlarge" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -86,13 +86,6 @@ export async function POST(request: NextRequest) {
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
-  if (nPairs !== undefined && (!Number.isInteger(nPairs) || nPairs < 1 || nPairs > 40)) {
-    return new Response(
-      JSON.stringify({ error: "nPairs must be an integer between 1 and 40" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -111,7 +104,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Subtract 1 because the caller's seed pair already occupies slot 1 of the cap.
-  const n = Math.max(1, (gpuTier ? (TIER_CAPS[gpuTier] ?? DEFAULT_CAP) : DEFAULT_CAP) - 1);
+  const n = Math.max(1, (TIER_CAPS[gpuTier] ?? DEFAULT_CAP) - 1);
 
   const userMessage = `Target concept: "${concept.trim()}"
 
@@ -159,7 +152,12 @@ Generate ${n} diverse contrastive pairs for the target concept. Output one JSON 
     );
   }
 
-  deductFixedCost(session.user.id, PAIRS_GEN_COST_MICROS, "usage_pairs").catch(console.error);
+  // The Anthropic cost is already spent, so still serve the pairs if the
+  // deduction fails — but make sure the failure reaches Sentry.
+  await deductFixedCost(session.user.id, PAIRS_GEN_COST_MICROS, "usage_pairs").catch((err) => {
+    console.error("Pair-generation deduction failed:", err);
+    Sentry.captureException(err, { extra: { userId: session.user.id } });
+  });
 
   return NextResponse.json({ pairs, n_requested: n });
 }
