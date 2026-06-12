@@ -1,11 +1,9 @@
 # backend/tests/test_utils.py
-import json
 import pytest
 from types import SimpleNamespace
 from backend.validation import _detect_gpu_tier
 from backend.main import _bump_tier
 from backend.inference import _resolve_pos
-from backend.config import _sse_error
 
 
 # ── _detect_gpu_tier ──────────────────────────────────────────────────────────
@@ -131,26 +129,3 @@ class TestResolvePos:
 
     def test_last_with_single_token(self):
         assert _resolve_pos(self._tokens(1), "last") == 0
-
-
-# ── _sse_error ────────────────────────────────────────────────────────────────
-
-class TestSseError:
-    def test_starts_with_data_prefix(self):
-        output = _sse_error(ValueError("oops"))
-        assert output.startswith("data: ")
-
-    def test_payload_is_valid_json(self):
-        output = _sse_error(ValueError("oops"))
-        payload = json.loads(output[len("data: "):].strip())
-        assert payload["stage"] == "error"
-        assert payload["error"] == "oops"
-
-    def test_special_chars_are_escaped(self):
-        output = _sse_error(ValueError('quote: "hello"'))
-        payload = json.loads(output[len("data: "):].strip())
-        assert payload["error"] == 'quote: "hello"'
-
-    def test_ends_with_double_newline(self):
-        output = _sse_error(ValueError("x"))
-        assert output.endswith("\n\n")

@@ -100,7 +100,6 @@ def create_app():
     from fastapi import Depends, FastAPI
     from fastapi.middleware.cors import CORSMiddleware
     from .auth import require_secret
-    from .routes.stream import create_router as stream_routes
     from .routes.jobs import create_router as job_routes
     from .routes.utils import create_router as util_routes
 
@@ -127,7 +126,6 @@ def create_app():
     # (which authenticates the user and bills credits) may call the backend.
     guard = [Depends(require_secret)]
     web_app.include_router(util_routes(hf_token), dependencies=guard)
-    web_app.include_router(stream_routes(_resolver, hf_token), dependencies=guard)
     web_app.include_router(job_routes(_resolver, hf_token), dependencies=guard)
     return web_app
 

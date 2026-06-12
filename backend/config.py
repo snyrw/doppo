@@ -1,4 +1,3 @@
-import json
 import modal
 
 
@@ -209,7 +208,3 @@ _TL_XLARGE_KWARGS = {**_TL_LARGE_KWARGS, "scaledown_window": 10}             # H
 # B200 is even pricier ($6.25/hr); minimize idle window to the floor.
 _TL_XXLARGE_KWARGS = {**_TL_LARGE_KWARGS, "scaledown_window": 5}             # B200
 
-
-def _sse_error(e: Exception) -> str:
-    """Format an SSE error event with properly escaped JSON."""
-    return f"data: {json.dumps({'stage': 'error', 'error': str(e)})}\n\n"
