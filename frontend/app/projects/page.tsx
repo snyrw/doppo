@@ -111,15 +111,64 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
+// Which floating pane is open under the "Add" button: the add dropdown itself
+// or one of the five technique config panes. Mutually exclusive by construction.
+type PaneId = "add" | "lens" | "dla" | "attribution" | "steering" | "attention";
+
+const ADD_MENU_ITEMS: Array<{ pane: PaneId; label: string; description: string }> = [
+  { pane: "lens",        label: "Logit Lens",  description: "Layer-by-layer predictions" },
+  { pane: "dla",         label: "DLA",         description: "Direct attribution per component" },
+  { pane: "attribution", label: "Attribution", description: "Map behavioral difference → verify causally" },
+  { pane: "steering",    label: "Steer",       description: "DIM vector injection from contrastive pair" },
+  { pane: "attention",   label: "Attention",   description: "Per-head attention weight matrices" },
+];
+
+/** One row of the Projects dropdown: shared style + hover/disabled handling. */
+function MenuItem({ onClick, disabled, title, radius, last, danger, children }: {
+  onClick: () => void;
+  disabled?: boolean;
+  title?: string;
+  radius?: string;
+  last?: boolean;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  const enabled = !disabled;
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        width: "100%",
+        background: "var(--color-card)",
+        border: "none",
+        borderBottom: last ? "none" : "1px solid var(--color-surface-border)",
+        borderRadius: radius ?? 0,
+        padding: "10px 16px",
+        fontSize: 13,
+        fontWeight: 500,
+        textAlign: "left",
+        transition: "background 120ms",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        color: enabled ? (danger ? "#dc2626" : "var(--color-text)") : "var(--color-text-muted)",
+        cursor: enabled ? "pointer" : "default",
+        opacity: enabled ? 1 : danger ? 0.4 : 0.5,
+      }}
+      onMouseEnter={e => { if (enabled) e.currentTarget.style.background = "var(--color-surface-border)"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = "var(--color-card)"; }}
+    >
+      {children}
+    </button>
+  );
+}
+
 function Projects() {
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
-  const [addOpen, setAddOpen] = useState(false);
-  const [configOpen, setConfigOpen] = useState(false);
-  const [dlaOpen, setDlaOpen] = useState(false);
-  const [attributionOpen, setAttributionOpen] = useState(false);
-  const [steeringOpen, setSteeringOpen] = useState(false);
-  const [attentionOpen, setAttentionOpen] = useState(false);
+  const [openPane, setOpenPane] = useState<PaneId | null>(null);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -161,20 +210,15 @@ function Projects() {
 
   // Close add dropdown + sub-panes on outside click
   useEffect(() => {
-    if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen && !attentionOpen) return;
+    if (openPane === null) return;
     function handleClickOutside(e: MouseEvent) {
       if (addRef.current && !addRef.current.contains(e.target as Node)) {
-        setAddOpen(false);
-        setConfigOpen(false);
-        setDlaOpen(false);
-        setAttributionOpen(false);
-        setSteeringOpen(false);
-        setAttentionOpen(false);
+        setOpenPane(null);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [addOpen, configOpen, dlaOpen, attributionOpen, steeringOpen, attentionOpen]);
+  }, [openPane]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -307,35 +351,27 @@ function Projects() {
   }, []);
 
   const handleAddLens = (args: Parameters<typeof jobHandlers.addLens>[0]) => {
-    setConfigOpen(false);
+    setOpenPane(null);
     jobHandlers.addLens(args);
   };
 
-  const handleSpawnEntropyCard = jobHandlers.spawnEntropyCard;
-
   const handleAddDla = (args: Parameters<typeof jobHandlers.addDla>[0]) => {
-    setDlaOpen(false);
+    setOpenPane(null);
     jobHandlers.addDla(args);
   };
 
   const handleAddAttribution = (args: Parameters<typeof jobHandlers.addAttribution>[0]) => {
-    setAttributionOpen(false);
+    setOpenPane(null);
     jobHandlers.addAttribution(args);
   };
 
-  const handleVerifyTopK = jobHandlers.verifyTopK;
-
-  const handleSteerComponents = steeringHandlers.steerComponents;
-
-  const handleRerunSteering = steeringHandlers.rerunSteering;
-
   const handleAddStandaloneSteer = (args: Parameters<typeof steeringHandlers.addStandaloneSteer>[0]) => {
-    setSteeringOpen(false);
+    setOpenPane(null);
     steeringHandlers.addStandaloneSteer(args);
   };
 
   const handleAddAttn = (args: Parameters<typeof jobHandlers.addAttn>[0]) => {
-    setAttentionOpen(false);
+    setOpenPane(null);
     jobHandlers.addAttn(args);
   };
 
@@ -410,8 +446,6 @@ function Projects() {
 
   const loggedIn = !!session?.user;
   const resolvedCards = state.lensCards.filter(c => c.status === "result");
-  const disabledStyle = { color: "var(--color-text-muted)" as const, cursor: "default" as const, opacity: 0.5 };
-  const enabledStyle = { color: "var(--color-text)" as const, cursor: "pointer" as const, opacity: 1 };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>
@@ -445,9 +479,9 @@ function Projects() {
           <div ref={addRef} style={{ position: "relative" }}>
             {/* "Add +" button */}
             <button
-              onClick={() => { setAddOpen(o => !o); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); setSteeringOpen(false); setAttentionOpen(false); }}
+              onClick={() => setOpenPane(p => (p === null ? "add" : null))}
               style={{
-                background: (addOpen || configOpen || dlaOpen || attributionOpen || steeringOpen || attentionOpen) ? "var(--color-accent-hover)" : "var(--color-accent)",
+                background: openPane !== null ? "var(--color-accent-hover)" : "var(--color-accent)",
                 color: "var(--color-accent-fg)",
                 border: "none",
                 borderRadius: 6,
@@ -462,15 +496,15 @@ function Projects() {
                 gap: 6,
                 letterSpacing: "0.01em",
               }}
-              onMouseEnter={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen && !attentionOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-              onMouseLeave={e => { if (!addOpen && !configOpen && !dlaOpen && !attributionOpen && !steeringOpen && !attentionOpen) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+              onMouseEnter={e => { if (openPane === null) e.currentTarget.style.background = "var(--color-accent-hover)"; }}
+              onMouseLeave={e => { if (openPane === null) e.currentTarget.style.background = "var(--color-accent)"; }}
             >
               <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
               Add
             </button>
 
-            {/* Dropdown — choose Logit Lens or DLA */}
-            {addOpen && (
+            {/* Dropdown — choose a technique */}
+            {openPane === "add" && (
               <div style={{
                 position: "absolute",
                 top: "calc(100% + 6px)",
@@ -485,89 +519,62 @@ function Projects() {
                 zIndex: 31,
                 animation: "cfgDropIn 140ms ease-out",
               }}>
-                <style>{`@keyframes cfgDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-                <button
-                  onClick={() => { setAddOpen(false); setConfigOpen(true); setDlaOpen(false); setAttributionOpen(false); setSteeringOpen(false); setAttentionOpen(false); }}
-                  style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: "6px 6px 0 0", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
-                >
-                  <span>Logit Lens</span>
-                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Layer-by-layer predictions</span>
-                </button>
-                <button
-                  onClick={() => { setAddOpen(false); setDlaOpen(true); setConfigOpen(false); setAttributionOpen(false); setSteeringOpen(false); setAttentionOpen(false); }}
-                  style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: 0, padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
-                >
-                  <span>DLA</span>
-                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Direct attribution per component</span>
-                </button>
-                <button
-                  onClick={() => { setAddOpen(false); setAttributionOpen(true); setConfigOpen(false); setDlaOpen(false); setSteeringOpen(false); setAttentionOpen(false); }}
-                  style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: 0, padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
-                >
-                  <span>Attribution</span>
-                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Map behavioral difference → verify causally</span>
-                </button>
-                <button
-                  onClick={() => { setAddOpen(false); setSteeringOpen(true); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); setAttentionOpen(false); }}
-                  style={{ background: "var(--color-card)", border: "none", borderBottom: "1px solid var(--color-surface-border)", borderRadius: 0, padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
-                >
-                  <span>Steer</span>
-                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>DIM vector injection from contrastive pair</span>
-                </button>
-                <button
-                  onClick={() => { setAddOpen(false); setAttentionOpen(true); setConfigOpen(false); setDlaOpen(false); setAttributionOpen(false); setSteeringOpen(false); }}
-                  style={{ background: "var(--color-card)", border: "none", borderRadius: "0 0 6px 6px", padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer", color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2 }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
-                >
-                  <span>Attention</span>
-                  <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>Per-head attention weight matrices</span>
-                </button>
+                {ADD_MENU_ITEMS.map((item, i) => (
+                  <button
+                    key={item.pane}
+                    onClick={() => setOpenPane(item.pane)}
+                    style={{
+                      background: "var(--color-card)",
+                      border: "none",
+                      borderBottom: i < ADD_MENU_ITEMS.length - 1 ? "1px solid var(--color-surface-border)" : "none",
+                      borderRadius: i === 0 ? "6px 6px 0 0" : i === ADD_MENU_ITEMS.length - 1 ? "0 0 6px 6px" : 0,
+                      padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer",
+                      color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2,
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "var(--color-surface-border)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "var(--color-card)"; }}
+                  >
+                    <span>{item.label}</span>
+                    <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>{item.description}</span>
+                  </button>
+                ))}
               </div>
             )}
 
             <ConfigPane
-              isOpen={configOpen}
+              isOpen={openPane === "lens"}
               availableModels={availableModels}
               modelsLoading={modelsLoading}
               onSubmit={handleAddLens}
-              onClose={() => setConfigOpen(false)}
+              onClose={() => setOpenPane(null)}
             />
             <DlaConfigPane
-              isOpen={dlaOpen}
+              isOpen={openPane === "dla"}
               availableModels={availableModels}
               modelsLoading={modelsLoading}
               onSubmit={handleAddDla}
-              onClose={() => setDlaOpen(false)}
+              onClose={() => setOpenPane(null)}
             />
             <AttributionConfigPane
-              isOpen={attributionOpen}
+              isOpen={openPane === "attribution"}
               availableModels={availableModels}
               modelsLoading={modelsLoading}
               onSubmit={handleAddAttribution}
-              onClose={() => setAttributionOpen(false)}
+              onClose={() => setOpenPane(null)}
             />
             <SteeringConfigPane
-              isOpen={steeringOpen}
+              isOpen={openPane === "steering"}
               availableModels={availableModels}
               modelsLoading={modelsLoading}
               onSubmit={handleAddStandaloneSteer}
-              onClose={() => setSteeringOpen(false)}
+              onClose={() => setOpenPane(null)}
             />
             <AttentionConfigPane
-              isOpen={attentionOpen}
+              isOpen={openPane === "attention"}
               availableModels={availableModels}
               modelsLoading={modelsLoading}
               onSubmit={handleAddAttn}
-              onClose={() => setAttentionOpen(false)}
+              onClose={() => setOpenPane(null)}
             />
           </div>
 
@@ -608,28 +615,11 @@ function Projects() {
                 minWidth: 160,
                 overflow: "visible",
               }}>
-                {/* Search */}
-                <button
+                <MenuItem
                   onClick={() => { setProjectsOpen(false); setSearchOpen(true); }}
-                  style={{
-                    background: "var(--color-card)",
-                    border: "none",
-                    borderBottom: "1px solid var(--color-surface-border)",
-                    borderRadius: "6px 6px 0 0",
-                    padding: "10px 16px",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    textAlign: "left",
-                    transition: "background 120ms",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    ...(loggedIn ? enabledStyle : disabledStyle),
-                  }}
                   disabled={!loggedIn}
                   title={loggedIn ? undefined : "Sign in to search projects"}
-                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                  radius="6px 6px 0 0"
                 >
                   <span>Search</span>
                   <kbd style={{
@@ -642,78 +632,22 @@ function Projects() {
                     padding: "0 4px",
                     lineHeight: "16px",
                   }}>⌘K</kbd>
-                </button>
+                </MenuItem>
 
-                {/* New */}
-                <button
-                  onClick={handleNew}
-                  disabled={!loggedIn}
-                  title={loggedIn ? undefined : "Sign in to save projects"}
-                  style={{
-                    background: "var(--color-card)",
-                    border: "none",
-                    borderBottom: "1px solid var(--color-surface-border)",
-                    padding: "10px 16px",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    textAlign: "left",
-                    transition: "background 120ms",
-                    ...(loggedIn ? enabledStyle : disabledStyle),
-                  }}
-                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
-                >
+                <MenuItem onClick={handleNew} disabled={!loggedIn} title={loggedIn ? undefined : "Sign in to save projects"}>
                   New
-                </button>
+                </MenuItem>
 
-                {/* Duplicate */}
-                <button
-                  onClick={handleDuplicate}
-                  disabled={!loggedIn}
-                  title={loggedIn ? undefined : "Sign in to save projects"}
-                  style={{
-                    background: "var(--color-card)",
-                    border: "none",
-                    borderBottom: "1px solid var(--color-surface-border)",
-                    padding: "10px 16px",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    textAlign: "left",
-                    transition: "background 120ms",
-                    ...(loggedIn ? enabledStyle : disabledStyle),
-                  }}
-                  onMouseEnter={e => { if (loggedIn) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
-                >
+                <MenuItem onClick={handleDuplicate} disabled={!loggedIn} title={loggedIn ? undefined : "Sign in to save projects"}>
                   Duplicate
-                </button>
+                </MenuItem>
 
                 {/* Export — submenu to the right */}
                 <div style={{ position: "relative" }}>
-                  <button
-                    onClick={() => setExportOpen(o => !o)}
-                    disabled={!resolvedCards.length}
-                    style={{
-                      width: "100%",
-                      background: "var(--color-card)",
-                      border: "none",
-                      borderBottom: "1px solid var(--color-surface-border)",
-                      padding: "10px 16px",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      textAlign: "left",
-                      transition: "background 120ms",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      ...(!resolvedCards.length ? disabledStyle : enabledStyle),
-                    }}
-                    onMouseEnter={e => { if (resolvedCards.length) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
-                  >
+                  <MenuItem onClick={() => setExportOpen(o => !o)} disabled={!resolvedCards.length}>
                     <span>Export</span>
                     <span style={{ fontSize: 10, opacity: 0.5 }}>▶</span>
-                  </button>
+                  </MenuItem>
 
                   {exportOpen && resolvedCards.length > 0 && (
                     <div style={{
@@ -765,27 +699,13 @@ function Projects() {
                   )}
                 </div>
 
-                {/* Share */}
-                <button
+                <MenuItem
                   onClick={handleShare}
                   disabled={!loggedIn || !projectId}
                   title={!loggedIn ? "Sign in to share" : !projectId ? "Save a project first" : shareId ? "Copy share link" : "Generate share link"}
-                  style={{
-                    background: "var(--color-card)",
-                    border: "none",
-                    borderBottom: "1px solid var(--color-surface-border)",
-                    padding: "10px 16px",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    textAlign: "left",
-                    transition: "background 120ms",
-                    ...(!loggedIn || !projectId ? disabledStyle : enabledStyle),
-                  }}
-                  onMouseEnter={e => { if (loggedIn && projectId) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
                 >
                   {shareId ? "Copy link" : "Share"}
-                </button>
+                </MenuItem>
 
                 {/* Delete — inline confirmation */}
                 {deleteConfirming ? (
@@ -831,37 +751,16 @@ function Projects() {
                     </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => {
-                      if (!loggedIn || !projectId) return;
-                      setDeleteConfirming(true);
-                    }}
+                  <MenuItem
+                    onClick={() => setDeleteConfirming(true)}
                     disabled={!loggedIn || !projectId}
-                    title={
-                      !loggedIn
-                        ? "Sign in to save projects"
-                        : !projectId
-                        ? "No saved project to delete"
-                        : undefined
-                    }
-                    style={{
-                      background: "var(--color-card)",
-                      border: "none",
-                      borderRadius: "0 0 6px 6px",
-                      padding: "10px 16px",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      textAlign: "left",
-                      transition: "background 120ms",
-                      color: loggedIn && projectId ? "#dc2626" : "var(--color-text-muted)",
-                      cursor: loggedIn && projectId ? "pointer" : "default",
-                      opacity: loggedIn && projectId ? 1 : 0.4,
-                    }}
-                    onMouseEnter={e => { if (loggedIn && projectId) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                    title={!loggedIn ? "Sign in to save projects" : !projectId ? "No saved project to delete" : undefined}
+                    radius="0 0 6px 6px"
+                    last
+                    danger
                   >
                     Delete
-                  </button>
+                  </MenuItem>
                 )}
               </div>
             )}
@@ -968,10 +867,10 @@ function Projects() {
           onCanvasChange={canvas => dispatch({ type: "SET_CANVAS", canvas })}
           onMoveCard={(id, position) => dispatch({ type: "MOVE_CARD", id, position })}
           onRemoveCard={id => dispatch({ type: "REMOVE_CARD", id })}
-          onVerifyTopK={handleVerifyTopK}
-          onSteerComponents={handleSteerComponents}
-          onRerunSteering={handleRerunSteering}
-          onSpawnEntropyCard={handleSpawnEntropyCard}
+          onVerifyTopK={jobHandlers.verifyTopK}
+          onSteerComponents={steeringHandlers.steerComponents}
+          onRerunSteering={steeringHandlers.rerunSteering}
+          onSpawnEntropyCard={jobHandlers.spawnEntropyCard}
         />
 
       </div>
