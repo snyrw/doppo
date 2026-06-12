@@ -260,7 +260,7 @@ export default function HeroContent() {
             margin: "0 0 clamp(14px, 1.2vw, 24px)",
           }}
         >
-          No-code mechanistic interpretability for transformer models on HuggingFace.
+          A no-code mechanistic interpretability sandbox on TransformerLens models up to 100B parameters.
         </h1>
 
         <p
@@ -272,8 +272,8 @@ export default function HeroContent() {
             margin: "0 0 clamp(20px, 1.8vw, 36px)",
           }}
         >
-          Run logit lens, attribution, and steering on any model from HuggingFace Hub.
-          No environment setup, no notebook.
+          Run logit lens, attention analysis, patching, and steering on thousands of compatible models.
+          Compute, environment set-up, and visualization are handled by us.
         </p>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "clamp(6px, 0.5vw, 10px)", marginBottom: "clamp(28px, 2.8vw, 56px)" }}>
@@ -330,7 +330,7 @@ export default function HeroContent() {
             borderTop: "1px solid var(--color-surface-border)",
           }}
         >
-          {["TransformerLens 3.0", "Any HF model", "GPU-accelerated", "Saved projects"].map((tag) => (
+          {["TransformerLens 3.0", "On-demand compute", "Saved projects", "Easily shareable results"].map((tag) => (
             <span
               key={tag}
               style={{
