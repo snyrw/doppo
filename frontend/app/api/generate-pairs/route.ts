@@ -5,18 +5,9 @@ import { auth } from "@/app/lib/auth";
 import { headers } from "next/headers";
 import { validateGpuTier } from "@/app/lib/api-helpers";
 import { ensureGrantAndGetBalance, deductFixedCost } from "@/app/lib/credits";
+import { TIER_PAIR_CAPS, DEFAULT_PAIR_CAP } from "@/app/lib/tiers";
 
 const PAIRS_GEN_COST_MICROS = 5_000; // $0.005 per call; ~200 free calls/month on the monthly grant
-
-// Tier-scaled caps matching compute cost: more pairs on cheap GPUs, fewer on expensive ones.
-const TIER_CAPS: Record<string, number> = {
-  tl_small:   40,
-  tl_medium:  25,
-  tl_large:   15,
-  tl_xlarge:  10,
-  tl_xxlarge: 10,
-};
-const DEFAULT_CAP = 20;
 
 const SYSTEM_PROMPT = `You are generating a dataset of contrastive prompt pairs for mechanistic interpretability research. These pairs will be used to compute a "steering vector" — a direction in a language model's activation space that represents a specific concept or behavior.
 
@@ -104,7 +95,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Subtract 1 because the caller's seed pair already occupies slot 1 of the cap.
-  const n = Math.max(1, (TIER_CAPS[gpuTier] ?? DEFAULT_CAP) - 1);
+  const n = Math.max(1, (TIER_PAIR_CAPS[gpuTier] ?? DEFAULT_PAIR_CAP) - 1);
 
   const userMessage = `Target concept: "${concept.trim()}"
 

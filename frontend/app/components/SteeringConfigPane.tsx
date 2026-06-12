@@ -2,23 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "@/app/lib/auth-client";
-import { TIER_LABELS } from "../lib/tiers";
+import { TIER_PAIR_CAPS, DEFAULT_PAIR_CAP } from "../lib/tiers";
 import { useTokenPreview } from "../hooks/useTokenPreview";
+import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
+import ModelPicker from "./ModelPicker";
 import TokenPreview from "./TokenPreview";
-
-type ModelInfo = {
-  id: string;
-  display_name: string;
-  description: string;
-  requires_hf_token: boolean;
-  gpu_tier: string;
-};
-
-type CustomValidation = {
-  valid: boolean;
-  gpu_tier: string | null;
-  reason: string;
-};
 
 export type ExtraPair = { clean: string; corrupted: string };
 
@@ -52,16 +40,6 @@ type SteeringConfigPaneProps = {
   };
 };
 
-// Tier-scaled caps must match /api/generate-pairs/route.ts TIER_CAPS.
-const TIER_PAIR_CAPS: Record<string, number> = {
-  tl_small:   40,
-  tl_medium:  25,
-  tl_large:   15,
-  tl_xlarge:  10,
-  tl_xxlarge: 10,
-};
-const DEFAULT_PAIR_CAP = 20;
-
 const DEFAULT_CLEAN_PROMPT = "When Mary and John went to the store, John gave a drink to";
 const DEFAULT_CORRUPTED_PROMPT = "When Mary and John went to the store, Mary gave a drink to";
 
@@ -75,12 +53,9 @@ export default function SteeringConfigPane({
   tutorialConfig,
 }: SteeringConfigPaneProps) {
   const { data: session } = useSession();
-  const [selectedModel, setSelectedModel] = useState("");
+  const picker = useModelSelection(availableModels);
   const [cleanPrompt, setCleanPrompt] = useState(DEFAULT_CLEAN_PROMPT);
   const [corruptedPrompt, setCorruptedPrompt] = useState(DEFAULT_CORRUPTED_PROMPT);
-  const [customRepoId, setCustomRepoId] = useState("");
-  const [customValidation, setCustomValidation] = useState<CustomValidation | null>(null);
-  const [customValidating, setCustomValidating] = useState(false);
   const [positionMode, setPositionMode] = useState<"last" | "custom">("last");
   const [customPosition, setCustomPosition] = useState("");
   const [injectionLayer, setInjectionLayer] = useState("");
@@ -97,32 +72,22 @@ export default function SteeringConfigPane({
   const [generateError, setGenerateError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (selectedModel === "" && availableModels.length > 0 && customRepoId === "") {
-      setSelectedModel(availableModels[0].id);
-    }
-  }, [availableModels, selectedModel, customRepoId]);
-
-  useEffect(() => {
     if (tutorialMode && tutorialConfig) {
       setCleanPrompt(tutorialConfig.cleanPrompt);
       setCorruptedPrompt(tutorialConfig.corruptedPrompt);
-      setCustomRepoId(tutorialConfig.modelName);
-      setSelectedModel("");
-      setCustomValidation({ valid: true, gpu_tier: tutorialConfig.gpuTier, reason: "" });
+      picker.forceCustomModel(tutorialConfig.modelName, tutorialConfig.gpuTier);
       setInjectionLayer(String(tutorialConfig.layer));
       setMode("research");
       if (tutorialConfig.generationPrompt) setGenerationPrompt(tutorialConfig.generationPrompt);
       if (tutorialConfig.extraPairs) setExtraPairs(tutorialConfig.extraPairs);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorialMode, tutorialConfig]);
 
   const doReset = () => {
-    setSelectedModel(availableModels[0]?.id ?? "");
+    picker.reset();
     setCleanPrompt(DEFAULT_CLEAN_PROMPT);
     setCorruptedPrompt(DEFAULT_CORRUPTED_PROMPT);
-    setCustomRepoId("");
-    setCustomValidation(null);
-    setCustomValidating(false);
     setPositionMode("last");
     setCustomPosition("");
     setInjectionLayer("");
@@ -141,40 +106,6 @@ export default function SteeringConfigPane({
     onClose();
   };
 
-  const selectFeaturedModel = (id: string) => {
-    setSelectedModel(id);
-    setCustomRepoId("");
-    setCustomValidation(null);
-  };
-
-  const handleCustomRepoChange = (value: string) => {
-    setCustomRepoId(value);
-    setSelectedModel("");
-    setCustomValidation(null);
-  };
-
-  const validateCustomRepo = async () => {
-    setCustomValidating(true);
-    setCustomValidation(null);
-    try {
-      const res = await fetch("/api/validate-model", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo_id: customRepoId.trim() }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setCustomValidation({ valid: false, gpu_tier: null, reason: json.detail ?? "Validation failed." });
-      } else {
-        setCustomValidation(json);
-      }
-    } catch {
-      setCustomValidation({ valid: false, gpu_tier: null, reason: "Network error during validation." });
-    } finally {
-      setCustomValidating(false);
-    }
-  };
-
   const handleGenerate = async () => {
     setGenerating(true);
     setGenerateError(null);
@@ -186,7 +117,7 @@ export default function SteeringConfigPane({
           concept: conceptDescription,
           primaryClean: cleanPrompt,
           primaryCorrupted: corruptedPrompt,
-          gpuTier: selectedGpuTier ?? undefined,
+          gpuTier: picker.gpuTier,
         }),
       });
       const json = await res.json() as { pairs?: ExtraPair[]; error?: string };
@@ -207,31 +138,19 @@ export default function SteeringConfigPane({
     setExtraPairs(prev => prev.filter((_, i) => i !== index));
   };
 
-  const usingCustom = customRepoId.trim() !== "";
-  const activeModelId = usingCustom
-    ? (customValidation?.valid ? customRepoId.trim() : "")
-    : selectedModel;
-  const cleanPreview = useTokenPreview(isOpen ? activeModelId : "", cleanPrompt);
-  const corruptedPreview = useTokenPreview(isOpen ? activeModelId : "", corruptedPrompt);
-  const modelOk = usingCustom ? customValidation?.valid === true : selectedModel !== "";
+  const cleanPreview = useTokenPreview(isOpen ? picker.activeModelId : "", cleanPrompt);
+  const corruptedPreview = useTokenPreview(isOpen ? picker.activeModelId : "", corruptedPrompt);
   const positionOk = positionMode === "last" || (customPosition.trim() !== "" && !isNaN(parseInt(customPosition)));
-  const canRun = modelOk && positionOk && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "";
+  const canRun = picker.modelOk && positionOk && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "";
+  const isLockedByAuth = !session && picker.selectedGpuTier !== null && picker.selectedGpuTier !== "tl_small";
 
-  const selectedGpuTier = usingCustom
-    ? (customValidation?.gpu_tier ?? null)
-    : (availableModels.find(m => m.id === selectedModel)?.gpu_tier ?? null);
-  const isLockedByAuth = !session && selectedGpuTier !== null && selectedGpuTier !== "tl_small";
-
-  const pairCap = selectedGpuTier ? (TIER_PAIR_CAPS[selectedGpuTier] ?? DEFAULT_PAIR_CAP) : DEFAULT_PAIR_CAP;
+  const pairCap = picker.selectedGpuTier ? (TIER_PAIR_CAPS[picker.selectedGpuTier] ?? DEFAULT_PAIR_CAP) : DEFAULT_PAIR_CAP;
   const totalPairs = 1 + extraPairs.length;
   const canGenerate = mode === "research" && conceptDescription.trim() !== "" && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "" && !generating && !!session;
 
   const handleRun = () => {
     if (!canRun) return;
-    const modelName = usingCustom ? customRepoId.trim() : selectedModel;
-    const gpuTier = usingCustom
-      ? (customValidation?.gpu_tier ?? undefined)
-      : (availableModels.find(m => m.id === selectedModel)?.gpu_tier ?? undefined);
+    const { modelName, gpuTier } = picker;
     const targetPosition: number | "last" = positionMode === "last" ? "last" : parseInt(customPosition);
     const layer = injectionLayer.trim() !== "" && !isNaN(parseInt(injectionLayer)) ? parseInt(injectionLayer) : -1;
     onSubmit({
@@ -321,105 +240,16 @@ export default function SteeringConfigPane({
       {/* Form body */}
       <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
 
-        {/* Featured models */}
-        {!tutorialMode && (
-          <>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
-                Featured Models
-              </label>
-              {modelsLoading ? (
-                <div style={{ fontSize: 12, color: "var(--color-text-muted)", padding: "12px 0" }}>Loading models…</div>
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, maxHeight: 200, overflowY: "auto", paddingRight: 2 }}>
-                  {availableModels.map(m => {
-                    const isSelected = selectedModel === m.id && !usingCustom;
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => selectFeaturedModel(m.id)}
-                        title={m.description}
-                        style={{
-                          border: `1.5px solid ${isSelected ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                          borderRadius: 7, padding: "8px 9px",
-                          background: isSelected ? "var(--color-surface-border)" : "var(--color-card)",
-                          cursor: "pointer", textAlign: "left",
-                          transition: "border-color 120ms, background 120ms",
-                          display: "flex", flexDirection: "column", gap: 3,
-                        }}
-                        onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-accent)"; }}
-                        onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-card-border)"; }}
-                      >
-                        <span style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "var(--color-accent)" : "var(--color-text)", lineHeight: 1.3 }}>
-                          {m.display_name}
-                        </span>
-                        <span style={{ fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {m.description}
-                        </span>
-                        {m.requires_hf_token && (
-                          <span style={{ fontSize: 9, color: "var(--color-text-muted)", marginTop: 1, letterSpacing: "0.02em" }}>HF token required</span>
-                        )}
-                        {!session && m.gpu_tier !== "tl_small" && (
-                          <span style={{ fontSize: 9, color: "#d97706", marginTop: 1, letterSpacing: "0.02em" }}>Sign in to run</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-              <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
-              <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>or</span>
-              <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
-            </div>
-          </>
-        )}
-
-        {/* Any HuggingFace model */}
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
-            Any HuggingFace Model
-          </label>
-          <div style={{ display: "flex", gap: 6 }}>
-            <input
-              type="text"
-              placeholder="username/model-name"
-              value={customRepoId}
-              onChange={e => handleCustomRepoChange(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && customRepoId.trim()) validateCustomRepo(); }}
-              disabled={tutorialMode}
-              style={{
-                flex: 1, border: `1px solid ${usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                borderRadius: 6, padding: "6px 8px", fontSize: 11,
-                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
-                transition: "border-color 120ms",
-                ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
-              }}
-            />
-            <button
-              onClick={validateCustomRepo}
-              disabled={tutorialMode || !customRepoId.trim() || customValidating}
-              style={{
-                border: "1px solid var(--color-card-border)", borderRadius: 6, padding: "6px 10px",
-                fontSize: 11, background: "var(--color-surface-border)", color: "var(--color-text-muted)",
-                cursor: (tutorialMode || !customRepoId.trim() || customValidating) ? "not-allowed" : "pointer",
-                opacity: (tutorialMode || !customRepoId.trim() || customValidating) ? 0.5 : 1,
-                whiteSpace: "nowrap", transition: "background 120ms",
-              }}
-            >
-              {customValidating ? "…" : "Validate"}
-            </button>
-          </div>
-          {customValidation && (
-            <p style={{ marginTop: 6, fontSize: 11, color: customValidation.valid ? "#16a34a" : "#dc2626", margin: "6px 0 0" }}>
-              {customValidation.valid
-                ? `✓ Valid — ${customValidation.gpu_tier ? TIER_LABELS[customValidation.gpu_tier] ?? customValidation.gpu_tier : "unknown GPU"}`
-                : `✗ ${customValidation.reason}`}
-            </p>
-          )}
-        </div>
+        {/* Featured models / model selection */}
+        <ModelPicker
+          picker={picker}
+          models={availableModels}
+          modelsLoading={modelsLoading}
+          signedIn={!!session}
+          gridMaxHeight={200}
+          tutorialMode={tutorialMode}
+          tutorialVariant="input"
+        />
 
         {/* Mode toggle */}
         <div style={{ marginBottom: 16 }}>
