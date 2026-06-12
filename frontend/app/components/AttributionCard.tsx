@@ -45,8 +45,6 @@ export type AttributionCardData = {
   targetToken: string | null;
   contrastiveToken: string | null;
   verifyStatus?: "idle" | "loading" | "done";
-  verifyK?: number;
-  verifyCardId?: string;
 };
 
 type AttributionCardProps = {
@@ -397,7 +395,6 @@ function AttributionCard({
           </div>
           <CardLoadingState
             stage={getStageLabel(card.loadingStage, elapsedMs)}
-            elapsed={elapsedMs}
             warmup={!card.loadingStage && elapsedMs > 30_000}
           />
         </div>

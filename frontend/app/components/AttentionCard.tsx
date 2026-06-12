@@ -383,7 +383,7 @@ function AttentionCard({
               {formatElapsed(elapsedMs)}
             </span>
           </div>
-          <CardLoadingState stage="Computing attention patterns…" elapsed={elapsedMs} warmup={elapsedMs > 30_000} />
+          <CardLoadingState stage="Computing attention patterns…" warmup={elapsedMs > 30_000} />
         </div>
       )}
 

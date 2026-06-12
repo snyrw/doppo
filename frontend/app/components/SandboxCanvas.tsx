@@ -55,7 +55,7 @@ export default function SandboxCanvas({
   // so it's always current even during active pan/zoom before the commit dispatch fires.
   const localStateRef = useRef(canvasState);
   const onCanvasChangeRef = useRef(onCanvasChange);
-  onCanvasChangeRef.current = onCanvasChange;
+  useEffect(() => { onCanvasChangeRef.current = onCanvasChange; });
   const [displayZoom, setDisplayZoom] = useState(canvasState.zoom);
 
   const { startDrag, onDragMove, onDragEnd, isDragging } = useCardDrag({
@@ -82,8 +82,15 @@ export default function SandboxCanvas({
     if (worldRef.current) {
       worldRef.current.style.transform = `translate(${canvasState.panOffset.x}px, ${canvasState.panOffset.y}px) scale(${canvasState.zoom})`;
     }
-    setDisplayZoom(canvasState.zoom);
   }, [canvasState]);
+
+  // Sync the zoom indicator with committed zoom changes (LOAD_PROJECT, RESET) —
+  // render-time adjustment; wheel gestures update displayZoom imperatively.
+  const [prevCommittedZoom, setPrevCommittedZoom] = useState(canvasState.zoom);
+  if (prevCommittedZoom !== canvasState.zoom) {
+    setPrevCommittedZoom(canvasState.zoom);
+    setDisplayZoom(canvasState.zoom);
+  }
 
   // Smooth wheel zoom/pan — must be { passive: false } to call preventDefault.
   // Applies transforms directly to the DOM; debounces the React state commit so

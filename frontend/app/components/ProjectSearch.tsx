@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { listProjects } from "../actions";
 import type { ProjectSummary } from "../actions";
 
@@ -46,14 +46,22 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!isOpen) {
+  // Adjust state when isOpen flips — render-time adjustment per
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  const [prevOpen, setPrevOpen] = useState(isOpen);
+  if (prevOpen !== isOpen) {
+    setPrevOpen(isOpen);
+    if (isOpen) {
+      setFetchError(null);
+      setLoading(true);
+    } else {
       setQuery("");
       setSelectedIndex(0);
-      return;
     }
-    setFetchError(null);
-    setLoading(true);
+  }
+
+  useEffect(() => {
+    if (!isOpen) return;
     listProjects()
       .then(rows => { setProjects(rows); })
       .catch(err => {
@@ -80,15 +88,13 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
     ...rest,
   ];
 
-  useEffect(() => { setSelectedIndex(0); }, [query]);
-
   useEffect(() => {
     listRef.current
       ?.querySelector<HTMLElement>(`[data-index="${selectedIndex}"]`)
       ?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedIndex(i => Math.min(i + 1, flat.length - 1));
@@ -101,7 +107,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
     } else if (e.key === "Escape") {
       onClose();
     }
-  }, [flat, selectedIndex, onSelect, onClose]);
+  };
 
   return (
     <>
@@ -171,7 +177,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
           <input
             ref={inputRef}
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => { setQuery(e.target.value); setSelectedIndex(0); }}
             placeholder="Search projects…"
             style={{
               flex: 1,
@@ -186,7 +192,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
           />
           {query && (
             <button
-              onClick={() => setQuery("")}
+              onClick={() => { setQuery(""); setSelectedIndex(0); }}
               style={{
                 background: "none",
                 border: "none",

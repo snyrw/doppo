@@ -43,7 +43,6 @@ export type SteeringCardData = {
   gpuTier?: string;
   startedAt?: number;
   loadingStage?: string;
-  streamingText?: string;
 };
 
 type SteeringCardProps = {
@@ -267,21 +266,6 @@ function SteeringCard({
               {card.loadingStage === "computing" ? "Computing DIM vectors…" : "Generating…"}
             </p>
           </div>
-          {/* Live streaming text */}
-          {card.streamingText !== undefined && card.streamingText !== "" && (
-            <div
-              onPointerDown={e => e.stopPropagation()}
-              style={{
-                fontSize: 11, fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                color: "var(--color-text)", lineHeight: 1.6,
-                maxHeight: 100, overflowY: "auto", background: "var(--color-card)",
-                border: "1px solid var(--color-surface-border)", borderRadius: 4,
-                padding: "6px 8px", whiteSpace: "pre-wrap", wordBreak: "break-word",
-              }}
-            >
-              {card.streamingText}
-            </div>
-          )}
         </div>
       )}
 

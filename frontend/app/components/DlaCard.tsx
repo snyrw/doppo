@@ -290,7 +290,6 @@ function DlaCard({
           </div>
           <CardLoadingState
             stage={getStageLabel(card.loadingStage, elapsedMs)}
-            elapsed={elapsedMs}
             warmup={!card.loadingStage && elapsedMs > 30_000}
           />
         </div>

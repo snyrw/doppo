@@ -1,13 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import AuthButtons from "./AuthModal";
 import Link from "next/link";
 import Image from "next/image";
 import lightLogo from "../lightlogo.png";
 import darkLogo from "../darklogo.png";
 import { PALETTE_META, PALETTE_ORDER, type PaletteName } from "../lib/palette";
+import { usePalette } from "../hooks/usePalette";
 import { CreditsButton } from "./CreditsDisplay";
+
+// Server snapshot is false, client snapshot is true: during hydration React uses
+// the server value, then re-renders once mounted — same effect as the old
+// setMounted(true)-in-useEffect pattern without setState in an effect.
+const emptySubscribe = () => () => {};
+function useMounted(): boolean {
+  return useSyncExternalStore(emptySubscribe, () => true, () => false);
+}
 
 function MoonIcon() {
   return (
@@ -51,19 +60,15 @@ function CheckIcon() {
 }
 
 export default function Navbar({ actions }: { actions?: React.ReactNode }) {
-  const [isDark, setIsDark] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [palette, setPalette] = useState<PaletteName>("warm-mono");
+  // All isDark/palette-dependent UI below is gated on `mounted`, which is false
+  // during hydration, so reading client-only state in the initializer is safe.
+  const [isDark, setIsDark] = useState(
+    () => typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "dark"
+  );
+  const mounted = useMounted();
+  const palette = usePalette();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const paletteRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-    const currentTheme = document.documentElement.getAttribute("data-theme");
-    setIsDark(currentTheme === "dark");
-    const storedPalette = localStorage.getItem("heatmap-palette") as PaletteName | null;
-    if (storedPalette) setPalette(storedPalette);
-  }, []);
 
   useEffect(() => {
     if (!paletteOpen) return;
@@ -84,9 +89,9 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
   };
 
   const handlePaletteChange = (p: PaletteName) => {
-    setPalette(p);
     setPaletteOpen(false);
     try { localStorage.setItem("heatmap-palette", p); } catch {}
+    // usePalette subscribes to this event and re-reads localStorage.
     window.dispatchEvent(new CustomEvent("palettechange", { detail: p }));
   };
 

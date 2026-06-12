@@ -11,22 +11,25 @@ function formatMicros(micros: number): string {
 function useCreditsBalance() {
   const [balanceMicros, setBalanceMicros] = useState<number | null>(null);
 
-  const refresh = async () => {
-    try {
-      const res = await fetch("/api/credits/balance");
-      const { balanceMicros: b } = await res.json();
-      if (b !== null) setBalanceMicros(b);
-    } catch {}
-  };
-
   useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      fetch("/api/credits/balance")
+        .then(res => res.json())
+        .then(({ balanceMicros: b }) => {
+          if (!cancelled && b !== null) setBalanceMicros(b);
+        })
+        .catch(() => {});
+    };
     refresh();
-    const handler = () => refresh();
-    window.addEventListener("credits-updated", handler);
-    return () => window.removeEventListener("credits-updated", handler);
+    window.addEventListener("credits-updated", refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("credits-updated", refresh);
+    };
   }, []);
 
-  return { balanceMicros, refresh };
+  return { balanceMicros };
 }
 
 function CreditsButtonInner() {

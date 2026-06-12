@@ -22,7 +22,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
         setError(json.error ?? "Checkout failed");
         return;
       }
-      window.location.href = json.url;
+      window.location.assign(json.url);
     } catch {
       setLoading(null);
       setError("Network error — please try again.");

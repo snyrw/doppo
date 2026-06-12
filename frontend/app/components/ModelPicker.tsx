@@ -17,7 +17,6 @@ type ModelPickerProps = {
   picker: ModelSelection;
   models: ModelInfo[];
   modelsLoading: boolean;
-  signedIn: boolean;
   gridMaxHeight?: number;
   tutorialMode?: boolean;
   tutorialModelName?: string;
@@ -33,7 +32,6 @@ export default function ModelPicker({
   picker,
   models,
   modelsLoading,
-  signedIn,
   gridMaxHeight = 260,
   tutorialMode,
   tutorialModelName,
@@ -107,11 +105,6 @@ export default function ModelPicker({
                       {m.requires_hf_token && (
                         <span style={{ fontSize: 9, color: "var(--color-text-muted)", marginTop: 1, letterSpacing: "0.02em" }}>
                           HF token required
-                        </span>
-                      )}
-                      {!signedIn && m.gpu_tier !== "tl_small" && (
-                        <span style={{ fontSize: 9, color: "#d97706", marginTop: 1, letterSpacing: "0.02em" }}>
-                          Sign in to run
                         </span>
                       )}
                     </button>

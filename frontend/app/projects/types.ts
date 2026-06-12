@@ -2,7 +2,6 @@ import type { DlaData } from "../components/DlaCard";
 import type { AttributionData } from "../components/AttributionCard";
 import type { ActivationPatchResult } from "../components/ActivationCard";
 import type { SteeringResult } from "../components/SteeringCard";
-import type { EntropyCardData } from "../components/EntropyCard";
 import type { AttentionData } from "../components/AttentionCard";
 import type { AnyCard } from "../components/SandboxCanvas";
 
@@ -41,7 +40,7 @@ export type CardResolvedAction =
 export type AppAction =
   | { type: "ADD_CARD"; card: AnyCard }
   | CardResolvedAction
-  | { type: "ATTRIBUTION_VERIFY_STARTED"; id: string; k: number; verifyCardId: string }
+  | { type: "ATTRIBUTION_VERIFY_STARTED"; id: string }
   | { type: "ATTRIBUTION_VERIFY_DONE"; id: string }
   | { type: "CARD_ERRORED"; id: string; error: string; showBuyCredits?: boolean }
   | { type: "CARD_STAGE"; id: string; stage: string }
@@ -50,6 +49,4 @@ export type AppAction =
   | { type: "SET_CANVAS"; canvas: CanvasState }
   | { type: "LOAD_PROJECT"; cards: AnyCard[]; canvas: CanvasState }
   | { type: "RESET_CANVAS" }
-  | { type: "STEERING_CARD_TOKEN"; id: string; token: string }
-  | { type: "STEERING_CARD_RERUN"; id: string; alpha: number }
-  | { type: "SPAWN_ENTROPY_CARD"; card: EntropyCardData };
+  | { type: "STEERING_CARD_RERUN"; id: string; alpha: number };

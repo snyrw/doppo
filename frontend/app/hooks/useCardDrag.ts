@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 const GRID_SIZE = 20;
 const CARD_GAP = 6; // minimum pixel gap maintained between cards
@@ -79,7 +79,7 @@ function resolveCollisions(
 export function useCardDrag({ getCurrentZoom, onCommit, cardRefs }: UseCardDragOptions) {
   const dragStateRef = useRef<DragState | null>(null);
   const onCommitRef = useRef(onCommit);
-  onCommitRef.current = onCommit;
+  useEffect(() => { onCommitRef.current = onCommit; });
 
   const [isDragging, setIsDragging] = useState(false);
 

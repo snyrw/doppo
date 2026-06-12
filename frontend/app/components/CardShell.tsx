@@ -23,26 +23,21 @@ export function CardDragHandle() {
 }
 
 /**
- * Standard card loading state: spinner + stage text + elapsed time.
+ * Standard card loading state: spinner + stage text.
  *
- * - `stage`   — human-readable loading stage string to display
- * - `elapsed` — elapsed milliseconds (for the MM:SS counter)
- * - `warmup`  — when true, show the "First run warms the GPU container…" hint
+ * - `stage`  — human-readable loading stage string to display
+ * - `warmup` — when true, show the "First run warms the GPU container…" hint
  *
- * The GPU tier badge is intentionally NOT included — it appears above the
- * spinner row and differs in position/context per card.
+ * The GPU tier badge and elapsed-time counter are intentionally NOT included —
+ * they appear above the spinner row and differ in position/context per card.
  */
 export function CardLoadingState({
   stage,
-  elapsed,
   warmup,
 }: {
   stage: string | undefined;
-  elapsed: number;
   warmup?: boolean;
 }) {
-  const elapsedFormatted = formatElapsed(elapsed);
-
   return (
     <>
       <div

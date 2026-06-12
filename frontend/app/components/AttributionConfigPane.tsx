@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "@/app/lib/auth-client";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
 import ModelPicker from "./ModelPicker";
@@ -45,7 +44,6 @@ export default function AttributionConfigPane({
   tutorialMode,
   tutorialConfig,
 }: AttributionConfigPaneProps) {
-  const { data: session } = useSession();
   const picker = useModelSelection(availableModels);
   const [cleanPrompt, setCleanPrompt] = useState(DEFAULT_CLEAN_PROMPT);
   const [corruptedPrompt, setCorruptedPrompt] = useState(DEFAULT_CORRUPTED_PROMPT);
@@ -102,7 +100,6 @@ export default function AttributionConfigPane({
   const positionOk = positionMode === "last" || (customPosition.trim() !== "" && !isNaN(parseInt(customPosition)));
   const tokenOk = tokenMode === "auto" || customToken.trim() !== "";
   const canRun = picker.modelOk && positionOk && tokenOk && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "";
-  const isLockedByAuth = !session && picker.selectedGpuTier !== null && picker.selectedGpuTier !== "tl_small";
 
   const handleRun = () => {
     if (!canRun) return;
@@ -193,7 +190,6 @@ export default function AttributionConfigPane({
           picker={picker}
           models={availableModels}
           modelsLoading={modelsLoading}
-          signedIn={!!session}
           gridMaxHeight={200}
           tutorialMode={tutorialMode}
           tutorialModelName={tutorialConfig?.modelName}
@@ -391,26 +387,21 @@ export default function AttributionConfigPane({
 
       {/* Footer */}
       <div style={{ padding: "12px 16px", borderTop: "1px solid var(--color-surface-border)" }}>
-        {isLockedByAuth && (
-          <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--color-text-muted)", textAlign: "center" }}>
-            Sign in to run medium and large models
-          </p>
-        )}
         <button
           onClick={handleRun}
-          disabled={!canRun || isLockedByAuth}
+          disabled={!canRun}
           style={{
             width: "100%", padding: "10px 0", borderRadius: 6, border: "none",
-            background: (!canRun || isLockedByAuth) ? "var(--color-surface-border)" : "var(--color-accent)",
-            color: (!canRun || isLockedByAuth) ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+            background: !canRun ? "var(--color-surface-border)" : "var(--color-accent)",
+            color: !canRun ? "var(--color-text-muted)" : "var(--color-accent-fg)",
             fontSize: 13, fontWeight: 600,
-            cursor: (!canRun || isLockedByAuth) ? "not-allowed" : "pointer",
+            cursor: !canRun ? "not-allowed" : "pointer",
             letterSpacing: "0.02em", transition: "background 150ms",
           }}
-          onMouseEnter={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-          onMouseLeave={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+          onMouseEnter={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+          onMouseLeave={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
         >
-          {isLockedByAuth ? "Sign in to run →" : "Run Attribution →"}
+          {"Run Attribution →"}
         </button>
       </div>
     </div>

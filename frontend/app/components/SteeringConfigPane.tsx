@@ -142,7 +142,6 @@ export default function SteeringConfigPane({
   const corruptedPreview = useTokenPreview(isOpen ? picker.activeModelId : "", corruptedPrompt);
   const positionOk = positionMode === "last" || (customPosition.trim() !== "" && !isNaN(parseInt(customPosition)));
   const canRun = picker.modelOk && positionOk && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "";
-  const isLockedByAuth = !session && picker.selectedGpuTier !== null && picker.selectedGpuTier !== "tl_small";
 
   const pairCap = picker.selectedGpuTier ? (TIER_PAIR_CAPS[picker.selectedGpuTier] ?? DEFAULT_PAIR_CAP) : DEFAULT_PAIR_CAP;
   const totalPairs = 1 + extraPairs.length;
@@ -245,7 +244,6 @@ export default function SteeringConfigPane({
           picker={picker}
           models={availableModels}
           modelsLoading={modelsLoading}
-          signedIn={!!session}
           gridMaxHeight={200}
           tutorialMode={tutorialMode}
           tutorialVariant="input"
@@ -631,30 +629,23 @@ export default function SteeringConfigPane({
 
       {/* Footer */}
       <div style={{ padding: "12px 16px", borderTop: "1px solid var(--color-surface-border)" }}>
-        {isLockedByAuth && (
-          <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--color-text-muted)", textAlign: "center" }}>
-            Sign in to run medium and large models
-          </p>
-        )}
         <button
           onClick={handleRun}
-          disabled={!canRun || isLockedByAuth}
+          disabled={!canRun}
           style={{
             width: "100%", padding: "10px 0", borderRadius: 6, border: "none",
-            background: (!canRun || isLockedByAuth) ? "var(--color-surface-border)" : "var(--color-accent)",
-            color: (!canRun || isLockedByAuth) ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+            background: !canRun ? "var(--color-surface-border)" : "var(--color-accent)",
+            color: !canRun ? "var(--color-text-muted)" : "var(--color-accent-fg)",
             fontSize: 13, fontWeight: 600,
-            cursor: (!canRun || isLockedByAuth) ? "not-allowed" : "pointer",
+            cursor: !canRun ? "not-allowed" : "pointer",
             letterSpacing: "0.02em", transition: "background 150ms",
           }}
-          onMouseEnter={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-          onMouseLeave={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+          onMouseEnter={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+          onMouseLeave={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
         >
-          {isLockedByAuth
-            ? "Sign in to run →"
-            : mode === "research" && extraPairs.length > 0
-              ? `Run Steering  (${totalPairs} pairs) →`
-              : "Run Steering →"}
+          {mode === "research" && extraPairs.length > 0
+            ? `Run Steering  (${totalPairs} pairs) →`
+            : "Run Steering →"}
         </button>
       </div>
     </div>

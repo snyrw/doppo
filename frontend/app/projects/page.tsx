@@ -53,9 +53,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         lensCards: state.lensCards.map(c => {
           if (c.id === action.id && c.cardType === action.cardType) {
-            const resolved = { ...c, status: "result" as const, data: action.data } as AnyCard;
-            // A re-run steering card may still hold partial streamed text
-            return c.cardType === "steering" ? ({ ...resolved, streamingText: undefined } as AnyCard) : resolved;
+            return { ...c, status: "result" as const, data: action.data } as AnyCard;
           }
           // Resolving an activation card also completes its parent attribution's verify flow
           if (action.cardType === "activation" && c.id === action.parentAttributionId && c.cardType === "attribution")
@@ -63,14 +61,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
           return c;
         }),
       };
-    case "SPAWN_ENTROPY_CARD":
-      return { ...state, lensCards: [...state.lensCards, action.card] };
     case "ATTRIBUTION_VERIFY_STARTED":
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
           c.id === action.id && c.cardType === "attribution"
-            ? { ...c, verifyStatus: "loading" as const, verifyK: action.k, verifyCardId: action.verifyCardId } : c
+            ? { ...c, verifyStatus: "loading" as const } : c
         ),
       };
     case "ATTRIBUTION_VERIFY_DONE":
@@ -101,20 +97,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
           c.id === action.id ? { ...c, loadingStage: action.stage } : c
         ),
       };
-    case "STEERING_CARD_TOKEN":
-      return {
-        ...state,
-        lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType === "steering"
-            ? { ...c, streamingText: (c.streamingText ?? "") + action.token } : c
-        ),
-      };
     case "STEERING_CARD_RERUN":
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
           c.id === action.id && c.cardType === "steering"
-            ? { ...c, status: "loading" as const, data: null, error: null, streamingText: undefined, alpha: action.alpha, startedAt: Date.now() } : c
+            ? { ...c, status: "loading" as const, data: null, error: null, alpha: action.alpha, startedAt: Date.now() } : c
         ),
       };
     case "REMOVE_CARD":
@@ -251,7 +239,6 @@ function Projects() {
             alpha: c.alpha ?? 1.0, temperature: c.temperature ?? 1.0, repetitionPenalty: c.repetitionPenalty ?? 1.3, nTokens: c.nTokens ?? 50, nPairs: c.nPairs ?? 1,
             extraPairs: c.extraPairs ?? [],
             parentCardId: c.parentCardId ?? "",
-            streamingText: undefined,
           } as unknown as SteeringCardData;
         }
         if (c.cardType === "entropy") {
@@ -293,7 +280,7 @@ function Projects() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep refs in sync so SSE callbacks always read latest values
+  // Keep refs in sync so async job callbacks always read latest values
   useEffect(() => { projectIdRef.current = projectId; }, [projectId]);
   useEffect(() => { stateRef.current = state; }, [state]);
 

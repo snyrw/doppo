@@ -145,15 +145,17 @@ function LensCard({
     return result;
   }, [card.data, layerRange, stride, nLayers]);
 
+  const rankData = card.data?.rank_data;
   const maxRankInData = React.useMemo(() => {
-    if (!card.data?.rank_data) return LOG_RANK_BASE;
-    return Math.max(...card.data.rank_data.flat(), 2);
-  }, [card.data?.rank_data]);
+    if (!rankData) return LOG_RANK_BASE;
+    return Math.max(...rankData.flat(), 2);
+  }, [rankData]);
 
+  const entropyData = card.data?.entropy_data;
   const maxEntropyInData = React.useMemo(() => {
-    if (!card.data?.entropy_data) return 1;
-    return Math.max(...card.data.entropy_data.flat(), 0.01);
-  }, [card.data?.entropy_data]);
+    if (!entropyData) return 1;
+    return Math.max(...entropyData.flat(), 0.01);
+  }, [entropyData]);
 
   const canToggle = card.status === "result" && card.data?.topk_tokens != null;
   const canPin = card.status === "result" && card.data?.topk_tokens != null;
@@ -489,7 +491,6 @@ function LensCard({
           </div>
           <CardLoadingState
             stage={getStageLabel(card.loadingStage, elapsedMs)}
-            elapsed={elapsedMs}
             warmup={!card.loadingStage && elapsedMs > 30_000}
           />
         </div>

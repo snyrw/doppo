@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "@/app/lib/auth-client";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
 import ModelPicker from "./ModelPicker";
@@ -36,7 +35,6 @@ export default function ConfigPane({
   tutorialMode,
   tutorialConfig,
 }: ConfigPaneProps) {
-  const { data: session } = useSession();
   const picker = useModelSelection(availableModels);
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [topK, setTopK] = useState(5);
@@ -65,7 +63,6 @@ export default function ConfigPane({
   const tokenCount = tokenPreview.tokens?.length ?? 0;
   const overTokenLimit = tokenPreview.tokens !== null && tokenCount > MAX_PROMPT_TOKENS;
   const canRun = !overTokenLimit && picker.modelOk;
-  const isLockedByAuth = !session && picker.selectedGpuTier !== null && picker.selectedGpuTier !== "tl_small";
 
   const handleRun = () => {
     if (!canRun) return;
@@ -142,7 +139,6 @@ export default function ConfigPane({
             picker={picker}
             models={availableModels}
             modelsLoading={modelsLoading}
-            signedIn={!!session}
             tutorialMode={tutorialMode}
             tutorialModelName={tutorialConfig?.modelName}
           />
@@ -184,11 +180,6 @@ export default function ConfigPane({
 
         {/* Footer */}
         <div style={{ padding: "12px 16px", borderTop: "1px solid var(--color-surface-border)" }}>
-          {isLockedByAuth && (
-            <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--color-text-muted)", textAlign: "center" }}>
-              Sign in to run medium and large models
-            </p>
-          )}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {/* Top-k stepper — controls how many tokens appear in the pinned panel */}
             <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
@@ -216,24 +207,24 @@ export default function ConfigPane({
 
             <button
               onClick={handleRun}
-              disabled={!canRun || isLockedByAuth}
+              disabled={!canRun}
               style={{
                 flex: 1,
                 padding: "10px 0",
                 borderRadius: 6,
                 border: "none",
-                background: (!canRun || isLockedByAuth) ? "var(--color-surface-border)" : "var(--color-accent)",
-                color: (!canRun || isLockedByAuth) ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+                background: !canRun ? "var(--color-surface-border)" : "var(--color-accent)",
+                color: !canRun ? "var(--color-text-muted)" : "var(--color-accent-fg)",
                 fontSize: 13,
                 fontWeight: 600,
-                cursor: (!canRun || isLockedByAuth) ? "not-allowed" : "pointer",
+                cursor: !canRun ? "not-allowed" : "pointer",
                 letterSpacing: "0.02em",
                 transition: "background 150ms",
               }}
-              onMouseEnter={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-              onMouseLeave={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+              onMouseEnter={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+              onMouseLeave={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
             >
-              {isLockedByAuth ? "Sign in to run →" : "Run Lens →"}
+              {"Run Lens →"}
             </button>
           </div>
         </div>

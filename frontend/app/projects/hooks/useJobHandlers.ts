@@ -115,7 +115,7 @@ export function useJobHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       gpuTier: attrCard.gpuTier, startedAt,
     };
     dispatch({ type: "ADD_CARD", card });
-    dispatch({ type: "ATTRIBUTION_VERIFY_STARTED", id: attributionCardId, k, verifyCardId: activationId });
+    dispatch({ type: "ATTRIBUTION_VERIFY_STARTED", id: attributionCardId });
 
     void runJob({
       endpoint: "/api/job/spawn-activation-patch",
@@ -149,7 +149,7 @@ export function useJobHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
       yLabels: lensCard.data.y_labels,
       xLabels: lensCard.data.x_labels,
     };
-    dispatch({ type: "SPAWN_ENTROPY_CARD", card: entropyCard });
+    dispatch({ type: "ADD_CARD", card: entropyCard });
     persist(entropyCard.id, serializeCard(entropyCard));
   }, [dispatch, persist, stateRef]);
 

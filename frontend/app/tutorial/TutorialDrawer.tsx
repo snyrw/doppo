@@ -172,6 +172,8 @@ export default function TutorialDrawer({
                   {p}
                 </p>
               ) : (
+                // Static tutorial illustrations of varying intrinsic size; plain <img> is intentional.
+                // eslint-disable-next-line @next/next/no-img-element
                 <img key={i} src={p.src} alt={p.alt} style={{ width: "100%", borderRadius: 6, display: "block" }} />
               )
             )}

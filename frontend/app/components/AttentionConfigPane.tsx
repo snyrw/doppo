@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "@/app/lib/auth-client";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
 import ModelPicker from "./ModelPicker";
@@ -32,7 +31,6 @@ export default function AttentionConfigPane({
   tutorialMode,
   tutorialConfig,
 }: AttentionConfigPaneProps) {
-  const { data: session } = useSession();
   const picker = useModelSelection(availableModels);
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
 
@@ -56,7 +54,6 @@ export default function AttentionConfigPane({
 
   const tokenPreview = useTokenPreview(isOpen ? picker.activeModelId : "", prompt);
   const canRun = picker.modelOk && prompt.trim() !== "";
-  const isLockedByAuth = !session && picker.selectedGpuTier !== null && picker.selectedGpuTier !== "tl_small";
 
   const handleRun = () => {
     if (!canRun) return;
@@ -107,7 +104,6 @@ export default function AttentionConfigPane({
           picker={picker}
           models={availableModels}
           modelsLoading={modelsLoading}
-          signedIn={!!session}
           tutorialMode={tutorialMode}
           tutorialModelName={tutorialConfig?.modelName}
         />
@@ -128,19 +124,14 @@ export default function AttentionConfigPane({
       </div>
 
       <div style={{ padding: "12px 16px", borderTop: "1px solid var(--color-surface-border)" }}>
-        {isLockedByAuth && (
-          <p style={{ margin: "0 0 8px", fontSize: 11, color: "var(--color-text-muted)", textAlign: "center" }}>
-            Sign in to run medium and large models
-          </p>
-        )}
         <button
           onClick={handleRun}
-          disabled={!canRun || isLockedByAuth}
-          style={{ width: "100%", padding: "10px 0", borderRadius: 6, border: "none", background: (!canRun || isLockedByAuth) ? "var(--color-surface-border)" : "var(--color-accent)", color: (!canRun || isLockedByAuth) ? "var(--color-text-muted)" : "var(--color-accent-fg)", fontSize: 13, fontWeight: 600, cursor: (!canRun || isLockedByAuth) ? "not-allowed" : "pointer", letterSpacing: "0.02em", transition: "background 150ms" }}
-          onMouseEnter={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-          onMouseLeave={e => { if (canRun && !isLockedByAuth) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
+          disabled={!canRun}
+          style={{ width: "100%", padding: "10px 0", borderRadius: 6, border: "none", background: !canRun ? "var(--color-surface-border)" : "var(--color-accent)", color: !canRun ? "var(--color-text-muted)" : "var(--color-accent-fg)", fontSize: 13, fontWeight: 600, cursor: !canRun ? "not-allowed" : "pointer", letterSpacing: "0.02em", transition: "background 150ms" }}
+          onMouseEnter={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
+          onMouseLeave={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
         >
-          {isLockedByAuth ? "Sign in to run →" : "Run Attention →"}
+          {"Run Attention →"}
         </button>
       </div>
     </div>

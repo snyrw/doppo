@@ -597,7 +597,7 @@ function PricingTab() {
           ))}
         </div>
         <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(8px, 0.6vw, 11px)", color: "var(--color-text-muted)", opacity: 0.65, margin: "clamp(8px, 0.8vw, 14px) 0 0", lineHeight: 1.6 }}>
-          The difference between credit value and charge is Stripe's processing fee.
+          The difference between credit value and charge is Stripe&apos;s processing fee.
           GPU compute is priced at Modal serverless rates with no additional markup.
         </p>
       </div>

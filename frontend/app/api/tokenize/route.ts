@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
   const result = (await upstream.json()) as unknown;
 
-  if (!Array.isArray((result as any)?.tokens)) {
+  if (!Array.isArray((result as { tokens?: unknown } | null)?.tokens)) {
     return new Response(JSON.stringify({ error: "Invalid tokenization response" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

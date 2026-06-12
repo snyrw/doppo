@@ -62,8 +62,10 @@ export default function TutorialClient({ steps }: Props) {
   useEffect(() => {
     try {
       const stored = localStorage.getItem(DRAWER_KEY);
+      // Restores persisted drawer state after hydration. A lazy useState initializer
+      // would read localStorage during the hydration render and mismatch the server HTML.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (stored !== null) setDrawerOpen(stored === "true");
-      // if (localStorage.getItem(WELCOME_KEY)) setPhase("active");
     } catch {}
   }, []);
 
@@ -226,7 +228,9 @@ export default function TutorialClient({ steps }: Props) {
     setTimeout(() => advanceStep(stepIndex), 300);
   }
 
-  function handleVerifyTopK(attributionCardId: string, _k: number) {
+  // Matches SandboxCanvas's (attributionCardId, k) signature; k is unused because
+  // the activation card is pre-computed.
+  function handleVerifyTopK(attributionCardId: string) {
     // In tutorial mode there's no live GPU call — add the pre-computed activation card.
     if (completedSteps.has(5)) return;
     const activationCard = createCardFromData(5);
@@ -343,7 +347,7 @@ export default function TutorialClient({ steps }: Props) {
             isOpen={openPane === "lens"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(1)}
+            onSubmit={() => handleTutorialRun(1)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={TUTORIAL_CONFIGS.lens}
@@ -352,7 +356,7 @@ export default function TutorialClient({ steps }: Props) {
             isOpen={openPane === "attention"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(2)}
+            onSubmit={() => handleTutorialRun(2)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={TUTORIAL_CONFIGS.attention}
@@ -361,7 +365,7 @@ export default function TutorialClient({ steps }: Props) {
             isOpen={openPane === "dla"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(3)}
+            onSubmit={() => handleTutorialRun(3)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={TUTORIAL_CONFIGS.dla}
@@ -370,7 +374,7 @@ export default function TutorialClient({ steps }: Props) {
             isOpen={openPane === "attribution"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(4)}
+            onSubmit={() => handleTutorialRun(4)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={TUTORIAL_CONFIGS.attribution}
@@ -381,7 +385,7 @@ export default function TutorialClient({ steps }: Props) {
             isOpen={openPane === "activation"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleTutorialRun(5)}
+            onSubmit={() => handleTutorialRun(5)}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={TUTORIAL_CONFIGS.activation as unknown as {
@@ -398,7 +402,7 @@ export default function TutorialClient({ steps }: Props) {
             isOpen={openPane === "steering"}
             availableModels={[]}
             modelsLoading={false}
-            onSubmit={(_config) => handleSteeringRun()}
+            onSubmit={() => handleSteeringRun()}
             onClose={() => setOpenPane(null)}
             tutorialMode
             tutorialConfig={{

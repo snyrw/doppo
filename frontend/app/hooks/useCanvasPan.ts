@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 type PanOffset = { x: number; y: number };
 
@@ -15,7 +15,7 @@ export function useCanvasPan({ getWorldEl, getState, onCommit }: UseCanvasPanOpt
   const startRef = useRef<{ px: number; py: number } | null>(null);
   const currentOffsetRef = useRef<PanOffset>({ x: 0, y: 0 });
   const onCommitRef = useRef(onCommit);
-  onCommitRef.current = onCommit;
+  useEffect(() => { onCommitRef.current = onCommit; });
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;

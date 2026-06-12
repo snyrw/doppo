@@ -1,21 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
 import type { PaletteName } from "../lib/palette";
 
+const DEFAULT_PALETTE: PaletteName = "warm-mono";
+
+// Navbar writes localStorage *before* dispatching "palettechange", so the
+// snapshot read below always observes the new value when the event fires.
+function subscribe(onStoreChange: () => void) {
+  window.addEventListener("palettechange", onStoreChange);
+  return () => window.removeEventListener("palettechange", onStoreChange);
+}
+
+function getSnapshot(): PaletteName {
+  try {
+    return (localStorage.getItem("heatmap-palette") as PaletteName | null) ?? DEFAULT_PALETTE;
+  } catch {
+    return DEFAULT_PALETTE;
+  }
+}
+
 export function usePalette(): PaletteName {
-  const [palette, setPalette] = useState<PaletteName>("warm-mono");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("heatmap-palette") as PaletteName | null;
-    if (stored) setPalette(stored);
-
-    function onPaletteChange(e: Event) {
-      setPalette((e as CustomEvent<PaletteName>).detail);
-    }
-    window.addEventListener("palettechange", onPaletteChange);
-    return () => window.removeEventListener("palettechange", onPaletteChange);
-  }, []);
-
-  return palette;
+  return useSyncExternalStore(subscribe, getSnapshot, () => DEFAULT_PALETTE);
 }
