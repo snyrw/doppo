@@ -26,7 +26,7 @@ import {
   updateProject,
   setProjectShare,
 } from "../actions";
-import { useSSEHandlers } from "./hooks/useSSEHandlers";
+import { useJobHandlers } from "./hooks/useJobHandlers";
 import { useSteeringHandlers } from "./hooks/useSteeringHandlers";
 import type { AppAction, AppState, AnyCard } from "./types";
 import { serializeCard, getCardPrompt } from "./helpers";
@@ -51,45 +51,20 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case "CARD_RESOLVED":
       return {
         ...state,
-        lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType !== "dla" && c.cardType !== "attribution" && c.cardType !== "activation" && c.cardType !== "steering" && c.cardType !== "entropy" && c.cardType !== "attention-pattern"
-            ? { ...c, status: "result" as const, data: action.data } : c
-        ),
-      };
-    case "SPAWN_ENTROPY_CARD":
-      return { ...state, lensCards: [...state.lensCards, action.card] };
-    case "DLA_CARD_RESOLVED":
-      return {
-        ...state,
-        lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType === "dla" ? { ...c, status: "result" as const, data: action.data } : c
-        ),
-      };
-    case "ATTRIBUTION_CARD_RESOLVED":
-      return {
-        ...state,
-        lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType === "attribution" ? { ...c, status: "result" as const, data: action.data } : c
-        ),
-      };
-    case "ACTIVATION_CARD_RESOLVED":
-      return {
-        ...state,
         lensCards: state.lensCards.map(c => {
-          if (c.id === action.id && c.cardType === "activation")
-            return { ...c, status: "result" as const, data: action.data };
-          if (c.id === action.parentAttributionId && c.cardType === "attribution")
+          if (c.id === action.id && c.cardType === action.cardType) {
+            const resolved = { ...c, status: "result" as const, data: action.data } as AnyCard;
+            // A re-run steering card may still hold partial streamed text
+            return c.cardType === "steering" ? ({ ...resolved, streamingText: undefined } as AnyCard) : resolved;
+          }
+          // Resolving an activation card also completes its parent attribution's verify flow
+          if (action.cardType === "activation" && c.id === action.parentAttributionId && c.cardType === "attribution")
             return { ...c, verifyStatus: "done" as const };
           return c;
         }),
       };
-    case "ATTENTION_CARD_RESOLVED":
-      return {
-        ...state,
-        lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType === "attention-pattern" ? { ...c, status: "result" as const, data: action.data } : c
-        ),
-      };
+    case "SPAWN_ENTROPY_CARD":
+      return { ...state, lensCards: [...state.lensCards, action.card] };
     case "ATTRIBUTION_VERIFY_STARTED":
       return {
         ...state,
@@ -132,14 +107,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
         lensCards: state.lensCards.map(c =>
           c.id === action.id && c.cardType === "steering"
             ? { ...c, streamingText: (c.streamingText ?? "") + action.token } : c
-        ),
-      };
-    case "STEERING_CARD_RESOLVED":
-      return {
-        ...state,
-        lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType === "steering"
-            ? { ...c, status: "result" as const, data: action.data, streamingText: undefined } : c
         ),
       };
     case "STEERING_CARD_RERUN":
@@ -192,7 +159,7 @@ function Projects() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, isPending: sessionPending } = useSession();
-  const sseHandlers = useSSEHandlers({ dispatch, projectIdRef, stateRef });
+  const jobHandlers = useJobHandlers({ dispatch, projectIdRef, stateRef });
   const steeringHandlers = useSteeringHandlers({ dispatch, projectIdRef, stateRef });
 
   useEffect(() => {
@@ -359,24 +326,24 @@ function Projects() {
       .finally(() => setModelsLoading(false));
   }, []);
 
-  const handleAddLens = (args: Parameters<typeof sseHandlers.addLens>[0]) => {
+  const handleAddLens = (args: Parameters<typeof jobHandlers.addLens>[0]) => {
     setConfigOpen(false);
-    sseHandlers.addLens(args);
+    jobHandlers.addLens(args);
   };
 
-  const handleSpawnEntropyCard = sseHandlers.spawnEntropyCard;
+  const handleSpawnEntropyCard = jobHandlers.spawnEntropyCard;
 
-  const handleAddDla = (args: Parameters<typeof sseHandlers.addDla>[0]) => {
+  const handleAddDla = (args: Parameters<typeof jobHandlers.addDla>[0]) => {
     setDlaOpen(false);
-    sseHandlers.addDla(args);
+    jobHandlers.addDla(args);
   };
 
-  const handleAddAttribution = (args: Parameters<typeof sseHandlers.addAttribution>[0]) => {
+  const handleAddAttribution = (args: Parameters<typeof jobHandlers.addAttribution>[0]) => {
     setAttributionOpen(false);
-    sseHandlers.addAttribution(args);
+    jobHandlers.addAttribution(args);
   };
 
-  const handleVerifyTopK = sseHandlers.verifyTopK;
+  const handleVerifyTopK = jobHandlers.verifyTopK;
 
   const handleSteerComponents = steeringHandlers.steerComponents;
 
@@ -387,9 +354,9 @@ function Projects() {
     steeringHandlers.addStandaloneSteer(args);
   };
 
-  const handleAddAttn = (args: Parameters<typeof sseHandlers.addAttn>[0]) => {
+  const handleAddAttn = (args: Parameters<typeof jobHandlers.addAttn>[0]) => {
     setAttentionOpen(false);
-    sseHandlers.addAttn(args);
+    jobHandlers.addAttn(args);
   };
 
   async function handleNew() {

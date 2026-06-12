@@ -29,12 +29,18 @@ export type HeatmapData = {
   entropy_data?: number[][];
 };
 
+// One resolved action for every job-backed card type, discriminated on cardType.
+export type CardResolvedAction =
+  | { type: "CARD_RESOLVED"; id: string; cardType: "logit-lens"; data: HeatmapData }
+  | { type: "CARD_RESOLVED"; id: string; cardType: "dla"; data: DlaData }
+  | { type: "CARD_RESOLVED"; id: string; cardType: "attribution"; data: AttributionData }
+  | { type: "CARD_RESOLVED"; id: string; cardType: "activation"; data: ActivationPatchResult; parentAttributionId: string }
+  | { type: "CARD_RESOLVED"; id: string; cardType: "attention-pattern"; data: AttentionData }
+  | { type: "CARD_RESOLVED"; id: string; cardType: "steering"; data: SteeringResult };
+
 export type AppAction =
   | { type: "ADD_CARD"; card: AnyCard }
-  | { type: "CARD_RESOLVED"; id: string; data: HeatmapData }
-  | { type: "DLA_CARD_RESOLVED"; id: string; data: DlaData }
-  | { type: "ATTRIBUTION_CARD_RESOLVED"; id: string; data: AttributionData }
-  | { type: "ACTIVATION_CARD_RESOLVED"; id: string; data: ActivationPatchResult; parentAttributionId: string }
+  | CardResolvedAction
   | { type: "ATTRIBUTION_VERIFY_STARTED"; id: string; k: number; verifyCardId: string }
   | { type: "ATTRIBUTION_VERIFY_DONE"; id: string }
   | { type: "CARD_ERRORED"; id: string; error: string; showBuyCredits?: boolean }
@@ -45,7 +51,5 @@ export type AppAction =
   | { type: "LOAD_PROJECT"; cards: AnyCard[]; canvas: CanvasState }
   | { type: "RESET_CANVAS" }
   | { type: "STEERING_CARD_TOKEN"; id: string; token: string }
-  | { type: "STEERING_CARD_RESOLVED"; id: string; data: SteeringResult }
   | { type: "STEERING_CARD_RERUN"; id: string; alpha: number }
-  | { type: "SPAWN_ENTROPY_CARD"; card: EntropyCardData }
-  | { type: "ATTENTION_CARD_RESOLVED"; id: string; data: AttentionData };
+  | { type: "SPAWN_ENTROPY_CARD"; card: EntropyCardData };
