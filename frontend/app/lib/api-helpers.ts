@@ -2,14 +2,6 @@ import { auth } from "./auth";
 import { headers } from "next/headers";
 import { FEATURED_MODELS } from "./featured-models";
 import { validateHfRepo } from "./validate-model";
-export type { SSEEvent } from "./stream-sse";
-export { parseSSE } from "./stream-sse";
-
-export const SSE_HEADERS = {
-  "Content-Type": "text/event-stream",
-  "Cache-Control": "no-cache",
-  "Connection": "keep-alive",
-} as const;
 
 /**
  * Headers for any request to the Modal GPU backend. Attaches the shared bearer
@@ -58,47 +50,4 @@ export async function requireAuth(): Promise<AuthResult> {
     return new Response("Unauthorized", { status: 401 });
   }
   return { userId: session.user.id };
-}
-
-export type UpstreamResult =
-  | { ok: true; response: Response }
-  | { ok: false; errorResponse: Response };
-
-export async function fetchUpstream(
-  url: string,
-  body: unknown
-): Promise<UpstreamResult> {
-  let upstream: Response;
-  try {
-    upstream = await fetch(url, {
-      method: "POST",
-      headers: backendHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(body),
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return {
-      ok: false,
-      errorResponse: new Response(
-        `data: ${JSON.stringify({ stage: "error", error: `Could not reach inference backend: ${msg}` })}\n\n`,
-        { headers: SSE_HEADERS }
-      ),
-    };
-  }
-
-  if (!upstream.ok || !upstream.body) {
-    const errData = (await upstream.json().catch(() => ({}))) as {
-      detail?: string;
-    };
-    const detail = errData.detail ?? `Upstream error ${upstream.status}`;
-    return {
-      ok: false,
-      errorResponse: new Response(
-        `data: ${JSON.stringify({ stage: "error", error: detail })}\n\n`,
-        { headers: SSE_HEADERS }
-      ),
-    };
-  }
-
-  return { ok: true, response: upstream };
 }
