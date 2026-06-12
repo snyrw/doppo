@@ -37,10 +37,7 @@ type SerializedCard = {
   yLabels?: string[];
 };
 
-type CanvasState = {
-  panOffset: { x: number; y: number };
-  zoom: number;
-};
+type CanvasState = import("./components/SandboxCanvas").CanvasState;
 
 async function getAuthedUserId(): Promise<string> {
   const session = await auth.api.getSession({ headers: await headers() });

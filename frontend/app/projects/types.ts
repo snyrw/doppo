@@ -1,31 +1,16 @@
+import type { HeatmapData } from "../components/LensCard";
 import type { DlaData } from "../components/DlaCard";
 import type { AttributionData } from "../components/AttributionCard";
 import type { ActivationPatchResult } from "../components/ActivationCard";
 import type { SteeringResult } from "../components/SteeringCard";
 import type { AttentionData } from "../components/AttentionCard";
-import type { AnyCard } from "../components/SandboxCanvas";
+import type { AnyCard, CanvasState } from "../components/SandboxCanvas";
 
-export type { AnyCard };
-
-export type CanvasState = {
-  panOffset: { x: number; y: number };
-  zoom: number;
-};
+export type { AnyCard, CanvasState, HeatmapData };
 
 export type AppState = {
   lensCards: AnyCard[];
   canvas: CanvasState;
-};
-
-export type HeatmapData = {
-  x_labels: string[];
-  y_labels: string[];
-  heatmap_data: number[][];
-  topk_tokens?: string[][][];
-  topk_probs?: number[][][];
-  kl_data?: number[][];
-  rank_data?: number[][];
-  entropy_data?: number[][];
 };
 
 // One resolved action for every job-backed card type, discriminated on cardType.

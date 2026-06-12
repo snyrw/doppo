@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import SandboxCanvas, { type AnyCard } from "../../components/SandboxCanvas";
-
-type CanvasState = { panOffset: { x: number; y: number }; zoom: number };
+import SandboxCanvas, { type AnyCard, type CanvasState } from "../../components/SandboxCanvas";
 
 export default function ShareCanvas({
   cards,

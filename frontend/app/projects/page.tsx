@@ -18,6 +18,7 @@ import type { SteeringCardData, SteeringComponent } from "../components/Steering
 import type { EntropyCardData } from "../components/EntropyCard";
 import type { AttentionCardData, AttentionData } from "../components/AttentionCard";
 import { useSession } from "../lib/auth-client";
+import type { ModelInfo } from "../hooks/useModelSelection";
 import {
   createProject,
   duplicateProject,
@@ -30,14 +31,6 @@ import { useJobHandlers } from "./hooks/useJobHandlers";
 import { useSteeringHandlers } from "./hooks/useSteeringHandlers";
 import type { AppAction, AppState, AnyCard } from "./types";
 import { serializeCard, getCardPrompt } from "./helpers";
-
-type ModelInfo = {
-  id: string;
-  display_name: string;
-  description: string;
-  requires_hf_token: boolean;
-  gpu_tier: string;
-};
 
 const initialState: AppState = {
   lensCards: [],

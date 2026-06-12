@@ -14,7 +14,7 @@ import type { AttributionCardData, AttributionData } from "../components/Attribu
 import type { ActivationCardData, ActivationPatchResult } from "../components/ActivationCard";
 import type { SteeringCardData, SteeringResult } from "../components/SteeringCard";
 import type { AttentionCardData, AttentionData } from "../components/AttentionCard";
-import type { AnyCard } from "../components/SandboxCanvas";
+import type { AnyCard, CanvasState } from "../components/SandboxCanvas";
 import TutorialDrawer from "./TutorialDrawer";
 import TutorialWelcomeModal from "./TutorialWelcomeModal";
 import TutorialCompleteModal from "./TutorialCompleteModal";
@@ -24,7 +24,6 @@ import type { TutorialStep } from "./steps";
 type Props = { steps: TutorialStep[] };
 import rawTutorialData from "./data.json";
 
-type CanvasState = { panOffset: { x: number; y: number }; zoom: number };
 type State = { cards: AnyCard[]; canvas: CanvasState };
 type Action =
   | { type: "ADD_CARD"; card: AnyCard }

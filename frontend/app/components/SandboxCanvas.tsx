@@ -14,7 +14,7 @@ import { useCardDrag } from "../hooks/useCardDrag";
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 3;
 
-type CanvasState = {
+export type CanvasState = {
   panOffset: { x: number; y: number };
   zoom: number;
 };
@@ -181,12 +181,12 @@ export default function SandboxCanvas({
       case "steering":
         return <SteeringCard key={card.id} {...sharedProps} card={card} onRerun={onRerunSteering} />;
       case "entropy":
-        return <EntropyCard key={card.id} {...sharedProps} card={card as EntropyCardData} />;
+        return <EntropyCard key={card.id} {...sharedProps} card={card} />;
       case "attention-pattern":
-        return <AttentionCard key={card.id} {...sharedProps} card={card as AttentionCardData} />;
-      default: {
-        const hasEntropyChild = cards.some(c => c.cardType === "entropy" && (c as EntropyCardData).parentLensId === card.id);
-        return <LensCard key={card.id} {...sharedProps} card={card as LensCardData} onSpawnEntropy={() => onSpawnEntropyCard(card.id)} entropyCardExists={hasEntropyChild} />;
+        return <AttentionCard key={card.id} {...sharedProps} card={card} />;
+      case "logit-lens": {
+        const hasEntropyChild = cards.some(c => c.cardType === "entropy" && c.parentLensId === card.id);
+        return <LensCard key={card.id} {...sharedProps} card={card} onSpawnEntropy={() => onSpawnEntropyCard(card.id)} entropyCardExists={hasEntropyChild} />;
       }
     }
   }

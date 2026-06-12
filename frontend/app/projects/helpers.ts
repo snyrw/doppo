@@ -1,7 +1,4 @@
 import type { AnyCard } from "./types";
-import type { LensCardData } from "../components/LensCard";
-import type { DlaCardData } from "../components/DlaCard";
-import type { AttentionCardData } from "../components/AttentionCard";
 
 const CARD_COL_WIDTH = 380;
 const CARD_ROW_HEIGHT = 480;
@@ -50,14 +47,12 @@ export function serializeCard(c: AnyCard) {
     return { id: c.id, cardType: "entropy" as const, modelName: c.modelName, prompt: c.prompt, data: {} as Record<string, unknown>, position: c.position, parentLensId: c.parentLensId, entropyData: c.entropyData, xLabels: c.xLabels, yLabels: c.yLabels };
   }
   if (c.cardType === "attention-pattern") {
-    const ac = c as AttentionCardData;
-    return { id: ac.id, cardType: "attention-pattern" as const, modelName: ac.modelName, prompt: ac.prompt, data: ac.data as Record<string, unknown>, position: ac.position, gpuTier: ac.gpuTier };
+    return { id: c.id, cardType: "attention-pattern" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier };
   }
-  const lc = c as LensCardData;
-  return { id: lc.id, cardType: "logit-lens" as const, modelName: lc.modelName, prompt: lc.prompt, data: lc.data as Record<string, unknown>, position: lc.position, gpuTier: lc.gpuTier, topK: lc.topK };
+  return { id: c.id, cardType: "logit-lens" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, topK: c.topK };
 }
 
 export function getCardPrompt(c: AnyCard): string {
   if (c.cardType === "attribution" || c.cardType === "activation" || c.cardType === "steering") return c.cleanPrompt;
-  return (c as LensCardData | DlaCardData | AttentionCardData).prompt;
+  return c.prompt;
 }
