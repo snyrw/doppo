@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
+import ConfigPaneShell from "./ConfigPaneShell";
 import ModelPicker from "./ModelPicker";
 import TokenPreview from "./TokenPreview";
 
@@ -125,69 +126,13 @@ export default function DlaConfigPane({
   } as const;
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        top: "calc(100% + 6px)",
-        left: 0,
-        width: 380,
-        maxWidth: "min(380px, calc(100vw - 24px))",
-        maxHeight: "calc(100vh - 100px)",
-        zIndex: 30,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        background: "var(--color-card)",
-        border: "1px solid var(--color-card-border)",
-        borderRadius: 8,
-        boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
-        animation: "cfgDropIn 140ms ease-out",
-      }}
+    <ConfigPaneShell
+      title="New DLA"
+      canRun={canRun}
+      runLabel="Run DLA →"
+      onRun={handleRun}
+      onClose={handleClose}
     >
-      <style>{`@keyframes cfgDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "14px 16px 12px",
-          borderBottom: "1px solid var(--color-surface-border)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", letterSpacing: "0.01em" }}>
-            New DLA
-          </span>
-        </div>
-        <button
-          onClick={handleClose}
-          style={{
-            width: 24,
-            height: 24,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 4,
-            border: "none",
-            background: "transparent",
-            color: "var(--color-text-muted)",
-            cursor: "pointer",
-            fontSize: 16,
-            lineHeight: 1,
-            transition: "background 120ms, color 120ms",
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text)"; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-muted)"; }}
-        >
-          ×
-        </button>
-      </div>
-
-      {/* Form body */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
-
         {/* Featured models / model selection */}
         <ModelPicker
           picker={picker}
@@ -394,32 +339,6 @@ export default function DlaConfigPane({
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Footer */}
-      <div style={{ padding: "12px 16px", borderTop: "1px solid var(--color-surface-border)" }}>
-        <button
-          onClick={handleRun}
-          disabled={!canRun}
-          style={{
-            width: "100%",
-            padding: "10px 0",
-            borderRadius: 6,
-            border: "none",
-            background: !canRun ? "var(--color-surface-border)" : "var(--color-accent)",
-            color: !canRun ? "var(--color-text-muted)" : "var(--color-accent-fg)",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: !canRun ? "not-allowed" : "pointer",
-            letterSpacing: "0.02em",
-            transition: "background 150ms",
-          }}
-          onMouseEnter={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-hover)"; }}
-          onMouseLeave={e => { if (canRun) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent)"; }}
-        >
-          {"Run DLA →"}
-        </button>
-      </div>
-    </div>
+    </ConfigPaneShell>
   );
 }
