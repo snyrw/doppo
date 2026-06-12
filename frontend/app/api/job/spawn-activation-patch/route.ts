@@ -1,73 +1,59 @@
-import { NextRequest } from "next/server";
 import { createHash } from "node:crypto";
-import { eq } from "drizzle-orm";
-import { db } from "@/app/db";
-import { activationPatchCache, activeJobs } from "@/app/schema";
-import { getHeatmap } from "@/app/lib/r2";
-import { requireAuth, resolveModelTier, validateGpuTier, backendHeaders, MAX_PROMPT_CHARS } from "@/app/lib/api-helpers";
-import { checkBalance } from "@/app/lib/credits";
-import { countActiveJobs, MAX_ACTIVE_JOBS_PER_USER } from "@/app/lib/jobs";
+import { activationPatchCache } from "@/app/schema";
+import { createSpawnHandler, isValidPrompt } from "@/app/lib/spawn-route";
 
-export async function POST(request: NextRequest) {
-  const { cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetTokenIdx, contrastiveTokenIdx, components, k } =
-    (await request.json()) as {
-      cleanPrompt: string; corruptedPrompt: string; modelName: string; gpuTier?: string;
-      targetPosition: number | "last"; targetTokenIdx: number; contrastiveTokenIdx: number | null;
-      components: object[]; k: number;
+type Params = {
+  modelName: string;
+  cleanPrompt: string;
+  corruptedPrompt: string;
+  targetPosition: number | "last";
+  targetTokenIdx: number;
+  contrastiveTokenIdx: number | null;
+  components: object[];
+  k: number;
+};
+
+export const POST = createSpawnHandler<Params>({
+  jobType: "activation-patch",
+  cacheTable: activationPatchCache,
+  parse: (body) => {
+    if (!isValidPrompt(body.cleanPrompt)) return { ok: false, error: "Invalid cleanPrompt" };
+    if (!isValidPrompt(body.corruptedPrompt)) return { ok: false, error: "Invalid corruptedPrompt" };
+    return {
+      ok: true,
+      params: {
+        modelName: body.modelName as string,
+        cleanPrompt: body.cleanPrompt,
+        corruptedPrompt: body.corruptedPrompt,
+        targetPosition: body.targetPosition as number | "last",
+        targetTokenIdx: body.targetTokenIdx as number,
+        contrastiveTokenIdx: (body.contrastiveTokenIdx as number | null) ?? null,
+        components: body.components as object[],
+        k: body.k as number,
+      },
     };
-
-  if (typeof modelName !== "string" || modelName.length < 1 || modelName.length > 200)
-    return Response.json({ error: "Invalid modelName" }, { status: 400 });
-  if (typeof cleanPrompt !== "string" || cleanPrompt.length < 1 || cleanPrompt.length > MAX_PROMPT_CHARS)
-    return Response.json({ error: "Invalid cleanPrompt" }, { status: 400 });
-  if (typeof corruptedPrompt !== "string" || corruptedPrompt.length < 1 || corruptedPrompt.length > MAX_PROMPT_CHARS)
-    return Response.json({ error: "Invalid corruptedPrompt" }, { status: 400 });
-  if (gpuTier !== undefined && !validateGpuTier(gpuTier))
-    return Response.json({ error: "Invalid gpuTier" }, { status: 400 });
-
-  const authResult = await requireAuth();
-  if (!("userId" in authResult)) return authResult;
-  const { userId } = authResult;
-
-  const resolvedTier = await resolveModelTier(modelName);
-  if (!resolvedTier) return Response.json({ error: "Model not found or invalid." }, { status: 400 });
-
-  const cacheKey = createHash("sha256")
-    .update(userId).update(modelName).update(cleanPrompt).update(corruptedPrompt)
-    .update(String(targetPosition)).update(String(targetTokenIdx))
-    .update(String(contrastiveTokenIdx ?? "null")).update(JSON.stringify(components)).update(String(k))
-    .digest("hex");
-
-  const cached = await db.select({ r2Key: activationPatchCache.r2Key }).from(activationPatchCache).where(eq(activationPatchCache.id, cacheKey)).limit(1);
-  if (cached.length > 0 && cached[0].r2Key) {
-    const data = await getHeatmap(cached[0].r2Key);
-    db.update(activationPatchCache).set({ lastAccessedAt: new Date() }).where(eq(activationPatchCache.id, cacheKey)).catch(console.error);
-    return Response.json({ status: "cached", data });
-  }
-
-  if ((await countActiveJobs(userId)) >= MAX_ACTIVE_JOBS_PER_USER)
-    return Response.json({ error: "Too many jobs in flight. Wait for one to finish." }, { status: 429 });
-
-  const { allowed } = await checkBalance(userId, resolvedTier);
-  if (!allowed) return Response.json({ error: "Insufficient credits. Add credits to continue." }, { status: 402 });
-
-  const spawnRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/spawn-activation-patch`, {
-    method: "POST",
-    headers: backendHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ prompt: cleanPrompt, corrupted_prompt: corruptedPrompt, model_name: modelName, target_position: targetPosition, target_token_idx: targetTokenIdx, contrastive_token_idx: contrastiveTokenIdx, components, k }),
-  });
-  if (!spawnRes.ok) {
-    const err = await spawnRes.json().catch(() => ({})) as { detail?: string };
-    return Response.json({ error: err.detail ?? "Failed to spawn job" }, { status: 500 });
-  }
-  const { job_id } = await spawnRes.json() as { job_id: string };
-
-  await db.insert(activeJobs).values({
-    id: job_id, userId, gpuTier: resolvedTier, jobType: "activation-patch", modelName,
-    cacheKey,
-    cachePayload: JSON.stringify({ modelName, cleanPrompt, corruptedPrompt }),
-    startedAt: new Date(),
-  });
-
-  return Response.json({ jobId: job_id });
-}
+  },
+  // Pre-factory keys hashed these fields concatenated without separators — keep
+  // the exact byte stream so existing cache rows stay reachable.
+  cacheKey: (userId, p) =>
+    createHash("sha256")
+      .update(userId).update(p.modelName).update(p.cleanPrompt).update(p.corruptedPrompt)
+      .update(String(p.targetPosition)).update(String(p.targetTokenIdx))
+      .update(String(p.contrastiveTokenIdx ?? "null")).update(JSON.stringify(p.components)).update(String(p.k))
+      .digest("hex"),
+  upstreamBody: (p) => ({
+    prompt: p.cleanPrompt,
+    corrupted_prompt: p.corruptedPrompt,
+    model_name: p.modelName,
+    target_position: p.targetPosition,
+    target_token_idx: p.targetTokenIdx,
+    contrastive_token_idx: p.contrastiveTokenIdx,
+    components: p.components,
+    k: p.k,
+  }),
+  cachePayload: (p) => ({
+    modelName: p.modelName,
+    cleanPrompt: p.cleanPrompt,
+    corruptedPrompt: p.corruptedPrompt,
+  }),
+});
