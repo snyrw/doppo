@@ -4,7 +4,7 @@ import React from "react";
 import { interpolateColorDivergent } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
 import type { SteeringComponent } from "./SteeringCard";
-import { CardDragHandle, CardLoadingState, CardErrorState } from "./CardShell";
+import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, useElapsedMs, stageLabel } from "./CardShell";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 
 export type TopKComponent = {
@@ -66,21 +66,12 @@ const HEAD_CELL_SIZE = 14;
 const LAYER_BAR_W = 160;
 const K_OPTIONS = [5, 10, 20] as const;
 
-function formatElapsed(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  return `${m}:${String(s % 60).padStart(2, "0")}`;
-}
-
-function getStageLabel(stage: string | undefined, elapsedMs: number): string {
-  switch (stage) {
-    case "tokenizing":               return "Tokenizing…";
-    case "clean_forward_pass":       return "Running reference forward pass";
-    case "corrupted_forward_backward": return "Running counterfactual pass + backward";
-    case "computing_attribution":    return "Computing attributions";
-  }
-  return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
-}
+const STAGE_LABELS: Record<string, string> = {
+  tokenizing:                 "Tokenizing…",
+  clean_forward_pass:         "Running reference forward pass",
+  corrupted_forward_backward: "Running counterfactual pass + backward",
+  computing_attribution:      "Computing attributions",
+};
 
 function AttributionCard({
   card,
@@ -95,17 +86,9 @@ function AttributionCard({
 }: AttributionCardProps) {
   const [view, setView] = React.useState<"layer" | "head">("head");
   const [selectedK, setSelectedK] = React.useState<5 | 10 | 20>(10);
-  const [elapsedMs, setElapsedMs] = React.useState(0);
+  const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const [headerHovered, setHeaderHovered] = React.useState(false);
   const [selectedComponents, setSelectedComponents] = React.useState<SteeringComponent[]>([]);
-
-  React.useEffect(() => {
-    if (card.status !== "loading") return;
-    const start = card.startedAt ?? Date.now();
-    setElapsedMs(Date.now() - start);
-    const id = setInterval(() => setElapsedMs(Date.now() - start), 1000);
-    return () => clearInterval(id);
-  }, [card.status, card.startedAt]);
 
   const canToggle = card.status === "result" && card.data != null;
 
@@ -163,11 +146,6 @@ function AttributionCard({
         ...(card.status === "result" ? { width: cardWidth } : {}),
       }}
     >
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
-      `}</style>
-
       {/* Hover popup */}
       {headerHovered && (
         <div style={{
@@ -383,18 +361,9 @@ function AttributionCard({
       {/* Loading */}
       {card.status === "loading" && (
         <div style={{ display: "flex", flexDirection: "column", padding: "12px 14px", gap: 10, minHeight: 110 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            {card.gpuTier ? (
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
-                {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
-              </span>
-            ) : <span />}
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontVariantNumeric: "tabular-nums" }}>
-              {formatElapsed(elapsedMs)}
-            </span>
-          </div>
+          <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
           <CardLoadingState
-            stage={getStageLabel(card.loadingStage, elapsedMs)}
+            stage={stageLabel(card.loadingStage, elapsedMs, STAGE_LABELS)}
             warmup={!card.loadingStage && elapsedMs > 30_000}
           />
         </div>

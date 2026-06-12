@@ -4,7 +4,7 @@ import React from "react";
 import { usePalette } from "../hooks/usePalette";
 import { interpolateColor, getContrastColor } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
-import { CardDragHandle, CardLoadingState, CardErrorState } from "./CardShell";
+import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, useElapsedMs, stageLabel } from "./CardShell";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 
 export type HeatmapData = {
@@ -61,20 +61,11 @@ function computeCellWidth(xLabels: string[]): number {
   return Math.max(MIN_CELL_W, Math.min(MAX_CELL_W, Math.ceil(maxLen * CHAR_W) + CELL_PAD));
 }
 
-function formatElapsed(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  return `${m}:${String(s % 60).padStart(2, "0")}`;
-}
-
-function getStageLabel(stage: string | undefined, elapsedMs: number): string {
-  switch (stage) {
-    case "tokenizing":   return "Tokenizing…";
-    case "forward_pass": return "Running forward pass";
-    case "computing":    return "Computing logit lens";
-  }
-  return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
-}
+const STAGE_LABELS: Record<string, string> = {
+  tokenizing:   "Tokenizing…",
+  forward_pass: "Running forward pass",
+  computing:    "Computing logit lens",
+};
 
 function normRank(rank: number, maxRank: number): number {
   const base = Math.max(maxRank, 100);
@@ -107,7 +98,7 @@ function LensCard({
 }: LensCardProps) {
   const palette = usePalette();
   const [mode, setMode] = React.useState<DisplayMode>("prob");
-  const [elapsedMs, setElapsedMs] = React.useState(0);
+  const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const [pinnedCol, setPinnedCol] = React.useState<number | null>(null);
   const [activeLayer, setActiveLayer] = React.useState(0);
   const [headerHovered, setHeaderHovered] = React.useState(false);
@@ -117,14 +108,6 @@ function LensCard({
   const [stride, setStride] = React.useState(1);
   const [layerRange, setLayerRange] = React.useState<[number, number] | null>(null);
   const [strideOpen, setStrideOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    if (card.status !== "loading") return;
-    const start = card.startedAt ?? Date.now();
-    setElapsedMs(Date.now() - start);
-    const id = setInterval(() => setElapsedMs(Date.now() - start), 1000);
-    return () => clearInterval(id);
-  }, [card.status, card.startedAt]);
 
   React.useEffect(() => {
     if (card.data) {
@@ -213,15 +196,11 @@ function LensCard({
         ...(card.status === "result" && heatmapPx ? { width: heatmapPx } : {}),
       }}
     >
+      {/* spin/fadeUp live in globals.css; slideInLeft is unique to this card */}
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes slideInLeft {
           from { opacity: 0; transform: translateX(8px); }
           to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(3px); }
-          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 
@@ -479,18 +458,9 @@ function LensCard({
       {/* Body */}
       {card.status === "loading" && (
         <div style={{ display: "flex", flexDirection: "column", padding: "12px 14px", gap: 10, minHeight: 110 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            {card.gpuTier ? (
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
-                {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
-              </span>
-            ) : <span />}
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontVariantNumeric: "tabular-nums" }}>
-              {formatElapsed(elapsedMs)}
-            </span>
-          </div>
+          <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
           <CardLoadingState
-            stage={getStageLabel(card.loadingStage, elapsedMs)}
+            stage={stageLabel(card.loadingStage, elapsedMs, STAGE_LABELS)}
             warmup={!card.loadingStage && elapsedMs > 30_000}
           />
         </div>

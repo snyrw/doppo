@@ -2,7 +2,7 @@
 
 import React from "react";
 import { TIER_LABELS } from "../lib/tiers";
-import { CardDragHandle, CardErrorState } from "./CardShell";
+import { CardDragHandle, CardErrorState, CardLoadingHeader, useElapsedMs } from "./CardShell";
 
 export type SteeringComponent = {
   layer: number;
@@ -56,12 +56,6 @@ type SteeringCardProps = {
   tutorialMode?: boolean;
 };
 
-function formatElapsed(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  return `${m}:${String(s % 60).padStart(2, "0")}`;
-}
-
 function componentLabel(c: SteeringComponent): string {
   if (c.injectionType === "attn_head" && c.head !== null) return `L${c.layer}·H${c.head}`;
   if (c.injectionType === "mlp") return `L${c.layer}·MLP`;
@@ -78,20 +72,12 @@ function SteeringCard({
   onRerun,
   tutorialMode,
 }: SteeringCardProps) {
-  const [elapsedMs, setElapsedMs] = React.useState(0);
+  const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const [headerHovered, setHeaderHovered] = React.useState(false);
   const [localAlpha, setLocalAlpha] = React.useState(card.alpha);
 
   // Sync local alpha if the card is re-run externally (alpha stored in card updates).
   React.useEffect(() => { setLocalAlpha(card.alpha); }, [card.alpha]);
-
-  React.useEffect(() => {
-    if (card.status !== "loading") return;
-    const start = card.startedAt ?? Date.now();
-    setElapsedMs(Date.now() - start);
-    const id = setInterval(() => setElapsedMs(Date.now() - start), 1000);
-    return () => clearInterval(id);
-  }, [card.status, card.startedAt]);
 
   const logitDiffStr = card.data
     ? (card.data.logit_diff >= 0 ? "+" : "") + card.data.logit_diff.toFixed(2)
@@ -115,7 +101,6 @@ function SteeringCard({
         flexDirection: "column",
       }}
     >
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Hover popup */}
       {headerHovered && (
@@ -250,16 +235,7 @@ function SteeringCard({
       {/* Loading */}
       {card.status === "loading" && (
         <div style={{ display: "flex", flexDirection: "column", padding: "10px 12px", gap: 8 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            {card.gpuTier ? (
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
-                {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
-              </span>
-            ) : <span />}
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontVariantNumeric: "tabular-nums" }}>
-              {formatElapsed(elapsedMs)}
-            </span>
-          </div>
+          <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 16, height: 16, border: "2px solid var(--color-surface-border)", borderTopColor: "var(--color-accent)", borderRadius: "50%", animation: "spin 0.8s linear infinite", flexShrink: 0 }} />
             <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>

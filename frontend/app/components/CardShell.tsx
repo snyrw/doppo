@@ -1,6 +1,48 @@
 "use client";
 
 import React from "react";
+import { TIER_LABELS } from "../lib/tiers";
+
+/** Ticks once per second while `status` is "loading"; returns elapsed ms since `startedAt`. */
+export function useElapsedMs(status: "loading" | "result" | "error", startedAt: number | undefined): number {
+  const [elapsedMs, setElapsedMs] = React.useState(0);
+  React.useEffect(() => {
+    if (status !== "loading") return;
+    const start = startedAt ?? Date.now();
+    setElapsedMs(Date.now() - start);
+    const id = setInterval(() => setElapsedMs(Date.now() - start), 1000);
+    return () => clearInterval(id);
+  }, [status, startedAt]);
+  return elapsedMs;
+}
+
+/** Maps a backend loadingStage to display text, with the shared cold-start fallback. */
+export function stageLabel(stage: string | undefined, elapsedMs: number, labels: Record<string, string>): string {
+  if (stage !== undefined && labels[stage]) return labels[stage];
+  return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
+}
+
+/** Small GPU-tier pill (e.g. "L4"); renders nothing without a tier. */
+export function TierBadge({ tier }: { tier: string | undefined }) {
+  if (!tier) return null;
+  return (
+    <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+      {TIER_LABELS[tier] ?? tier}
+    </span>
+  );
+}
+
+/** Top row of a loading card body: GPU tier badge (left) + elapsed m:ss (right). */
+export function CardLoadingHeader({ gpuTier, elapsedMs }: { gpuTier: string | undefined; elapsedMs: number }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {gpuTier ? <TierBadge tier={gpuTier} /> : <span />}
+      <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontVariantNumeric: "tabular-nums" }}>
+        {formatElapsed(elapsedMs)}
+      </span>
+    </div>
+  );
+}
 
 /** 6-dot grip SVG used as drag handle in every card header. */
 export function CardDragHandle() {

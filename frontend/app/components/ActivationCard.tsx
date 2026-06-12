@@ -4,7 +4,7 @@ import React from "react";
 import { interpolateColorDivergent } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
 import type { SteeringComponent } from "./SteeringCard";
-import { CardDragHandle, CardErrorState } from "./CardShell";
+import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, useElapsedMs } from "./CardShell";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 
 export type VerifiedComponent = {
@@ -47,12 +47,6 @@ type ActivationCardProps = {
   onSteerComponents: (cardId: string, components: SteeringComponent[]) => void;
   tutorialMode?: boolean;
 };
-
-function formatElapsed(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  return `${m}:${String(s % 60).padStart(2, "0")}`;
-}
 
 function getStageLabel(stage: string | undefined, elapsedMs: number): string {
   if (!stage) return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
@@ -100,18 +94,10 @@ function ActivationCard({
   onSteerComponents,
   tutorialMode,
 }: ActivationCardProps) {
-  const [elapsedMs, setElapsedMs] = React.useState(0);
+  const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const [headerHovered, setHeaderHovered] = React.useState(false);
   const [selectedComponents, setSelectedComponents] = React.useState<SteeringComponent[]>([]);
   const [tooltip, setTooltip] = React.useState<TooltipState>(null);
-
-  React.useEffect(() => {
-    if (card.status !== "loading") return;
-    const start = card.startedAt ?? Date.now();
-    setElapsedMs(Date.now() - start);
-    const id = setInterval(() => setElapsedMs(Date.now() - start), 1000);
-    return () => clearInterval(id);
-  }, [card.status, card.startedAt]);
 
   const spearman = React.useMemo(() => {
     if (!card.data) return null;
@@ -146,7 +132,6 @@ function ActivationCard({
         flexDirection: "column",
       }}
     >
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Hover popup */}
       {headerHovered && (
@@ -211,22 +196,8 @@ function ActivationCard({
       {/* Loading */}
       {card.status === "loading" && (
         <div style={{ display: "flex", flexDirection: "column", padding: "12px 14px", gap: 10, minHeight: 110 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            {card.gpuTier ? (
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
-                {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
-              </span>
-            ) : <span />}
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontVariantNumeric: "tabular-nums" }}>
-              {formatElapsed(elapsedMs)}
-            </span>
-          </div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <div style={{ width: 20, height: 20, border: "2px solid var(--color-surface-border)", borderTopColor: "var(--color-accent)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-            <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
-              {getStageLabel(card.loadingStage, elapsedMs)}
-            </p>
-          </div>
+          <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
+          <CardLoadingState stage={getStageLabel(card.loadingStage, elapsedMs)} />
         </div>
       )}
 
