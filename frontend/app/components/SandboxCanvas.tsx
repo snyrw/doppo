@@ -198,7 +198,7 @@ export default function SandboxCanvas({
         flex: 1,
         overflow: "hidden",
         position: "relative",
-        background: "var(--color-bg)",
+        background: "var(--bg)",
         cursor: isDragging ? "grabbing" : "grab",
       }}
       {...panHandlers}
@@ -242,9 +242,9 @@ export default function SandboxCanvas({
           bottom: 12,
           right: 12,
           fontSize: 10,
-          color: "var(--color-text-muted)",
-          background: "var(--color-card)",
-          border: "1px solid var(--color-card-border)",
+          color: "var(--text-muted)",
+          background: "var(--card)",
+          border: "1px solid var(--card-border)",
           borderRadius: 4,
           padding: "3px 7px",
           pointerEvents: "none",

@@ -135,7 +135,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
           transform: `translateX(-50%) scale(${isOpen ? 1 : 0.97})`,
           width: 580,
           maxWidth: "calc(100vw - 32px)",
-          background: "var(--color-card)",
+          background: "var(--card)",
           borderRadius: 10,
           boxShadow:
             "0 0 0 1px rgba(15,23,42,0.07), 0 8px 24px rgba(15,23,42,0.1), 0 32px 64px rgba(15,23,42,0.14)",
@@ -156,7 +156,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
             gap: 10,
             padding: "0 16px",
             height: 56,
-            borderBottom: "1px solid var(--color-surface-border)",
+            borderBottom: "1px solid var(--surface-border)",
             flexShrink: 0,
           }}
         >
@@ -165,7 +165,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
             height="17"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="var(--color-text-muted)"
+            stroke="var(--text-muted)"
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -184,9 +184,9 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
               border: "none",
               outline: "none",
               fontSize: 15,
-              color: "var(--color-text)",
+              color: "var(--text)",
               background: "transparent",
-              caretColor: "var(--color-accent)",
+              caretColor: "var(--accent)",
               fontFamily: "inherit",
             }}
           />
@@ -197,7 +197,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                color: "var(--color-text-muted)",
+                color: "var(--text-muted)",
                 fontSize: 18,
                 lineHeight: 1,
                 padding: "2px 4px",
@@ -213,30 +213,30 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
         {/* Results */}
         <div ref={listRef} style={{ overflowY: "auto", maxHeight: 420 }}>
           {loading && (
-            <div style={{ padding: "36px 0", textAlign: "center", color: "var(--color-text-muted)", fontSize: 13 }}>
+            <div style={{ padding: "36px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
               Loading…
             </div>
           )}
 
           {!loading && fetchError === "unauthorized" && (
             <div style={{ padding: "36px 16px", textAlign: "center" }}>
-              <div style={{ color: "var(--color-text)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
+              <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
                 Sign in to search projects
               </div>
-              <div style={{ color: "var(--color-text-muted)", fontSize: 13 }}>
+              <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
                 Your saved projects will appear here.
               </div>
             </div>
           )}
 
           {!loading && fetchError === "failed" && (
-            <div style={{ padding: "36px 0", textAlign: "center", color: "var(--color-text-muted)", fontSize: 13 }}>
+            <div style={{ padding: "36px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
               Could not load projects. Try again.
             </div>
           )}
 
           {!loading && !fetchError && filtered.length === 0 && (
-            <div style={{ padding: "36px 0", textAlign: "center", color: "var(--color-text-muted)", fontSize: 13 }}>
+            <div style={{ padding: "36px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
               {query ? `No projects matching "${query}"` : "No saved projects yet."}
             </div>
           )}
@@ -295,7 +295,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
         {/* Footer */}
         <div
           style={{
-            borderTop: "1px solid var(--color-surface-border)",
+            borderTop: "1px solid var(--surface-border)",
             padding: "7px 16px",
             display: "flex",
             gap: 16,
@@ -312,19 +312,19 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
             <span key={key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <kbd
                 style={{
-                  background: "var(--color-surface-border)",
-                  border: "1px solid var(--color-card-border)",
+                  background: "var(--surface-border)",
+                  border: "1px solid var(--card-border)",
                   borderRadius: 4,
                   padding: "1px 5px",
                   fontSize: 11,
                   fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                  color: "var(--color-text-muted)",
+                  color: "var(--text-muted)",
                   lineHeight: "16px",
                 }}
               >
                 {key}
               </kbd>
-              <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{label}</span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{label}</span>
             </span>
           ))}
         </div>
@@ -341,7 +341,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
           padding: "8px 16px 3px",
           fontSize: 10,
           fontWeight: 700,
-          color: "var(--color-text-muted)",
+          color: "var(--text-muted)",
           letterSpacing: "0.09em",
           textTransform: "uppercase",
         }}
@@ -368,11 +368,11 @@ function Row({
 }) {
   const [hovered, setHovered] = useState(false);
 
-  const bg = isSelected || hovered ? "var(--color-surface-border)" : isCurrent ? "var(--color-panel)" : "var(--color-card)";
+  const bg = isSelected || hovered ? "var(--surface-border)" : isCurrent ? "var(--panel)" : "var(--card)";
   const leftBorder = isCurrent
-    ? "3px solid var(--color-accent)"
+    ? "3px solid var(--accent)"
     : isSelected || hovered
-    ? "3px solid var(--color-card-border)"
+    ? "3px solid var(--card-border)"
     : "3px solid transparent";
 
   return (
@@ -406,7 +406,7 @@ function Row({
             style={{
               fontSize: 13,
               fontWeight: 600,
-              color: "var(--color-text)",
+              color: "var(--text)",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -420,8 +420,8 @@ function Row({
               style={{
                 fontSize: 10,
                 fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                background: "var(--color-surface-border)",
-                color: "var(--color-accent)",
+                background: "var(--surface-border)",
+                color: "var(--accent)",
                 padding: "1px 5px",
                 borderRadius: 3,
                 whiteSpace: "nowrap",
@@ -432,7 +432,7 @@ function Row({
             </span>
           ))}
           {project.models.length > 3 && (
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", flexShrink: 0 }}>
+            <span style={{ fontSize: 10, color: "var(--text-muted)", flexShrink: 0 }}>
               +{project.models.length - 3}
             </span>
           )}
@@ -447,11 +447,11 @@ function Row({
           }}
         >
           {project.cardCount > 0 && (
-            <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
               {project.cardCount} {project.cardCount === 1 ? "card" : "cards"}
             </span>
           )}
-          <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
             {relativeTime(project.updatedAt)}
           </span>
         </div>
@@ -462,7 +462,7 @@ function Row({
         <div
           style={{
             fontSize: 12,
-            color: "var(--color-text-muted)",
+            color: "var(--text-muted)",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",

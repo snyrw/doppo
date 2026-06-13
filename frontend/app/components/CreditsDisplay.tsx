@@ -57,7 +57,7 @@ function CreditsButtonInner() {
 
   const isLow = balanceMicros !== null && balanceMicros < LOW_BALANCE_THRESHOLD_MICROS;
   const isEmpty = balanceMicros === 0;
-  const accentColor = isEmpty ? "#dc2626" : isLow ? "#ea580c" : "var(--color-text-muted)";
+  const accentColor = isEmpty ? "#dc2626" : isLow ? "#ea580c" : "var(--text-muted)";
 
   return (
     <>
@@ -73,9 +73,9 @@ function CreditsButtonInner() {
           width: 28,
           height: 28,
           borderRadius: "50%",
-          border: `1.5px solid ${balanceMicros !== null ? accentColor : "var(--color-surface-border)"}`,
+          border: `1.5px solid ${balanceMicros !== null ? accentColor : "var(--surface-border)"}`,
           background: "none",
-          color: balanceMicros !== null ? accentColor : "var(--color-text-muted)",
+          color: balanceMicros !== null ? accentColor : "var(--text-muted)",
           cursor: "pointer",
           fontSize: 12,
           fontWeight: 600,
@@ -84,7 +84,7 @@ function CreditsButtonInner() {
           flexShrink: 0,
         }}
         onMouseEnter={e => {
-          (e.currentTarget as HTMLButtonElement).style.background = "var(--color-panel)";
+          (e.currentTarget as HTMLButtonElement).style.background = "var(--panel)";
         }}
         onMouseLeave={e => {
           (e.currentTarget as HTMLButtonElement).style.background = "none";
@@ -99,8 +99,8 @@ function CreditsButtonInner() {
             position: "absolute",
             top: "calc(100% + 8px)",
             right: 0,
-            background: "var(--color-card)",
-            border: "1px solid var(--color-card-border)",
+            background: "var(--card)",
+            border: "1px solid var(--card-border)",
             borderRadius: 8,
             boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
             width: 220,
@@ -111,11 +111,11 @@ function CreditsButtonInner() {
           <div
             style={{
               padding: "8px 12px 7px",
-              borderBottom: "1px solid var(--color-surface-border)",
+              borderBottom: "1px solid var(--surface-border)",
               fontSize: 9,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "var(--color-text-muted)",
+              color: "var(--text-muted)",
               fontFamily: "var(--font-ibm-plex-sans), sans-serif",
             }}
           >
@@ -126,7 +126,7 @@ function CreditsButtonInner() {
             <div
               style={{
                 padding: "10px 12px 8px",
-                borderBottom: "1px solid var(--color-surface-border)",
+                borderBottom: "1px solid var(--surface-border)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -135,7 +135,7 @@ function CreditsButtonInner() {
               <span
                 style={{
                   fontSize: 11,
-                  color: "var(--color-text-muted)",
+                  color: "var(--text-muted)",
                   fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                 }}
               >
@@ -146,7 +146,7 @@ function CreditsButtonInner() {
                   fontSize: 13,
                   fontWeight: 600,
                   fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                  color: isEmpty ? "#dc2626" : isLow ? "#ea580c" : "var(--color-text)",
+                  color: isEmpty ? "#dc2626" : isLow ? "#ea580c" : "var(--text)",
                 }}
               >
                 {formatMicros(balanceMicros)}
@@ -160,12 +160,12 @@ function CreditsButtonInner() {
               style={{
                 width: "100%",
                 padding: "7px 10px",
-                background: "var(--color-bg)",
-                border: "1px solid var(--color-card-border)",
+                background: "var(--bg)",
+                border: "1px solid var(--card-border)",
                 borderRadius: 6,
                 cursor: "pointer",
                 fontSize: 11,
-                color: "var(--color-text)",
+                color: "var(--text)",
                 fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                 textAlign: "left",
               }}
@@ -174,7 +174,7 @@ function CreditsButtonInner() {
             </button>
             <span style={{
               fontSize: 10,
-              color: "var(--color-text-muted)",
+              color: "var(--text-muted)",
               fontFamily: "var(--font-ibm-plex-sans), sans-serif",
               opacity: 0.7,
               paddingLeft: 2,

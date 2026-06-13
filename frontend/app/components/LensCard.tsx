@@ -184,9 +184,9 @@ function LensCard({
         left: card.position.x,
         top: card.position.y,
         zIndex: pinnedCol !== null ? 20 : 10,
-        background: "var(--color-card)",
+        background: "var(--card)",
         borderRadius: 8,
-        border: "1px solid var(--color-card-border)",
+        border: "1px solid var(--card-border)",
         boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",
@@ -211,8 +211,8 @@ function LensCard({
             position: "absolute",
             bottom: "calc(100% + 6px)",
             left: 0,
-            background: "var(--color-card)",
-            border: "1px solid var(--color-card-border)",
+            background: "var(--card)",
+            border: "1px solid var(--card-border)",
             borderRadius: 8,
             boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
             padding: "10px 12px",
@@ -223,14 +223,14 @@ function LensCard({
             animation: "fadeUp 120ms ease-out",
           }}
         >
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
             {card.prompt}
           </p>
           {card.gpuTier && (
-            <span style={{ display: "inline-block", marginTop: 6, fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+            <span style={{ display: "inline-block", marginTop: 6, fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
               {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
             </span>
           )}
@@ -245,8 +245,8 @@ function LensCard({
             right: "calc(100% + 8px)",
             top: 0,
             width: 180,
-            background: "var(--color-card)",
-            border: "1px solid var(--color-card-border)",
+            background: "var(--card)",
+            border: "1px solid var(--card-border)",
             borderRadius: 8,
             boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
             padding: "8px 10px",
@@ -254,10 +254,10 @@ function LensCard({
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 4 }}>
-            <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, fontWeight: 700, color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px", maxWidth: 90, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", flexShrink: 0 }}>
+            <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, fontWeight: 700, color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px", maxWidth: 90, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", flexShrink: 0 }}>
               {panelData.colLabel}
             </span>
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", flexShrink: 0 }}>
+            <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", flexShrink: 0 }}>
               layer {panelData.layerLabel}
             </span>
           </div>
@@ -266,20 +266,20 @@ function LensCard({
               const prob = panelData.probs[i];
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ width: 48, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, color: "var(--color-text)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", flexShrink: 0, textAlign: "right" }}>
+                  <span style={{ width: 48, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, color: "var(--text)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", flexShrink: 0, textAlign: "right" }}>
                     {JSON.stringify(tok)}
                   </span>
-                  <div style={{ flex: 1, height: 8, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
-                    <div style={{ width: `${prob * 100}%`, height: "100%", background: i === 0 ? "var(--color-accent)" : "var(--color-card-border)", borderRadius: 2, transition: "width 120ms ease-out" }} />
+                  <div style={{ flex: 1, height: 8, background: "var(--surface-border)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ width: `${prob * 100}%`, height: "100%", background: i === 0 ? "var(--accent)" : "var(--card-border)", borderRadius: 2, transition: "width 120ms ease-out" }} />
                   </div>
-                  <span style={{ width: 30, fontSize: 9, color: "var(--color-text-muted)", textAlign: "right", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
+                  <span style={{ width: 30, fontSize: 9, color: "var(--text-muted)", textAlign: "right", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
                     {(prob * 100).toFixed(1)}%
                   </span>
                 </div>
               );
             })}
           </div>
-          <p style={{ fontSize: 8, color: "var(--color-surface-border)", margin: "8px 0 0", textAlign: "center" }}>
+          <p style={{ fontSize: 8, color: "var(--surface-border)", margin: "8px 0 0", textAlign: "center" }}>
             hover rows to change layer
           </p>
         </div>
@@ -293,7 +293,7 @@ function LensCard({
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
         style={{
-          borderBottom: "1px solid var(--color-surface-border)",
+          borderBottom: "1px solid var(--surface-border)",
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,
@@ -305,17 +305,17 @@ function LensCard({
         {/* Row 1: drag handle + title + close */}
         <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
           <CardDragHandle />
-          <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 11, color: "var(--text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {card.modelName}
           </span>
-          <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 10, color: "var(--text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {card.prompt}
           </span>
           {!tutorialMode && (
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={() => onRemove(card.id)}
-              style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+              style={{ fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
             >
               ×
             </button>
@@ -326,10 +326,10 @@ function LensCard({
         {card.status === "result" && (
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{ padding: "4px 10px", borderTop: "1px solid var(--color-surface-border)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+            style={{ padding: "4px 10px", borderTop: "1px solid var(--surface-border)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
           >
             {canToggle && (
-              <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}>
+              <div style={{ display: "flex", border: "1px solid var(--card-border)", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}>
                 {(["prob", "tokens", ...(hasKl ? ["kl"] : []), ...(hasRank ? ["rank"] : []), ...(hasEntropy ? ["entropy"] : [])] as DisplayMode[]).map(m => (
                   <button
                     key={m}
@@ -337,8 +337,8 @@ function LensCard({
                     style={{
                       fontSize: 9,
                       padding: "2px 6px",
-                      background: mode === m ? "var(--color-accent)" : "transparent",
-                      color: mode === m ? "var(--color-accent-fg)" : "var(--color-text-muted)",
+                      background: mode === m ? "var(--accent)" : "transparent",
+                      color: mode === m ? "var(--accent-fg)" : "var(--text-muted)",
                       border: "none",
                       cursor: "pointer",
                       lineHeight: 1.4,
@@ -355,7 +355,7 @@ function LensCard({
               <button
                 onClick={entropyCardExists ? undefined : onSpawnEntropy}
                 title={entropyCardExists ? "Entropy card already open" : "Spawn entropy sparkline card"}
-                style={{ fontSize: 9, padding: "2px 5px", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 4, color: entropyCardExists ? "var(--color-surface-border)" : "var(--color-text-muted)", cursor: entropyCardExists ? "default" : "pointer", flexShrink: 0, lineHeight: 1.4, opacity: entropyCardExists ? 0.4 : 1 }}
+                style={{ fontSize: 9, padding: "2px 5px", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 4, color: entropyCardExists ? "var(--surface-border)" : "var(--text-muted)", cursor: entropyCardExists ? "default" : "pointer", flexShrink: 0, lineHeight: 1.4, opacity: entropyCardExists ? 0.4 : 1 }}
               >
                 ↗
               </button>
@@ -368,7 +368,7 @@ function LensCard({
               <button
                 onClick={() => { setStride(1); setLayerRange(null); }}
                 title="Reset layer filter"
-                style={{ fontSize: 9, padding: "1px 5px", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 4, color: "var(--color-accent)", cursor: "pointer", flexShrink: 0, fontFamily: "var(--font-ibm-plex-sans), sans-serif", lineHeight: 1.4 }}
+                style={{ fontSize: 9, padding: "1px 5px", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 4, color: "var(--accent)", cursor: "pointer", flexShrink: 0, fontFamily: "var(--font-ibm-plex-sans), sans-serif", lineHeight: 1.4 }}
               >
                 {stride > 1 ? `÷${stride}` : "◉"}
               </button>
@@ -378,7 +378,7 @@ function LensCard({
             <div style={{ position: "relative", flexShrink: 0 }}>
               <button
                 onClick={() => setStrideOpen(o => !o)}
-                style={{ fontSize: 10, padding: "1px 5px", background: strideOpen ? "var(--color-surface-border)" : "transparent", border: "1px solid transparent", borderRadius: 4, color: "var(--color-text-muted)", cursor: "pointer", lineHeight: 1.4 }}
+                style={{ fontSize: 10, padding: "1px 5px", background: strideOpen ? "var(--surface-border)" : "transparent", border: "1px solid transparent", borderRadius: 4, color: "var(--text-muted)", cursor: "pointer", lineHeight: 1.4 }}
               >
                 ···
               </button>
@@ -389,8 +389,8 @@ function LensCard({
                     position: "absolute",
                     right: 0,
                     top: "calc(100% + 4px)",
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-card-border)",
+                    background: "var(--card)",
+                    border: "1px solid var(--card-border)",
                     borderRadius: 6,
                     boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
                     padding: "10px 12px",
@@ -403,7 +403,7 @@ function LensCard({
                   onPointerDown={e => e.stopPropagation()}
                 >
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.06em", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>STRIDE</span>
+                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--text-muted)", letterSpacing: "0.06em", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>STRIDE</span>
                     <div style={{ display: "flex", gap: 3 }}>
                       {[1, 2, 4, 8].map(s => (
                         <button
@@ -412,9 +412,9 @@ function LensCard({
                           style={{
                             fontSize: 9,
                             padding: "2px 7px",
-                            background: stride === s ? "var(--color-accent)" : "var(--color-surface-border)",
-                            color: stride === s ? "var(--color-accent-fg)" : "var(--color-text-muted)",
-                            border: "1px solid var(--color-card-border)",
+                            background: stride === s ? "var(--accent)" : "var(--surface-border)",
+                            color: stride === s ? "var(--accent-fg)" : "var(--text-muted)",
+                            border: "1px solid var(--card-border)",
                             borderRadius: 3,
                             cursor: "pointer",
                             fontFamily: "var(--font-ibm-plex-sans), sans-serif",
@@ -427,24 +427,24 @@ function LensCard({
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.06em", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>LAYERS</span>
+                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--text-muted)", letterSpacing: "0.06em", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>LAYERS</span>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", width: 22 }}>from</span>
+                      <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", width: 22 }}>from</span>
                       <button onClick={() => setLayerRange([Math.max(0, rangeFrom - 1), rangeTo])} style={stepperBtn}>−</button>
-                      <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", minWidth: 20, textAlign: "center" }}>{rangeFrom}</span>
+                      <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text)", minWidth: 20, textAlign: "center" }}>{rangeFrom}</span>
                       <button onClick={() => setLayerRange([Math.min(rangeTo, rangeFrom + 1), rangeTo])} style={stepperBtn}>+</button>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", width: 22 }}>to</span>
+                      <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", width: 22 }}>to</span>
                       <button onClick={() => setLayerRange([rangeFrom, Math.max(rangeFrom, rangeTo - 1)])} style={stepperBtn}>−</button>
-                      <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", minWidth: 20, textAlign: "center" }}>{rangeTo}</span>
+                      <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text)", minWidth: 20, textAlign: "center" }}>{rangeTo}</span>
                       <button onClick={() => setLayerRange([rangeFrom, Math.min(nLayers - 1, rangeTo + 1)])} style={stepperBtn}>+</button>
                     </div>
                   </div>
 
                   <button
                     onClick={() => { setStride(1); setLayerRange(null); }}
-                    style={{ fontSize: 9, padding: "3px 0", background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", textAlign: "left", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}
+                    style={{ fontSize: 9, padding: "3px 0", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", textAlign: "left", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}
                   >
                     reset
                   </button>
@@ -469,7 +469,7 @@ function LensCard({
       {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
 
       {card.status === "result" && card.data && (
-        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--color-card)" }}>
+        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--card)" }}>
           <div style={{ display: "inline-flex", flexDirection: "column", gap: rowGap }}>
             {/* X-axis labels */}
             <div style={{ display: "flex", gap: COL_GAP }}>
@@ -484,7 +484,7 @@ function LensCard({
                     fontSize: 7,
                     textAlign: "center",
                     fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: pinnedCol === i ? "var(--color-accent)" : "var(--color-text-muted)",
+                    color: pinnedCol === i ? "var(--accent)" : "var(--text-muted)",
                     fontWeight: pinnedCol === i ? 700 : 400,
                     overflow: "hidden",
                     whiteSpace: "nowrap",
@@ -519,7 +519,7 @@ function LensCard({
                     paddingRight: 4,
                     textAlign: "right",
                     overflow: "hidden",
-                    color: pinnedCol !== null && activeLayer === yIndex ? "var(--color-accent)" : "var(--color-text-muted)",
+                    color: pinnedCol !== null && activeLayer === yIndex ? "var(--accent)" : "var(--text-muted)",
                     fontWeight: pinnedCol !== null && activeLayer === yIndex ? 700 : 400,
                   }}>
                     {String(yIndex)}
@@ -544,43 +544,43 @@ function LensCard({
 
                     const cellBg = interpolateColor(palette, cellColorValue);
                     const cellBorder = isActivePinnedCell
-                      ? "1.5px solid var(--color-accent)"
+                      ? "1.5px solid var(--accent)"
                       : isPinned
-                      ? "0.5px solid var(--color-card-border)"
-                      : "0.5px solid var(--color-surface-border)";
+                      ? "0.5px solid var(--card-border)"
+                      : "0.5px solid var(--surface-border)";
 
                     const showRankNumber = inRankMode && rank !== null && rank <= 50;
 
                     const xLabel = card.data!.x_labels[xIndex];
                     const tooltipContent: React.ReactNode = inRankMode && rank !== null ? (
                       <>
-                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
-                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        <div style={{ color: "var(--text-muted)", marginBottom: 2 }}>
+                          <span style={{ color: "var(--text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
                         </div>
                         <div>rank <span style={{ fontWeight: 600 }}>#{rank}</span></div>
                       </>
                     ) : inEntropyMode && entropy !== null ? (
                       <>
-                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
-                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        <div style={{ color: "var(--text-muted)", marginBottom: 2 }}>
+                          <span style={{ color: "var(--text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
                         </div>
                         <div style={{ fontVariantNumeric: "tabular-nums" }}>H = <span style={{ fontWeight: 600 }}>{entropy.toFixed(3)}</span> nats</div>
                       </>
                     ) : inKlMode && klVal !== null ? (
                       <>
-                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
-                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        <div style={{ color: "var(--text-muted)", marginBottom: 2 }}>
+                          <span style={{ color: "var(--text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
                         </div>
                         <div style={{ fontVariantNumeric: "tabular-nums" }}>KL = <span style={{ fontWeight: 600 }}>{klVal.toFixed(3)}</span> nats</div>
                       </>
                     ) : inTokensMode && card.data!.topk_tokens && card.data!.topk_probs ? (
                       <>
-                        <div style={{ color: "var(--color-text-muted)", marginBottom: 4 }}>
-                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        <div style={{ color: "var(--text-muted)", marginBottom: 4 }}>
+                          <span style={{ color: "var(--text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
                         </div>
                         {card.data!.topk_tokens[yIndex][xIndex].map((t, i) => (
                           <div key={i} style={{ display: "flex", gap: 10, fontVariantNumeric: "tabular-nums" }}>
-                            <span style={{ color: "var(--color-text-muted)", minWidth: 30, textAlign: "right" }}>
+                            <span style={{ color: "var(--text-muted)", minWidth: 30, textAlign: "right" }}>
                               {(card.data!.topk_probs![yIndex][xIndex][i] * 100).toFixed(1)}%
                             </span>
                             <span style={{ fontWeight: i === 0 ? 600 : 400 }}>{JSON.stringify(t)}</span>
@@ -589,8 +589,8 @@ function LensCard({
                       </>
                     ) : (
                       <>
-                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
-                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        <div style={{ color: "var(--text-muted)", marginBottom: 2 }}>
+                          <span style={{ color: "var(--text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
                         </div>
                         <div style={{ fontVariantNumeric: "tabular-nums" }}>p = <span style={{ fontWeight: 600 }}>{(prob * 100).toFixed(2)}%</span></div>
                       </>
@@ -648,11 +648,11 @@ const stepperBtn: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "var(--color-surface-border)",
-  border: "1px solid var(--color-card-border)",
+  background: "var(--surface-border)",
+  border: "1px solid var(--card-border)",
   borderRadius: 3,
   cursor: "pointer",
-  color: "var(--color-text-muted)",
+  color: "var(--text-muted)",
   flexShrink: 0,
   padding: 0,
   lineHeight: 1,

@@ -26,7 +26,7 @@ export function stageLabel(stage: string | undefined, elapsedMs: number, labels:
 export function TierBadge({ tier }: { tier: string | undefined }) {
   if (!tier) return null;
   return (
-    <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+    <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
       {TIER_LABELS[tier] ?? tier}
     </span>
   );
@@ -37,7 +37,7 @@ export function CardLoadingHeader({ gpuTier, elapsedMs }: { gpuTier: string | un
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
       {gpuTier ? <TierBadge tier={gpuTier} /> : <span />}
-      <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontVariantNumeric: "tabular-nums" }}>
+      <span style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontVariantNumeric: "tabular-nums" }}>
         {formatElapsed(elapsedMs)}
       </span>
     </div>
@@ -96,13 +96,13 @@ export function CardLoadingState({
           style={{
             width: 20,
             height: 20,
-            border: "2px solid var(--color-surface-border)",
-            borderTopColor: "var(--color-accent)",
+            border: "2px solid var(--surface-border)",
+            borderTopColor: "var(--accent)",
             borderRadius: "50%",
             animation: "spin 0.8s linear infinite",
           }}
         />
-        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
+        <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
           {stage ?? "Connecting to GPU…"}
         </p>
       </div>
@@ -110,7 +110,7 @@ export function CardLoadingState({
         <p
           style={{
             fontSize: 10,
-            color: "var(--color-text-muted)",
+            color: "var(--text-muted)",
             margin: 0,
             textAlign: "center",
             lineHeight: 1.5,
@@ -145,9 +145,9 @@ export function CardErrorState({
             fontSize: 11,
             padding: "4px 10px",
             borderRadius: 6,
-            border: "1px solid var(--color-card-border)",
-            background: "var(--color-bg)",
-            color: "var(--color-text)",
+            border: "1px solid var(--card-border)",
+            background: "var(--bg)",
+            color: "var(--text)",
             cursor: "pointer",
             fontFamily: "var(--font-ibm-plex-sans), sans-serif",
           }}

@@ -8,7 +8,7 @@ const labelStyle = {
   fontSize: 10,
   fontWeight: 600,
   letterSpacing: "0.08em",
-  color: "var(--color-text-muted)",
+  color: "var(--text-muted)",
   textTransform: "uppercase",
   marginBottom: 8,
 } as const;
@@ -41,7 +41,7 @@ export default function ModelPicker({
     return (
       <div style={{ marginBottom: 20 }}>
         <label style={labelStyle}>Model</label>
-        <div style={{ padding: "8px 16px 4px", fontSize: 12, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+        <div style={{ padding: "8px 16px 4px", fontSize: 12, color: "var(--text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
           {tutorialModelName}
         </div>
       </div>
@@ -56,7 +56,7 @@ export default function ModelPicker({
             <label style={labelStyle}>Featured Models</label>
 
             {modelsLoading ? (
-              <div style={{ fontSize: 12, color: "var(--color-text-muted)", padding: "12px 0" }}>Loading models…</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "12px 0" }}>Loading models…</div>
             ) : (
               <div style={{
                 display: "grid",
@@ -74,10 +74,10 @@ export default function ModelPicker({
                       onClick={() => picker.selectFeaturedModel(m.id)}
                       title={m.description}
                       style={{
-                        border: `1.5px solid ${isSelected ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                        border: `1.5px solid ${isSelected ? "var(--accent)" : "var(--card-border)"}`,
                         borderRadius: 7,
                         padding: "8px 9px",
-                        background: isSelected ? "var(--color-surface-border)" : "var(--color-card)",
+                        background: isSelected ? "var(--surface-border)" : "var(--card)",
                         cursor: "pointer",
                         textAlign: "left",
                         transition: "border-color 120ms, background 120ms",
@@ -85,15 +85,15 @@ export default function ModelPicker({
                         flexDirection: "column",
                         gap: 3,
                       }}
-                      onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-accent)"; }}
-                      onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-card-border)"; }}
+                      onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent)"; }}
+                      onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--card-border)"; }}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "var(--color-accent)" : "var(--color-text)", lineHeight: 1.3 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "var(--accent)" : "var(--text)", lineHeight: 1.3 }}>
                         {m.display_name}
                       </span>
                       <span style={{
                         fontSize: 10,
-                        color: "var(--color-text-muted)",
+                        color: "var(--text-muted)",
                         lineHeight: 1.4,
                         display: "-webkit-box",
                         WebkitLineClamp: 2,
@@ -103,7 +103,7 @@ export default function ModelPicker({
                         {m.description}
                       </span>
                       {m.requires_hf_token && (
-                        <span style={{ fontSize: 9, color: "var(--color-text-muted)", marginTop: 1, letterSpacing: "0.02em" }}>
+                        <span style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 1, letterSpacing: "0.02em" }}>
                           HF token required
                         </span>
                       )}
@@ -116,11 +116,11 @@ export default function ModelPicker({
 
           {/* Divider */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
-            <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <div style={{ flex: 1, height: 1, background: "var(--surface-border)" }} />
+            <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>
               or
             </span>
-            <div style={{ flex: 1, height: 1, background: "var(--color-surface-border)" }} />
+            <div style={{ flex: 1, height: 1, background: "var(--surface-border)" }} />
           </div>
         </>
       )}
@@ -138,13 +138,13 @@ export default function ModelPicker({
             disabled={tutorialMode}
             style={{
               flex: 1,
-              border: `1px solid ${picker.usingCustom ? "var(--color-accent)" : "var(--color-card-border)"}`,
+              border: `1px solid ${picker.usingCustom ? "var(--accent)" : "var(--card-border)"}`,
               borderRadius: 6,
               padding: "6px 8px",
               fontSize: 11,
               fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              color: "var(--color-text)",
-              background: "var(--color-bg)",
+              color: "var(--text)",
+              background: "var(--bg)",
               outline: "none",
               transition: "border-color 120ms",
               ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
@@ -154,12 +154,12 @@ export default function ModelPicker({
             onClick={picker.validateCustomRepo}
             disabled={tutorialMode || !picker.customRepoId.trim() || picker.customValidating}
             style={{
-              border: "1px solid var(--color-card-border)",
+              border: "1px solid var(--card-border)",
               borderRadius: 6,
               padding: "6px 10px",
               fontSize: 11,
-              background: "var(--color-surface-border)",
-              color: "var(--color-text-muted)",
+              background: "var(--surface-border)",
+              color: "var(--text-muted)",
               cursor: (tutorialMode || !picker.customRepoId.trim() || picker.customValidating) ? "not-allowed" : "pointer",
               opacity: (tutorialMode || !picker.customRepoId.trim() || picker.customValidating) ? 0.5 : 1,
               whiteSpace: "nowrap",

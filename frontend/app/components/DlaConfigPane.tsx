@@ -114,11 +114,11 @@ export default function DlaConfigPane({
     gap: 6,
     cursor: "pointer",
     fontSize: 12,
-    color: "var(--color-text)",
+    color: "var(--text)",
   } as const;
 
   const radioInputStyle = {
-    accentColor: "var(--color-accent)",
+    accentColor: "var(--accent)",
     cursor: "pointer",
     width: 13,
     height: 13,
@@ -144,7 +144,7 @@ export default function DlaConfigPane({
 
         {/* Prompt */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
             Prompt
           </label>
           <textarea
@@ -154,12 +154,12 @@ export default function DlaConfigPane({
             rows={5}
             style={{
               width: "100%",
-              border: "1px solid var(--color-card-border)",
+              border: "1px solid var(--card-border)",
               borderRadius: 6,
               padding: "8px 10px",
               fontSize: 13,
-              color: "var(--color-text)",
-              background: "var(--color-bg)",
+              color: "var(--text)",
+              background: "var(--bg)",
               resize: "vertical",
               outline: "none",
               fontFamily: "inherit",
@@ -172,14 +172,14 @@ export default function DlaConfigPane({
         </div>
 
         {/* Analysis target section */}
-        <div style={{ borderTop: "1px solid var(--color-surface-border)", paddingTop: 16, marginBottom: 4 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 12 }}>
+        <div style={{ borderTop: "1px solid var(--surface-border)", paddingTop: 16, marginBottom: 4 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 12 }}>
             Analysis Target
           </label>
 
           {/* Position */}
           <div style={{ marginBottom: 14 }}>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--text)", marginBottom: 8 }}>
               Position
             </span>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
@@ -193,7 +193,7 @@ export default function DlaConfigPane({
                   style={radioInputStyle}
                 />
                 Last token
-                <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>
+                <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 2 }}>
                   — next-token prediction (most common)
                 </span>
               </label>
@@ -218,13 +218,13 @@ export default function DlaConfigPane({
                   style={{
                     width: 72,
                     marginLeft: 6,
-                    border: `1px solid ${positionMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                    border: `1px solid ${positionMode === "custom" ? "var(--accent)" : "var(--card-border)"}`,
                     borderRadius: 5,
                     padding: "3px 6px",
                     fontSize: 11,
                     fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: "var(--color-text)",
-                    background: "var(--color-bg)",
+                    color: "var(--text)",
+                    background: "var(--bg)",
                     outline: "none",
                     transition: "border-color 120ms",
                   }}
@@ -235,7 +235,7 @@ export default function DlaConfigPane({
 
           {/* Target token */}
           <div style={{ marginBottom: 14 }}>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--text)", marginBottom: 8 }}>
               Target token
             </span>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
@@ -249,7 +249,7 @@ export default function DlaConfigPane({
                   style={radioInputStyle}
                 />
                 Top prediction
-                <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>
+                <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 2 }}>
                   — attribute the model&apos;s most likely next token
                 </span>
               </label>
@@ -273,13 +273,13 @@ export default function DlaConfigPane({
                   style={{
                     flex: 1,
                     marginLeft: 6,
-                    border: `1px solid ${tokenMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                    border: `1px solid ${tokenMode === "custom" ? "var(--accent)" : "var(--card-border)"}`,
                     borderRadius: 5,
                     padding: "3px 6px",
                     fontSize: 11,
                     fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: "var(--color-text)",
-                    background: "var(--color-bg)",
+                    color: "var(--text)",
+                    background: "var(--bg)",
                     outline: "none",
                     transition: "border-color 120ms",
                   }}
@@ -300,9 +300,9 @@ export default function DlaConfigPane({
 
           {/* Contrastive token (optional) */}
           <div>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 4 }}>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--text)", marginBottom: 4 }}>
               Contrastive token
-              <span style={{ fontSize: 10, fontWeight: 400, color: "var(--color-text-muted)", marginLeft: 6 }}>optional</span>
+              <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>optional</span>
             </span>
             <input
               type="text"
@@ -312,13 +312,13 @@ export default function DlaConfigPane({
               disabled={tutorialMode}
               style={{
                 width: "100%",
-                border: `1px solid ${contrastiveToken.trim() ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                border: `1px solid ${contrastiveToken.trim() ? "var(--accent)" : "var(--card-border)"}`,
                 borderRadius: 5,
                 padding: "4px 8px",
                 fontSize: 11,
                 fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                color: "var(--color-text)",
-                background: "var(--color-bg)",
+                color: "var(--text)",
+                background: "var(--bg)",
                 outline: "none",
                 transition: "border-color 120ms",
                 boxSizing: "border-box",
@@ -334,7 +334,7 @@ export default function DlaConfigPane({
                 )}
               </div>
             )}
-            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.5 }}>
               When set, uses logit difference (target − contrastive) as the attribution direction — the standard metric for contrastive tasks like IOI.
             </p>
           </div>

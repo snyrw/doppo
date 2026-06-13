@@ -120,11 +120,11 @@ export default function AttributionConfigPane({
     gap: 6,
     cursor: "pointer",
     fontSize: 12,
-    color: "var(--color-text)",
+    color: "var(--text)",
   } as const;
 
   const radioInputStyle = {
-    accentColor: "var(--color-accent)",
+    accentColor: "var(--accent)",
     cursor: "pointer",
     width: 13,
     height: 13,
@@ -153,10 +153,10 @@ export default function AttributionConfigPane({
         {/* Prompts */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-            <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+            <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase" }}>
               Reference Prompt
             </label>
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+            <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
               {cleanPrompt.trim() ? cleanPrompt.trim().split(/\s+/).length : 0}w
             </span>
           </div>
@@ -167,9 +167,9 @@ export default function AttributionConfigPane({
             rows={3}
             placeholder="Where the behavior you want to explain occurs"
             style={{
-              width: "100%", border: "1px solid var(--color-card-border)", borderRadius: 6,
-              padding: "8px 10px", fontSize: 12, color: "var(--color-text)",
-              background: "var(--color-bg)", resize: "vertical", outline: "none",
+              width: "100%", border: "1px solid var(--card-border)", borderRadius: 6,
+              padding: "8px 10px", fontSize: 12, color: "var(--text)",
+              background: "var(--bg)", resize: "vertical", outline: "none",
               fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
               ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
             }}
@@ -179,10 +179,10 @@ export default function AttributionConfigPane({
 
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-            <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+            <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase" }}>
               Counterfactual Prompt
             </label>
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+            <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
               {corruptedPrompt.trim() ? corruptedPrompt.trim().split(/\s+/).length : 0}w
             </span>
           </div>
@@ -193,9 +193,9 @@ export default function AttributionConfigPane({
             rows={3}
             placeholder="A variation that changes the behavior"
             style={{
-              width: "100%", border: "1px solid var(--color-card-border)", borderRadius: 6,
-              padding: "8px 10px", fontSize: 12, color: "var(--color-text)",
-              background: "var(--color-bg)", resize: "vertical", outline: "none",
+              width: "100%", border: "1px solid var(--card-border)", borderRadius: 6,
+              padding: "8px 10px", fontSize: 12, color: "var(--text)",
+              background: "var(--bg)", resize: "vertical", outline: "none",
               fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
               ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
             }}
@@ -220,25 +220,25 @@ export default function AttributionConfigPane({
               </p>
             ) : null;
           })()}
-          <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
+          <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6 }}>
             Attribution patching scores each component by how much its activation change (reference → counterfactual) points toward the target token.{" "}
             <em>Verify top K</em> on the result card then runs causal activation patches on the top candidates to confirm.
           </p>
         </div>
 
         {/* Analysis target */}
-        <div style={{ borderTop: "1px solid var(--color-surface-border)", paddingTop: 16, marginBottom: 4 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 12 }}>
+        <div style={{ borderTop: "1px solid var(--surface-border)", paddingTop: 16, marginBottom: 4 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 12 }}>
             Analysis Target
           </label>
 
           <div style={{ marginBottom: 14 }}>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>Position</span>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--text)", marginBottom: 8 }}>Position</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <label style={radioStyle}>
                 <input type="radio" name="attr-position" checked={positionMode === "last"} onChange={() => setPositionMode("last")} disabled={tutorialMode} style={radioInputStyle} />
                 Last token
-                <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>— next-token prediction (most common)</span>
+                <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 2 }}>— next-token prediction (most common)</span>
               </label>
               <label style={{ ...radioStyle, alignItems: "flex-start" }}>
                 <input type="radio" name="attr-position" checked={positionMode === "custom"} onChange={() => setPositionMode("custom")} disabled={tutorialMode} style={{ ...radioInputStyle, marginTop: 2 }} />
@@ -251,10 +251,10 @@ export default function AttributionConfigPane({
                   disabled={tutorialMode}
                   style={{
                     width: 72, marginLeft: 6,
-                    border: `1px solid ${positionMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                    border: `1px solid ${positionMode === "custom" ? "var(--accent)" : "var(--card-border)"}`,
                     borderRadius: 5, padding: "3px 6px", fontSize: 11,
                     fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
+                    color: "var(--text)", background: "var(--bg)", outline: "none",
                     transition: "border-color 120ms",
                   }}
                 />
@@ -263,12 +263,12 @@ export default function AttributionConfigPane({
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>Target token</span>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--text)", marginBottom: 8 }}>Target token</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <label style={radioStyle}>
                 <input type="radio" name="attr-token" checked={tokenMode === "auto"} onChange={() => setTokenMode("auto")} disabled={tutorialMode} style={radioInputStyle} />
                 Top prediction
-                <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>— attribute the model&apos;s most likely next token</span>
+                <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 2 }}>— attribute the model&apos;s most likely next token</span>
               </label>
               <label style={{ ...radioStyle, alignItems: "flex-start" }}>
                 <input type="radio" name="attr-token" checked={tokenMode === "custom"} onChange={() => setTokenMode("custom")} disabled={tutorialMode} style={{ ...radioInputStyle, marginTop: 2 }} />
@@ -281,10 +281,10 @@ export default function AttributionConfigPane({
                   disabled={tutorialMode}
                   style={{
                     flex: 1, marginLeft: 6,
-                    border: `1px solid ${tokenMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                    border: `1px solid ${tokenMode === "custom" ? "var(--accent)" : "var(--card-border)"}`,
                     borderRadius: 5, padding: "3px 6px", fontSize: 11,
                     fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
+                    color: "var(--text)", background: "var(--bg)", outline: "none",
                     transition: "border-color 120ms",
                   }}
                 />
@@ -304,9 +304,9 @@ export default function AttributionConfigPane({
 
           {/* Contrastive token (optional) */}
           <div>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 4 }}>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--text)", marginBottom: 4 }}>
               Contrastive token
-              <span style={{ fontSize: 10, fontWeight: 400, color: "var(--color-text-muted)", marginLeft: 6 }}>optional</span>
+              <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>optional</span>
             </span>
             <input
               type="text"
@@ -316,10 +316,10 @@ export default function AttributionConfigPane({
               disabled={tutorialMode}
               style={{
                 width: "100%",
-                border: `1px solid ${contrastiveToken.trim() ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                border: `1px solid ${contrastiveToken.trim() ? "var(--accent)" : "var(--card-border)"}`,
                 borderRadius: 5, padding: "4px 8px", fontSize: 11,
                 fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
+                color: "var(--text)", background: "var(--bg)", outline: "none",
                 transition: "border-color 120ms", boxSizing: "border-box",
               }}
             />
@@ -333,7 +333,7 @@ export default function AttributionConfigPane({
                 )}
               </div>
             )}
-            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.5 }}>
               When set, the gradient metric becomes logit(target) − logit(contrastive). Recommended for IOI-style tasks.
             </p>
           </div>

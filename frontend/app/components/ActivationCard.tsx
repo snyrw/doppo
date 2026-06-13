@@ -124,9 +124,9 @@ function ActivationCard({
         top: card.position.y,
         zIndex: 10,
         width: 320,
-        background: "var(--color-card)",
+        background: "var(--card)",
         borderRadius: 8,
-        border: "1px solid var(--color-card-border)",
+        border: "1px solid var(--card-border)",
         boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",
@@ -137,24 +137,24 @@ function ActivationCard({
       {headerHovered && (
         <div style={{
           position: "absolute", bottom: "calc(100% + 6px)", left: 0,
-          background: "var(--color-card)", border: "1px solid var(--color-card-border)",
+          background: "var(--card)", border: "1px solid var(--card-border)",
           borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
           padding: "10px 12px", zIndex: 100, pointerEvents: "none",
           minWidth: 200, maxWidth: 300,
         }}>
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
             {card.cleanPrompt}
           </p>
           <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
             {card.gpuTier && (
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
                 {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
               </span>
             )}
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
               Activation Patch
             </span>
           </div>
@@ -169,24 +169,24 @@ function ActivationCard({
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
         style={{
-          padding: "7px 10px", borderBottom: "1px solid var(--color-surface-border)",
+          padding: "7px 10px", borderBottom: "1px solid var(--surface-border)",
           display: "flex", alignItems: "center", gap: 6,
           cursor: "grab", userSelect: "none", flexShrink: 0,
           borderRadius: "8px 8px 0 0",
         }}
       >
         <CardDragHandle />
-        <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0 }}>
+        <span style={{ fontSize: 11, color: "var(--text)", fontWeight: 600, flexShrink: 0 }}>
           Activation Patch
         </span>
-        <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: 10, color: "var(--text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           top {card.k}
         </span>
         {!tutorialMode && (
           <button
             onPointerDown={e => e.stopPropagation()}
             onClick={() => onRemove(card.id)}
-            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+            style={{ fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
           >
             ×
           </button>
@@ -209,15 +209,15 @@ function ActivationCard({
         <>
           {/* Column headers */}
           {/* borderLeft matches the 3px selection border on rows so columns line up */}
-          <div style={{ display: "flex", alignItems: "center", padding: "6px 10px 4px", gap: 6, borderBottom: "1px solid var(--color-surface-border)", borderLeft: "3px solid transparent" }}>
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", width: 64, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden" }}>Component</span>
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", flex: 1 }}>Attribution</span>
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", flex: 1 }}>Effect</span>
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", textTransform: "uppercase", width: 52, flexShrink: 0, textAlign: "right" }}>Match</span>
+          <div style={{ display: "flex", alignItems: "center", padding: "6px 10px 4px", gap: 6, borderBottom: "1px solid var(--surface-border)", borderLeft: "3px solid transparent" }}>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--text-muted)", textTransform: "uppercase", width: 64, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden" }}>Component</span>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--text-muted)", textTransform: "uppercase", flex: 1 }}>Attribution</span>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--text-muted)", textTransform: "uppercase", flex: 1 }}>Effect</span>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--text-muted)", textTransform: "uppercase", width: 52, flexShrink: 0, textAlign: "right" }}>Match</span>
           </div>
 
           {/* Rows */}
-          <div style={{ overflowY: "auto", overflowX: "hidden", background: "var(--color-card)" }}>
+          <div style={{ overflowY: "auto", overflowX: "hidden", background: "var(--card)" }}>
             {card.data.components.map((comp, i) => {
               const match = matchLabel(comp.actual_effect);
               const attrColor = interpolateColorDivergent("rdbu", comp.attribution_score, attrAbsMax);
@@ -232,11 +232,11 @@ function ActivationCard({
                   <div style={{ fontWeight: 600, marginBottom: 3 }}>{label}</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2, fontVariantNumeric: "tabular-nums" }}>
                     <div style={{ display: "flex", gap: 14, justifyContent: "space-between" }}>
-                      <span style={{ color: "var(--color-text-muted)" }}>attr</span>
+                      <span style={{ color: "var(--text-muted)" }}>attr</span>
                       <span>{comp.attribution_score >= 0 ? "+" : ""}{comp.attribution_score.toFixed(3)}</span>
                     </div>
                     <div style={{ display: "flex", gap: 14, justifyContent: "space-between" }}>
-                      <span style={{ color: "var(--color-text-muted)" }}>effect</span>
+                      <span style={{ color: "var(--text-muted)" }}>effect</span>
                       <span>{(comp.actual_effect * 100).toFixed(1)}%</span>
                     </div>
                   </div>
@@ -265,24 +265,24 @@ function ActivationCard({
                   )}
                   style={{
                     display: "flex", alignItems: "center", padding: "5px 10px", gap: 6,
-                    borderBottom: "1px solid var(--color-surface-border)",
-                    borderLeft: isSelected ? "3px solid var(--color-accent)" : "3px solid transparent",
+                    borderBottom: "1px solid var(--surface-border)",
+                    borderLeft: isSelected ? "3px solid var(--accent)" : "3px solid transparent",
                     cursor: "pointer",
                     transition: "border-color 100ms",
                   }}
                 >
                   {/* Component label */}
-                  <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", width: 64, flexShrink: 0, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text)", width: 64, flexShrink: 0, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {label}
                   </span>
 
                   {/* Attribution bar */}
-                  <div style={{ flex: 1, height: 8, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{ flex: 1, height: 8, background: "var(--surface-border)", borderRadius: 2, overflow: "hidden" }}>
                     <div style={{ width: `${attrFrac * 100}%`, height: "100%", background: attrColor, borderRadius: 2 }} />
                   </div>
 
                   {/* Effect bar */}
-                  <div style={{ flex: 1, height: 8, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{ flex: 1, height: 8, background: "var(--surface-border)", borderRadius: 2, overflow: "hidden" }}>
                     <div style={{ width: `${effectFrac * 100}%`, height: "100%", background: effectColor, borderRadius: 2, opacity: 0.7 + effectFrac * 0.3 }} />
                   </div>
 
@@ -303,8 +303,8 @@ function ActivationCard({
 
           {/* Footer: Spearman correlation + Steer button */}
           {(spearman !== null || selectedComponents.length > 0) && (
-            <div style={{ padding: "7px 10px", borderTop: "1px solid var(--color-surface-border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 9, color: "var(--color-text-muted)", flex: 1 }}>
+            <div style={{ padding: "7px 10px", borderTop: "1px solid var(--surface-border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 9, color: "var(--text-muted)", flex: 1 }}>
                 {spearman !== null ? `Spearman ρ ${spearman >= 0 ? "+" : ""}${spearman.toFixed(2)}` : ""}
               </span>
               {selectedComponents.length > 0 && !tutorialMode && (
@@ -313,7 +313,7 @@ function ActivationCard({
                   onClick={() => { onSteerComponents(card.id, selectedComponents); setSelectedComponents([]); }}
                   style={{
                     fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                    background: "var(--color-accent)", color: "var(--color-accent-fg)",
+                    background: "var(--accent)", color: "var(--accent-fg)",
                     border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
                   }}
                 >

@@ -44,8 +44,8 @@ export default function ConfigPaneShell({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        background: "var(--color-card)",
-        border: "1px solid var(--color-card-border)",
+        background: "var(--card)",
+        border: "1px solid var(--card-border)",
         borderRadius: 8,
         boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
         animation: "cfgDropIn 140ms ease-out",
@@ -58,10 +58,10 @@ export default function ConfigPaneShell({
           alignItems: "center",
           justifyContent: "space-between",
           padding: "14px 16px 12px",
-          borderBottom: "1px solid var(--color-surface-border)",
+          borderBottom: "1px solid var(--surface-border)",
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)", letterSpacing: "0.01em" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", letterSpacing: "0.01em" }}>
           {title}
         </span>
         <button
@@ -75,14 +75,14 @@ export default function ConfigPaneShell({
             borderRadius: 4,
             border: "none",
             background: "transparent",
-            color: "var(--color-text-muted)",
+            color: "var(--text-muted)",
             cursor: "pointer",
             fontSize: 16,
             lineHeight: 1,
             transition: "background 120ms, color 120ms",
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = "var(--color-surface-border)"; e.currentTarget.style.color = "var(--color-text)"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--color-text-muted)"; }}
+          onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-border)"; e.currentTarget.style.color = "var(--text)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
         >
           ×
         </button>
@@ -94,7 +94,7 @@ export default function ConfigPaneShell({
       </div>
 
       {/* Footer */}
-      <div style={{ padding: "12px 16px", borderTop: "1px solid var(--color-surface-border)" }}>
+      <div style={{ padding: "12px 16px", borderTop: "1px solid var(--surface-border)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {footerExtra}
           <button
@@ -105,16 +105,16 @@ export default function ConfigPaneShell({
               padding: "10px 0",
               borderRadius: 6,
               border: "none",
-              background: !canRun ? "var(--color-surface-border)" : "var(--color-accent)",
-              color: !canRun ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+              background: !canRun ? "var(--surface-border)" : "var(--accent)",
+              color: !canRun ? "var(--text-muted)" : "var(--accent-fg)",
               fontSize: 13,
               fontWeight: 600,
               cursor: !canRun ? "not-allowed" : "pointer",
               letterSpacing: "0.02em",
               transition: "background 150ms",
             }}
-            onMouseEnter={e => { if (canRun) e.currentTarget.style.background = "var(--color-accent-hover)"; }}
-            onMouseLeave={e => { if (canRun) e.currentTarget.style.background = "var(--color-accent)"; }}
+            onMouseEnter={e => { if (canRun) e.currentTarget.style.background = "var(--accent-hover)"; }}
+            onMouseLeave={e => { if (canRun) e.currentTarget.style.background = "var(--accent)"; }}
           >
             {runLabel}
           </button>

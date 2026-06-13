@@ -5,12 +5,12 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { resetPassword } from "../lib/auth-client";
 
 const inputStyle: React.CSSProperties = {
-  border: "1px solid var(--color-card-border)",
+  border: "1px solid var(--card-border)",
   borderRadius: 6,
   padding: "6px 10px",
   fontSize: 13,
-  color: "var(--color-text)",
-  background: "var(--color-bg)",
+  color: "var(--text)",
+  background: "var(--bg)",
   width: "100%",
   boxSizing: "border-box",
   outline: "none",
@@ -34,10 +34,10 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
+      <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>
         This link is invalid or has expired.{" "}
         <button
-          style={{ color: "var(--color-accent)", textDecoration: "underline", background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 13 }}
+          style={{ color: "var(--accent)", textDecoration: "underline", background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 13 }}
           onClick={() => { router.push("/"); openAuthModal("forgot"); }}
         >
           Request a new link
@@ -49,7 +49,7 @@ function ResetPasswordForm() {
   if (done) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
+        <p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>
           Password updated.
         </p>
         <button
@@ -61,8 +61,8 @@ function ResetPasswordForm() {
             border: "none",
             cursor: "pointer",
             width: "100%",
-            background: "var(--color-accent)",
-            color: "var(--color-accent-fg)",
+            background: "var(--accent)",
+            color: "var(--accent-fg)",
           }}
           onClick={() => { router.push("/"); openAuthModal("signin"); }}
         >
@@ -121,8 +121,8 @@ function ResetPasswordForm() {
           border: "none",
           cursor: loading ? "not-allowed" : "pointer",
           width: "100%",
-          background: "var(--color-accent)",
-          color: "var(--color-accent-fg)",
+          background: "var(--accent)",
+          color: "var(--accent-fg)",
           opacity: loading ? 0.5 : 1,
           transition: "background 150ms",
         }}
@@ -141,12 +141,12 @@ export default function ResetPasswordPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "var(--color-bg)",
+        background: "var(--bg)",
       }}
     >
       <div
         style={{
-          background: "var(--color-card)",
+          background: "var(--card)",
           borderRadius: 8,
           boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
           padding: 24,
@@ -154,10 +154,10 @@ export default function ResetPasswordPage() {
           maxWidth: 384,
         }}
       >
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, marginTop: 0, color: "var(--color-text)" }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, marginTop: 0, color: "var(--text)" }}>
           Reset password
         </h2>
-        <Suspense fallback={<p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>Loading...</p>}>
+        <Suspense fallback={<p style={{ margin: 0, fontSize: 13, color: "var(--text-muted)" }}>Loading...</p>}>
           <ResetPasswordForm />
         </Suspense>
       </div>

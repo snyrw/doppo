@@ -98,13 +98,13 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
   return (
     <header
       style={{
-        background: "var(--color-bg)",
+        background: "var(--bg)",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
         padding: "0 20px",
         height: 50,
-        borderBottom: "1px solid var(--color-surface-border)",
+        borderBottom: "1px solid var(--surface-border)",
         flexShrink: 0,
         zIndex: 40,
         position: "relative",
@@ -130,7 +130,7 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
             fontFamily: "var(--font-ibm-plex-sans), sans-serif",
             fontSize: 14,
             fontWeight: 500,
-            color: "var(--color-accent)",
+            color: "var(--accent)",
             letterSpacing: "-0.01em",
           }}
         >
@@ -141,7 +141,7 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {actions}
         <AuthButtons />
-        <div style={{ width: 1, height: 16, background: "var(--color-surface-border)", flexShrink: 0 }} />
+        <div style={{ width: 1, height: 16, background: "var(--surface-border)", flexShrink: 0 }} />
 
         <CreditsButton />
 
@@ -163,8 +163,8 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
                 position: "absolute",
                 top: "calc(100% + 8px)",
                 right: 0,
-                background: "var(--color-card)",
-                border: "1px solid var(--color-card-border)",
+                background: "var(--card)",
+                border: "1px solid var(--card-border)",
                 borderRadius: 8,
                 boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
                 width: 224,
@@ -175,11 +175,11 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
               <div
                 style={{
                   padding: "8px 12px 7px",
-                  borderBottom: "1px solid var(--color-surface-border)",
+                  borderBottom: "1px solid var(--surface-border)",
                   fontSize: 9,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: "var(--color-text-muted)",
+                  color: "var(--text-muted)",
                   fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                 }}
               >
@@ -200,18 +200,18 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
                       gap: 6,
                       width: "100%",
                       padding: "10px 12px",
-                      background: isSelected ? "var(--color-surface-border)" : "var(--color-card)",
+                      background: isSelected ? "var(--surface-border)" : "var(--card)",
                       border: "none",
-                      borderBottom: isLast ? "none" : "1px solid var(--color-surface-border)",
+                      borderBottom: isLast ? "none" : "1px solid var(--surface-border)",
                       cursor: "pointer",
                       textAlign: "left",
                       transition: "background 100ms",
                     }}
                     onMouseEnter={e => {
-                      if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)";
+                      if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)";
                     }}
                     onMouseLeave={e => {
-                      if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)";
+                      if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "var(--card)";
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -219,14 +219,14 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
                         style={{
                           fontSize: 12,
                           fontWeight: isSelected ? 700 : 500,
-                          color: "var(--color-text)",
+                          color: "var(--text)",
                           fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                         }}
                       >
                         {meta.label}
                       </span>
                       {isSelected && (
-                        <span style={{ color: "var(--color-accent)" }}>
+                        <span style={{ color: "var(--accent)" }}>
                           <CheckIcon />
                         </span>
                       )}
@@ -236,13 +236,13 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
                         height: 8,
                         borderRadius: 3,
                         background: meta.swatchCss,
-                        border: "1px solid var(--color-surface-border)",
+                        border: "1px solid var(--surface-border)",
                       }}
                     />
                     <span
                       style={{
                         fontSize: 9,
-                        color: "var(--color-text-muted)",
+                        color: "var(--text-muted)",
                         fontFamily: "var(--font-ibm-plex-sans), sans-serif",
                       }}
                     >

@@ -135,9 +135,9 @@ function AttributionCard({
         left: card.position.x,
         top: card.position.y,
         zIndex: 10,
-        background: "var(--color-card)",
+        background: "var(--card)",
         borderRadius: 8,
-        border: "1px solid var(--color-card-border)",
+        border: "1px solid var(--card-border)",
         boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",
@@ -150,27 +150,27 @@ function AttributionCard({
       {headerHovered && (
         <div style={{
           position: "absolute", bottom: "calc(100% + 6px)", left: 0,
-          background: "var(--color-card)", border: "1px solid var(--color-card-border)",
+          background: "var(--card)", border: "1px solid var(--card-border)",
           borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
           padding: "10px 12px", zIndex: 100, pointerEvents: "none",
           minWidth: 220, maxWidth: 340, animation: "fadeUp 120ms ease-out",
         }}>
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 2px", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "5px 0 2px", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
             <span style={{ opacity: 0.6 }}>ref: </span>{card.cleanPrompt}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
             <span style={{ opacity: 0.6 }}>∼: </span>{card.corruptedPrompt}
           </p>
           <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
             {card.gpuTier && (
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
                 {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
               </span>
             )}
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
               Attribution
             </span>
           </div>
@@ -185,7 +185,7 @@ function AttributionCard({
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
         style={{
-          borderBottom: "1px solid var(--color-surface-border)",
+          borderBottom: "1px solid var(--surface-border)",
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,
@@ -197,17 +197,17 @@ function AttributionCard({
         {/* Row 1: drag strip */}
         <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
           <CardDragHandle />
-          <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 11, color: "var(--text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {card.modelName}
           </span>
-          <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 10, color: "var(--text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {card.cleanPrompt}
           </span>
           {!tutorialMode && (
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={() => onRemove(card.id)}
-              style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+              style={{ fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
             >
               ×
             </button>
@@ -220,7 +220,7 @@ function AttributionCard({
             onPointerDown={e => e.stopPropagation()}
             style={{
               padding: "4px 10px",
-              borderTop: "1px solid var(--color-surface-border)",
+              borderTop: "1px solid var(--surface-border)",
               display: "flex",
               alignItems: "center",
               gap: 6,
@@ -229,8 +229,8 @@ function AttributionCard({
             {card.data?.target_token && (
               <span style={{
                 fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontWeight: 600,
-                color: "var(--color-accent)", background: "var(--color-surface-border)",
-                border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px",
+                color: "var(--accent)", background: "var(--surface-border)",
+                border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px",
                 whiteSpace: "nowrap",
               }}>
                 {card.data.contrastive_token
@@ -239,15 +239,15 @@ function AttributionCard({
               </span>
             )}
             <div style={{ flex: 1 }} />
-            <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
+            <div style={{ display: "flex", border: "1px solid var(--card-border)", borderRadius: 4, overflow: "hidden" }}>
               {(["layer", "head"] as const).map(v => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
                   style={{
                     fontSize: 9, padding: "2px 6px",
-                    background: view === v ? "var(--color-accent)" : "transparent",
-                    color: view === v ? "var(--color-accent-fg)" : "var(--color-text-muted)",
+                    background: view === v ? "var(--accent)" : "transparent",
+                    color: view === v ? "var(--accent-fg)" : "var(--text-muted)",
                     border: "none", cursor: "pointer", lineHeight: 1.4, textTransform: "capitalize",
                   }}
                 >
@@ -264,13 +264,13 @@ function AttributionCard({
             onPointerDown={e => e.stopPropagation()}
             style={{
               padding: "4px 10px",
-              borderTop: "1px solid var(--color-surface-border)",
+              borderTop: "1px solid var(--surface-border)",
               display: "flex",
               alignItems: "center",
               gap: 6,
             }}
           >
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 9, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
               Verify top-K
             </span>
             <div style={{ flex: 1 }} />
@@ -284,15 +284,15 @@ function AttributionCard({
               </span>
             ) : (
               <>
-                <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ display: "flex", border: "1px solid var(--card-border)", borderRadius: 4, overflow: "hidden" }}>
                   {K_OPTIONS.map(k => (
                     <button
                       key={k}
                       onClick={() => setSelectedK(k)}
                       style={{
                         fontSize: 9, padding: "2px 5px",
-                        background: selectedK === k ? "var(--color-surface-border)" : "transparent",
-                        color: selectedK === k ? "var(--color-text)" : "var(--color-text-muted)",
+                        background: selectedK === k ? "var(--surface-border)" : "transparent",
+                        color: selectedK === k ? "var(--text)" : "var(--text-muted)",
                         border: "none", cursor: "pointer", lineHeight: 1.4,
                       }}
                     >
@@ -305,8 +305,8 @@ function AttributionCard({
                   disabled={isVerifying}
                   style={{
                     fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                    background: isVerifying ? "var(--color-surface-border)" : "var(--color-accent)",
-                    color: isVerifying ? "var(--color-text-muted)" : "var(--color-accent-fg)",
+                    background: isVerifying ? "var(--surface-border)" : "var(--accent)",
+                    color: isVerifying ? "var(--text-muted)" : "var(--accent-fg)",
                     border: "none", borderRadius: 4, cursor: isVerifying ? "not-allowed" : "pointer",
                     display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
                     transition: "background 120ms",
@@ -331,7 +331,7 @@ function AttributionCard({
                   onClick={() => onSteerComponents(card.id, [{ layer: topLayer, head: null, injectionType: "residual" }])}
                   style={{
                     fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                    background: "var(--color-accent)", color: "var(--color-accent-fg)",
+                    background: "var(--accent)", color: "var(--accent-fg)",
                     border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
                     transition: "background 120ms",
                   }}
@@ -344,7 +344,7 @@ function AttributionCard({
                     onClick={() => { onSteerComponents(card.id, selectedComponents); setSelectedComponents([]); }}
                     style={{
                       fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                      background: "var(--color-accent)", color: "var(--color-accent-fg)",
+                      background: "var(--accent)", color: "var(--accent-fg)",
                       border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
                       transition: "background 120ms",
                     }}
@@ -374,7 +374,7 @@ function AttributionCard({
 
       {/* Result */}
       {card.status === "result" && card.data && (
-        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--color-card)" }}>
+        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--card)" }}>
           {view === "layer" ? (
             <LayerView data={card.data} absMax={absMax} />
           ) : (
@@ -399,15 +399,15 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
 
         return (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-            <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
+            <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)" }}>
               {label}
             </div>
             <div
               onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span style={{ fontWeight: 600 }}>{label}</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
               onMouseLeave={() => setTooltip(null)}
-              style={{ width: LAYER_BAR_W, height: LAYER_CELL_H, flexShrink: 0, display: "flex", alignItems: "stretch", borderRadius: 2, overflow: "hidden", background: "var(--color-surface-border)", position: "relative" }}
+              style={{ width: LAYER_BAR_W, height: LAYER_CELL_H, flexShrink: 0, display: "flex", alignItems: "stretch", borderRadius: 2, overflow: "hidden", background: "var(--surface-border)", position: "relative" }}
             >
-              <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "var(--color-card-border)", zIndex: 1 }} />
+              <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "var(--card-border)", zIndex: 1 }} />
               {isPositive ? (
                 <>
                   <div style={{ width: "50%" }} />
@@ -421,7 +421,7 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
                 </>
               )}
             </div>
-            <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+            <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
               {val >= 0 ? "+" : ""}{val.toFixed(2)}
             </span>
           </div>
@@ -453,7 +453,7 @@ function HeadView({
             key={i}
             style={{
               width: HEAD_CELL_SIZE, flexShrink: 0, fontSize: 7, textAlign: "center",
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)",
+              fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)",
               overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", paddingBottom: 2,
             }}
           >
@@ -463,7 +463,7 @@ function HeadView({
       </div>
       {data.y_labels.map((label, li) => (
         <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
+          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)" }}>
             {label}
           </div>
           {data.head_attribution[li].map((val, hi) => {
@@ -479,9 +479,9 @@ function HeadView({
                 style={{
                   width: HEAD_CELL_SIZE, height: HEAD_CELL_SIZE, flexShrink: 0,
                   backgroundColor: color,
-                  border: isSelected ? "1.5px solid var(--color-text)" : "0.5px solid var(--color-surface-border)",
+                  border: isSelected ? "1.5px solid var(--text)" : "0.5px solid var(--surface-border)",
                   borderRadius: 2, boxSizing: "border-box", cursor: "pointer",
-                  outline: isSelected ? "1px solid var(--color-accent)" : "none",
+                  outline: isSelected ? "1px solid var(--accent)" : "none",
                   outlineOffset: 1,
                 }}
               />

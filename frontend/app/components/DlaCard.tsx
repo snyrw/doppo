@@ -119,9 +119,9 @@ function DlaCard({
         left: card.position.x,
         top: card.position.y,
         zIndex: 10,
-        background: "var(--color-card)",
+        background: "var(--card)",
         borderRadius: 8,
-        border: "1px solid var(--color-card-border)",
+        border: "1px solid var(--card-border)",
         boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
         display: "flex",
         flexDirection: "column",
@@ -137,8 +137,8 @@ function DlaCard({
             position: "absolute",
             bottom: "calc(100% + 6px)",
             left: 0,
-            background: "var(--color-card)",
-            border: "1px solid var(--color-card-border)",
+            background: "var(--card)",
+            border: "1px solid var(--card-border)",
             borderRadius: 8,
             boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
             padding: "10px 12px",
@@ -149,19 +149,19 @@ function DlaCard({
             animation: "fadeUp 120ms ease-out",
           }}
         >
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
+          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
+          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
             {card.prompt}
           </p>
           <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
             {card.gpuTier && (
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
                 {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
               </span>
             )}
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
               DLA
             </span>
           </div>
@@ -176,7 +176,7 @@ function DlaCard({
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
         style={{
-          borderBottom: "1px solid var(--color-surface-border)",
+          borderBottom: "1px solid var(--surface-border)",
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,
@@ -188,17 +188,17 @@ function DlaCard({
         {/* Row 1: drag strip */}
         <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
           <CardDragHandle />
-          <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 11, color: "var(--text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {card.modelName}
           </span>
-          <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: 10, color: "var(--text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {card.prompt}
           </span>
           {!tutorialMode && (
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={() => onRemove(card.id)}
-              style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+              style={{ fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
             >
               ×
             </button>
@@ -211,7 +211,7 @@ function DlaCard({
             onPointerDown={e => e.stopPropagation()}
             style={{
               padding: "4px 10px",
-              borderTop: "1px solid var(--color-surface-border)",
+              borderTop: "1px solid var(--surface-border)",
               display: "flex",
               alignItems: "center",
               gap: 6,
@@ -220,8 +220,8 @@ function DlaCard({
             {card.data?.target_token && (
               <span style={{
                 fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontWeight: 600,
-                color: "var(--color-accent)", background: "var(--color-surface-border)",
-                border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px",
+                color: "var(--accent)", background: "var(--surface-border)",
+                border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px",
                 whiteSpace: "nowrap",
               }}>
                 {card.data.contrastive_token
@@ -230,15 +230,15 @@ function DlaCard({
               </span>
             )}
             <div style={{ flex: 1 }} />
-            <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden" }}>
+            <div style={{ display: "flex", border: "1px solid var(--card-border)", borderRadius: 4, overflow: "hidden" }}>
               {(["layer", "head", "top"] as const).map(v => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
                   style={{
                     fontSize: 9, padding: "2px 6px",
-                    background: view === v ? "var(--color-accent)" : "transparent",
-                    color: view === v ? "var(--color-accent-fg)" : "var(--color-text-muted)",
+                    background: view === v ? "var(--accent)" : "transparent",
+                    color: view === v ? "var(--accent-fg)" : "var(--text-muted)",
                     border: "none", cursor: "pointer", lineHeight: 1.4, textTransform: "capitalize",
                   }}
                 >
@@ -266,7 +266,7 @@ function DlaCard({
 
       {/* Result */}
       {card.status === "result" && card.data && (
-        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--color-card)" }}>
+        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--card)" }}>
           {view === "layer" ? (
             <LayerView data={card.data} absMax={absMax} />
           ) : view === "head" ? (
@@ -292,9 +292,9 @@ function DivergingBar({ val, absMax, width = LAYER_BAR_W, height = LAYER_CELL_H,
     <div
       onMouseEnter={(e) => tooltipContent && setHover({ x: e.clientX, y: e.clientY })}
       onMouseLeave={() => setHover(null)}
-      style={{ width, height, flexShrink: 0, display: "flex", alignItems: "stretch", borderRadius: 2, overflow: "hidden", background: "var(--color-surface-border)", position: "relative" }}
+      style={{ width, height, flexShrink: 0, display: "flex", alignItems: "stretch", borderRadius: 2, overflow: "hidden", background: "var(--surface-border)", position: "relative" }}
     >
-      <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "var(--color-card-border)", zIndex: 1 }} />
+      <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "var(--card-border)", zIndex: 1 }} />
       {isPositive ? (
         <>
           <div style={{ width: "50%" }} />
@@ -324,9 +324,9 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
       {hasAttnMlp && (
         <div style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
           <div style={{ width: Y_LABEL_W, flexShrink: 0 }} />
-          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", letterSpacing: "0.04em" }}>Attn</span>
+          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", letterSpacing: "0.04em" }}>Attn</span>
           <div style={{ width: 4, flexShrink: 0 }} />
-          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", letterSpacing: "0.04em" }}>MLP</span>
+          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", letterSpacing: "0.04em" }}>MLP</span>
           <div style={{ width: 44, flexShrink: 0 }} />
         </div>
       )}
@@ -334,20 +334,20 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
       {/* Embed row */}
       {data.embed_dla != null && (
         <div style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)", fontStyle: "italic" }}>
+          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)", fontStyle: "italic" }}>
             emb
           </div>
           {hasAttnMlp ? (
             <>
               <DivergingBar val={data.embed_dla} absMax={absMax} width={LAYER_BAR_W + 4} tooltipContent={<><span style={{ fontWeight: 600 }}>Embed</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
-              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
             </>
           ) : (
             <>
               <DivergingBar val={data.embed_dla} absMax={absMax} tooltipContent={<><span style={{ fontWeight: 600 }}>Embed</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
-              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
             </>
@@ -365,15 +365,15 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
             <div style={{ fontWeight: 600, marginBottom: 3 }}>{label}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 2, fontVariantNumeric: "tabular-nums" }}>
               <div style={{ display: "flex", gap: 14, justifyContent: "space-between" }}>
-                <span style={{ color: "var(--color-text-muted)" }}>Attn</span>
+                <span style={{ color: "var(--text-muted)" }}>Attn</span>
                 <span>{attnVal! >= 0 ? "+" : ""}{attnVal!.toFixed(3)}</span>
               </div>
               <div style={{ display: "flex", gap: 14, justifyContent: "space-between" }}>
-                <span style={{ color: "var(--color-text-muted)" }}>MLP</span>
+                <span style={{ color: "var(--text-muted)" }}>MLP</span>
                 <span>{mlpVal! >= 0 ? "+" : ""}{mlpVal!.toFixed(3)}</span>
               </div>
-              <div style={{ borderTop: "1px solid var(--color-surface-border)", paddingTop: 2, marginTop: 1, display: "flex", gap: 14, justifyContent: "space-between" }}>
-                <span style={{ color: "var(--color-text-muted)" }}>Total</span>
+              <div style={{ borderTop: "1px solid var(--surface-border)", paddingTop: 2, marginTop: 1, display: "flex", gap: 14, justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Total</span>
                 <span style={{ fontWeight: 600 }}>{combined >= 0 ? "+" : ""}{combined.toFixed(3)}</span>
               </div>
             </div>
@@ -384,7 +384,7 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
 
         return (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-            <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
+            <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)" }}>
               {label}
             </div>
 
@@ -398,7 +398,7 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
               <DivergingBar val={combined} absMax={absMax} tooltipContent={tooltipContent} />
             )}
 
-            <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+            <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
               {combined >= 0 ? "+" : ""}{combined.toFixed(2)}
             </span>
           </div>
@@ -425,7 +425,7 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
               fontSize: 7,
               textAlign: "center",
               fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              color: "var(--color-text-muted)",
+              color: "var(--text-muted)",
               overflow: "hidden",
               whiteSpace: "nowrap",
               textOverflow: "ellipsis",
@@ -440,7 +440,7 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
       {/* Heatmap rows */}
       {data.y_labels.map((label, li) => (
         <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
+          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)" }}>
             {label}
           </div>
           {data.head_dla[li].map((val, hi) => {
@@ -455,7 +455,7 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
                   height: HEAD_CELL_SIZE,
                   flexShrink: 0,
                   backgroundColor: color,
-                  border: "0.5px solid var(--color-surface-border)",
+                  border: "0.5px solid var(--surface-border)",
                   borderRadius: 2,
                   boxSizing: "border-box",
                 }}
@@ -488,11 +488,11 @@ function TopView({ data, absMax }: { data: DlaData; absMax: number }) {
     <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
       {ranked.map(({ label, val }) => (
         <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W + 14, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--color-text-muted)" }}>
+          <div style={{ width: Y_LABEL_W + 14, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)" }}>
             {label}
           </div>
           <DivergingBar val={val} absMax={absMax} width={TOP_BAR_W} height={LAYER_CELL_H} tooltipContent={<><span style={{ fontWeight: 600 }}>{label}</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></>} />
-          <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+          <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
             {val >= 0 ? "+" : ""}{val.toFixed(2)}
           </span>
         </div>

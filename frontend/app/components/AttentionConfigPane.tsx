@@ -82,7 +82,7 @@ export default function AttentionConfigPane({
       />
 
       <div>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
           Prompt
         </label>
         <textarea
@@ -90,7 +90,7 @@ export default function AttentionConfigPane({
           onChange={e => setPrompt(e.target.value)}
           disabled={tutorialMode}
           rows={5}
-          style={{ width: "100%", border: "1px solid var(--color-card-border)", borderRadius: 6, padding: "8px 10px", fontSize: 13, color: "var(--color-text)", background: "var(--color-bg)", resize: "vertical", outline: "none", fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box", ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}) }}
+          style={{ width: "100%", border: "1px solid var(--card-border)", borderRadius: 6, padding: "8px 10px", fontSize: 13, color: "var(--text)", background: "var(--bg)", resize: "vertical", outline: "none", fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box", ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}) }}
         />
         <TokenPreview tokens={tokenPreview.tokens} loading={tokenPreview.loading} />
       </div>

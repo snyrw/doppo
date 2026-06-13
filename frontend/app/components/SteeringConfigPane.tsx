@@ -176,11 +176,11 @@ export default function SteeringConfigPane({
     gap: 6,
     cursor: "pointer",
     fontSize: 12,
-    color: "var(--color-text)",
+    color: "var(--text)",
   } as const;
 
   const radioInputStyle = {
-    accentColor: "var(--color-accent)",
+    accentColor: "var(--accent)",
     cursor: "pointer",
     width: 13,
     height: 13,
@@ -210,10 +210,10 @@ export default function SteeringConfigPane({
 
         {/* Mode toggle */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
             Mode
           </label>
-          <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 6, overflow: "hidden" }}>
+          <div style={{ display: "flex", border: "1px solid var(--card-border)", borderRadius: 6, overflow: "hidden" }}>
             {(["quick", "research"] as const).map((m, i) => (
               <button
                 key={m}
@@ -223,9 +223,9 @@ export default function SteeringConfigPane({
                   flex: 1, padding: "6px 0", fontSize: 11,
                   fontWeight: mode === m ? 600 : 400,
                   border: "none",
-                  borderRight: i === 0 ? "1px solid var(--color-card-border)" : "none",
-                  background: mode === m ? "var(--color-surface-border)" : "transparent",
-                  color: mode === m ? "var(--color-text)" : "var(--color-text-muted)",
+                  borderRight: i === 0 ? "1px solid var(--card-border)" : "none",
+                  background: mode === m ? "var(--surface-border)" : "transparent",
+                  color: mode === m ? "var(--text)" : "var(--text-muted)",
                   cursor: tutorialMode ? "default" : "pointer",
                   transition: "background 120ms, color 120ms",
                   ...(tutorialMode ? { opacity: mode === m ? 1 : 0.45 } : {}),
@@ -235,7 +235,7 @@ export default function SteeringConfigPane({
               </button>
             ))}
           </div>
-          <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+          <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.5 }}>
             {mode === "quick"
               ? "Single pair — fast iteration, higher noise. Good for exploring whether a concept steers at all."
               : "Averages DIM vectors across multiple LLM-generated pairs — lower noise, more reliable. CAA-style."}
@@ -247,33 +247,33 @@ export default function SteeringConfigPane({
           style={{
             marginBottom: mode === "research" ? 16 : 20,
             ...(mode === "research" ? {
-              borderLeft: "2px dashed var(--color-accent)",
+              borderLeft: "2px dashed var(--accent)",
               paddingLeft: 12,
             } : {}),
           }}
         >
           {mode === "research" && (
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 6 }}>
-              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-accent)", textTransform: "uppercase" }}>
+              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--accent)", textTransform: "uppercase" }}>
                 Seed Pair
               </span>
-              <span style={{ fontSize: 9, color: "var(--color-text-muted)", lineHeight: 1.4 }}>
+              <span style={{ fontSize: 9, color: "var(--text-muted)", lineHeight: 1.4 }}>
                 pair 1 of {totalPairs > 1 ? totalPairs : pairCap}
               </span>
             </div>
           )}
           {mode === "research" && (
-            <p style={{ margin: "0 0 10px", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+            <p style={{ margin: "0 0 10px", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.5 }}>
               Shown to Claude as a format and register reference for generation. Also averaged as the first pair in the dataset.
             </p>
           )}
 
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+              <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase" }}>
                 {mode === "research" ? "Seed · Clean" : "Reference Prompt"}
               </label>
-              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+              <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
                 {cleanPrompt.trim() ? cleanPrompt.trim().split(/\s+/).length : 0}w
               </span>
             </div>
@@ -284,9 +284,9 @@ export default function SteeringConfigPane({
               rows={3}
               placeholder="Where the behavior you want to steer occurs"
               style={{
-                width: "100%", border: "1px solid var(--color-card-border)", borderRadius: 6,
-                padding: "8px 10px", fontSize: 12, color: "var(--color-text)",
-                background: "var(--color-bg)", resize: "vertical", outline: "none",
+                width: "100%", border: "1px solid var(--card-border)", borderRadius: 6,
+                padding: "8px 10px", fontSize: 12, color: "var(--text)",
+                background: "var(--bg)", resize: "vertical", outline: "none",
                 fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
                 ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
               }}
@@ -296,10 +296,10 @@ export default function SteeringConfigPane({
 
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+              <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase" }}>
                 {mode === "research" ? "Seed · Corrupted" : "Counterfactual Prompt"}
               </label>
-              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+              <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
                 {corruptedPrompt.trim() ? corruptedPrompt.trim().split(/\s+/).length : 0}w
               </span>
             </div>
@@ -310,9 +310,9 @@ export default function SteeringConfigPane({
               rows={3}
               placeholder="A variation that represents the direction to steer toward"
               style={{
-                width: "100%", border: "1px solid var(--color-card-border)", borderRadius: 6,
-                padding: "8px 10px", fontSize: 12, color: "var(--color-text)",
-                background: "var(--color-bg)", resize: "vertical", outline: "none",
+                width: "100%", border: "1px solid var(--card-border)", borderRadius: 6,
+                padding: "8px 10px", fontSize: 12, color: "var(--text)",
+                background: "var(--bg)", resize: "vertical", outline: "none",
                 fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
                 ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
               }}
@@ -341,8 +341,8 @@ export default function SteeringConfigPane({
 
         {/* Research mode: LLM pair generation */}
         {mode === "research" && (
-          <div style={{ marginBottom: 20, borderTop: "1px solid var(--color-surface-border)", paddingTop: 16 }}>
-            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ marginBottom: 20, borderTop: "1px solid var(--surface-border)", paddingTop: 16 }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
               Generate Dataset Pairs with Claude
             </label>
             {!tutorialMode && !session && (
@@ -357,9 +357,9 @@ export default function SteeringConfigPane({
               placeholder={`Describe the steering concept — e.g. "the model mentions Paris" or "confident vs. hesitant tone"`}
               disabled={tutorialMode || !session}
               style={{
-                width: "100%", border: `1px solid ${!tutorialMode && conceptDescription.trim() && session ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                borderRadius: 6, padding: "8px 10px", fontSize: 11, color: "var(--color-text)",
-                background: tutorialMode || !session ? "var(--color-surface-border)" : "var(--color-bg)",
+                width: "100%", border: `1px solid ${!tutorialMode && conceptDescription.trim() && session ? "var(--accent)" : "var(--card-border)"}`,
+                borderRadius: 6, padding: "8px 10px", fontSize: 11, color: "var(--text)",
+                background: tutorialMode || !session ? "var(--surface-border)" : "var(--bg)",
                 resize: "vertical", outline: "none", fontFamily: "inherit", lineHeight: 1.5,
                 boxSizing: "border-box",
                 opacity: tutorialMode ? 0.7 : session ? 1 : 0.6,
@@ -367,7 +367,7 @@ export default function SteeringConfigPane({
               }}
             />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8, gap: 8 }}>
-              <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>
+              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
                 {tutorialMode
                   ? `${tutorialConfig?.nPairs ?? 40} pairs total`
                   : extraPairs.length > 0
@@ -380,8 +380,8 @@ export default function SteeringConfigPane({
                 style={{
                   border: "none", borderRadius: 6, padding: "5px 12px",
                   fontSize: 11, fontWeight: 500,
-                  background: !tutorialMode && canGenerate ? "var(--color-accent)" : "var(--color-surface-border)",
-                  color: !tutorialMode && canGenerate ? "var(--color-accent-fg)" : "var(--color-text-muted)",
+                  background: !tutorialMode && canGenerate ? "var(--accent)" : "var(--surface-border)",
+                  color: !tutorialMode && canGenerate ? "var(--accent-fg)" : "var(--text-muted)",
                   cursor: tutorialMode || !canGenerate ? "not-allowed" : "pointer",
                   whiteSpace: "nowrap", transition: "background 120ms", flexShrink: 0,
                   opacity: tutorialMode ? 0.7 : 1,
@@ -403,13 +403,13 @@ export default function SteeringConfigPane({
             {extraPairs.length > 0 && (
               <div style={{ marginTop: 10 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-                  <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)" }}>
+                  <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-muted)" }}>
                     Generated pairs ({extraPairs.length})
                   </span>
                   {!tutorialMode && (
                     <button
                       onClick={() => setExtraPairs([])}
-                      style={{ fontSize: 9, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}
+                      style={{ fontSize: 9, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px" }}
                     >
                       Clear all
                     </button>
@@ -422,21 +422,21 @@ export default function SteeringConfigPane({
                       style={{
                         display: "flex", alignItems: "flex-start", gap: 6,
                         padding: "5px 7px", borderRadius: 5,
-                        background: "var(--color-bg)", border: "1px solid var(--color-surface-border)",
+                        background: "var(--bg)", border: "1px solid var(--surface-border)",
                       }}
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
+                        <div style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text)", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
                           {pair.clean}
                         </div>
-                        <div style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", marginTop: 1 }}>
+                        <div style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical", marginTop: 1 }}>
                           {pair.corrupted}
                         </div>
                       </div>
                       {!tutorialMode && (
                         <button
                           onClick={() => removePair(i)}
-                          style={{ fontSize: 11, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 1px", flexShrink: 0, lineHeight: 1, marginTop: 1 }}
+                          style={{ fontSize: 11, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 1px", flexShrink: 0, lineHeight: 1, marginTop: 1 }}
                         >
                           ×
                         </button>
@@ -450,18 +450,18 @@ export default function SteeringConfigPane({
         )}
 
         {/* Injection options */}
-        <div style={{ borderTop: "1px solid var(--color-surface-border)", paddingTop: 16, marginBottom: 4 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 12 }}>
+        <div style={{ borderTop: "1px solid var(--surface-border)", paddingTop: 16, marginBottom: 4 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 12 }}>
             Injection Options
           </label>
 
           <div style={{ marginBottom: 14 }}>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>Position (DIM vector source)</span>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--text)", marginBottom: 8 }}>Position (DIM vector source)</span>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
               <label style={radioStyle}>
                 <input type="radio" name="steer-position" checked={positionMode === "last"} onChange={() => setPositionMode("last")} disabled={tutorialMode} style={radioInputStyle} />
                 Last token
-                <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>— most common</span>
+                <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 2 }}>— most common</span>
               </label>
               <label style={{ ...radioStyle, alignItems: "flex-start" }}>
                 <input type="radio" name="steer-position" checked={positionMode === "custom"} onChange={() => setPositionMode("custom")} disabled={tutorialMode} style={{ ...radioInputStyle, marginTop: 2 }} />
@@ -474,10 +474,10 @@ export default function SteeringConfigPane({
                   disabled={tutorialMode}
                   style={{
                     width: 72, marginLeft: 6,
-                    border: `1px solid ${positionMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                    border: `1px solid ${positionMode === "custom" ? "var(--accent)" : "var(--card-border)"}`,
                     borderRadius: 5, padding: "3px 6px", fontSize: 11,
                     fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
+                    color: "var(--text)", background: "var(--bg)", outline: "none",
                     transition: "border-color 120ms",
                   }}
                 />
@@ -486,9 +486,9 @@ export default function SteeringConfigPane({
           </div>
 
           <div>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 4 }}>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--text)", marginBottom: 4 }}>
               Injection layer
-              <span style={{ fontSize: 10, fontWeight: 400, color: "var(--color-text-muted)", marginLeft: 6 }}>optional — defaults to middle layer</span>
+              <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>optional — defaults to middle layer</span>
             </span>
             <input
               type="number" min={0}
@@ -498,31 +498,31 @@ export default function SteeringConfigPane({
               disabled={tutorialMode}
               style={{
                 width: 100,
-                border: `1px solid ${injectionLayer.trim() ? "var(--color-accent)" : "var(--color-card-border)"}`,
+                border: `1px solid ${injectionLayer.trim() ? "var(--accent)" : "var(--card-border)"}`,
                 borderRadius: 5, padding: "4px 8px", fontSize: 11,
                 fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
+                color: "var(--text)", background: "var(--bg)", outline: "none",
                 transition: "border-color 120ms",
               }}
             />
-            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.5 }}>
               Computes a difference-in-means vector from the residual stream at this layer and applies it during generation. Use Attribution first to identify the most causally relevant layer.
             </p>
           </div>
         </div>
 
         {/* Generation options */}
-        <div style={{ borderTop: "1px solid var(--color-surface-border)", paddingTop: 16, marginBottom: 4 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 12 }}>
+        <div style={{ borderTop: "1px solid var(--surface-border)", paddingTop: 16, marginBottom: 4 }}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 12 }}>
             Generation
           </label>
 
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+              <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase" }}>
                 Generation Prompt
               </label>
-              <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+              <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
                 {generationPrompt.trim() ? generationPrompt.trim().split(/\s+/).length + "w" : "optional"}
               </span>
             </div>
@@ -533,23 +533,23 @@ export default function SteeringConfigPane({
               rows={2}
               placeholder={`Leave empty to use the clean prompt.`}
               style={{
-                width: "100%", border: `1px solid ${generationPrompt.trim() ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                borderRadius: 6, padding: "8px 10px", fontSize: 12, color: "var(--color-text)",
-                background: "var(--color-bg)", resize: "vertical", outline: "none",
+                width: "100%", border: `1px solid ${generationPrompt.trim() ? "var(--accent)" : "var(--card-border)"}`,
+                borderRadius: 6, padding: "8px 10px", fontSize: 12, color: "var(--text)",
+                background: "var(--bg)", resize: "vertical", outline: "none",
                 fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
                 transition: "border-color 120ms",
                 ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
               }}
             />
-            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.5 }}>
               The DIM vector is always extracted from the clean/corrupted pair above. This prompt is only used for the baseline and steered generation — keep it separate for cleaner results.
             </p>
           </div>
 
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-              <span style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text)" }}>Temperature</span>
-              <span style={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", minWidth: 28, textAlign: "right" }}>
+              <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text)" }}>Temperature</span>
+              <span style={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", minWidth: 28, textAlign: "right" }}>
                 {temperature.toFixed(1)}
               </span>
             </div>
@@ -558,17 +558,17 @@ export default function SteeringConfigPane({
               value={temperature}
               onChange={e => setTemperature(parseFloat(e.target.value))}
               disabled={tutorialMode}
-              style={{ width: "100%", accentColor: "var(--color-accent)", cursor: tutorialMode ? "not-allowed" : "pointer", ...(tutorialMode ? { opacity: 0.45 } : {}) }}
+              style={{ width: "100%", accentColor: "var(--accent)", cursor: tutorialMode ? "not-allowed" : "pointer", ...(tutorialMode ? { opacity: 0.45 } : {}) }}
             />
-            <p style={{ margin: "4px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+            <p style={{ margin: "4px 0 0", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.5 }}>
               Lower = more deterministic. 1.0 = standard sampling. Prevents repetition loops from heavy steering.
             </p>
           </div>
 
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-              <span style={{ fontSize: 11, fontWeight: 500, color: "var(--color-text)" }}>Repetition penalty</span>
-              <span style={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", minWidth: 28, textAlign: "right" }}>
+              <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text)" }}>Repetition penalty</span>
+              <span style={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", minWidth: 28, textAlign: "right" }}>
                 {repetitionPenalty.toFixed(2)}
               </span>
             </div>
@@ -577,9 +577,9 @@ export default function SteeringConfigPane({
               value={repetitionPenalty}
               onChange={e => setRepetitionPenalty(parseFloat(e.target.value))}
               disabled={tutorialMode}
-              style={{ width: "100%", accentColor: "var(--color-accent)", cursor: tutorialMode ? "not-allowed" : "pointer", ...(tutorialMode ? { opacity: 0.45 } : {}) }}
+              style={{ width: "100%", accentColor: "var(--accent)", cursor: tutorialMode ? "not-allowed" : "pointer", ...(tutorialMode ? { opacity: 0.45 } : {}) }}
             />
-            <p style={{ margin: "4px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+            <p style={{ margin: "4px 0 0", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.5 }}>
               Divides logits for already-generated tokens. 1.0 = no penalty; 1.3 = moderate (default).
             </p>
           </div>

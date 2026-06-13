@@ -141,9 +141,9 @@ function MenuItem({ onClick, disabled, title, radius, last, danger, children }: 
       title={title}
       style={{
         width: "100%",
-        background: "var(--color-card)",
+        background: "var(--card)",
         border: "none",
-        borderBottom: last ? "none" : "1px solid var(--color-surface-border)",
+        borderBottom: last ? "none" : "1px solid var(--surface-border)",
         borderRadius: radius ?? 0,
         padding: "10px 16px",
         fontSize: 13,
@@ -153,12 +153,12 @@ function MenuItem({ onClick, disabled, title, radius, last, danger, children }: 
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        color: enabled ? (danger ? "#dc2626" : "var(--color-text)") : "var(--color-text-muted)",
+        color: enabled ? (danger ? "#dc2626" : "var(--text)") : "var(--text-muted)",
         cursor: enabled ? "pointer" : "default",
         opacity: enabled ? 1 : danger ? 0.4 : 0.5,
       }}
-      onMouseEnter={e => { if (enabled) e.currentTarget.style.background = "var(--color-surface-border)"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = "var(--color-card)"; }}
+      onMouseEnter={e => { if (enabled) e.currentTarget.style.background = "var(--surface-border)"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = "var(--card)"; }}
     >
       {children}
     </button>
@@ -448,7 +448,7 @@ function Projects() {
   const resolvedCards = state.lensCards.filter(c => c.status === "result");
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
       <Navbar />
 
       {creditsToast && (
@@ -457,13 +457,13 @@ function Projects() {
           bottom: 24,
           left: "50%",
           transform: "translateX(-50%)",
-          background: "var(--color-card)",
-          border: "1px solid var(--color-card-border)",
+          background: "var(--card)",
+          border: "1px solid var(--card-border)",
           borderRadius: 8,
           padding: "10px 18px",
           fontSize: 12,
           fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-          color: "var(--color-text)",
+          color: "var(--text)",
           boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
           zIndex: 300,
           whiteSpace: "nowrap",
@@ -481,8 +481,8 @@ function Projects() {
             <button
               onClick={() => setOpenPane(p => (p === null ? "add" : null))}
               style={{
-                background: openPane !== null ? "var(--color-accent-hover)" : "var(--color-accent)",
-                color: "var(--color-accent-fg)",
+                background: openPane !== null ? "var(--accent-hover)" : "var(--accent)",
+                color: "var(--accent-fg)",
                 border: "none",
                 borderRadius: 6,
                 padding: "5px 10px",
@@ -496,8 +496,8 @@ function Projects() {
                 gap: 6,
                 letterSpacing: "0.01em",
               }}
-              onMouseEnter={e => { if (openPane === null) e.currentTarget.style.background = "var(--color-accent-hover)"; }}
-              onMouseLeave={e => { if (openPane === null) e.currentTarget.style.background = "var(--color-accent)"; }}
+              onMouseEnter={e => { if (openPane === null) e.currentTarget.style.background = "var(--accent-hover)"; }}
+              onMouseLeave={e => { if (openPane === null) e.currentTarget.style.background = "var(--accent)"; }}
             >
               <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
               Add
@@ -509,8 +509,8 @@ function Projects() {
                 position: "absolute",
                 top: "calc(100% + 6px)",
                 left: 0,
-                background: "var(--color-card)",
-                border: "1px solid var(--color-card-border)",
+                background: "var(--card)",
+                border: "1px solid var(--card-border)",
                 borderRadius: 6,
                 boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
                 display: "flex",
@@ -524,18 +524,18 @@ function Projects() {
                     key={item.pane}
                     onClick={() => setOpenPane(item.pane)}
                     style={{
-                      background: "var(--color-card)",
+                      background: "var(--card)",
                       border: "none",
-                      borderBottom: i < ADD_MENU_ITEMS.length - 1 ? "1px solid var(--color-surface-border)" : "none",
+                      borderBottom: i < ADD_MENU_ITEMS.length - 1 ? "1px solid var(--surface-border)" : "none",
                       borderRadius: i === 0 ? "6px 6px 0 0" : i === ADD_MENU_ITEMS.length - 1 ? "0 0 6px 6px" : 0,
                       padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer",
-                      color: "var(--color-text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2,
+                      color: "var(--text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2,
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "var(--color-surface-border)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "var(--color-card)"; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-border)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "var(--card)"; }}
                   >
                     <span>{item.label}</span>
-                    <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontWeight: 400 }}>{item.description}</span>
+                    <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 400 }}>{item.description}</span>
                   </button>
                 ))}
               </div>
@@ -583,9 +583,9 @@ function Projects() {
             <button
               onClick={() => setProjectsOpen(o => !o)}
               style={{
-                background: "var(--color-card)",
-                color: "var(--color-text)",
-                border: "1px solid var(--color-card-border)",
+                background: "var(--card)",
+                color: "var(--text)",
+                border: "1px solid var(--card-border)",
                 borderRadius: 6,
                 padding: "5px 10px",
                 fontSize: 13,
@@ -595,8 +595,8 @@ function Projects() {
                 transition: "background 150ms, border-color 150ms",
                 letterSpacing: "0.01em",
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--card)"; }}
             >
               Projects
             </button>
@@ -606,8 +606,8 @@ function Projects() {
                 position: "absolute",
                 top: "calc(100% + 6px)",
                 left: 0,
-                background: "var(--color-card)",
-                border: "1px solid var(--color-card-border)",
+                background: "var(--card)",
+                border: "1px solid var(--card-border)",
                 borderRadius: 6,
                 boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
                 display: "flex",
@@ -625,9 +625,9 @@ function Projects() {
                   <kbd style={{
                     fontSize: 10,
                     fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    background: "var(--color-surface-border)",
-                    color: "var(--color-text-muted)",
-                    border: "1px solid var(--color-card-border)",
+                    background: "var(--surface-border)",
+                    color: "var(--text-muted)",
+                    border: "1px solid var(--card-border)",
                     borderRadius: 3,
                     padding: "0 4px",
                     lineHeight: "16px",
@@ -654,8 +654,8 @@ function Projects() {
                       position: "absolute",
                       top: 0,
                       left: "calc(100% + 6px)",
-                      background: "var(--color-card)",
-                      border: "1px solid var(--color-card-border)",
+                      background: "var(--card)",
+                      border: "1px solid var(--card-border)",
                       borderRadius: 6,
                       boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
                       display: "flex",
@@ -671,9 +671,9 @@ function Projects() {
                           onClick={() => handleExport(card.id, card.modelName, getCardPrompt(card))}
                           disabled={exportingId === card.id}
                           style={{
-                            background: "var(--color-card)",
+                            background: "var(--card)",
                             border: "none",
-                            borderBottom: i < resolvedCards.length - 1 ? "1px solid var(--color-surface-border)" : "none",
+                            borderBottom: i < resolvedCards.length - 1 ? "1px solid var(--surface-border)" : "none",
                             padding: "9px 14px",
                             fontSize: 12,
                             textAlign: "left",
@@ -684,13 +684,13 @@ function Projects() {
                             gap: 2,
                             opacity: exportingId === card.id ? 0.5 : 1,
                           }}
-                          onMouseEnter={e => { if (!exportingId) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                          onMouseEnter={e => { if (!exportingId) (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)"; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--card)"; }}
                         >
-                          <span style={{ fontWeight: 600, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11 }}>
+                          <span style={{ fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11 }}>
                             {card.modelName.split("/").pop()}
                           </span>
-                          <span style={{ color: "var(--color-text-muted)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 192 }}>
+                          <span style={{ color: "var(--text-muted)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 192 }}>
                             {exportingId === card.id ? "Exporting…" : getCardPrompt(card)}
                           </span>
                         </button>
@@ -709,15 +709,15 @@ function Projects() {
 
                 {/* Delete — inline confirmation */}
                 {deleteConfirming ? (
-                  <div style={{ display: "flex", borderTop: "1px solid var(--color-surface-border)" }}>
+                  <div style={{ display: "flex", borderTop: "1px solid var(--surface-border)" }}>
                     <button
                       onClick={() => setDeleteConfirming(false)}
                       style={{
                         flex: 1,
-                        background: "var(--color-card)",
-                        color: "var(--color-text-muted)",
+                        background: "var(--card)",
+                        color: "var(--text-muted)",
                         border: "none",
-                        borderRight: "1px solid var(--color-surface-border)",
+                        borderRight: "1px solid var(--surface-border)",
                         borderRadius: "0 0 0 6px",
                         padding: "10px 12px",
                         fontSize: 12,
@@ -725,8 +725,8 @@ function Projects() {
                         cursor: "pointer",
                         transition: "background 120ms",
                       }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--card)"; }}
                     >
                       Cancel
                     </button>
@@ -734,7 +734,7 @@ function Projects() {
                       onClick={handleDeleteConfirmed}
                       style={{
                         flex: 1,
-                        background: "var(--color-card)",
+                        background: "var(--card)",
                         color: "#dc2626",
                         border: "none",
                         borderRadius: "0 0 6px 0",
@@ -744,8 +744,8 @@ function Projects() {
                         cursor: "pointer",
                         transition: "background 120ms",
                       }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-card)"; }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--card)"; }}
                     >
                       Confirm
                     </button>
@@ -773,7 +773,7 @@ function Projects() {
               alignItems: "center",
               gap: 6,
               paddingLeft: 10,
-              borderLeft: "1px solid var(--color-card-border)",
+              borderLeft: "1px solid var(--card-border)",
             }}>
               {nameEditing ? (
                 <input
@@ -785,13 +785,13 @@ function Projects() {
                   }}
                   onBlur={e => handleRename(e.target.value)}
                   style={{
-                    border: "1px solid var(--color-accent)",
+                    border: "1px solid var(--accent)",
                     borderRadius: 5,
                     padding: "3px 8px",
                     fontSize: 13,
                     fontWeight: 500,
-                    color: "var(--color-text)",
-                    background: "var(--color-bg)",
+                    color: "var(--text)",
+                    background: "var(--bg)",
                     outline: "none",
                     minWidth: 100,
                     maxWidth: 220,
@@ -808,7 +808,7 @@ function Projects() {
                     cursor: "text",
                     fontSize: 13,
                     fontWeight: 500,
-                    color: "var(--color-text)",
+                    color: "var(--text)",
                     padding: "3px 6px",
                     borderRadius: 5,
                     display: "flex",
@@ -818,7 +818,7 @@ function Projects() {
                     transition: "background 120ms",
                   }}
                   onMouseEnter={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-border)";
+                    (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)";
                   }}
                   onMouseLeave={e => {
                     (e.currentTarget as HTMLButtonElement).style.background = "none";
@@ -839,7 +839,7 @@ function Projects() {
                     height="11"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="var(--color-text-muted)"
+                    stroke="var(--text-muted)"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -881,8 +881,8 @@ function Projects() {
           bottom: 20,
           left: "50%",
           transform: "translateX(-50%)",
-          background: "var(--color-accent)",
-          color: "var(--color-accent-fg)",
+          background: "var(--accent)",
+          color: "var(--accent-fg)",
           padding: "8px 18px",
           borderRadius: 6,
           fontSize: 13,

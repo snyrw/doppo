@@ -262,12 +262,12 @@ export default function TutorialClient({ steps }: Props) {
 
   if (!dataReady) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
         <Navbar />
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ textAlign: "center", fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", fontSize: 13, lineHeight: 1.7 }}>
+          <div style={{ textAlign: "center", fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", fontSize: 13, lineHeight: 1.7 }}>
             <p>Tutorial data not yet generated.</p>
-            <p>Run <code style={{ background: "var(--color-surface-border)", padding: "1px 6px", borderRadius: 3 }}>python scripts/generate_tutorial_data.py</code> to populate it.</p>
+            <p>Run <code style={{ background: "var(--surface-border)", padding: "1px 6px", borderRadius: 3 }}>python scripts/generate_tutorial_data.py</code> to populate it.</p>
           </div>
         </div>
       </div>
@@ -275,7 +275,7 @@ export default function TutorialClient({ steps }: Props) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
       <Navbar />
 
       {phase === "welcome" && (
@@ -296,7 +296,7 @@ export default function TutorialClient({ steps }: Props) {
           <button
             onClick={() => setAddDropdownOpen(o => !o)}
             style={{
-              background: "var(--color-accent)", color: "var(--color-accent-fg)", border: "none",
+              background: "var(--accent)", color: "var(--accent-fg)", border: "none",
               borderRadius: 6, padding: "5px 10px", fontSize: 13, fontWeight: 600, cursor: "pointer",
               display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.01em",
             }}
@@ -307,8 +307,8 @@ export default function TutorialClient({ steps }: Props) {
 
           {addDropdownOpen && (
             <div style={{
-              position: "absolute", top: "calc(100% + 6px)", left: 0, background: "var(--color-card)",
-              border: "1px solid var(--color-card-border)", borderRadius: 8,
+              position: "absolute", top: "calc(100% + 6px)", left: 0, background: "var(--card)",
+              border: "1px solid var(--card-border)", borderRadius: 8,
               boxShadow: "0 4px 16px rgba(0,0,0,0.12)", overflow: "hidden", minWidth: 200, zIndex: 40,
             }}>
               {[1, 2, 3, 4, 6].map((i, listIdx) => {
@@ -327,10 +327,10 @@ export default function TutorialClient({ steps }: Props) {
                     disabled={!isEnabled}
                     style={{
                       display: "block", width: "100%", padding: "10px 16px", textAlign: "left",
-                      background: "var(--color-card)", border: "none",
-                      borderBottom: listIdx < 4 ? "1px solid var(--color-surface-border)" : "none",
+                      background: "var(--card)", border: "none",
+                      borderBottom: listIdx < 4 ? "1px solid var(--surface-border)" : "none",
                       fontSize: 13, fontWeight: 500, cursor: isEnabled ? "pointer" : "default",
-                      color: isEnabled ? "var(--color-text)" : "var(--color-text-muted)",
+                      color: isEnabled ? "var(--text)" : "var(--text-muted)",
                       opacity: isEnabled ? 1 : 0.45,
                       transition: "background 120ms",
                     }}

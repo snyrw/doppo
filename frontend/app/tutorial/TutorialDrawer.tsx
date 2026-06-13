@@ -52,9 +52,9 @@ export default function TutorialDrawer({
           right: isOpen ? 360 : 0,
           transform: "translateY(-50%)",
           zIndex: 60,
-          background: "var(--color-card)",
-          border: "1px solid var(--color-card-border)",
-          borderRight: isOpen ? "1px solid var(--color-card-border)" : "none",
+          background: "var(--card)",
+          border: "1px solid var(--card-border)",
+          borderRight: isOpen ? "1px solid var(--card-border)" : "none",
           borderRadius: "6px 0 0 6px",
           padding: "10px 6px",
           cursor: "pointer",
@@ -67,10 +67,10 @@ export default function TutorialDrawer({
         }}
         aria-label={isOpen ? "Close guide" : "Open guide"}
       >
-        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", writingMode: "vertical-rl", textTransform: "uppercase", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", color: "var(--text-muted)", writingMode: "vertical-rl", textTransform: "uppercase", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
           Guide
         </span>
-        <span style={{ fontSize: 12, color: "var(--color-text-muted)", transform: isOpen ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 250ms" }}>
+        <span style={{ fontSize: 12, color: "var(--text-muted)", transform: isOpen ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 250ms" }}>
           ›
         </span>
       </button>
@@ -82,8 +82,8 @@ export default function TutorialDrawer({
           right: 0,
           bottom: 0,
           width: 360,
-          background: "var(--color-panel)",
-          borderLeft: "1px solid var(--color-surface-border)",
+          background: "var(--panel)",
+          borderLeft: "1px solid var(--surface-border)",
           display: "flex",
           flexDirection: "column",
           zIndex: 50,
@@ -95,13 +95,13 @@ export default function TutorialDrawer({
         <div
           style={{
             flexShrink: 0,
-            borderBottom: "1px solid var(--color-surface-border)",
+            borderBottom: "1px solid var(--surface-border)",
             padding: "8px 16px 6px",
             maxHeight: "22%",
             overflowY: "auto",
           }}
         >
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 4px" }}>
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 4px" }}>
             Steps
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
@@ -120,7 +120,7 @@ export default function TutorialDrawer({
                       fontWeight: 600,
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
-                      color: "var(--color-text-muted)",
+                      color: "var(--text-muted)",
                       margin: "4px 6px 2px",
                     }}>
                       {s.part}
@@ -136,7 +136,7 @@ export default function TutorialDrawer({
                       gap: 7,
                       padding: "2px 6px",
                       width: "100%",
-                      background: isViewing ? "var(--color-surface-border)" : "none",
+                      background: isViewing ? "var(--surface-border)" : "none",
                       border: "none",
                       borderRadius: 4,
                       cursor: canNavigate ? "pointer" : "default",
@@ -144,10 +144,10 @@ export default function TutorialDrawer({
                       transition: "background 100ms",
                     }}
                   >
-                    <span style={{ width: 11, height: 11, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 700, fontFamily: "var(--font-ibm-plex-sans), sans-serif", background: isDone ? "var(--color-accent)" : isCurrent ? "var(--color-surface-border)" : "transparent", border: isDone ? "none" : "1px solid var(--color-surface-border)", color: isDone ? "var(--color-accent-fg)" : "var(--color-text-muted)" }}>
+                    <span style={{ width: 11, height: 11, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 700, fontFamily: "var(--font-ibm-plex-sans), sans-serif", background: isDone ? "var(--accent)" : isCurrent ? "var(--surface-border)" : "transparent", border: isDone ? "none" : "1px solid var(--surface-border)", color: isDone ? "var(--accent-fg)" : "var(--text-muted)" }}>
                       {isDone ? "✓" : (s.badge ?? (i === 0 ? "·" : i))}
                     </span>
-                    <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, color: isCurrent || isViewing ? "var(--color-text)" : isDone ? "var(--color-text)" : "var(--color-text-muted)", fontWeight: isCurrent ? 600 : 400 }}>
+                    <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, color: isCurrent || isViewing ? "var(--text)" : isDone ? "var(--text)" : "var(--text-muted)", fontWeight: isCurrent ? 600 : 400 }}>
                       {s.label}
                     </span>
                   </button>
@@ -158,17 +158,17 @@ export default function TutorialDrawer({
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 32px" }}>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 8px" }}>
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 8px" }}>
             {stepLabel}
           </p>
-          <h2 style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 16, fontWeight: 600, color: "var(--color-text)", margin: "0 0 16px", letterSpacing: "-0.01em" }}>
+          <h2 style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 16, fontWeight: 600, color: "var(--text)", margin: "0 0 16px", letterSpacing: "-0.01em" }}>
             {step.heading}
           </h2>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
             {step.paragraphs.map((p, i) =>
               typeof p === "string" ? (
-                <p key={i} style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
+                <p key={i} style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--text-muted)", margin: 0 }}>
                   {p}
                 </p>
               ) : (
@@ -180,22 +180,22 @@ export default function TutorialDrawer({
           </div>
 
           {step.whatToNotice && (
-            <div style={{ background: "var(--color-surface-border)", borderRadius: 6, padding: "12px 14px", marginBottom: step.caveat ? 16 : 20 }}>
-              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 6px" }}>
+            <div style={{ background: "var(--surface-border)", borderRadius: 6, padding: "12px 14px", marginBottom: step.caveat ? 16 : 20 }}>
+              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 6px" }}>
                 What to notice
               </p>
-              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 12, lineHeight: 1.7, color: "var(--color-text)", margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 12, lineHeight: 1.7, color: "var(--text)", margin: 0 }}>
                 {step.whatToNotice}
               </p>
             </div>
           )}
 
           {step.caveat && (
-            <div style={{ border: "1px solid var(--color-surface-border)", borderRadius: 6, padding: "12px 14px", marginBottom: 20 }}>
-              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 6px" }}>
+            <div style={{ border: "1px solid var(--surface-border)", borderRadius: 6, padding: "12px 14px", marginBottom: 20 }}>
+              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 6px" }}>
                 Caveat
               </p>
-              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 12, lineHeight: 1.7, color: "var(--color-text-muted)", margin: 0 }}>
+              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 12, lineHeight: 1.7, color: "var(--text-muted)", margin: 0 }}>
                 {step.caveat}
               </p>
             </div>
@@ -203,7 +203,7 @@ export default function TutorialDrawer({
 
           {step.links.length > 0 && (
             <div style={{ marginBottom: isIntroStep && viewStep === currentStep ? 20 : 0 }}>
-              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 8px" }}>
+              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 8px" }}>
                 References
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -214,7 +214,7 @@ export default function TutorialDrawer({
                     target="_blank"
                     rel="noopener noreferrer"
                     onPointerDown={e => e.stopPropagation()}
-                    style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, color: "var(--color-text)", textDecoration: "none", borderBottom: "1px solid var(--color-surface-border)", paddingBottom: 4 }}
+                    style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, color: "var(--text)", textDecoration: "none", borderBottom: "1px solid var(--surface-border)", paddingBottom: 4 }}
                   >
                     {l.label} ↗
                   </a>
@@ -230,8 +230,8 @@ export default function TutorialDrawer({
               style={{
                 marginTop: 4,
                 padding: "9px 18px",
-                background: "var(--color-accent)",
-                color: "var(--color-accent-fg)",
+                background: "var(--accent)",
+                color: "var(--accent-fg)",
                 border: "none",
                 borderRadius: 6,
                 fontFamily: "var(--font-ibm-plex-sans), sans-serif",

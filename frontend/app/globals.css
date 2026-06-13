@@ -2,56 +2,56 @@
 
 /* === Theme tokens === */
 :root {
-  --color-bg: #ecebe4;
-  --color-panel: #ecebe4;
-  --color-card: #ecebe4;
-  --color-card-border: #c4c3bc;
-  --color-surface-border: #d4d2cb;
-  --color-text: #1c1c1c;
-  --color-text-muted: #7a7876;
-  --color-accent: #3a3938;
-  --color-accent-hover: #1c1c1c;
-  --color-accent-fg: #ecebe4;
+  --bg: #ecebe4;
+  --panel: #ecebe4;
+  --card: #ecebe4;
+  --card-border: #c4c3bc;
+  --surface-border: #d4d2cb;
+  --text: #1c1c1c;
+  --text-muted: #7a7876;
+  --accent: #3a3938;
+  --accent-hover: #1c1c1c;
+  --accent-fg: #ecebe4;
   /* heatmap cell color as r,g,b channels for use in rgba() */
   --heatmap-rgb: 28, 28, 28;
 }
 
 [data-theme="dark"] {
-  --color-bg: #1c1c1c;
-  --color-panel: #1c1c1c;
-  --color-card: #272726;
-  --color-card-border: #363533;
-  --color-surface-border: #2e2e2c;
-  --color-text: #ecebe4;
-  --color-text-muted: #8a8986;
-  --color-accent: #d4d2cb;
-  --color-accent-hover: #ecebe4;
-  --color-accent-fg: #1c1c1c;
+  --bg: #1c1c1c;
+  --panel: #1c1c1c;
+  --card: #272726;
+  --card-border: #363533;
+  --surface-border: #2e2e2c;
+  --text: #ecebe4;
+  --text-muted: #8a8986;
+  --accent: #d4d2cb;
+  --accent-hover: #ecebe4;
+  --accent-fg: #1c1c1c;
   --heatmap-rgb: 220, 218, 210;
 }
 
 /* === Base === */
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-ibm-plex-sans), sans-serif;
 }
 
 /* === Shared utilities === */
 .btn-accent {
-  background: var(--color-accent);
-  color: var(--color-accent-fg);
+  background: var(--accent);
+  color: var(--accent-fg);
   transition: background 150ms ease;
 }
 .btn-accent:hover {
-  background: var(--color-accent-hover);
+  background: var(--accent-hover);
 }
 
 .nav-btn-ghost {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-family: var(--font-ibm-plex-sans), sans-serif;
   font-size: 12px;
   font-weight: 500;
@@ -60,15 +60,15 @@ body {
   line-height: 1;
 }
 .nav-btn-ghost:hover {
-  color: var(--color-text);
+  color: var(--text);
 }
 
 .nav-btn-outline {
   background: none;
-  border: 1px solid var(--color-surface-border);
+  border: 1px solid var(--surface-border);
   border-radius: 5px;
   cursor: pointer;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-family: var(--font-ibm-plex-sans), sans-serif;
   font-size: 12px;
   font-weight: 500;
@@ -77,8 +77,8 @@ body {
   line-height: 1.5;
 }
 .nav-btn-outline:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .theme-toggle {
@@ -89,15 +89,15 @@ body {
   height: 28px;
   border: none;
   background: none;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   cursor: pointer;
   border-radius: 6px;
   transition: background 120ms ease, color 120ms ease;
   flex-shrink: 0;
 }
 .theme-toggle:hover {
-  background: var(--color-panel);
-  color: var(--color-text);
+  background: var(--panel);
+  color: var(--text);
 }
 
 /* === Card animations === */

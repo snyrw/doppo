@@ -44,8 +44,8 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
     >
       <div
         style={{
-          background: "var(--color-card)",
-          border: "1px solid var(--color-card-border)",
+          background: "var(--card)",
+          border: "1px solid var(--card-border)",
           borderRadius: 12,
           padding: "24px",
           width: 340,
@@ -66,7 +66,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
               margin: 0,
               fontSize: 14,
               fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              color: "var(--color-text)",
+              color: "var(--text)",
             }}
           >
             Add credits
@@ -77,7 +77,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
               background: "none",
               border: "none",
               cursor: "pointer",
-              color: "var(--color-text-muted)",
+              color: "var(--text-muted)",
               fontSize: 18,
               lineHeight: 1,
             }}
@@ -89,7 +89,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
         <p
           style={{
             fontSize: 11,
-            color: "var(--color-text-muted)",
+            color: "var(--text-muted)",
             fontFamily: "var(--font-ibm-plex-sans), sans-serif",
             marginBottom: 16,
             lineHeight: 1.5,
@@ -110,8 +110,8 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: "10px 14px",
-                background: "var(--color-bg)",
-                border: "1px solid var(--color-card-border)",
+                background: "var(--bg)",
+                border: "1px solid var(--card-border)",
                 borderRadius: 8,
                 cursor: loading !== null ? "not-allowed" : "pointer",
                 opacity: loading !== null && loading !== pack.label ? 0.5 : 1,
@@ -119,15 +119,15 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
               }}
             >
               <div style={{ textAlign: "left" }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
                   {pack.label} credit
                 </div>
-                <div style={{ fontSize: 10, color: "var(--color-text-muted)" }}>
+                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
                   ${(pack.chargeCents / 100).toFixed(2)} charged to card
                 </div>
               </div>
               {loading === pack.label && (
-                <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                   Redirecting…
                 </span>
               )}

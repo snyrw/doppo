@@ -56,8 +56,8 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
     >
       <div
         style={{
-          background: "var(--color-card)",
-          border: "1px solid var(--color-card-border)",
+          background: "var(--card)",
+          border: "1px solid var(--card-border)",
           borderRadius: 12,
           boxShadow: "0 16px 64px rgba(0,0,0,0.24)",
           width: "100%",
@@ -72,25 +72,25 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
         }}
       >
         <div>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 10px" }}>
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 10px" }}>
             Tutorial Finished
           </p>
-          <h1 style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 22, fontWeight: 500, color: "var(--color-text)", margin: 0, lineHeight: 1.4, letterSpacing: "-0.01em" }}>
+          <h1 style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 22, fontWeight: 500, color: "var(--text)", margin: 0, lineHeight: 1.4, letterSpacing: "-0.01em" }}>
             Complete!
           </h1>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--text-muted)", margin: 0 }}>
             {`Part 1 allowed you to trace the IOI circuit end-to-end: from the logit lens showing when " Mary" first appears, through the attention heads that spot the duplicate and suppress it, to the Name Movers that copy the answer, and verified the whole thing causally with activation patching.`}
           </p>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--text-muted)", margin: 0 }}>
             Part 2 showed a separate approach: instead of asking how a behavior is implemented, you directly controlled it by injecting a learned direction in activation space. The focus of those doing interpretability has expanded greatly in scope from these tasks, both perspectives (circuit analysis and representation engineering) are important branches of mechanistic interpretability research today.
           </p>
         </div>
 
         <div>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 8px" }}>
+          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 8px" }}>
             Further reading
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -100,7 +100,7 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
                 href={l.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 12, color: "var(--color-text)", textDecoration: "none", borderBottom: "1px solid var(--color-surface-border)", paddingBottom: 5 }}
+                style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 12, color: "var(--text)", textDecoration: "none", borderBottom: "1px solid var(--surface-border)", paddingBottom: 5 }}
               >
                 {l.label} ↗
               </a>
@@ -113,8 +113,8 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
             onClick={handleGoToProjects}
             style={{
               padding: "10px 20px",
-              background: "var(--color-accent)",
-              color: "var(--color-accent-fg)",
+              background: "var(--accent)",
+              color: "var(--accent-fg)",
               border: "none",
               borderRadius: 6,
               fontFamily: "var(--font-ibm-plex-sans), sans-serif",
@@ -130,8 +130,8 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
             style={{
               padding: "10px 20px",
               background: "none",
-              color: "var(--color-text-muted)",
-              border: "1px solid var(--color-surface-border)",
+              color: "var(--text-muted)",
+              border: "1px solid var(--surface-border)",
               borderRadius: 6,
               fontFamily: "var(--font-ibm-plex-sans), sans-serif",
               fontSize: 14,

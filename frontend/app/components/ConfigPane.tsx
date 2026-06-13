@@ -79,24 +79,24 @@ export default function ConfigPane({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "var(--color-surface-border)",
-    border: "1px solid var(--color-card-border)",
+    background: "var(--surface-border)",
+    border: "1px solid var(--card-border)",
     borderRadius: 3,
     cursor: tutorialMode ? "default" : "pointer",
-    color: "var(--color-text-muted)",
+    color: "var(--text-muted)",
     padding: 0,
   } as const;
 
   // Top-k stepper — controls how many tokens appear in the pinned panel
   const topKStepper = (
     <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-      <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", whiteSpace: "nowrap" }}>
+      <span style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", whiteSpace: "nowrap" }}>
         k
       </span>
       <button onClick={() => setTopK(k => Math.max(1, k - 1))} disabled={tutorialMode} style={stepperBtnStyle}>
         −
       </button>
-      <span style={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", minWidth: 14, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+      <span style={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text)", minWidth: 14, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
         {topK}
       </span>
       <button onClick={() => setTopK(k => Math.min(10, k + 1))} disabled={tutorialMode} style={stepperBtnStyle}>
@@ -125,7 +125,7 @@ export default function ConfigPane({
 
       {/* Prompt */}
       <div style={{ marginBottom: 20 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
+        <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
           Prompt
         </label>
         <textarea
@@ -135,12 +135,12 @@ export default function ConfigPane({
           rows={5}
           style={{
             width: "100%",
-            border: "1px solid var(--color-card-border)",
+            border: "1px solid var(--card-border)",
             borderRadius: 6,
             padding: "8px 10px",
             fontSize: 13,
-            color: "var(--color-text)",
-            background: "var(--color-bg)",
+            color: "var(--text)",
+            background: "var(--bg)",
             resize: "vertical",
             outline: "none",
             fontFamily: "inherit",

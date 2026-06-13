@@ -18,13 +18,13 @@ function TokenChip({ tok, index }: { tok: Token; index: number }) {
         fontSize: 11,
         lineHeight: 1,
         border: tok.special
-          ? "1px solid var(--color-accent)"
-          : "1px solid var(--color-card-border)",
+          ? "1px solid var(--accent)"
+          : "1px solid var(--card-border)",
         borderRadius: 3,
         padding: "2px 4px",
         margin: "2px 2px",
-        background: tok.special ? "rgba(175,118,32,0.14)" : "var(--color-bg)",
-        color: tok.special ? "var(--color-accent)" : "var(--color-text)",
+        background: tok.special ? "rgba(175,118,32,0.14)" : "var(--bg)",
+        color: tok.special ? "var(--accent)" : "var(--text)",
         fontWeight: tok.special ? 600 : 400,
         letterSpacing: 0,
         verticalAlign: "middle",
@@ -35,7 +35,7 @@ function TokenChip({ tok, index }: { tok: Token; index: number }) {
           <span
             key={i}
             style={{
-              color: "var(--color-text-muted)",
+              color: "var(--text-muted)",
               opacity: 0.7,
               fontSize: "0.9em",
               userSelect: "none",
@@ -58,7 +58,7 @@ export default function TokenPreview({ tokens, loading }: TokenPreviewProps) {
     <div style={{ marginTop: 7 }}>
       {loading ? (
         <span
-          style={{ fontSize: 10, color: "var(--color-text-muted)", fontStyle: "italic" }}
+          style={{ fontSize: 10, color: "var(--text-muted)", fontStyle: "italic" }}
         >
           tokenizing…
         </span>
@@ -72,7 +72,7 @@ export default function TokenPreview({ tokens, loading }: TokenPreviewProps) {
           <span
             style={{
               fontSize: 10,
-              color: "var(--color-text-muted)",
+              color: "var(--text-muted)",
               display: "block",
               marginTop: 5,
             }}
