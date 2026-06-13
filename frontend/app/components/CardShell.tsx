@@ -27,7 +27,7 @@ export function stageLabel(stage: string | undefined, elapsedMs: number, labels:
 export function TierBadge({ tier }: { tier: string | undefined }) {
   if (!tier) return null;
   return (
-    <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
+    <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.06em] text-accent">
       {TIER_LABELS[tier] ?? tier}
     </span>
   );
@@ -36,9 +36,9 @@ export function TierBadge({ tier }: { tier: string | undefined }) {
 /** Top row of a loading card body: GPU tier badge (left) + elapsed m:ss (right). */
 export function CardLoadingHeader({ gpuTier, elapsedMs }: { gpuTier: string | undefined; elapsedMs: number }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div className="flex items-center justify-between">
       {gpuTier ? <TierBadge tier={gpuTier} /> : <span />}
-      <span style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontVariantNumeric: "tabular-nums" }}>
+      <span className="text-[10px] tabular-nums text-muted">
         {formatElapsed(elapsedMs)}
       </span>
     </div>
@@ -53,7 +53,7 @@ export function CardDragHandle() {
       height="12"
       viewBox="0 0 8 12"
       fill="none"
-      style={{ opacity: 0.3, flexShrink: 0 }}
+      className="shrink-0 opacity-30"
     >
       <circle cx="2" cy="2" r="1.2" fill="currentColor" />
       <circle cx="6" cy="2" r="1.2" fill="currentColor" />
@@ -83,40 +83,14 @@ export function CardLoadingState({
 }) {
   return (
     <>
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-        }}
-      >
-        <div
-          style={{
-            width: 20,
-            height: 20,
-            border: "2px solid var(--surface-border)",
-            borderTopColor: "var(--accent)",
-            borderRadius: "50%",
-            animation: "spin 0.8s linear infinite",
-          }}
-        />
-        <p style={{ fontSize: 11, color: "var(--text-muted)", margin: 0 }}>
+      <div className="flex flex-1 flex-col items-center justify-center gap-2">
+        <div className="h-5 w-5 animate-spinner rounded-full border-2 border-surface-border border-t-accent" />
+        <p className="m-0 text-[11px] text-muted">
           {stage ?? "Connecting to GPU…"}
         </p>
       </div>
       {warmup && (
-        <p
-          style={{
-            fontSize: 10,
-            color: "var(--text-muted)",
-            margin: 0,
-            textAlign: "center",
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="m-0 text-center text-[10px] leading-normal text-muted">
           First run warms the GPU container — large models can take up to 2 min.
         </p>
       )}
@@ -133,7 +107,7 @@ export function CardErrorState({
   showBuyCredits?: boolean;
 }) {
   return (
-    <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+    <div className="flex flex-col gap-2 px-3.5 py-3">
       <p className="m-0 text-[11px] text-red-600">
         ✗ {message ?? "Unknown error"}
       </p>
