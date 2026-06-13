@@ -133,7 +133,7 @@ export function CardErrorState({
 }) {
   return (
     <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-      <p style={{ fontSize: 11, color: "#dc2626", margin: 0 }}>
+      <p className="m-0 text-[11px] text-red-600">
         ✗ {message ?? "Unknown error"}
       </p>
       {showBuyCredits && (
