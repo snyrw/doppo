@@ -2,6 +2,7 @@
 
 import React from "react";
 import { TIER_LABELS } from "../lib/tiers";
+import { ControlButton } from "./ui/ControlButton";
 
 /** Ticks once per second while `status` is "loading"; returns elapsed ms since `startedAt`. */
 export function useElapsedMs(status: "loading" | "result" | "error", startedAt: number | undefined): number {
@@ -137,23 +138,12 @@ export function CardErrorState({
         ✗ {message ?? "Unknown error"}
       </p>
       {showBuyCredits && (
-        <button
-          onPointerDown={(e) => e.stopPropagation()}
+        <ControlButton
           onClick={() => window.dispatchEvent(new CustomEvent("open-buy-credits"))}
-          style={{
-            alignSelf: "flex-start",
-            fontSize: 11,
-            padding: "4px 10px",
-            borderRadius: 6,
-            border: "1px solid var(--card-border)",
-            background: "var(--bg)",
-            color: "var(--text)",
-            cursor: "pointer",
-            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-          }}
+          className="self-start rounded-md bg-background px-2.5 py-1 text-[11px] text-foreground"
         >
           Add credits →
-        </button>
+        </ControlButton>
       )}
     </div>
   );
