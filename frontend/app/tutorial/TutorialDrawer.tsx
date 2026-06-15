@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { cn } from "../lib/cn";
 import type { TutorialStep } from "./steps";
 
 type Props = {
@@ -46,65 +47,31 @@ export default function TutorialDrawer({
       <button
         onClick={onToggle}
         onPointerDown={e => e.stopPropagation()}
-        style={{
-          position: "fixed",
-          top: "50%",
-          right: isOpen ? 360 : 0,
-          transform: "translateY(-50%)",
-          zIndex: 60,
-          background: "var(--color-card)",
-          border: "1px solid var(--color-card-border)",
-          borderRight: isOpen ? "1px solid var(--color-card-border)" : "none",
-          borderRadius: "6px 0 0 6px",
-          padding: "10px 6px",
-          cursor: "pointer",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 4,
-          transition: "right 250ms cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: isOpen ? "none" : "-2px 0 8px rgba(0,0,0,0.08)",
-        }}
+        className={cn(
+          "fixed top-1/2 z-[60] flex -translate-y-1/2 cursor-pointer flex-col items-center gap-1 rounded-l-md border border-card-border bg-card px-1.5 py-2.5 transition-[right] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
+          isOpen ? "right-[360px]" : "right-0 border-r-0 shadow-[-2px_0_8px_rgba(0,0,0,0.08)]",
+        )}
         aria-label={isOpen ? "Close guide" : "Open guide"}
       >
-        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-text-muted)", writingMode: "vertical-rl", textTransform: "uppercase", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted [writing-mode:vertical-rl]">
           Guide
         </span>
-        <span style={{ fontSize: 12, color: "var(--color-text-muted)", transform: isOpen ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 250ms" }}>
+        <span className={cn("text-xs text-muted transition-transform duration-[250ms]", isOpen ? "rotate-0" : "rotate-180")}>
           ›
         </span>
       </button>
 
       <div
-        style={{
-          position: "fixed",
-          top: 50,
-          right: 0,
-          bottom: 0,
-          width: 360,
-          background: "var(--color-panel)",
-          borderLeft: "1px solid var(--color-surface-border)",
-          display: "flex",
-          flexDirection: "column",
-          zIndex: 50,
-          transform: isOpen ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 250ms cubic-bezier(0.4,0,0.2,1)",
-          overflow: "hidden",
-        }}
+        className={cn(
+          "fixed bottom-0 right-0 top-[50px] z-50 flex w-[360px] flex-col overflow-hidden border-l border-surface-border bg-panel transition-transform duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
+          isOpen ? "translate-x-0" : "translate-x-full",
+        )}
       >
-        <div
-          style={{
-            flexShrink: 0,
-            borderBottom: "1px solid var(--color-surface-border)",
-            padding: "8px 16px 6px",
-            maxHeight: "22%",
-            overflowY: "auto",
-          }}
-        >
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 4px" }}>
+        <div className="max-h-[22%] shrink-0 overflow-y-auto border-b border-surface-border px-4 pb-1.5 pt-2">
+          <p className="m-0 mb-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted">
             Steps
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          <div className="flex flex-col">
             {stepListItems.map(({ step: s, index: i, showPartHeader }) => {
               const isDone = completedSteps.has(i);
               const isCurrent = i === currentStep;
@@ -114,15 +81,7 @@ export default function TutorialDrawer({
               return (
                 <div key={i}>
                   {showPartHeader && (
-                    <p style={{
-                      fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                      fontSize: 9,
-                      fontWeight: 600,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: "var(--color-text-muted)",
-                      margin: "4px 6px 2px",
-                    }}>
+                    <p className="mx-1.5 mb-0.5 mt-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted">
                       {s.part}
                     </p>
                   )}
@@ -130,24 +89,23 @@ export default function TutorialDrawer({
                     onPointerDown={e => e.stopPropagation()}
                     onClick={() => { if (canNavigate) { setViewStep(i); onStepSelect(i); } }}
                     disabled={!canNavigate}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 7,
-                      padding: "2px 6px",
-                      width: "100%",
-                      background: isViewing ? "var(--color-surface-border)" : "none",
-                      border: "none",
-                      borderRadius: 4,
-                      cursor: canNavigate ? "pointer" : "default",
-                      textAlign: "left",
-                      transition: "background 100ms",
-                    }}
+                    className={cn(
+                      "flex w-full items-center gap-[7px] rounded border-none px-1.5 py-0.5 text-left transition-colors",
+                      isViewing ? "bg-surface-border" : "bg-transparent",
+                      canNavigate ? "cursor-pointer" : "cursor-default",
+                    )}
                   >
-                    <span style={{ width: 11, height: 11, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 7, fontWeight: 700, fontFamily: "var(--font-ibm-plex-sans), sans-serif", background: isDone ? "var(--color-accent)" : isCurrent ? "var(--color-surface-border)" : "transparent", border: isDone ? "none" : "1px solid var(--color-surface-border)", color: isDone ? "var(--color-accent-fg)" : "var(--color-text-muted)" }}>
+                    <span className={cn(
+                      "flex h-[11px] w-[11px] shrink-0 items-center justify-center rounded-full text-[7px] font-bold",
+                      isDone ? "bg-accent text-accent-fg" : cn("border border-surface-border text-muted", isCurrent ? "bg-surface-border" : "bg-transparent"),
+                    )}>
                       {isDone ? "✓" : (s.badge ?? (i === 0 ? "·" : i))}
                     </span>
-                    <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, color: isCurrent || isViewing ? "var(--color-text)" : isDone ? "var(--color-text)" : "var(--color-text-muted)", fontWeight: isCurrent ? 600 : 400 }}>
+                    <span className={cn(
+                      "text-[11px]",
+                      isCurrent ? "font-semibold" : "font-normal",
+                      (isCurrent || isViewing || isDone) ? "text-foreground" : "text-muted",
+                    )}>
                       {s.label}
                     </span>
                   </button>
@@ -157,56 +115,56 @@ export default function TutorialDrawer({
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 32px" }}>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 8px" }}>
+        <div className="flex-1 overflow-y-auto px-5 pb-8 pt-5">
+          <p className="m-0 mb-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted">
             {stepLabel}
           </p>
-          <h2 style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 16, fontWeight: 600, color: "var(--color-text)", margin: "0 0 16px", letterSpacing: "-0.01em" }}>
+          <h2 className="m-0 mb-4 text-base font-semibold tracking-[-0.01em] text-foreground">
             {step.heading}
           </h2>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+          <div className="mb-5 flex flex-col gap-3">
             {step.paragraphs.map((p, i) =>
               typeof p === "string" ? (
-                <p key={i} style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 13, lineHeight: 1.75, color: "var(--color-text-muted)", margin: 0 }}>
+                <p key={i} className="m-0 text-[13px] leading-[1.75] text-muted">
                   {p}
                 </p>
               ) : (
                 // Static tutorial illustrations of varying intrinsic size; plain <img> is intentional.
                 // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={p.src} alt={p.alt} style={{ width: "100%", borderRadius: 6, display: "block" }} />
+                <img key={i} src={p.src} alt={p.alt} className="block w-full rounded-md" />
               )
             )}
           </div>
 
           {step.whatToNotice && (
-            <div style={{ background: "var(--color-surface-border)", borderRadius: 6, padding: "12px 14px", marginBottom: step.caveat ? 16 : 20 }}>
-              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 6px" }}>
+            <div className={cn("rounded-md bg-surface-border px-3.5 py-3", step.caveat ? "mb-4" : "mb-5")}>
+              <p className="m-0 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
                 What to notice
               </p>
-              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 12, lineHeight: 1.7, color: "var(--color-text)", margin: 0 }}>
+              <p className="m-0 text-xs leading-[1.7] text-foreground">
                 {step.whatToNotice}
               </p>
             </div>
           )}
 
           {step.caveat && (
-            <div style={{ border: "1px solid var(--color-surface-border)", borderRadius: 6, padding: "12px 14px", marginBottom: 20 }}>
-              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 6px" }}>
+            <div className="mb-5 rounded-md border border-surface-border px-3.5 py-3">
+              <p className="m-0 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
                 Caveat
               </p>
-              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 12, lineHeight: 1.7, color: "var(--color-text-muted)", margin: 0 }}>
+              <p className="m-0 text-xs leading-[1.7] text-muted">
                 {step.caveat}
               </p>
             </div>
           )}
 
           {step.links.length > 0 && (
-            <div style={{ marginBottom: isIntroStep && viewStep === currentStep ? 20 : 0 }}>
-              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 8px" }}>
+            <div className={isIntroStep && viewStep === currentStep ? "mb-5" : "mb-0"}>
+              <p className="m-0 mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
                 References
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <div className="flex flex-col gap-[5px]">
                 {step.links.map(l => (
                   <a
                     key={l.url}
@@ -214,7 +172,7 @@ export default function TutorialDrawer({
                     target="_blank"
                     rel="noopener noreferrer"
                     onPointerDown={e => e.stopPropagation()}
-                    style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, color: "var(--color-text)", textDecoration: "none", borderBottom: "1px solid var(--color-surface-border)", paddingBottom: 4 }}
+                    className="border-b border-surface-border pb-1 text-[11px] text-foreground no-underline"
                   >
                     {l.label} ↗
                   </a>
@@ -227,18 +185,7 @@ export default function TutorialDrawer({
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={onContinueIntro}
-              style={{
-                marginTop: 4,
-                padding: "9px 18px",
-                background: "var(--color-accent)",
-                color: "var(--color-accent-fg)",
-                border: "none",
-                borderRadius: 6,
-                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
+              className="mt-1 cursor-pointer rounded-md border-none bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-accent-fg"
             >
               Start Part 1 →
             </button>

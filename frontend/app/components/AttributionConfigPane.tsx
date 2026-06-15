@@ -6,6 +6,7 @@ import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
 import ConfigPaneShell from "./ConfigPaneShell";
 import ModelPicker from "./ModelPicker";
 import TokenPreview from "./TokenPreview";
+import { cn } from "../lib/cn";
 
 type AttributionConfigPaneProps = {
   isOpen: boolean;
@@ -114,22 +115,11 @@ export default function AttributionConfigPane({
 
   if (!isOpen) return null;
 
-  const radioStyle = {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    cursor: "pointer",
-    fontSize: 12,
-    color: "var(--color-text)",
-  } as const;
-
-  const radioInputStyle = {
-    accentColor: "var(--color-accent)",
-    cursor: "pointer",
-    width: 13,
-    height: 13,
-    flexShrink: 0,
-  } as const;
+  const radioCls = "flex cursor-pointer items-center gap-1.5 text-xs text-foreground";
+  const radioInputCls = "h-[13px] w-[13px] shrink-0 cursor-pointer accent-[var(--accent)]";
+  const smallInputCls = "rounded-[5px] bg-background text-[11px] text-foreground outline-none transition-colors";
+  const promptLabelCls = "text-[10px] font-semibold uppercase tracking-[0.08em] text-muted";
+  const promptCls = "box-border w-full resize-y rounded-md border border-card-border bg-background px-2.5 py-2 font-[inherit] text-xs leading-normal text-foreground outline-none disabled:cursor-default disabled:opacity-70";
 
   return (
     <ConfigPaneShell
@@ -151,12 +141,12 @@ export default function AttributionConfigPane({
         />
 
         {/* Prompts */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-            <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+        <div className="mb-4">
+          <div className="mb-1.5 flex items-baseline justify-between">
+            <label className={promptLabelCls}>
               Reference Prompt
             </label>
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+            <span className="text-[9px] text-muted">
               {cleanPrompt.trim() ? cleanPrompt.trim().split(/\s+/).length : 0}w
             </span>
           </div>
@@ -166,23 +156,17 @@ export default function AttributionConfigPane({
             disabled={tutorialMode}
             rows={3}
             placeholder="Where the behavior you want to explain occurs"
-            style={{
-              width: "100%", border: "1px solid var(--color-card-border)", borderRadius: 6,
-              padding: "8px 10px", fontSize: 12, color: "var(--color-text)",
-              background: "var(--color-bg)", resize: "vertical", outline: "none",
-              fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
-              ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
-            }}
+            className={promptCls}
           />
           <TokenPreview tokens={cleanPreview.tokens} loading={cleanPreview.loading} />
         </div>
 
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-            <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase" }}>
+        <div className="mb-5">
+          <div className="mb-1.5 flex items-baseline justify-between">
+            <label className={promptLabelCls}>
               Counterfactual Prompt
             </label>
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+            <span className="text-[9px] text-muted">
               {corruptedPrompt.trim() ? corruptedPrompt.trim().split(/\s+/).length : 0}w
             </span>
           </div>
@@ -192,13 +176,7 @@ export default function AttributionConfigPane({
             disabled={tutorialMode}
             rows={3}
             placeholder="A variation that changes the behavior"
-            style={{
-              width: "100%", border: "1px solid var(--color-card-border)", borderRadius: 6,
-              padding: "8px 10px", fontSize: 12, color: "var(--color-text)",
-              background: "var(--color-bg)", resize: "vertical", outline: "none",
-              fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box",
-              ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
-            }}
+            className={promptCls}
           />
           <TokenPreview tokens={corruptedPreview.tokens} loading={corruptedPreview.loading} />
           {/* Token count mismatch warning — upgrade to real token count when available */}
@@ -207,7 +185,7 @@ export default function AttributionConfigPane({
             const corruptedToks = corruptedPreview.tokens?.length;
             if (cleanToks != null && corruptedToks != null && cleanToks !== corruptedToks) {
               return (
-                <p style={{ margin: "6px 0 0", fontSize: 10, color: "#d97706", lineHeight: 1.5 }}>
+                <p className="m-0 mt-1.5 text-[10px] leading-normal text-amber-600">
                   ⚠ Token counts differ ({cleanToks} vs {corruptedToks}). Patching works best when prompts tokenize to the same length — consider using a minimal substitution (e.g. swap one name).
                 </p>
               );
@@ -215,33 +193,33 @@ export default function AttributionConfigPane({
             const cw = cleanPrompt.trim().split(/\s+/).length;
             const rw = corruptedPrompt.trim().split(/\s+/).length;
             return cleanToks == null && cleanPrompt.trim() && corruptedPrompt.trim() && cw !== rw ? (
-              <p style={{ margin: "6px 0 0", fontSize: 10, color: "#d97706", lineHeight: 1.5 }}>
+              <p className="m-0 mt-1.5 text-[10px] leading-normal text-amber-600">
                 ⚠ Word counts differ ({cw} vs {rw}). Patching works best when prompts tokenize to the same length — consider using a minimal substitution (e.g. swap one name).
               </p>
             ) : null;
           })()}
-          <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.6 }}>
+          <p className="m-0 mt-2 text-[11px] leading-relaxed text-muted">
             Attribution patching scores each component by how much its activation change (reference → counterfactual) points toward the target token.{" "}
             <em>Verify top K</em> on the result card then runs causal activation patches on the top candidates to confirm.
           </p>
         </div>
 
         {/* Analysis target */}
-        <div style={{ borderTop: "1px solid var(--color-surface-border)", paddingTop: 16, marginBottom: 4 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 12 }}>
+        <div className="mb-1 border-t border-surface-border pt-4">
+          <label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
             Analysis Target
           </label>
 
-          <div style={{ marginBottom: 14 }}>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>Position</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              <label style={radioStyle}>
-                <input type="radio" name="attr-position" checked={positionMode === "last"} onChange={() => setPositionMode("last")} disabled={tutorialMode} style={radioInputStyle} />
+          <div className="mb-3.5">
+            <span className="mb-2 block text-[11px] font-medium text-foreground">Position</span>
+            <div className="flex flex-col gap-[7px]">
+              <label className={radioCls}>
+                <input type="radio" name="attr-position" checked={positionMode === "last"} onChange={() => setPositionMode("last")} disabled={tutorialMode} className={radioInputCls} />
                 Last token
-                <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>— next-token prediction (most common)</span>
+                <span className="ml-0.5 text-[10px] text-muted">— next-token prediction (most common)</span>
               </label>
-              <label style={{ ...radioStyle, alignItems: "flex-start" }}>
-                <input type="radio" name="attr-position" checked={positionMode === "custom"} onChange={() => setPositionMode("custom")} disabled={tutorialMode} style={{ ...radioInputStyle, marginTop: 2 }} />
+              <label className={cn(radioCls, "items-start")}>
+                <input type="radio" name="attr-position" checked={positionMode === "custom"} onChange={() => setPositionMode("custom")} disabled={tutorialMode} className={cn(radioInputCls, "mt-0.5")} />
                 <span>Token index</span>
                 <input
                   type="number" min={0} placeholder="e.g. 3"
@@ -249,52 +227,38 @@ export default function AttributionConfigPane({
                   onFocus={() => setPositionMode("custom")}
                   onChange={e => { setPositionMode("custom"); setCustomPosition(e.target.value); }}
                   disabled={tutorialMode}
-                  style={{
-                    width: 72, marginLeft: 6,
-                    border: `1px solid ${positionMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                    borderRadius: 5, padding: "3px 6px", fontSize: 11,
-                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
-                    transition: "border-color 120ms",
-                  }}
+                  className={cn(smallInputCls, "ml-1.5 w-[72px] border px-1.5 py-[3px]", positionMode === "custom" ? "border-accent" : "border-card-border")}
                 />
               </label>
             </div>
           </div>
 
-          <div style={{ marginBottom: 14 }}>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 8 }}>Target token</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              <label style={radioStyle}>
-                <input type="radio" name="attr-token" checked={tokenMode === "auto"} onChange={() => setTokenMode("auto")} disabled={tutorialMode} style={radioInputStyle} />
+          <div className="mb-3.5">
+            <span className="mb-2 block text-[11px] font-medium text-foreground">Target token</span>
+            <div className="flex flex-col gap-[7px]">
+              <label className={radioCls}>
+                <input type="radio" name="attr-token" checked={tokenMode === "auto"} onChange={() => setTokenMode("auto")} disabled={tutorialMode} className={radioInputCls} />
                 Top prediction
-                <span style={{ fontSize: 10, color: "var(--color-text-muted)", marginLeft: 2 }}>— attribute the model&apos;s most likely next token</span>
+                <span className="ml-0.5 text-[10px] text-muted">— attribute the model&apos;s most likely next token</span>
               </label>
-              <label style={{ ...radioStyle, alignItems: "flex-start" }}>
-                <input type="radio" name="attr-token" checked={tokenMode === "custom"} onChange={() => setTokenMode("custom")} disabled={tutorialMode} style={{ ...radioInputStyle, marginTop: 2 }} />
-                <span style={{ flexShrink: 0 }}>Specify</span>
+              <label className={cn(radioCls, "items-start")}>
+                <input type="radio" name="attr-token" checked={tokenMode === "custom"} onChange={() => setTokenMode("custom")} disabled={tutorialMode} className={cn(radioInputCls, "mt-0.5")} />
+                <span className="shrink-0">Specify</span>
                 <input
                   type="text" placeholder={`e.g. " Mary"`}
                   value={customToken}
                   onFocus={() => setTokenMode("custom")}
                   onChange={e => { setTokenMode("custom"); setCustomToken(e.target.value); }}
                   disabled={tutorialMode}
-                  style={{
-                    flex: 1, marginLeft: 6,
-                    border: `1px solid ${tokenMode === "custom" ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                    borderRadius: 5, padding: "3px 6px", fontSize: 11,
-                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
-                    transition: "border-color 120ms",
-                  }}
+                  className={cn(smallInputCls, "ml-1.5 flex-1 border px-1.5 py-[3px]", tokenMode === "custom" ? "border-accent" : "border-card-border")}
                 />
               </label>
             </div>
             {tokenMode === "custom" && (targetTokenPreview.tokens || targetTokenPreview.loading) && (
-              <div style={{ marginLeft: 22, marginTop: 2 }}>
+              <div className="ml-[22px] mt-0.5">
                 <TokenPreview tokens={targetTokenPreview.tokens} loading={targetTokenPreview.loading} />
                 {targetTokenPreview.tokens && targetTokenPreview.tokens.length > 1 && (
-                  <p style={{ margin: "3px 0 0", fontSize: 10, color: "#d97706" }}>
+                  <p className="m-0 mt-[3px] text-[10px] text-amber-600">
                     ⚠ Multi-token — only the first will be used. Try adding a leading space (e.g. &ldquo;{" " + customToken.trim()}&rdquo;).
                   </p>
                 )}
@@ -304,9 +268,9 @@ export default function AttributionConfigPane({
 
           {/* Contrastive token (optional) */}
           <div>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--color-text)", marginBottom: 4 }}>
+            <span className="mb-1 block text-[11px] font-medium text-foreground">
               Contrastive token
-              <span style={{ fontSize: 10, fontWeight: 400, color: "var(--color-text-muted)", marginLeft: 6 }}>optional</span>
+              <span className="ml-1.5 text-[10px] font-normal text-muted">optional</span>
             </span>
             <input
               type="text"
@@ -314,26 +278,19 @@ export default function AttributionConfigPane({
               value={contrastiveToken}
               onChange={e => setContrastiveToken(e.target.value)}
               disabled={tutorialMode}
-              style={{
-                width: "100%",
-                border: `1px solid ${contrastiveToken.trim() ? "var(--color-accent)" : "var(--color-card-border)"}`,
-                borderRadius: 5, padding: "4px 8px", fontSize: 11,
-                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                color: "var(--color-text)", background: "var(--color-bg)", outline: "none",
-                transition: "border-color 120ms", boxSizing: "border-box",
-              }}
+              className={cn(smallInputCls, "box-border w-full border px-2 py-1", contrastiveToken.trim() ? "border-accent" : "border-card-border")}
             />
             {(contrastivePreview.tokens || contrastivePreview.loading) && (
-              <div style={{ marginTop: 2 }}>
+              <div className="mt-0.5">
                 <TokenPreview tokens={contrastivePreview.tokens} loading={contrastivePreview.loading} />
                 {contrastivePreview.tokens && contrastivePreview.tokens.length > 1 && (
-                  <p style={{ margin: "3px 0 0", fontSize: 10, color: "#d97706" }}>
+                  <p className="m-0 mt-[3px] text-[10px] text-amber-600">
                     ⚠ Multi-token — only the first will be used. Try adding a leading space (e.g. &ldquo;{" " + contrastiveToken.trim()}&rdquo;).
                   </p>
                 )}
               </div>
             )}
-            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+            <p className="m-0 mt-[5px] text-[10px] leading-normal text-muted">
               When set, the gradient metric becomes logit(target) − logit(contrastive). Recommended for IOI-style tasks.
             </p>
           </div>

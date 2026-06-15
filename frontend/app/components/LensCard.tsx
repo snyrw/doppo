@@ -6,6 +6,9 @@ import { interpolateColor, getContrastColor } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
 import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, useElapsedMs, stageLabel } from "./CardShell";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
+import { cn } from "../lib/cn";
+
+const stepperBtnCls = "flex h-4 w-[18px] shrink-0 cursor-pointer items-center justify-center rounded-[3px] border border-card-border bg-surface-border p-0 text-[10px] leading-none text-muted";
 
 export type HeatmapData = {
   x_labels: string[];
@@ -179,22 +182,14 @@ function LensCard({
     <div
       ref={ref}
       data-card-id={card.id}
-      style={{
-        position: "absolute",
-        left: card.position.x,
-        top: card.position.y,
-        zIndex: pinnedCol !== null ? 20 : 10,
-        background: "var(--color-card)",
-        borderRadius: 8,
-        border: "1px solid var(--color-card-border)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        display: "flex",
-        flexDirection: "column",
+      className={cn(
+        "absolute flex flex-col rounded-lg border border-card-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
+        pinnedCol !== null ? "z-20" : "z-10",
         // No minWidth in result state: small heatmaps (few tokens) size to content
-        ...(card.status === "loading" ? { minWidth: 280, width: 280, height: 200 } : {}),
-        ...(card.status === "error" ? { minWidth: 280, width: 280 } : {}),
-        ...(card.status === "result" && heatmapPx ? { width: heatmapPx } : {}),
-      }}
+        card.status === "loading" && "h-[200px] w-[280px] min-w-[280px]",
+        card.status === "error" && "w-[280px] min-w-[280px]",
+      )}
+      style={{ left: card.position.x, top: card.position.y, ...(card.status === "result" && heatmapPx ? { width: heatmapPx } : {}) }}
     >
       {/* spin/fadeUp live in globals.css; slideInLeft is unique to this card */}
       <style>{`
@@ -206,31 +201,15 @@ function LensCard({
 
       {/* Hover popup */}
       {headerHovered && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "calc(100% + 6px)",
-            left: 0,
-            background: "var(--color-card)",
-            border: "1px solid var(--color-card-border)",
-            borderRadius: 8,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-            padding: "10px 12px",
-            zIndex: 100,
-            pointerEvents: "none",
-            minWidth: 200,
-            maxWidth: 320,
-            animation: "fadeUp 120ms ease-out",
-          }}
-        >
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
+        <div className="pointer-events-none absolute bottom-[calc(100%+6px)] left-0 z-[100] min-w-[200px] max-w-[320px] animate-fade-up rounded-lg border border-card-border bg-card px-3 py-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
+          <p className="m-0 break-all text-[11px] font-semibold text-foreground">
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
+          <p className="m-0 mt-[5px] break-words text-[10px] leading-[1.5] text-muted">
             {card.prompt}
           </p>
           {card.gpuTier && (
-            <span style={{ display: "inline-block", marginTop: 6, fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+            <span className="mt-1.5 inline-block rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.06em] text-accent">
               {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
             </span>
           )}
@@ -240,46 +219,36 @@ function LensCard({
       {/* Pinned column side panel */}
       {panelData && (
         <div
-          style={{
-            position: "absolute",
-            right: "calc(100% + 8px)",
-            top: 0,
-            width: 180,
-            background: "var(--color-card)",
-            border: "1px solid var(--color-card-border)",
-            borderRadius: 8,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-            padding: "8px 10px",
-            animation: "slideInLeft 140ms ease-out",
-          }}
+          className="absolute right-[calc(100%+8px)] top-0 w-[180px] rounded-lg border border-card-border bg-card px-2.5 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+          style={{ animation: "slideInLeft 140ms ease-out" }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 4 }}>
-            <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11, fontWeight: 700, color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px", maxWidth: 90, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", flexShrink: 0 }}>
+          <div className="mb-2 flex items-baseline justify-between gap-1">
+            <span className="max-w-[90px] shrink-0 truncate rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[11px] font-bold text-accent">
               {panelData.colLabel}
             </span>
-            <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", flexShrink: 0 }}>
+            <span className="shrink-0 text-[9px] text-muted">
               layer {panelData.layerLabel}
             </span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div className="flex flex-col gap-1">
             {panelData.tokens.map((tok, i) => {
               const prob = panelData.probs[i];
               return (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                  <span style={{ width: 48, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 9, color: "var(--color-text)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", flexShrink: 0, textAlign: "right" }}>
+                <div key={i} className="flex items-center gap-[5px]">
+                  <span className="w-12 shrink-0 truncate text-right text-[9px] text-foreground">
                     {JSON.stringify(tok)}
                   </span>
-                  <div style={{ flex: 1, height: 8, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
-                    <div style={{ width: `${prob * 100}%`, height: "100%", background: i === 0 ? "var(--color-accent)" : "var(--color-card-border)", borderRadius: 2, transition: "width 120ms ease-out" }} />
+                  <div className="h-2 flex-1 overflow-hidden rounded-sm bg-surface-border">
+                    <div className={cn("h-full rounded-sm transition-[width] duration-120 ease-out", i === 0 ? "bg-accent" : "bg-card-border")} style={{ width: `${prob * 100}%` }} />
                   </div>
-                  <span style={{ width: 30, fontSize: 9, color: "var(--color-text-muted)", textAlign: "right", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
+                  <span className="w-[30px] shrink-0 text-right text-[9px] tabular-nums text-muted">
                     {(prob * 100).toFixed(1)}%
                   </span>
                 </div>
               );
             })}
           </div>
-          <p style={{ fontSize: 8, color: "var(--color-surface-border)", margin: "8px 0 0", textAlign: "center" }}>
+          <p className="m-0 mt-2 text-center text-[8px] text-surface-border">
             hover rows to change layer
           </p>
         </div>
@@ -292,30 +261,22 @@ function LensCard({
         onPointerUp={onDragEnd}
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
-        style={{
-          borderBottom: "1px solid var(--color-surface-border)",
-          display: "flex",
-          flexDirection: "column",
-          flexShrink: 0,
-          borderRadius: "8px 8px 0 0",
-          cursor: "grab",
-          userSelect: "none",
-        }}
+        className="flex shrink-0 cursor-grab select-none flex-col rounded-t-lg border-b border-surface-border"
       >
         {/* Row 1: drag handle + title + close */}
-        <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
+        <div className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2.5 py-[7px]">
           <CardDragHandle />
-          <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="shrink-0 truncate text-[11px] font-semibold text-foreground">
             {card.modelName}
           </span>
-          <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="min-w-0 flex-1 truncate text-[10px] text-muted">
             {card.prompt}
           </span>
           {!tutorialMode && (
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={() => onRemove(card.id)}
-              style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+              className="shrink-0 cursor-pointer border-none bg-transparent px-0.5 text-xs leading-none text-muted"
             >
               ×
             </button>
@@ -326,23 +287,18 @@ function LensCard({
         {card.status === "result" && (
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{ padding: "4px 10px", borderTop: "1px solid var(--color-surface-border)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}
+            className="flex flex-wrap items-center gap-1.5 border-t border-surface-border px-2.5 py-1"
           >
             {canToggle && (
-              <div style={{ display: "flex", border: "1px solid var(--color-card-border)", borderRadius: 4, overflow: "hidden", flexShrink: 0 }}>
+              <div className="flex shrink-0 overflow-hidden rounded border border-card-border">
                 {(["prob", "tokens", ...(hasKl ? ["kl"] : []), ...(hasRank ? ["rank"] : []), ...(hasEntropy ? ["entropy"] : [])] as DisplayMode[]).map(m => (
                   <button
                     key={m}
                     onClick={() => setMode(m)}
-                    style={{
-                      fontSize: 9,
-                      padding: "2px 6px",
-                      background: mode === m ? "var(--color-accent)" : "transparent",
-                      color: mode === m ? "var(--color-accent-fg)" : "var(--color-text-muted)",
-                      border: "none",
-                      cursor: "pointer",
-                      lineHeight: 1.4,
-                    }}
+                    className={cn(
+                      "cursor-pointer border-none px-1.5 py-0.5 text-[9px] leading-[1.4]",
+                      mode === m ? "bg-accent text-accent-fg" : "bg-transparent text-muted",
+                    )}
                   >
                     {m === "prob" ? "Prob" : m === "tokens" ? "Tokens" : m === "kl" ? "KL" : m === "rank" ? "Rank" : "H"}
                   </button>
@@ -355,70 +311,56 @@ function LensCard({
               <button
                 onClick={entropyCardExists ? undefined : onSpawnEntropy}
                 title={entropyCardExists ? "Entropy card already open" : "Spawn entropy sparkline card"}
-                style={{ fontSize: 9, padding: "2px 5px", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 4, color: entropyCardExists ? "var(--color-surface-border)" : "var(--color-text-muted)", cursor: entropyCardExists ? "default" : "pointer", flexShrink: 0, lineHeight: 1.4, opacity: entropyCardExists ? 0.4 : 1 }}
+                className={cn(
+                  "shrink-0 rounded border border-card-border bg-surface-border px-[5px] py-0.5 text-[9px] leading-[1.4]",
+                  entropyCardExists ? "cursor-default text-surface-border opacity-40" : "cursor-pointer text-muted",
+                )}
               >
                 ↗
               </button>
             )}
 
-            <div style={{ flex: 1 }} />
+            <div className="flex-1" />
 
             {/* Active-filter badge — click to reset */}
             {hasFilter && (
               <button
                 onClick={() => { setStride(1); setLayerRange(null); }}
                 title="Reset layer filter"
-                style={{ fontSize: 9, padding: "1px 5px", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 4, color: "var(--color-accent)", cursor: "pointer", flexShrink: 0, fontFamily: "var(--font-ibm-plex-sans), sans-serif", lineHeight: 1.4 }}
+                className="shrink-0 cursor-pointer rounded border border-card-border bg-surface-border px-[5px] py-px text-[9px] leading-[1.4] text-accent"
               >
                 {stride > 1 ? `÷${stride}` : "◉"}
               </button>
             )}
 
             {/* Layer settings popover trigger — position: relative has no overflow: hidden ancestor, popover renders freely */}
-            <div style={{ position: "relative", flexShrink: 0 }}>
+            <div className="relative shrink-0">
               <button
                 onClick={() => setStrideOpen(o => !o)}
-                style={{ fontSize: 10, padding: "1px 5px", background: strideOpen ? "var(--color-surface-border)" : "transparent", border: "1px solid transparent", borderRadius: 4, color: "var(--color-text-muted)", cursor: "pointer", lineHeight: 1.4 }}
+                className={cn(
+                  "cursor-pointer rounded border border-transparent px-[5px] py-px text-[10px] leading-[1.4] text-muted",
+                  strideOpen ? "bg-surface-border" : "bg-transparent",
+                )}
               >
                 ···
               </button>
 
               {strideOpen && (
                 <div
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: "calc(100% + 4px)",
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-card-border)",
-                    borderRadius: 6,
-                    boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
-                    padding: "10px 12px",
-                    zIndex: 50,
-                    minWidth: 160,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                  }}
+                  className="absolute right-0 top-[calc(100%+4px)] z-50 flex min-w-40 flex-col gap-2 rounded-md border border-card-border bg-card px-3 py-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.10)]"
                   onPointerDown={e => e.stopPropagation()}
                 >
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.06em", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>STRIDE</span>
-                    <div style={{ display: "flex", gap: 3 }}>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[9px] font-semibold tracking-[0.06em] text-muted">STRIDE</span>
+                    <div className="flex gap-[3px]">
                       {[1, 2, 4, 8].map(s => (
                         <button
                           key={s}
                           onClick={() => setStride(s)}
-                          style={{
-                            fontSize: 9,
-                            padding: "2px 7px",
-                            background: stride === s ? "var(--color-accent)" : "var(--color-surface-border)",
-                            color: stride === s ? "var(--color-accent-fg)" : "var(--color-text-muted)",
-                            border: "1px solid var(--color-card-border)",
-                            borderRadius: 3,
-                            cursor: "pointer",
-                            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                          }}
+                          className={cn(
+                            "cursor-pointer rounded-[3px] border border-card-border px-[7px] py-0.5 text-[9px]",
+                            stride === s ? "bg-accent text-accent-fg" : "bg-surface-border text-muted",
+                          )}
                         >
                           ×{s}
                         </button>
@@ -426,25 +368,25 @@ function LensCard({
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: "var(--color-text-muted)", letterSpacing: "0.06em", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>LAYERS</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", width: 22 }}>from</span>
-                      <button onClick={() => setLayerRange([Math.max(0, rangeFrom - 1), rangeTo])} style={stepperBtn}>−</button>
-                      <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", minWidth: 20, textAlign: "center" }}>{rangeFrom}</span>
-                      <button onClick={() => setLayerRange([Math.min(rangeTo, rangeFrom + 1), rangeTo])} style={stepperBtn}>+</button>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[9px] font-semibold tracking-[0.06em] text-muted">LAYERS</span>
+                    <div className="flex items-center gap-1">
+                      <span className="w-[22px] text-[9px] text-muted">from</span>
+                      <button onClick={() => setLayerRange([Math.max(0, rangeFrom - 1), rangeTo])} className={stepperBtnCls}>−</button>
+                      <span className="min-w-5 text-center text-[9px] text-foreground">{rangeFrom}</span>
+                      <button onClick={() => setLayerRange([Math.min(rangeTo, rangeFrom + 1), rangeTo])} className={stepperBtnCls}>+</button>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                      <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", width: 22 }}>to</span>
-                      <button onClick={() => setLayerRange([rangeFrom, Math.max(rangeFrom, rangeTo - 1)])} style={stepperBtn}>−</button>
-                      <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", minWidth: 20, textAlign: "center" }}>{rangeTo}</span>
-                      <button onClick={() => setLayerRange([rangeFrom, Math.min(nLayers - 1, rangeTo + 1)])} style={stepperBtn}>+</button>
+                    <div className="flex items-center gap-1">
+                      <span className="w-[22px] text-[9px] text-muted">to</span>
+                      <button onClick={() => setLayerRange([rangeFrom, Math.max(rangeFrom, rangeTo - 1)])} className={stepperBtnCls}>−</button>
+                      <span className="min-w-5 text-center text-[9px] text-foreground">{rangeTo}</span>
+                      <button onClick={() => setLayerRange([rangeFrom, Math.min(nLayers - 1, rangeTo + 1)])} className={stepperBtnCls}>+</button>
                     </div>
                   </div>
 
                   <button
                     onClick={() => { setStride(1); setLayerRange(null); }}
-                    style={{ fontSize: 9, padding: "3px 0", background: "none", border: "none", color: "var(--color-text-muted)", cursor: "pointer", textAlign: "left", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}
+                    className="cursor-pointer border-none bg-transparent py-[3px] text-left text-[9px] text-muted"
                   >
                     reset
                   </button>
@@ -457,7 +399,7 @@ function LensCard({
 
       {/* Body */}
       {card.status === "loading" && (
-        <div style={{ display: "flex", flexDirection: "column", padding: "12px 14px", gap: 10, minHeight: 110 }}>
+        <div className="flex min-h-[110px] flex-col gap-2.5 px-3.5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
           <CardLoadingState
             stage={stageLabel(card.loadingStage, elapsedMs, STAGE_LABELS)}
@@ -469,30 +411,21 @@ function LensCard({
       {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
 
       {card.status === "result" && card.data && (
-        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--color-card)" }}>
-          <div style={{ display: "inline-flex", flexDirection: "column", gap: rowGap }}>
+        <div className="overflow-y-auto overflow-x-hidden bg-card p-1.5">
+          <div className="inline-flex flex-col" style={{ gap: rowGap }}>
             {/* X-axis labels */}
-            <div style={{ display: "flex", gap: COL_GAP }}>
-              <div style={{ width: Y_LABEL_W, flexShrink: 0 }} />
+            <div className="flex" style={{ gap: COL_GAP }}>
+              <div className="shrink-0" style={{ width: Y_LABEL_W }} />
               {card.data.x_labels.map((token, i) => (
                 <div
                   key={i}
                   onClick={() => canPin && handleColClick(i)}
-                  style={{
-                    width: cellWidth,
-                    flexShrink: 0,
-                    fontSize: 7,
-                    textAlign: "center",
-                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: pinnedCol === i ? "var(--color-accent)" : "var(--color-text-muted)",
-                    fontWeight: pinnedCol === i ? 700 : 400,
-                    overflow: "hidden",
-                    whiteSpace: "nowrap",
-                    textOverflow: "ellipsis",
-                    paddingBottom: 4,
-                    cursor: canPin ? "pointer" : "default",
-                    boxSizing: "border-box",
-                  }}
+                  className={cn(
+                    "box-border shrink-0 truncate pb-1 text-center text-[7px]",
+                    pinnedCol === i ? "font-bold text-accent" : "font-normal text-muted",
+                    canPin ? "cursor-pointer" : "cursor-default",
+                  )}
+                  style={{ width: cellWidth }}
                 >
                   {token}
                 </div>
@@ -505,23 +438,21 @@ function LensCard({
               const klMax = inKlMode ? Math.min(Math.max(...card.data!.kl_data![yIndex], 1e-6), 5) : 1;
               const cellHeight = inTokensMode ? 20 : 12;
 
+              const yLabelActive = pinnedCol !== null && activeLayer === yIndex;
               return (
                 <div
                   key={layerName}
-                  style={{ display: "flex", alignItems: "center", gap: COL_GAP }}
+                  className="flex items-center"
+                  style={{ gap: COL_GAP }}
                   onMouseEnter={() => pinnedCol !== null && setActiveLayer(yIndex)}
                 >
-                  <div style={{
-                    width: Y_LABEL_W,
-                    flexShrink: 0,
-                    fontSize: 9,
-                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    paddingRight: 4,
-                    textAlign: "right",
-                    overflow: "hidden",
-                    color: pinnedCol !== null && activeLayer === yIndex ? "var(--color-accent)" : "var(--color-text-muted)",
-                    fontWeight: pinnedCol !== null && activeLayer === yIndex ? 700 : 400,
-                  }}>
+                  <div
+                    className={cn(
+                      "shrink-0 overflow-hidden pr-1 text-right text-[9px]",
+                      yLabelActive ? "font-bold text-accent" : "font-normal text-muted",
+                    )}
+                    style={{ width: Y_LABEL_W }}
+                  >
                     {String(yIndex)}
                   </div>
 
@@ -544,55 +475,55 @@ function LensCard({
 
                     const cellBg = interpolateColor(palette, cellColorValue);
                     const cellBorder = isActivePinnedCell
-                      ? "1.5px solid var(--color-accent)"
+                      ? "1.5px solid var(--accent)"
                       : isPinned
-                      ? "0.5px solid var(--color-card-border)"
-                      : "0.5px solid var(--color-surface-border)";
+                      ? "0.5px solid var(--card-border)"
+                      : "0.5px solid var(--surface-border)";
 
                     const showRankNumber = inRankMode && rank !== null && rank <= 50;
 
                     const xLabel = card.data!.x_labels[xIndex];
                     const tooltipContent: React.ReactNode = inRankMode && rank !== null ? (
                       <>
-                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
-                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        <div className="mb-0.5 text-muted">
+                          <span className="font-semibold text-foreground">{xLabel}</span>{" · "}layer {yIndex}
                         </div>
-                        <div>rank <span style={{ fontWeight: 600 }}>#{rank}</span></div>
+                        <div>rank <span className="font-semibold">#{rank}</span></div>
                       </>
                     ) : inEntropyMode && entropy !== null ? (
                       <>
-                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
-                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        <div className="mb-0.5 text-muted">
+                          <span className="font-semibold text-foreground">{xLabel}</span>{" · "}layer {yIndex}
                         </div>
-                        <div style={{ fontVariantNumeric: "tabular-nums" }}>H = <span style={{ fontWeight: 600 }}>{entropy.toFixed(3)}</span> nats</div>
+                        <div className="tabular-nums">H = <span className="font-semibold">{entropy.toFixed(3)}</span> nats</div>
                       </>
                     ) : inKlMode && klVal !== null ? (
                       <>
-                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
-                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        <div className="mb-0.5 text-muted">
+                          <span className="font-semibold text-foreground">{xLabel}</span>{" · "}layer {yIndex}
                         </div>
-                        <div style={{ fontVariantNumeric: "tabular-nums" }}>KL = <span style={{ fontWeight: 600 }}>{klVal.toFixed(3)}</span> nats</div>
+                        <div className="tabular-nums">KL = <span className="font-semibold">{klVal.toFixed(3)}</span> nats</div>
                       </>
                     ) : inTokensMode && card.data!.topk_tokens && card.data!.topk_probs ? (
                       <>
-                        <div style={{ color: "var(--color-text-muted)", marginBottom: 4 }}>
-                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        <div className="mb-1 text-muted">
+                          <span className="font-semibold text-foreground">{xLabel}</span>{" · "}layer {yIndex}
                         </div>
                         {card.data!.topk_tokens[yIndex][xIndex].map((t, i) => (
-                          <div key={i} style={{ display: "flex", gap: 10, fontVariantNumeric: "tabular-nums" }}>
-                            <span style={{ color: "var(--color-text-muted)", minWidth: 30, textAlign: "right" }}>
+                          <div key={i} className="flex gap-2.5 tabular-nums">
+                            <span className="min-w-[30px] text-right text-muted">
                               {(card.data!.topk_probs![yIndex][xIndex][i] * 100).toFixed(1)}%
                             </span>
-                            <span style={{ fontWeight: i === 0 ? 600 : 400 }}>{JSON.stringify(t)}</span>
+                            <span className={i === 0 ? "font-semibold" : "font-normal"}>{JSON.stringify(t)}</span>
                           </div>
                         ))}
                       </>
                     ) : (
                       <>
-                        <div style={{ color: "var(--color-text-muted)", marginBottom: 2 }}>
-                          <span style={{ color: "var(--color-text)", fontWeight: 600 }}>{xLabel}</span>{" · "}layer {yIndex}
+                        <div className="mb-0.5 text-muted">
+                          <span className="font-semibold text-foreground">{xLabel}</span>{" · "}layer {yIndex}
                         </div>
-                        <div style={{ fontVariantNumeric: "tabular-nums" }}>p = <span style={{ fontWeight: 600 }}>{(prob * 100).toFixed(2)}%</span></div>
+                        <div className="tabular-nums">p = <span className="font-semibold">{(prob * 100).toFixed(2)}%</span></div>
                       </>
                     );
 
@@ -601,29 +532,21 @@ function LensCard({
                         key={`${yIndex}-${xIndex}`}
                         onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: tooltipContent })}
                         onMouseLeave={() => setTooltip(null)}
-                        style={{
-                          width: cellWidth,
-                          height: cellHeight,
-                          flexShrink: 0,
-                          backgroundColor: cellBg,
-                          border: cellBorder,
-                          display: (inTokensMode || showRankNumber) ? "flex" : undefined,
-                          alignItems: (inTokensMode || showRankNumber) ? "center" : undefined,
-                          justifyContent: (inTokensMode || showRankNumber) ? "center" : undefined,
-                          borderRadius: 2,
-                          overflow: "hidden",
-                          cursor: canPin ? "pointer" : "default",
-                          boxSizing: "border-box",
-                        }}
+                        className={cn(
+                          "box-border shrink-0 overflow-hidden rounded-sm",
+                          (inTokensMode || showRankNumber) && "flex items-center justify-center",
+                          canPin ? "cursor-pointer" : "cursor-default",
+                        )}
+                        style={{ width: cellWidth, height: cellHeight, backgroundColor: cellBg, border: cellBorder }}
                         onClick={() => canPin && handleColClick(xIndex)}
                       >
                         {inTokensMode && topToken !== null && (
-                          <span style={{ fontSize: 7, fontFamily: "var(--font-ibm-plex-sans), sans-serif", lineHeight: 1, color: getContrastColor(palette, topProb), maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap" }}>
+                          <span className="max-w-full overflow-hidden whitespace-nowrap text-[7px] leading-none" style={{ color: getContrastColor(palette, topProb) }}>
                             {topToken}
                           </span>
                         )}
                         {showRankNumber && !inTokensMode && (
-                          <span style={{ fontSize: 7, fontFamily: "var(--font-ibm-plex-sans), sans-serif", lineHeight: 1, color: getContrastColor(palette, cellColorValue), maxWidth: "100%", overflow: "hidden", whiteSpace: "nowrap" }}>
+                          <span className="max-w-full overflow-hidden whitespace-nowrap text-[7px] leading-none" style={{ color: getContrastColor(palette, cellColorValue) }}>
                             {rank}
                           </span>
                         )}
@@ -640,22 +563,5 @@ function LensCard({
     </div>
   );
 }
-
-const stepperBtn: React.CSSProperties = {
-  fontSize: 10,
-  width: 18,
-  height: 16,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "var(--color-surface-border)",
-  border: "1px solid var(--color-card-border)",
-  borderRadius: 3,
-  cursor: "pointer",
-  color: "var(--color-text-muted)",
-  flexShrink: 0,
-  padding: 0,
-  lineHeight: 1,
-};
 
 export default React.memo(LensCard);

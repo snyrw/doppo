@@ -61,7 +61,7 @@ export default async function SharePage({
   });
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
       <Navbar />
       <div style={{
         display: "flex",
@@ -69,19 +69,19 @@ export default async function SharePage({
         gap: 10,
         padding: "0 16px",
         height: 40,
-        borderBottom: "1px solid var(--color-surface-border)",
+        borderBottom: "1px solid var(--surface-border)",
         flexShrink: 0,
       }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
           {project.name}
         </span>
         <span style={{
           fontSize: 10,
           fontWeight: 600,
           letterSpacing: "0.06em",
-          color: "var(--color-text-muted)",
-          background: "var(--color-surface-border)",
-          border: "1px solid var(--color-card-border)",
+          color: "var(--text-muted)",
+          background: "var(--surface-border)",
+          border: "1px solid var(--card-border)",
           borderRadius: 3,
           padding: "1px 6px",
         }}>
@@ -92,7 +92,7 @@ export default async function SharePage({
           style={{
             marginLeft: "auto",
             fontSize: 12,
-            color: "var(--color-text-muted)",
+            color: "var(--text-muted)",
             textDecoration: "none",
           }}
         >

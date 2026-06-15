@@ -8,7 +8,7 @@ export default function Home() {
         height: "100vh",
         display: "flex",
         flexDirection: "column",
-        background: "var(--color-bg)",
+        background: "var(--bg)",
         overflow: "hidden",
       }}
     >

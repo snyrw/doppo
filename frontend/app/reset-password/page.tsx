@@ -4,18 +4,9 @@ import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { resetPassword } from "../lib/auth-client";
 
-const inputStyle: React.CSSProperties = {
-  border: "1px solid var(--color-card-border)",
-  borderRadius: 6,
-  padding: "6px 10px",
-  fontSize: 13,
-  color: "var(--color-text)",
-  background: "var(--color-bg)",
-  width: "100%",
-  boxSizing: "border-box",
-  outline: "none",
-  fontFamily: "inherit",
-};
+const inputCls = "box-border w-full rounded-md border border-card-border bg-background px-2.5 py-1.5 font-[inherit] text-[13px] text-foreground outline-none";
+const submitBtnCls = "w-full cursor-pointer rounded-md border-none bg-accent py-2 text-[13px] font-semibold text-accent-fg transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+const linkBtnCls = "cursor-pointer border-none bg-transparent p-0 text-[13px] text-accent underline";
 
 function openAuthModal(mode: "signin" | "forgot") {
   window.dispatchEvent(new CustomEvent("doppo:open-auth", { detail: { mode } }));
@@ -34,10 +25,10 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
+      <p className="m-0 text-[13px] text-muted">
         This link is invalid or has expired.{" "}
         <button
-          style={{ color: "var(--color-accent)", textDecoration: "underline", background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 13 }}
+          className={linkBtnCls}
           onClick={() => { router.push("/"); openAuthModal("forgot"); }}
         >
           Request a new link
@@ -48,22 +39,12 @@ function ResetPasswordForm() {
 
   if (done) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>
+      <div className="flex flex-col gap-2.5">
+        <p className="m-0 text-[13px] text-muted">
           Password updated.
         </p>
         <button
-          style={{
-            borderRadius: 6,
-            padding: "8px 0",
-            fontSize: 13,
-            fontWeight: 600,
-            border: "none",
-            cursor: "pointer",
-            width: "100%",
-            background: "var(--color-accent)",
-            color: "var(--color-accent-fg)",
-          }}
+          className={submitBtnCls}
           onClick={() => { router.push("/"); openAuthModal("signin"); }}
         >
           Back to sign in
@@ -92,14 +73,14 @@ function ResetPasswordForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
       <input
         type="password"
         placeholder="New password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
-        style={inputStyle}
+        className={inputCls}
       />
       <input
         type="password"
@@ -107,25 +88,13 @@ function ResetPasswordForm() {
         value={confirm}
         onChange={(e) => setConfirm(e.target.value)}
         required
-        style={inputStyle}
+        className={inputCls}
       />
-      {error && <p style={{ margin: 0, color: "#dc2626", fontSize: 12 }}>{error}</p>}
+      {error && <p className="m-0 text-xs text-red-600">{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        style={{
-          borderRadius: 6,
-          padding: "8px 0",
-          fontSize: 13,
-          fontWeight: 600,
-          border: "none",
-          cursor: loading ? "not-allowed" : "pointer",
-          width: "100%",
-          background: "var(--color-accent)",
-          color: "var(--color-accent-fg)",
-          opacity: loading ? 0.5 : 1,
-          transition: "background 150ms",
-        }}
+        className={submitBtnCls}
       >
         {loading ? "..." : "Reset Password"}
       </button>
@@ -135,29 +104,12 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--color-bg)",
-      }}
-    >
-      <div
-        style={{
-          background: "var(--color-card)",
-          borderRadius: 8,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
-          padding: 24,
-          width: "100%",
-          maxWidth: 384,
-        }}
-      >
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, marginTop: 0, color: "var(--color-text)" }}>
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="w-full max-w-96 rounded-lg bg-card p-6 shadow-[0_8px_32px_rgba(0,0,0,0.18)]">
+        <h2 className="mb-4 mt-0 text-lg font-semibold text-foreground">
           Reset password
         </h2>
-        <Suspense fallback={<p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>Loading...</p>}>
+        <Suspense fallback={<p className="m-0 text-[13px] text-muted">Loading...</p>}>
           <ResetPasswordForm />
         </Suspense>
       </div>

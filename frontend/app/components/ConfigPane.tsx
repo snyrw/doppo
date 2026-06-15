@@ -72,34 +72,22 @@ export default function ConfigPane({
 
   if (!isOpen) return null;
 
-  const stepperBtnStyle = {
-    fontSize: 11,
-    width: 18,
-    height: 22,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "var(--color-surface-border)",
-    border: "1px solid var(--color-card-border)",
-    borderRadius: 3,
-    cursor: tutorialMode ? "default" : "pointer",
-    color: "var(--color-text-muted)",
-    padding: 0,
-  } as const;
+  const stepperBtnCls =
+    "flex h-[22px] w-[18px] cursor-pointer items-center justify-center rounded-[3px] border border-card-border bg-surface-border p-0 text-[11px] text-muted disabled:cursor-default";
 
   // Top-k stepper — controls how many tokens appear in the pinned panel
   const topKStepper = (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-      <span style={{ fontSize: 10, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", whiteSpace: "nowrap" }}>
+    <div className="flex shrink-0 items-center gap-1">
+      <span className="whitespace-nowrap text-[10px] text-muted">
         k
       </span>
-      <button onClick={() => setTopK(k => Math.max(1, k - 1))} disabled={tutorialMode} style={stepperBtnStyle}>
+      <button onClick={() => setTopK(k => Math.max(1, k - 1))} disabled={tutorialMode} className={stepperBtnCls}>
         −
       </button>
-      <span style={{ fontSize: 11, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", minWidth: 14, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+      <span className="min-w-[14px] text-center text-[11px] tabular-nums text-foreground">
         {topK}
       </span>
-      <button onClick={() => setTopK(k => Math.min(10, k + 1))} disabled={tutorialMode} style={stepperBtnStyle}>
+      <button onClick={() => setTopK(k => Math.min(10, k + 1))} disabled={tutorialMode} className={stepperBtnCls}>
         +
       </button>
     </div>
@@ -124,8 +112,8 @@ export default function ConfigPane({
       />
 
       {/* Prompt */}
-      <div style={{ marginBottom: 20 }}>
-        <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--color-text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
+      <div className="mb-5">
+        <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
           Prompt
         </label>
         <textarea
@@ -133,25 +121,11 @@ export default function ConfigPane({
           onChange={e => setPrompt(e.target.value)}
           disabled={tutorialMode}
           rows={5}
-          style={{
-            width: "100%",
-            border: "1px solid var(--color-card-border)",
-            borderRadius: 6,
-            padding: "8px 10px",
-            fontSize: 13,
-            color: "var(--color-text)",
-            background: "var(--color-bg)",
-            resize: "vertical",
-            outline: "none",
-            fontFamily: "inherit",
-            lineHeight: 1.5,
-            boxSizing: "border-box",
-            ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
-          }}
+          className="box-border w-full resize-y rounded-md border border-card-border bg-background px-2.5 py-2 font-[inherit] text-[13px] leading-normal text-foreground outline-none disabled:cursor-default disabled:opacity-70"
         />
         <TokenPreview tokens={tokenPreview.tokens} loading={tokenPreview.loading} />
         {overTokenLimit && (
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "#dc2626" }}>
+          <p className="m-0 mt-1 text-[11px] text-red-600">
             Prompt too long — {tokenCount} / {MAX_PROMPT_TOKENS} tokens. Trim to {MAX_PROMPT_TOKENS} or fewer.
           </p>
         )}

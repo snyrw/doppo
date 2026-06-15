@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { TIER_LABELS } from "../lib/tiers";
-import { CardDragHandle, CardErrorState, CardLoadingHeader, useElapsedMs } from "./CardShell";
+import { CardDragHandle, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs } from "./CardShell";
+import { cn } from "../lib/cn";
 
 export type SteeringComponent = {
   layer: number;
@@ -87,58 +87,37 @@ function SteeringCard({
     <div
       ref={ref}
       data-card-id={card.id}
-      style={{
-        position: "absolute",
-        left: card.position.x,
-        top: card.position.y,
-        zIndex: 10,
-        width: 360,
-        background: "var(--color-card)",
-        borderRadius: 8,
-        border: "1px solid var(--color-card-border)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        display: "flex",
-        flexDirection: "column",
-      }}
+      className="absolute z-10 flex w-90 flex-col rounded-lg border border-card-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+      style={{ left: card.position.x, top: card.position.y }}
     >
 
       {/* Hover popup */}
       {headerHovered && (
-        <div style={{
-          position: "absolute", bottom: "calc(100% + 6px)", left: 0,
-          background: "var(--color-card)", border: "1px solid var(--color-card-border)",
-          borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-          padding: "10px 12px", zIndex: 100, pointerEvents: "none",
-          minWidth: 200, maxWidth: 320,
-        }}>
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--color-text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
+        <div className="pointer-events-none absolute bottom-[calc(100%+6px)] left-0 z-[100] min-w-[200px] max-w-[320px] rounded-lg border border-card-border bg-card px-3 py-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
+          <p className="m-0 break-all text-[11px] font-semibold text-foreground">
             {card.modelName}
           </p>
-          <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "8px 0 3px" }}>
+          <p className="mb-[3px] mt-2 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
             DIM pair
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
+          <p className="m-0 break-words text-[10px] leading-[1.5] text-muted">
             clean: {card.cleanPrompt}
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "3px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
+          <p className="m-0 mt-[3px] break-words text-[10px] leading-[1.5] text-muted">
             corrupted: {card.corruptedPrompt}
           </p>
-          <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "8px 0 3px" }}>
+          <p className="mb-[3px] mt-2 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
             generation prompt
           </p>
-          <p style={{ fontSize: 10, color: "var(--color-text)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
-            {card.generationPrompt && card.generationPrompt.trim() !== "" ? card.generationPrompt : <span style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>↳ defaults to clean prompt</span>}
+          <p className="m-0 break-words text-[10px] leading-[1.5] text-foreground">
+            {card.generationPrompt && card.generationPrompt.trim() !== "" ? card.generationPrompt : <span className="italic text-muted">↳ defaults to clean prompt</span>}
           </p>
-          <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
-            {card.gpuTier && (
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
-                {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
-              </span>
-            )}
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {card.gpuTier && <TierBadge tier={card.gpuTier} />}
+            <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.06em] text-accent">
               Steering
             </span>
-            <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px" }}>
+            <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] text-muted">
               T={card.temperature.toFixed(1)}  rep={card.repetitionPenalty.toFixed(2)}
             </span>
           </div>
@@ -152,30 +131,25 @@ function SteeringCard({
         onPointerUp={onDragEnd}
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
-        style={{
-          padding: "7px 10px", borderBottom: "1px solid var(--color-surface-border)",
-          display: "flex", alignItems: "center", gap: 6,
-          cursor: "grab", userSelect: "none", flexShrink: 0,
-          borderRadius: "8px 8px 0 0",
-        }}
+        className="flex shrink-0 cursor-grab select-none items-center gap-1.5 rounded-t-lg border-b border-surface-border px-2.5 py-[7px]"
       >
         <CardDragHandle />
-        <span style={{ fontSize: 11, color: "var(--color-text)", fontWeight: 600, flexShrink: 0 }}>
+        <span className="shrink-0 text-[11px] font-semibold text-foreground">
           Steering
         </span>
         {card.nPairs > 1 && (
-          <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.05em", color: "var(--color-accent)", background: "var(--color-surface-border)", border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px", flexShrink: 0 }}>
+          <span className="shrink-0 rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.05em] text-accent">
             {card.nPairs}p
           </span>
         )}
-        <span style={{ fontSize: 10, color: "var(--color-text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span className="min-w-0 flex-1 truncate text-[10px] text-muted">
           {card.components.map(componentLabel).join(" + ") || "residual"}
         </span>
         {!tutorialMode && (
           <button
             onPointerDown={e => e.stopPropagation()}
             onClick={() => onRemove(card.id)}
-            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+            className="shrink-0 cursor-pointer border-none bg-transparent px-0.5 text-xs leading-none text-muted"
           >
             ×
           </button>
@@ -185,27 +159,18 @@ function SteeringCard({
       {/* Injection info + alpha slider row */}
       <div
         onPointerDown={e => e.stopPropagation()}
-        style={{
-          padding: "5px 10px",
-          borderBottom: "1px solid var(--color-surface-border)",
-          display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap",
-        }}
+        className="flex flex-wrap items-center gap-1.5 border-b border-surface-border px-2.5 py-[5px]"
       >
         {card.components.map((c, i) => (
           <span
             key={i}
-            style={{
-              fontSize: 9, fontWeight: 600, fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              color: "var(--color-accent)", background: "var(--color-surface-border)",
-              border: "1px solid var(--color-card-border)", borderRadius: 3, padding: "1px 5px",
-              flexShrink: 0,
-            }}
+            className="shrink-0 rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold text-accent"
           >
             {componentLabel(c)}
           </span>
         ))}
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          <span style={{ fontSize: 9, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", width: 36, textAlign: "right" }}>
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          <span className="w-9 text-right text-[9px] text-muted">
             α={localAlpha >= 0 ? localAlpha.toFixed(2) : localAlpha.toFixed(2)}
           </span>
           <input
@@ -214,17 +179,13 @@ function SteeringCard({
             value={localAlpha}
             disabled={tutorialMode}
             onChange={e => setLocalAlpha(parseFloat(e.target.value))}
-            style={{ width: 80, accentColor: "var(--color-accent)", cursor: tutorialMode ? "not-allowed" : "pointer", ...(tutorialMode ? { opacity: 0.45 } : {}) }}
+            className="w-20 cursor-pointer accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-45"
           />
           {!tutorialMode && card.status !== "loading" && localAlpha !== card.alpha && (
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={() => onRerun(card.id, localAlpha)}
-              style={{
-                fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                background: "var(--color-accent)", color: "var(--color-accent-fg)",
-                border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
-              }}
+              className="cursor-pointer whitespace-nowrap rounded border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg"
             >
               Re-run →
             </button>
@@ -234,11 +195,11 @@ function SteeringCard({
 
       {/* Loading */}
       {card.status === "loading" && (
-        <div style={{ display: "flex", flexDirection: "column", padding: "10px 12px", gap: 8 }}>
+        <div className="flex flex-col gap-2 px-3 py-2.5">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 16, height: 16, border: "2px solid var(--color-surface-border)", borderTopColor: "var(--color-accent)", borderRadius: "50%", animation: "spin 0.8s linear infinite", flexShrink: 0 }} />
-            <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 shrink-0 animate-spinner rounded-full border-2 border-surface-border border-t-accent" />
+            <p className="m-0 text-[11px] text-muted">
               {card.loadingStage === "computing" ? "Computing DIM vectors…" : "Generating…"}
             </p>
           </div>
@@ -250,72 +211,63 @@ function SteeringCard({
 
       {/* Result */}
       {card.status === "result" && card.data && (
-        <div onPointerDown={e => e.stopPropagation()} style={{ display: "flex", flexDirection: "column" }}>
+        <div onPointerDown={e => e.stopPropagation()} className="flex flex-col">
           {/* Steered text */}
-          <div style={{ padding: "8px 10px 4px" }}>
-            <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 4px" }}>
+          <div className="px-2.5 pb-1 pt-2">
+            <p className="m-0 mb-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
               Steered
             </p>
-            <div style={{
-              fontSize: 11, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)",
-              lineHeight: 1.6, maxHeight: 100, overflowY: "auto", background: "var(--color-card)",
-              border: "1px solid var(--color-surface-border)", borderRadius: 4,
-              padding: "6px 8px", whiteSpace: "pre-wrap", wordBreak: "break-word",
-            }}>
+            <div className="max-h-[100px] overflow-y-auto whitespace-pre-wrap break-words rounded border border-surface-border bg-card px-2 py-1.5 text-[11px] leading-[1.6] text-foreground">
               {card.data.steered_text}
             </div>
           </div>
 
           {/* Baseline text */}
-          <div style={{ padding: "4px 10px 8px" }}>
-            <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 4px" }}>
+          <div className="px-2.5 pb-2 pt-1">
+            <p className="m-0 mb-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
               Baseline
             </p>
-            <div style={{
-              fontSize: 11, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)",
-              lineHeight: 1.6, maxHeight: 100, overflowY: "auto", background: "var(--color-card)",
-              border: "1px solid var(--color-surface-border)", borderRadius: 4,
-              padding: "6px 8px", whiteSpace: "pre-wrap", wordBreak: "break-word",
-            }}>
+            <div className="max-h-[100px] overflow-y-auto whitespace-pre-wrap break-words rounded border border-surface-border bg-card px-2 py-1.5 text-[11px] leading-[1.6] text-muted">
               {card.data.baseline_text}
             </div>
           </div>
 
-          <div style={{ borderTop: "1px solid var(--color-surface-border)" }} />
+          <div className="border-t border-surface-border" />
 
           {/* Next-token comparison */}
-          <div style={{ padding: "8px 10px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-              <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: 0 }}>
+          <div className="px-2.5 py-2">
+            <div className="mb-1.5 flex items-center justify-between">
+              <p className="m-0 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
                 Next token
               </p>
-              <span style={{
-                fontSize: 9, fontWeight: 600, fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                color: card.data.logit_diff >= 0 ? "#16a34a" : "#dc2626",
-                background: card.data.logit_diff >= 0 ? "rgba(22,163,74,0.08)" : "rgba(220,38,38,0.08)",
-                border: `1px solid ${card.data.logit_diff >= 0 ? "rgba(22,163,74,0.25)" : "rgba(220,38,38,0.25)"}`,
-                borderRadius: 3, padding: "1px 5px",
-              }}>
+              <span
+                className={cn(
+                  "rounded-[3px] border px-[5px] py-px text-[9px] font-semibold",
+                  card.data.logit_diff >= 0
+                    ? "border-[rgba(22,163,74,0.25)] bg-[rgba(22,163,74,0.08)] text-green-600"
+                    : "border-[rgba(220,38,38,0.25)] bg-[rgba(220,38,38,0.08)] text-red-600",
+                )}
+              >
                 Δ logit {logitDiffStr}
               </span>
             </div>
 
             {/* Two-column token table */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div className="grid grid-cols-2 gap-2">
               {/* Steered column */}
               <div>
-                <p style={{ fontSize: 8, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 4px" }}>
+                <p className="m-0 mb-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-muted">
                   Steered
                 </p>
                 {card.data.top_k_steered.map((t, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
-                    <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text)", width: 60, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div key={i} className="mb-[3px] flex items-center gap-1">
+                    <span className="w-[60px] shrink-0 truncate text-[9px] text-foreground">
                       {JSON.stringify(t.token)}
                     </span>
-                    <div style={{ flex: 1, height: 6, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
-                      <div style={{ width: `${t.prob * 100}%`, height: "100%", background: "var(--color-accent)", borderRadius: 2, opacity: 0.8 }} />
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-sm bg-surface-border">
+                      <div className="h-full rounded-sm bg-accent opacity-80" style={{ width: `${t.prob * 100}%` }} />
                     </div>
-                    <span style={{ fontSize: 8, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", width: 26, textAlign: "right", flexShrink: 0 }}>
+                    <span className="w-[26px] shrink-0 text-right text-[8px] text-muted">
                       {(t.prob * 100).toFixed(0)}%
                     </span>
                   </div>
@@ -324,18 +276,18 @@ function SteeringCard({
 
               {/* Baseline column */}
               <div>
-                <p style={{ fontSize: 8, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-muted)", margin: "0 0 4px" }}>
+                <p className="m-0 mb-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-muted">
                   Baseline
                 </p>
                 {card.data.top_k_baseline.map((t, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
-                    <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--color-text-muted)", width: 60, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div key={i} className="mb-[3px] flex items-center gap-1">
+                    <span className="w-[60px] shrink-0 truncate text-[9px] text-muted">
                       {JSON.stringify(t.token)}
                     </span>
-                    <div style={{ flex: 1, height: 6, background: "var(--color-surface-border)", borderRadius: 2, overflow: "hidden" }}>
-                      <div style={{ width: `${t.prob * 100}%`, height: "100%", background: "var(--color-text-muted)", borderRadius: 2, opacity: 0.5 }} />
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-sm bg-surface-border">
+                      <div className="h-full rounded-sm bg-muted opacity-50" style={{ width: `${t.prob * 100}%` }} />
                     </div>
-                    <span style={{ fontSize: 8, color: "var(--color-text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", width: 26, textAlign: "right", flexShrink: 0 }}>
+                    <span className="w-[26px] shrink-0 text-right text-[8px] text-muted">
                       {(t.prob * 100).toFixed(0)}%
                     </span>
                   </div>

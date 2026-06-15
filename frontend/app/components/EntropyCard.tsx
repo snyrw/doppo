@@ -83,37 +83,16 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, 
     <div
       ref={ref}
       data-card-id={card.id}
-      style={{
-        position: "absolute",
-        left: card.position.x,
-        top: card.position.y,
-        zIndex: 10,
-        background: "var(--color-card)",
-        borderRadius: 8,
-        border: "1px solid var(--color-card-border)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        display: "flex",
-        flexDirection: "column",
-        width: CARD_W,
-      }}
+      className="absolute z-10 flex flex-col rounded-lg border border-card-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+      style={{ left: card.position.x, top: card.position.y, width: CARD_W }}
     >
       <div
         onPointerDown={e => onStartDrag(e, card.id, card.position)}
         onPointerMove={onDragMove}
         onPointerUp={onDragEnd}
-        style={{
-          padding: "7px 10px",
-          borderBottom: "1px solid var(--color-surface-border)",
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          cursor: "grab",
-          userSelect: "none",
-          flexShrink: 0,
-          borderRadius: "8px 8px 0 0",
-        }}
+        className="flex shrink-0 cursor-grab select-none items-center gap-1.5 rounded-t-lg border-b border-surface-border px-2.5 py-[7px]"
       >
-        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" style={{ opacity: 0.3, flexShrink: 0 }}>
+        <svg width="8" height="12" viewBox="0 0 8 12" fill="none" className="shrink-0 opacity-30">
           <circle cx="2" cy="2" r="1.2" fill="currentColor" />
           <circle cx="6" cy="2" r="1.2" fill="currentColor" />
           <circle cx="2" cy="6" r="1.2" fill="currentColor" />
@@ -121,34 +100,25 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, 
           <circle cx="2" cy="10" r="1.2" fill="currentColor" />
           <circle cx="6" cy="10" r="1.2" fill="currentColor" />
         </svg>
-        <span style={{
-          fontSize: 9,
-          fontWeight: 600,
-          color: "var(--color-text-muted)",
-          fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-          flex: 1,
-          overflow: "hidden",
-          whiteSpace: "nowrap",
-          textOverflow: "ellipsis",
-        }}>
+        <span className="flex-1 truncate text-[9px] font-semibold text-muted">
           H · {card.modelName.split("/").pop()}
         </span>
         {!tutorialMode && (
           <button
             onPointerDown={e => e.stopPropagation()}
             onClick={() => onRemove(card.id)}
-            style={{ fontSize: 12, color: "var(--color-text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+            className="shrink-0 cursor-pointer border-none bg-transparent px-0.5 text-xs leading-none text-muted"
           >
             ×
           </button>
         )}
       </div>
 
-      <div style={{ padding: "8px 6px 6px", position: "relative" }}>
+      <div className="relative px-1.5 pb-1.5 pt-2">
         <svg
           width={INNER_W + PAD.left + PAD.right}
           height={INNER_H + PAD.top + PAD.bottom}
-          style={{ display: "block", overflow: "visible" }}
+          className="block overflow-visible"
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setHoveredLayer(null)}
         >
@@ -157,14 +127,13 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, 
               const y = INNER_H - (val / Math.max(maxEntropy, 0.01)) * INNER_H;
               return (
                 <g key={i}>
-                  <line x1={-3} y1={y} x2={INNER_W} y2={y} stroke="var(--color-surface-border)" strokeWidth={0.5} />
+                  <line x1={-3} y1={y} x2={INNER_W} y2={y} stroke="var(--surface-border)" strokeWidth={0.5} />
                   <text
                     x={-5}
                     y={y + 3}
                     fontSize={7}
                     textAnchor="end"
-                    fill="var(--color-text-muted)"
-                    style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}
+                    fill="var(--text-muted)"
                   >
                     {val}
                   </text>
@@ -172,14 +141,14 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, 
               );
             })}
 
-            <line x1={0} y1={INNER_H} x2={INNER_W} y2={INNER_H} stroke="var(--color-surface-border)" strokeWidth={0.5} />
+            <line x1={0} y1={INNER_H} x2={INNER_W} y2={INNER_H} stroke="var(--surface-border)" strokeWidth={0.5} />
 
             {Array.from({ length: nPos }, (_, pi) => (
               <path
                 key={pi}
                 d={makePath(entropyData.map(row => row[pi] ?? 0), maxEntropy, INNER_W, INNER_H)}
                 fill="none"
-                stroke="var(--color-text)"
+                stroke="var(--text)"
                 strokeOpacity={0.07}
                 strokeWidth={0.8}
               />
@@ -188,7 +157,7 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, 
             <path
               d={makePath(meanEntropy, maxEntropy, INNER_W, INNER_H)}
               fill="none"
-              stroke="var(--color-accent)"
+              stroke="var(--accent)"
               strokeWidth={1.5}
             />
 
@@ -198,25 +167,24 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, 
                 y1={0}
                 x2={crosshairX}
                 y2={INNER_H}
-                stroke="var(--color-text)"
+                stroke="var(--text)"
                 strokeOpacity={0.25}
                 strokeWidth={0.5}
                 strokeDasharray="3,2"
               />
             )}
 
-            <text x={0} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--color-text-muted)" style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>0</text>
-            <text x={INNER_W} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--color-text-muted)" style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>{nLayers - 1}</text>
-            <text x={INNER_W / 2} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--color-text-muted)" style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>layer</text>
+            <text x={0} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--text-muted)">0</text>
+            <text x={INNER_W} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--text-muted)">{nLayers - 1}</text>
+            <text x={INNER_W / 2} y={INNER_H + 12} fontSize={7} textAnchor="middle" fill="var(--text-muted)">layer</text>
 
             <text
               x={-PAD.left + 2}
               y={INNER_H / 2}
               fontSize={7}
               textAnchor="middle"
-              fill="var(--color-text-muted)"
+              fill="var(--text-muted)"
               transform={`rotate(-90, ${-PAD.left + 2}, ${INNER_H / 2})`}
-              style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}
             >
               nats
             </text>
@@ -224,21 +192,8 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, 
         </svg>
 
         {tooltipData && (
-          <div style={{
-            position: "absolute",
-            top: 6,
-            right: 4,
-            background: "var(--color-card)",
-            border: "1px solid var(--color-card-border)",
-            borderRadius: 4,
-            padding: "3px 6px",
-            fontSize: 8,
-            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-            color: "var(--color-text-muted)",
-            pointerEvents: "none",
-            lineHeight: 1.6,
-          }}>
-            <span style={{ color: "var(--color-accent)", fontWeight: 700 }}>
+          <div className="pointer-events-none absolute right-1 top-1.5 rounded border border-card-border bg-card px-1.5 py-[3px] text-[8px] leading-[1.6] text-muted">
+            <span className="font-bold text-accent">
               {tooltipData.layerLabel}
             </span>
             <br />

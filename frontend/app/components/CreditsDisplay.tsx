@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, Suspense } from "react";
 import { LOW_BALANCE_THRESHOLD_MICROS } from "@/app/lib/rates";
+import { cn } from "../lib/cn";
 import { BuyCreditsModal } from "./BuyCreditsModal";
 
 function formatMicros(micros: number): string {
@@ -57,128 +58,53 @@ function CreditsButtonInner() {
 
   const isLow = balanceMicros !== null && balanceMicros < LOW_BALANCE_THRESHOLD_MICROS;
   const isEmpty = balanceMicros === 0;
-  const accentColor = isEmpty ? "#dc2626" : isLow ? "#ea580c" : "var(--color-text-muted)";
+  const stateColorCls =
+    balanceMicros === null ? "border-surface-border text-muted"
+    : isEmpty ? "border-red-600 text-red-600"
+    : isLow ? "border-orange-600 text-orange-600"
+    : "border-muted text-muted";
+  const balanceColorCls = isEmpty ? "text-red-600" : isLow ? "text-orange-600" : "text-foreground";
 
   return (
     <>
-    <div ref={ref} style={{ position: "relative" }}>
+    <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(o => !o)}
         aria-label="Credits"
         title="Credits"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 28,
-          height: 28,
-          borderRadius: "50%",
-          border: `1.5px solid ${balanceMicros !== null ? accentColor : "var(--color-surface-border)"}`,
-          background: "none",
-          color: balanceMicros !== null ? accentColor : "var(--color-text-muted)",
-          cursor: "pointer",
-          fontSize: 12,
-          fontWeight: 600,
-          fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-          transition: "border-color 120ms ease, color 120ms ease, background 120ms ease",
-          flexShrink: 0,
-        }}
-        onMouseEnter={e => {
-          (e.currentTarget as HTMLButtonElement).style.background = "var(--color-panel)";
-        }}
-        onMouseLeave={e => {
-          (e.currentTarget as HTMLButtonElement).style.background = "none";
-        }}
+        className={cn(
+          "flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-[1.5px] bg-transparent text-xs font-semibold transition-colors hover:bg-panel",
+          stateColorCls,
+        )}
       >
         $
       </button>
 
       {open && (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 8px)",
-            right: 0,
-            background: "var(--color-card)",
-            border: "1px solid var(--color-card-border)",
-            borderRadius: 8,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
-            width: 220,
-            zIndex: 100,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              padding: "8px 12px 7px",
-              borderBottom: "1px solid var(--color-surface-border)",
-              fontSize: 9,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--color-text-muted)",
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-            }}
-          >
+        <div className="absolute right-0 top-[calc(100%+8px)] z-[100] w-[220px] overflow-hidden rounded-lg border border-card-border bg-card shadow-[0_4px_20px_rgba(0,0,0,0.12)]">
+          <div className="border-b border-surface-border px-3 pb-[7px] pt-2 text-[9px] uppercase tracking-[0.08em] text-muted">
             Credits
           </div>
 
           {balanceMicros !== null && (
-            <div
-              style={{
-                padding: "10px 12px 8px",
-                borderBottom: "1px solid var(--color-surface-border)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 11,
-                  color: "var(--color-text-muted)",
-                  fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                }}
-              >
+            <div className="flex items-center justify-between border-b border-surface-border px-3 pb-2 pt-2.5">
+              <span className="text-[11px] text-muted">
                 Balance
               </span>
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                  color: isEmpty ? "#dc2626" : isLow ? "#ea580c" : "var(--color-text)",
-                }}
-              >
+              <span className={cn("text-[13px] font-semibold", balanceColorCls)}>
                 {formatMicros(balanceMicros)}
               </span>
             </div>
           )}
 
-          <div style={{ padding: "8px 12px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="flex flex-col gap-1.5 px-3 pb-2.5 pt-2">
             <button
               onClick={() => { setBuyOpen(true); setOpen(false); }}
-              style={{
-                width: "100%",
-                padding: "7px 10px",
-                background: "var(--color-bg)",
-                border: "1px solid var(--color-card-border)",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontSize: 11,
-                color: "var(--color-text)",
-                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                textAlign: "left",
-              }}
+              className="w-full cursor-pointer rounded-md border border-card-border bg-background px-2.5 py-[7px] text-left text-[11px] text-foreground"
             >
               Add credits →
             </button>
-            <span style={{
-              fontSize: 10,
-              color: "var(--color-text-muted)",
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              opacity: 0.7,
-              paddingLeft: 2,
-            }}>
+            <span className="pl-0.5 text-[10px] text-muted opacity-70">
               Free tier: $1.00/month included
             </span>
           </div>

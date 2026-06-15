@@ -74,7 +74,7 @@ export default function WaveformLayers() {
       ctx.clearRect(0, 0, W, H);
 
       const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-      // matches --color-text in each theme
+      // matches --text in each theme
       const [r, g, b] = isDark ? [220, 218, 210] : [28, 28, 28];
 
       smoothXRef.current += (targetXRef.current - smoothXRef.current) * 0.07;
