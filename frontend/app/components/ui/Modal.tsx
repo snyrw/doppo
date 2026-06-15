@@ -5,8 +5,8 @@ import { cn } from "../../lib/cn";
 
 /**
  * Overlay + centered panel scaffold. Clicking the overlay closes; clicking the
- * panel does not. Callers supply the panel width via `className` (the primitive
- * sets no width, so there is no utility-merge conflict).
+ * panel does not. Callers MUST supply the panel width via `className` (the
+ * primitive sets no width, so there is no utility-merge conflict).
  */
 export function Modal({
   onClose,
@@ -25,8 +25,8 @@ export function Modal({
       <div
         onClick={e => e.stopPropagation()}
         className={cn(
-          "max-h-[85vh] w-full max-w-96 overflow-y-auto rounded-lg",
-          "border border-card-border bg-card p-6 shadow-[0_8px_32px_rgba(0,0,0,0.18)]",
+          "max-h-[85vh] overflow-y-auto rounded-xl border border-card-border",
+          "bg-card p-6 shadow-[0_8px_32px_rgba(0,0,0,0.18)]",
           className,
         )}
       >

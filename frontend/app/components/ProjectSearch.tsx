@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { listProjects } from "../actions";
 import type { ProjectSummary } from "../actions";
+import { cn } from "../lib/cn";
 
 function shortModelName(model: string): string {
   const parts = model.split("/");
@@ -114,52 +115,23 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
       {/* Backdrop */}
       <div
         onClick={onClose}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(15, 23, 42, 0.52)",
-          zIndex: 50,
-          opacity: isOpen ? 1 : 0,
-          pointerEvents: isOpen ? "all" : "none",
-          transition: "opacity 160ms ease",
-        }}
+        className={cn(
+          "fixed inset-0 z-50 bg-[rgba(15,23,42,0.52)] transition-opacity duration-[160ms]",
+          isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+        )}
       />
 
       {/* Palette */}
       <div
         onKeyDown={handleKeyDown}
-        style={{
-          position: "fixed",
-          top: "18%",
-          left: "50%",
-          transform: `translateX(-50%) scale(${isOpen ? 1 : 0.97})`,
-          width: 580,
-          maxWidth: "calc(100vw - 32px)",
-          background: "var(--card)",
-          borderRadius: 10,
-          boxShadow:
-            "0 0 0 1px rgba(15,23,42,0.07), 0 8px 24px rgba(15,23,42,0.1), 0 32px 64px rgba(15,23,42,0.14)",
-          zIndex: 51,
-          opacity: isOpen ? 1 : 0,
-          pointerEvents: isOpen ? "all" : "none",
-          transition: "opacity 160ms ease, transform 160ms ease",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
+        className={cn(
+          "fixed left-1/2 top-[18%] z-[51] flex w-[580px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[10px] bg-card shadow-[0_0_0_1px_rgba(15,23,42,0.07),0_8px_24px_rgba(15,23,42,0.1),0_32px_64px_rgba(15,23,42,0.14)] transition-[opacity,transform] duration-[160ms]",
+          isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+        )}
+        style={{ transform: `translateX(-50%) scale(${isOpen ? 1 : 0.97})` }}
       >
         {/* Input row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "0 16px",
-            height: 56,
-            borderBottom: "1px solid var(--surface-border)",
-            flexShrink: 0,
-          }}
-        >
+        <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-surface-border px-4">
           <svg
             width="17"
             height="17"
@@ -169,7 +141,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ flexShrink: 0 }}
+            className="shrink-0"
           >
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.35-4.35" />
@@ -179,31 +151,12 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
             value={query}
             onChange={e => { setQuery(e.target.value); setSelectedIndex(0); }}
             placeholder="Search projects…"
-            style={{
-              flex: 1,
-              border: "none",
-              outline: "none",
-              fontSize: 15,
-              color: "var(--text)",
-              background: "transparent",
-              caretColor: "var(--accent)",
-              fontFamily: "inherit",
-            }}
+            className="flex-1 border-none bg-transparent font-[inherit] text-[15px] text-foreground caret-[var(--accent)] outline-none"
           />
           {query && (
             <button
               onClick={() => { setQuery(""); setSelectedIndex(0); }}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--text-muted)",
-                fontSize: 18,
-                lineHeight: 1,
-                padding: "2px 4px",
-                display: "flex",
-                alignItems: "center",
-              }}
+              className="flex cursor-pointer items-center border-none bg-transparent px-1 py-0.5 text-lg leading-none text-muted"
             >
               ×
             </button>
@@ -211,32 +164,32 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
         </div>
 
         {/* Results */}
-        <div ref={listRef} style={{ overflowY: "auto", maxHeight: 420 }}>
+        <div ref={listRef} className="max-h-[420px] overflow-y-auto">
           {loading && (
-            <div style={{ padding: "36px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+            <div className="py-9 text-center text-[13px] text-muted">
               Loading…
             </div>
           )}
 
           {!loading && fetchError === "unauthorized" && (
-            <div style={{ padding: "36px 16px", textAlign: "center" }}>
-              <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>
+            <div className="px-4 py-9 text-center">
+              <div className="mb-1 text-sm font-semibold text-foreground">
                 Sign in to search projects
               </div>
-              <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
+              <div className="text-[13px] text-muted">
                 Your saved projects will appear here.
               </div>
             </div>
           )}
 
           {!loading && fetchError === "failed" && (
-            <div style={{ padding: "36px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+            <div className="py-9 text-center text-[13px] text-muted">
               Could not load projects. Try again.
             </div>
           )}
 
           {!loading && !fetchError && filtered.length === 0 && (
-            <div style={{ padding: "36px 0", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+            <div className="py-9 text-center text-[13px] text-muted">
               {query ? `No projects matching "${query}"` : "No saved projects yet."}
             </div>
           )}
@@ -293,15 +246,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            borderTop: "1px solid var(--surface-border)",
-            padding: "7px 16px",
-            display: "flex",
-            gap: 16,
-            flexShrink: 0,
-          }}
-        >
+        <div className="flex shrink-0 gap-4 border-t border-surface-border px-4 py-[7px]">
           {(
             [
               ["↑↓", "navigate"],
@@ -309,22 +254,11 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
               ["esc", "dismiss"],
             ] as [string, string][]
           ).map(([key, label]) => (
-            <span key={key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <kbd
-                style={{
-                  background: "var(--surface-border)",
-                  border: "1px solid var(--card-border)",
-                  borderRadius: 4,
-                  padding: "1px 5px",
-                  fontSize: 11,
-                  fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                  color: "var(--text-muted)",
-                  lineHeight: "16px",
-                }}
-              >
+            <span key={key} className="flex items-center gap-[5px]">
+              <kbd className="rounded border border-card-border bg-surface-border px-[5px] py-px text-[11px] leading-4 text-muted">
                 {key}
               </kbd>
-              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{label}</span>
+              <span className="text-[11px] text-muted">{label}</span>
             </span>
           ))}
         </div>
@@ -336,16 +270,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div
-        style={{
-          padding: "8px 16px 3px",
-          fontSize: 10,
-          fontWeight: 700,
-          color: "var(--text-muted)",
-          letterSpacing: "0.09em",
-          textTransform: "uppercase",
-        }}
-      >
+      <div className="px-4 pb-[3px] pt-2 text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
         {label}
       </div>
       {children}
@@ -366,92 +291,44 @@ function Row({
   isCurrent?: boolean;
   onSelect: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
-
-  const bg = isSelected || hovered ? "var(--surface-border)" : isCurrent ? "var(--panel)" : "var(--card)";
-  const leftBorder = isCurrent
-    ? "3px solid var(--accent)"
-    : isSelected || hovered
-    ? "3px solid var(--card-border)"
-    : "3px solid transparent";
-
   return (
     <div
       data-index={flatIndex}
       onClick={onSelect}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        padding: "8px 16px 8px 13px",
-        cursor: "pointer",
-        background: bg,
-        borderLeft: leftBorder,
-        transition: "background 80ms, border-color 80ms",
-        display: "flex",
-        flexDirection: "column",
-        gap: 3,
-      }}
+      className={cn(
+        "flex cursor-pointer flex-col gap-[3px] border-l-[3px] py-2 pl-[13px] pr-4 transition-colors",
+        isCurrent ? "border-l-accent" : isSelected ? "border-l-card-border" : "border-l-transparent hover:border-l-card-border",
+        isSelected ? "bg-surface-border" : isCurrent ? "bg-panel hover:bg-surface-border" : "bg-card hover:bg-surface-border",
+      )}
     >
       {/* Top line: name + chips + metadata */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "var(--text)",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-[13px] font-semibold text-foreground">
             {project.name}
           </span>
           {project.models.slice(0, 3).map(m => (
             <span
               key={m}
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                background: "var(--surface-border)",
-                color: "var(--accent)",
-                padding: "1px 5px",
-                borderRadius: 3,
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
+              className="shrink-0 whitespace-nowrap rounded-[3px] bg-surface-border px-[5px] py-px text-[10px] text-accent"
             >
               {shortModelName(m)}
             </span>
           ))}
           {project.models.length > 3 && (
-            <span style={{ fontSize: 10, color: "var(--text-muted)", flexShrink: 0 }}>
+            <span className="shrink-0 text-[10px] text-muted">
               +{project.models.length - 3}
             </span>
           )}
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexShrink: 0,
-          }}
-        >
+        <div className="flex shrink-0 items-center gap-2">
           {project.cardCount > 0 && (
-            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+            <span className="text-[11px] text-muted">
               {project.cardCount} {project.cardCount === 1 ? "card" : "cards"}
             </span>
           )}
-          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+          <span className="text-[11px] text-muted">
             {relativeTime(project.updatedAt)}
           </span>
         </div>
@@ -459,15 +336,7 @@ function Row({
 
       {/* Second line: first prompt */}
       {project.firstPrompt && (
-        <div
-          style={{
-            fontSize: 12,
-            color: "var(--text-muted)",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
+        <div className="truncate text-xs text-muted">
           {project.firstPrompt}
         </div>
       )}

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { CREDIT_PACKS } from "@/app/lib/rates";
+import { cn } from "../lib/cn";
+import { Modal } from "./ui/Modal";
 
 export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState<string | null>(null);
@@ -30,104 +32,46 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 200,
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: "var(--card)",
-          border: "1px solid var(--card-border)",
-          borderRadius: 12,
-          padding: "24px",
-          width: 340,
-          maxWidth: "90vw",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 14,
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              color: "var(--text)",
-            }}
-          >
+    <Modal onClose={onClose} className="w-[340px] max-w-[90vw]">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="m-0 text-sm text-foreground">
             Add credits
           </h2>
           <button
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--text-muted)",
-              fontSize: 18,
-              lineHeight: 1,
-            }}
+            className="cursor-pointer border-none bg-transparent text-lg leading-none text-muted"
           >
             &times;
           </button>
         </div>
 
-        <p
-          style={{
-            fontSize: 11,
-            color: "var(--text-muted)",
-            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-            marginBottom: 16,
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="mb-4 text-[11px] leading-normal text-muted">
           Credits are charged at Modal serverless cost with Stripe fees included.
           Free tier: $1.00/month.
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {CREDIT_PACKS.map((pack) => (
             <button
               key={pack.label}
               onClick={() => handlePack(pack)}
               disabled={loading !== null}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "10px 14px",
-                background: "var(--bg)",
-                border: "1px solid var(--card-border)",
-                borderRadius: 8,
-                cursor: loading !== null ? "not-allowed" : "pointer",
-                opacity: loading !== null && loading !== pack.label ? 0.5 : 1,
-                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              }}
+              className={cn(
+                "flex items-center justify-between rounded-lg border border-card-border bg-background px-3.5 py-2.5 disabled:cursor-not-allowed",
+                loading === null ? "cursor-pointer" : "cursor-not-allowed",
+                loading !== null && loading !== pack.label && "opacity-50",
+              )}
             >
-              <div style={{ textAlign: "left" }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+              <div className="text-left">
+                <div className="text-[13px] font-semibold text-foreground">
                   {pack.label} credit
                 </div>
-                <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                <div className="text-[10px] text-muted">
                   ${(pack.chargeCents / 100).toFixed(2)} charged to card
                 </div>
               </div>
               {loading === pack.label && (
-                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                <span className="text-[11px] text-muted">
                   Redirecting…
                 </span>
               )}
@@ -136,18 +80,10 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {error && (
-          <p
-            style={{
-              marginTop: 12,
-              fontSize: 11,
-              color: "#dc2626",
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-            }}
-          >
+          <p className="mt-3 text-[11px] text-red-600">
             {error}
           </p>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }
