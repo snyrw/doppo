@@ -6,6 +6,7 @@ import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
 import ConfigPaneShell from "./ConfigPaneShell";
 import ModelPicker from "./ModelPicker";
 import TokenPreview from "./TokenPreview";
+import { cn } from "../lib/cn";
 
 type DlaConfigPaneProps = {
   isOpen: boolean;
@@ -108,22 +109,9 @@ export default function DlaConfigPane({
 
   if (!isOpen) return null;
 
-  const radioStyle = {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    cursor: "pointer",
-    fontSize: 12,
-    color: "var(--text)",
-  } as const;
-
-  const radioInputStyle = {
-    accentColor: "var(--accent)",
-    cursor: "pointer",
-    width: 13,
-    height: 13,
-    flexShrink: 0,
-  } as const;
+  const radioCls = "flex cursor-pointer items-center gap-1.5 text-xs text-foreground";
+  const radioInputCls = "h-[13px] w-[13px] shrink-0 cursor-pointer accent-[var(--accent)]";
+  const smallInputCls = "rounded-[5px] bg-background text-[11px] text-foreground outline-none transition-colors";
 
   return (
     <ConfigPaneShell
@@ -143,8 +131,8 @@ export default function DlaConfigPane({
         />
 
         {/* Prompt */}
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
+        <div className="mb-5">
+          <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
             Prompt
           </label>
           <textarea
@@ -152,59 +140,45 @@ export default function DlaConfigPane({
             onChange={e => setPrompt(e.target.value)}
             disabled={tutorialMode}
             rows={5}
-            style={{
-              width: "100%",
-              border: "1px solid var(--card-border)",
-              borderRadius: 6,
-              padding: "8px 10px",
-              fontSize: 13,
-              color: "var(--text)",
-              background: "var(--bg)",
-              resize: "vertical",
-              outline: "none",
-              fontFamily: "inherit",
-              lineHeight: 1.5,
-              boxSizing: "border-box",
-              ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
-            }}
+            className="box-border w-full resize-y rounded-md border border-card-border bg-background px-2.5 py-2 font-[inherit] text-[13px] leading-normal text-foreground outline-none disabled:cursor-default disabled:opacity-70"
           />
           <TokenPreview tokens={tokenPreview.tokens} loading={tokenPreview.loading} />
         </div>
 
         {/* Analysis target section */}
-        <div style={{ borderTop: "1px solid var(--surface-border)", paddingTop: 16, marginBottom: 4 }}>
-          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 12 }}>
+        <div className="mb-1 border-t border-surface-border pt-4">
+          <label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
             Analysis Target
           </label>
 
           {/* Position */}
-          <div style={{ marginBottom: 14 }}>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--text)", marginBottom: 8 }}>
+          <div className="mb-3.5">
+            <span className="mb-2 block text-[11px] font-medium text-foreground">
               Position
             </span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              <label style={radioStyle}>
+            <div className="flex flex-col gap-[7px]">
+              <label className={radioCls}>
                 <input
                   type="radio"
                   name="dla-position"
                   checked={positionMode === "last"}
                   onChange={() => setPositionMode("last")}
                   disabled={tutorialMode}
-                  style={radioInputStyle}
+                  className={radioInputCls}
                 />
                 Last token
-                <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 2 }}>
+                <span className="ml-0.5 text-[10px] text-muted">
                   — next-token prediction (most common)
                 </span>
               </label>
-              <label style={{ ...radioStyle, alignItems: "flex-start" }}>
+              <label className={cn(radioCls, "items-start")}>
                 <input
                   type="radio"
                   name="dla-position"
                   checked={positionMode === "custom"}
                   onChange={() => setPositionMode("custom")}
                   disabled={tutorialMode}
-                  style={{ ...radioInputStyle, marginTop: 2 }}
+                  className={cn(radioInputCls, "mt-0.5")}
                 />
                 <span>Token index</span>
                 <input
@@ -215,54 +189,42 @@ export default function DlaConfigPane({
                   onFocus={() => setPositionMode("custom")}
                   onChange={e => { setPositionMode("custom"); setCustomPosition(e.target.value); }}
                   disabled={tutorialMode}
-                  style={{
-                    width: 72,
-                    marginLeft: 6,
-                    border: `1px solid ${positionMode === "custom" ? "var(--accent)" : "var(--card-border)"}`,
-                    borderRadius: 5,
-                    padding: "3px 6px",
-                    fontSize: 11,
-                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: "var(--text)",
-                    background: "var(--bg)",
-                    outline: "none",
-                    transition: "border-color 120ms",
-                  }}
+                  className={cn(smallInputCls, "ml-1.5 w-[72px] border px-1.5 py-[3px]", positionMode === "custom" ? "border-accent" : "border-card-border")}
                 />
               </label>
             </div>
           </div>
 
           {/* Target token */}
-          <div style={{ marginBottom: 14 }}>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--text)", marginBottom: 8 }}>
+          <div className="mb-3.5">
+            <span className="mb-2 block text-[11px] font-medium text-foreground">
               Target token
             </span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              <label style={radioStyle}>
+            <div className="flex flex-col gap-[7px]">
+              <label className={radioCls}>
                 <input
                   type="radio"
                   name="dla-token"
                   checked={tokenMode === "auto"}
                   onChange={() => setTokenMode("auto")}
                   disabled={tutorialMode}
-                  style={radioInputStyle}
+                  className={radioInputCls}
                 />
                 Top prediction
-                <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 2 }}>
+                <span className="ml-0.5 text-[10px] text-muted">
                   — attribute the model&apos;s most likely next token
                 </span>
               </label>
-              <label style={{ ...radioStyle, alignItems: "flex-start" }}>
+              <label className={cn(radioCls, "items-start")}>
                 <input
                   type="radio"
                   name="dla-token"
                   checked={tokenMode === "custom"}
                   onChange={() => setTokenMode("custom")}
                   disabled={tutorialMode}
-                  style={{ ...radioInputStyle, marginTop: 2 }}
+                  className={cn(radioInputCls, "mt-0.5")}
                 />
-                <span style={{ flexShrink: 0 }}>Specify</span>
+                <span className="shrink-0">Specify</span>
                 <input
                   type="text"
                   placeholder={`e.g. " Paris"`}
@@ -270,27 +232,15 @@ export default function DlaConfigPane({
                   onFocus={() => setTokenMode("custom")}
                   onChange={e => { setTokenMode("custom"); setCustomToken(e.target.value); }}
                   disabled={tutorialMode}
-                  style={{
-                    flex: 1,
-                    marginLeft: 6,
-                    border: `1px solid ${tokenMode === "custom" ? "var(--accent)" : "var(--card-border)"}`,
-                    borderRadius: 5,
-                    padding: "3px 6px",
-                    fontSize: 11,
-                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    color: "var(--text)",
-                    background: "var(--bg)",
-                    outline: "none",
-                    transition: "border-color 120ms",
-                  }}
+                  className={cn(smallInputCls, "ml-1.5 flex-1 border px-1.5 py-[3px]", tokenMode === "custom" ? "border-accent" : "border-card-border")}
                 />
               </label>
             </div>
             {tokenMode === "custom" && (targetTokenPreview.tokens || targetTokenPreview.loading) && (
-              <div style={{ marginLeft: 22, marginTop: 2 }}>
+              <div className="ml-[22px] mt-0.5">
                 <TokenPreview tokens={targetTokenPreview.tokens} loading={targetTokenPreview.loading} />
                 {targetTokenPreview.tokens && targetTokenPreview.tokens.length > 1 && (
-                  <p style={{ margin: "3px 0 0", fontSize: 10, color: "#d97706" }}>
+                  <p className="m-0 mt-[3px] text-[10px] text-amber-600">
                     ⚠ Multi-token — only the first will be used. Try adding a leading space (e.g. &ldquo;{" " + customToken.trim()}&rdquo;).
                   </p>
                 )}
@@ -300,9 +250,9 @@ export default function DlaConfigPane({
 
           {/* Contrastive token (optional) */}
           <div>
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--text)", marginBottom: 4 }}>
+            <span className="mb-1 block text-[11px] font-medium text-foreground">
               Contrastive token
-              <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>optional</span>
+              <span className="ml-1.5 text-[10px] font-normal text-muted">optional</span>
             </span>
             <input
               type="text"
@@ -310,31 +260,19 @@ export default function DlaConfigPane({
               value={contrastiveToken}
               onChange={e => setContrastiveToken(e.target.value)}
               disabled={tutorialMode}
-              style={{
-                width: "100%",
-                border: `1px solid ${contrastiveToken.trim() ? "var(--accent)" : "var(--card-border)"}`,
-                borderRadius: 5,
-                padding: "4px 8px",
-                fontSize: 11,
-                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                color: "var(--text)",
-                background: "var(--bg)",
-                outline: "none",
-                transition: "border-color 120ms",
-                boxSizing: "border-box",
-              }}
+              className={cn(smallInputCls, "box-border w-full border px-2 py-1", contrastiveToken.trim() ? "border-accent" : "border-card-border")}
             />
             {(contrastivePreview.tokens || contrastivePreview.loading) && (
-              <div style={{ marginTop: 2 }}>
+              <div className="mt-0.5">
                 <TokenPreview tokens={contrastivePreview.tokens} loading={contrastivePreview.loading} />
                 {contrastivePreview.tokens && contrastivePreview.tokens.length > 1 && (
-                  <p style={{ margin: "3px 0 0", fontSize: 10, color: "#d97706" }}>
+                  <p className="m-0 mt-[3px] text-[10px] text-amber-600">
                     ⚠ Multi-token — only the first will be used. Try adding a leading space (e.g. &ldquo;{" " + contrastiveToken.trim()}&rdquo;).
                   </p>
                 )}
               </div>
             )}
-            <p style={{ margin: "5px 0 0", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.5 }}>
+            <p className="m-0 mt-[5px] text-[10px] leading-normal text-muted">
               When set, uses logit difference (target − contrastive) as the attribution direction — the standard metric for contrastive tasks like IOI.
             </p>
           </div>
