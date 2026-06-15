@@ -1,17 +1,10 @@
 "use client";
 
 import { TIER_LABELS } from "../lib/tiers";
+import { cn } from "../lib/cn";
 import type { ModelInfo, ModelSelection } from "../hooks/useModelSelection";
 
-const labelStyle = {
-  display: "block",
-  fontSize: 10,
-  fontWeight: 600,
-  letterSpacing: "0.08em",
-  color: "var(--text-muted)",
-  textTransform: "uppercase",
-  marginBottom: 8,
-} as const;
+const labelCls = "mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted";
 
 type ModelPickerProps = {
   picker: ModelSelection;
@@ -39,9 +32,9 @@ export default function ModelPicker({
 }: ModelPickerProps) {
   if (tutorialMode && tutorialVariant === "static") {
     return (
-      <div style={{ marginBottom: 20 }}>
-        <label style={labelStyle}>Model</label>
-        <div style={{ padding: "8px 16px 4px", fontSize: 12, color: "var(--text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+      <div className="mb-5">
+        <label className={labelCls}>Model</label>
+        <div className="px-4 pb-1 pt-2 text-xs text-foreground">
           {tutorialModelName}
         </div>
       </div>
@@ -52,20 +45,16 @@ export default function ModelPicker({
     <>
       {!tutorialMode && (
         <>
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>Featured Models</label>
+          <div className="mb-5">
+            <label className={labelCls}>Featured Models</label>
 
             {modelsLoading ? (
-              <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "12px 0" }}>Loading models…</div>
+              <div className="py-3 text-xs text-muted">Loading models…</div>
             ) : (
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 7,
-                maxHeight: gridMaxHeight,
-                overflowY: "auto",
-                paddingRight: 2,
-              }}>
+              <div
+                className="grid grid-cols-2 gap-[7px] overflow-y-auto pr-0.5"
+                style={{ maxHeight: gridMaxHeight }}
+              >
                 {models.map(m => {
                   const isSelected = picker.selectedModel === m.id && !picker.usingCustom;
                   return (
@@ -73,37 +62,21 @@ export default function ModelPicker({
                       key={m.id}
                       onClick={() => picker.selectFeaturedModel(m.id)}
                       title={m.description}
-                      style={{
-                        border: `1.5px solid ${isSelected ? "var(--accent)" : "var(--card-border)"}`,
-                        borderRadius: 7,
-                        padding: "8px 9px",
-                        background: isSelected ? "var(--surface-border)" : "var(--card)",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        transition: "border-color 120ms, background 120ms",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 3,
-                      }}
-                      onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent)"; }}
-                      onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--card-border)"; }}
+                      className={cn(
+                        "flex cursor-pointer flex-col gap-[3px] rounded-[7px] border-[1.5px] px-[9px] py-2 text-left transition-colors",
+                        isSelected
+                          ? "border-accent bg-surface-border"
+                          : "border-card-border bg-card hover:border-accent",
+                      )}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 600, color: isSelected ? "var(--accent)" : "var(--text)", lineHeight: 1.3 }}>
+                      <span className={cn("text-[11px] font-semibold leading-[1.3]", isSelected ? "text-accent" : "text-foreground")}>
                         {m.display_name}
                       </span>
-                      <span style={{
-                        fontSize: 10,
-                        color: "var(--text-muted)",
-                        lineHeight: 1.4,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                      }}>
+                      <span className="line-clamp-2 overflow-hidden text-[10px] leading-[1.4] text-muted">
                         {m.description}
                       </span>
                       {m.requires_hf_token && (
-                        <span style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 1, letterSpacing: "0.02em" }}>
+                        <span className="mt-px text-[9px] tracking-[0.02em] text-muted">
                           HF token required
                         </span>
                       )}
@@ -115,20 +88,20 @@ export default function ModelPicker({
           </div>
 
           {/* Divider */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <div style={{ flex: 1, height: 1, background: "var(--surface-border)" }} />
-            <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div className="mb-4 flex items-center gap-2">
+            <div className="h-px flex-1 bg-surface-border" />
+            <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted">
               or
             </span>
-            <div style={{ flex: 1, height: 1, background: "var(--surface-border)" }} />
+            <div className="h-px flex-1 bg-surface-border" />
           </div>
         </>
       )}
 
       {/* Any HuggingFace model */}
-      <div style={{ marginBottom: 20 }}>
-        <label style={labelStyle}>Any HuggingFace Model</label>
-        <div style={{ display: "flex", gap: 6 }}>
+      <div className="mb-5">
+        <label className={labelCls}>Any HuggingFace Model</label>
+        <div className="flex gap-1.5">
           <input
             type="text"
             placeholder="username/model-name"
@@ -136,41 +109,21 @@ export default function ModelPicker({
             onChange={e => picker.setCustomRepo(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && picker.customRepoId.trim()) picker.validateCustomRepo(); }}
             disabled={tutorialMode}
-            style={{
-              flex: 1,
-              border: `1px solid ${picker.usingCustom ? "var(--accent)" : "var(--card-border)"}`,
-              borderRadius: 6,
-              padding: "6px 8px",
-              fontSize: 11,
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              color: "var(--text)",
-              background: "var(--bg)",
-              outline: "none",
-              transition: "border-color 120ms",
-              ...(tutorialMode ? { opacity: 0.7, cursor: "default" } : {}),
-            }}
+            className={cn(
+              "flex-1 rounded-md border bg-background px-2 py-1.5 text-[11px] text-foreground outline-none transition-colors disabled:cursor-default disabled:opacity-70",
+              picker.usingCustom ? "border-accent" : "border-card-border",
+            )}
           />
           <button
             onClick={picker.validateCustomRepo}
             disabled={tutorialMode || !picker.customRepoId.trim() || picker.customValidating}
-            style={{
-              border: "1px solid var(--card-border)",
-              borderRadius: 6,
-              padding: "6px 10px",
-              fontSize: 11,
-              background: "var(--surface-border)",
-              color: "var(--text-muted)",
-              cursor: (tutorialMode || !picker.customRepoId.trim() || picker.customValidating) ? "not-allowed" : "pointer",
-              opacity: (tutorialMode || !picker.customRepoId.trim() || picker.customValidating) ? 0.5 : 1,
-              whiteSpace: "nowrap",
-              transition: "background 120ms",
-            }}
+            className="cursor-pointer whitespace-nowrap rounded-md border border-card-border bg-surface-border px-2.5 py-1.5 text-[11px] text-muted transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             {picker.customValidating ? "…" : "Validate"}
           </button>
         </div>
         {picker.customValidation && (
-          <p style={{ marginTop: 6, fontSize: 11, color: picker.customValidation.valid ? "#16a34a" : "#dc2626", margin: "6px 0 0" }}>
+          <p className={cn("m-0 mt-1.5 text-[11px]", picker.customValidation.valid ? "text-green-600" : "text-red-600")}>
             {picker.customValidation.valid
               ? `✓ Valid — ${picker.customValidation.gpu_tier ? TIER_LABELS[picker.customValidation.gpu_tier] ?? picker.customValidation.gpu_tier : "unknown GPU"}`
               : `✗ ${picker.customValidation.reason}`}
