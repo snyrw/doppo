@@ -2,9 +2,14 @@
 
 import React from "react";
 import { interpolateColorDivergent } from "../lib/palette";
-import { TIER_LABELS } from "../lib/tiers";
-import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, useElapsedMs, stageLabel } from "./CardShell";
+import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs, stageLabel } from "./CardShell";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
+import { cn } from "../lib/cn";
+
+// Shared cell classes for the DLA grid views (dimensional widths stay inline
+// because they're derived from the layout constants below).
+const yLabelCls = "shrink-0 pr-1 text-right text-[9px] text-muted";
+const valueCls = "w-11 shrink-0 text-right text-[9px] tabular-nums text-muted";
 
 export type DlaData = {
   target_token: string;
@@ -114,54 +119,25 @@ function DlaCard({
     <div
       ref={ref}
       data-card-id={card.id}
-      style={{
-        position: "absolute",
-        left: card.position.x,
-        top: card.position.y,
-        zIndex: 10,
-        background: "var(--card)",
-        borderRadius: 8,
-        border: "1px solid var(--card-border)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        display: "flex",
-        flexDirection: "column",
-        ...(card.status === "loading" ? { width: 280, height: 200 } : {}),
-        ...(card.status === "error" ? { width: 280 } : {}),
-        ...(card.status === "result" ? { width: cardWidth } : {}),
-      }}
+      className={cn(
+        "absolute z-10 flex flex-col rounded-lg border border-card-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
+        card.status === "loading" && "h-[200px] w-[280px]",
+        card.status === "error" && "w-[280px]",
+      )}
+      style={{ left: card.position.x, top: card.position.y, ...(card.status === "result" ? { width: cardWidth } : {}) }}
     >
       {/* Hover popup */}
       {headerHovered && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "calc(100% + 6px)",
-            left: 0,
-            background: "var(--card)",
-            border: "1px solid var(--card-border)",
-            borderRadius: 8,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-            padding: "10px 12px",
-            zIndex: 100,
-            pointerEvents: "none",
-            minWidth: 200,
-            maxWidth: 320,
-            animation: "fadeUp 120ms ease-out",
-          }}
-        >
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
+        <div className="pointer-events-none absolute bottom-[calc(100%+6px)] left-0 z-[100] min-w-[200px] max-w-[320px] animate-fade-up rounded-lg border border-card-border bg-card px-3 py-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
+          <p className="m-0 break-all text-[11px] font-semibold text-foreground">
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
+          <p className="m-0 mt-[5px] break-words text-[10px] leading-[1.5] text-muted">
             {card.prompt}
           </p>
-          <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
-            {card.gpuTier && (
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
-                {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
-              </span>
-            )}
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {card.gpuTier && <TierBadge tier={card.gpuTier} />}
+            <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.06em] text-accent">
               DLA
             </span>
           </div>
@@ -175,30 +151,22 @@ function DlaCard({
         onPointerUp={onDragEnd}
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
-        style={{
-          borderBottom: "1px solid var(--surface-border)",
-          display: "flex",
-          flexDirection: "column",
-          flexShrink: 0,
-          borderRadius: "8px 8px 0 0",
-          cursor: "grab",
-          userSelect: "none",
-        }}
+        className="flex shrink-0 cursor-grab select-none flex-col rounded-t-lg border-b border-surface-border"
       >
         {/* Row 1: drag strip */}
-        <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
+        <div className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2.5 py-[7px]">
           <CardDragHandle />
-          <span style={{ fontSize: 11, color: "var(--text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="shrink-0 truncate text-[11px] font-semibold text-foreground">
             {card.modelName}
           </span>
-          <span style={{ fontSize: 10, color: "var(--text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="min-w-0 flex-1 truncate text-[10px] text-muted">
             {card.prompt}
           </span>
           {!tutorialMode && (
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={() => onRemove(card.id)}
-              style={{ fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+              className="shrink-0 cursor-pointer border-none bg-transparent px-0.5 text-xs leading-none text-muted"
             >
               ×
             </button>
@@ -209,38 +177,25 @@ function DlaCard({
         {canToggle && (
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{
-              padding: "4px 10px",
-              borderTop: "1px solid var(--surface-border)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
+            className="flex items-center gap-1.5 border-t border-surface-border px-2.5 py-1"
           >
             {card.data?.target_token && (
-              <span style={{
-                fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontWeight: 600,
-                color: "var(--accent)", background: "var(--surface-border)",
-                border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px",
-                whiteSpace: "nowrap",
-              }}>
+              <span className="whitespace-nowrap rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold text-accent">
                 {card.data.contrastive_token
                   ? `${JSON.stringify(card.data.target_token)} vs ${JSON.stringify(card.data.contrastive_token)}`
                   : `→ ${JSON.stringify(card.data.target_token)}`}
               </span>
             )}
-            <div style={{ flex: 1 }} />
-            <div style={{ display: "flex", border: "1px solid var(--card-border)", borderRadius: 4, overflow: "hidden" }}>
+            <div className="flex-1" />
+            <div className="flex overflow-hidden rounded border border-card-border">
               {(["layer", "head", "top"] as const).map(v => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  style={{
-                    fontSize: 9, padding: "2px 6px",
-                    background: view === v ? "var(--accent)" : "transparent",
-                    color: view === v ? "var(--accent-fg)" : "var(--text-muted)",
-                    border: "none", cursor: "pointer", lineHeight: 1.4, textTransform: "capitalize",
-                  }}
+                  className={cn(
+                    "cursor-pointer border-none px-1.5 py-0.5 text-[9px] capitalize leading-[1.4]",
+                    view === v ? "bg-accent text-accent-fg" : "bg-transparent text-muted",
+                  )}
                 >
                   {v}
                 </button>
@@ -252,7 +207,7 @@ function DlaCard({
 
       {/* Loading */}
       {card.status === "loading" && (
-        <div style={{ display: "flex", flexDirection: "column", padding: "12px 14px", gap: 10, minHeight: 110 }}>
+        <div className="flex min-h-[110px] flex-col gap-2.5 px-3.5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
           <CardLoadingState
             stage={stageLabel(card.loadingStage, elapsedMs, STAGE_LABELS)}
@@ -266,7 +221,7 @@ function DlaCard({
 
       {/* Result */}
       {card.status === "result" && card.data && (
-        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--card)" }}>
+        <div className="overflow-y-auto overflow-x-hidden bg-card p-1.5">
           {view === "layer" ? (
             <LayerView data={card.data} absMax={absMax} />
           ) : view === "head" ? (
@@ -292,19 +247,20 @@ function DivergingBar({ val, absMax, width = LAYER_BAR_W, height = LAYER_CELL_H,
     <div
       onMouseEnter={(e) => tooltipContent && setHover({ x: e.clientX, y: e.clientY })}
       onMouseLeave={() => setHover(null)}
-      style={{ width, height, flexShrink: 0, display: "flex", alignItems: "stretch", borderRadius: 2, overflow: "hidden", background: "var(--surface-border)", position: "relative" }}
+      className="relative flex shrink-0 items-stretch overflow-hidden rounded-sm bg-surface-border"
+      style={{ width, height }}
     >
-      <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "var(--card-border)", zIndex: 1 }} />
+      <div className="absolute bottom-0 left-1/2 top-0 z-[1] w-px bg-card-border" />
       {isPositive ? (
         <>
-          <div style={{ width: "50%" }} />
-          <div style={{ width: `${barFrac * 50}%`, background: color, borderRadius: "0 2px 2px 0" }} />
+          <div className="w-1/2" />
+          <div className="rounded-r-sm" style={{ width: `${barFrac * 50}%`, background: color }} />
         </>
       ) : (
         <>
-          <div style={{ flex: 1 }} />
-          <div style={{ width: `${barFrac * 50}%`, background: color, borderRadius: "2px 0 0 2px", alignSelf: "stretch" }} />
-          <div style={{ width: "50%" }} />
+          <div className="flex-1" />
+          <div className="self-stretch rounded-l-sm" style={{ width: `${barFrac * 50}%`, background: color }} />
+          <div className="w-1/2" />
         </>
       )}
     </div>
@@ -319,35 +275,35 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
   const hasAttnMlp = data.layer_attn_dla != null && data.layer_mlp_dla != null;
 
   return (
-    <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
+    <div className="inline-flex flex-col" style={{ gap: COL_GAP }}>
       {/* Column header when split view is active */}
       {hasAttnMlp && (
-        <div style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W, flexShrink: 0 }} />
-          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", letterSpacing: "0.04em" }}>Attn</span>
-          <div style={{ width: 4, flexShrink: 0 }} />
-          <span style={{ width: HALF_BAR_W, flexShrink: 0, fontSize: 8, textAlign: "center", color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", letterSpacing: "0.04em" }}>MLP</span>
-          <div style={{ width: 44, flexShrink: 0 }} />
+        <div className="flex items-center" style={{ gap: COL_GAP }}>
+          <div className="shrink-0" style={{ width: Y_LABEL_W }} />
+          <span className="shrink-0 text-center text-[8px] tracking-[0.04em] text-muted" style={{ width: HALF_BAR_W }}>Attn</span>
+          <div className="w-1 shrink-0" />
+          <span className="shrink-0 text-center text-[8px] tracking-[0.04em] text-muted" style={{ width: HALF_BAR_W }}>MLP</span>
+          <div className="w-11 shrink-0" />
         </div>
       )}
 
       {/* Embed row */}
       {data.embed_dla != null && (
-        <div style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)", fontStyle: "italic" }}>
+        <div className="flex items-center" style={{ gap: COL_GAP }}>
+          <div className={cn(yLabelCls, "italic")} style={{ width: Y_LABEL_W }}>
             emb
           </div>
           {hasAttnMlp ? (
             <>
-              <DivergingBar val={data.embed_dla} absMax={absMax} width={LAYER_BAR_W + 4} tooltipContent={<><span style={{ fontWeight: 600 }}>Embed</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
-              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+              <DivergingBar val={data.embed_dla} absMax={absMax} width={LAYER_BAR_W + 4} tooltipContent={<><span className="font-semibold">Embed</span>{" "}<span className="tabular-nums">{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
+              <span className={valueCls}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
             </>
           ) : (
             <>
-              <DivergingBar val={data.embed_dla} absMax={absMax} tooltipContent={<><span style={{ fontWeight: 600 }}>Embed</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
-              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+              <DivergingBar val={data.embed_dla} absMax={absMax} tooltipContent={<><span className="font-semibold">Embed</span>{" "}<span className="tabular-nums">{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
+              <span className={valueCls}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
             </>
@@ -362,43 +318,43 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
         const mlpVal = hasAttnMlp ? data.layer_mlp_dla[i] : null;
         const tooltipContent: React.ReactNode = hasAttnMlp ? (
           <>
-            <div style={{ fontWeight: 600, marginBottom: 3 }}>{label}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2, fontVariantNumeric: "tabular-nums" }}>
-              <div style={{ display: "flex", gap: 14, justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>Attn</span>
+            <div className="mb-[3px] font-semibold">{label}</div>
+            <div className="flex flex-col gap-0.5 tabular-nums">
+              <div className="flex justify-between gap-3.5">
+                <span className="text-muted">Attn</span>
                 <span>{attnVal! >= 0 ? "+" : ""}{attnVal!.toFixed(3)}</span>
               </div>
-              <div style={{ display: "flex", gap: 14, justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>MLP</span>
+              <div className="flex justify-between gap-3.5">
+                <span className="text-muted">MLP</span>
                 <span>{mlpVal! >= 0 ? "+" : ""}{mlpVal!.toFixed(3)}</span>
               </div>
-              <div style={{ borderTop: "1px solid var(--surface-border)", paddingTop: 2, marginTop: 1, display: "flex", gap: 14, justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>Total</span>
-                <span style={{ fontWeight: 600 }}>{combined >= 0 ? "+" : ""}{combined.toFixed(3)}</span>
+              <div className="mt-px flex justify-between gap-3.5 border-t border-surface-border pt-0.5">
+                <span className="text-muted">Total</span>
+                <span className="font-semibold">{combined >= 0 ? "+" : ""}{combined.toFixed(3)}</span>
               </div>
             </div>
           </>
         ) : (
-          <><span style={{ fontWeight: 600 }}>{label}</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{combined >= 0 ? "+" : ""}{combined.toFixed(3)}</span></>
+          <><span className="font-semibold">{label}</span>{" "}<span className="tabular-nums">{combined >= 0 ? "+" : ""}{combined.toFixed(3)}</span></>
         );
 
         return (
-          <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-            <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)" }}>
+          <div key={label} className="flex items-center" style={{ gap: COL_GAP }}>
+            <div className={yLabelCls} style={{ width: Y_LABEL_W }}>
               {label}
             </div>
 
             {hasAttnMlp ? (
               <>
                 <DivergingBar val={attnVal!} absMax={absMax} width={HALF_BAR_W} tooltipContent={tooltipContent} />
-                <div style={{ width: 4, flexShrink: 0 }} />
+                <div className="w-1 shrink-0" />
                 <DivergingBar val={mlpVal!} absMax={absMax} width={HALF_BAR_W} tooltipContent={tooltipContent} />
               </>
             ) : (
               <DivergingBar val={combined} absMax={absMax} tooltipContent={tooltipContent} />
             )}
 
-            <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+            <span className={valueCls}>
               {combined >= 0 ? "+" : ""}{combined.toFixed(2)}
             </span>
           </div>
@@ -412,25 +368,15 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
   const [tooltip, setTooltip] = React.useState<TooltipState>(null);
   return (
     <>
-    <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
+    <div className="inline-flex flex-col" style={{ gap: COL_GAP }}>
       {/* X-axis: head labels */}
-      <div style={{ display: "flex", gap: COL_GAP }}>
-        <div style={{ width: Y_LABEL_W, flexShrink: 0 }} />
+      <div className="flex" style={{ gap: COL_GAP }}>
+        <div className="shrink-0" style={{ width: Y_LABEL_W }} />
         {data.x_labels.map((h, i) => (
           <div
             key={i}
-            style={{
-              width: HEAD_CELL_SIZE,
-              flexShrink: 0,
-              fontSize: 7,
-              textAlign: "center",
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              color: "var(--text-muted)",
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              textOverflow: "ellipsis",
-              paddingBottom: 2,
-            }}
+            className="shrink-0 truncate pb-0.5 text-center text-[7px] text-muted"
+            style={{ width: HEAD_CELL_SIZE }}
           >
             {h}
           </div>
@@ -439,8 +385,8 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
 
       {/* Heatmap rows */}
       {data.y_labels.map((label, li) => (
-        <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)" }}>
+        <div key={label} className="flex items-center" style={{ gap: COL_GAP }}>
+          <div className={yLabelCls} style={{ width: Y_LABEL_W }}>
             {label}
           </div>
           {data.head_dla[li].map((val, hi) => {
@@ -448,17 +394,10 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
             return (
               <div
                 key={hi}
-                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span style={{ fontWeight: 600 }}>{label}</span>{" H"}{hi}<br /><span style={{ fontVariantNumeric: "tabular-nums" }}>{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
+                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span className="font-semibold">{label}</span>{" H"}{hi}<br /><span className="tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
                 onMouseLeave={() => setTooltip(null)}
-                style={{
-                  width: HEAD_CELL_SIZE,
-                  height: HEAD_CELL_SIZE,
-                  flexShrink: 0,
-                  backgroundColor: color,
-                  border: "0.5px solid var(--surface-border)",
-                  borderRadius: 2,
-                  boxSizing: "border-box",
-                }}
+                className="box-border shrink-0 rounded-sm border-[0.5px] border-surface-border"
+                style={{ width: HEAD_CELL_SIZE, height: HEAD_CELL_SIZE, backgroundColor: color }}
               />
             );
           })}
@@ -485,14 +424,14 @@ function TopView({ data, absMax }: { data: DlaData; absMax: number }) {
   }, [data]);
 
   return (
-    <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
+    <div className="inline-flex flex-col" style={{ gap: COL_GAP }}>
       {ranked.map(({ label, val }) => (
-        <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W + 14, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)" }}>
+        <div key={label} className="flex items-center" style={{ gap: COL_GAP }}>
+          <div className={yLabelCls} style={{ width: Y_LABEL_W + 14 }}>
             {label}
           </div>
-          <DivergingBar val={val} absMax={absMax} width={TOP_BAR_W} height={LAYER_CELL_H} tooltipContent={<><span style={{ fontWeight: 600 }}>{label}</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></>} />
-          <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+          <DivergingBar val={val} absMax={absMax} width={TOP_BAR_W} height={LAYER_CELL_H} tooltipContent={<><span className="font-semibold">{label}</span>{" "}<span className="tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></>} />
+          <span className={valueCls}>
             {val >= 0 ? "+" : ""}{val.toFixed(2)}
           </span>
         </div>
