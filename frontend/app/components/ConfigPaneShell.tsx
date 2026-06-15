@@ -33,88 +33,35 @@ export default function ConfigPaneShell({
 }) {
   return (
     <div
-      style={{
-        position: "absolute",
-        top: "calc(100% + 6px)",
-        left: 0,
-        width,
-        maxWidth: `min(${width}px, calc(100vw - 24px))`,
-        maxHeight: "calc(100vh - 100px)",
-        zIndex: 30,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        background: "var(--card)",
-        border: "1px solid var(--card-border)",
-        borderRadius: 8,
-        boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
-        animation: "cfgDropIn 140ms ease-out",
-      }}
+      className="absolute left-0 top-[calc(100%+6px)] z-30 flex max-h-[calc(100vh-100px)] animate-cfg-drop-in flex-col overflow-hidden rounded-lg border border-card-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.10)]"
+      style={{ width, maxWidth: `min(${width}px, calc(100vw - 24px))` }}
     >
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "14px 16px 12px",
-          borderBottom: "1px solid var(--surface-border)",
-        }}
-      >
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", letterSpacing: "0.01em" }}>
+      <div className="flex items-center justify-between border-b border-surface-border px-4 pb-3 pt-3.5">
+        <span className="text-[13px] font-semibold tracking-[0.01em] text-foreground">
           {title}
         </span>
         <button
           onClick={onClose}
-          style={{
-            width: 24,
-            height: 24,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 4,
-            border: "none",
-            background: "transparent",
-            color: "var(--text-muted)",
-            cursor: "pointer",
-            fontSize: 16,
-            lineHeight: 1,
-            transition: "background 120ms, color 120ms",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-border)"; e.currentTarget.style.color = "var(--text)"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
+          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded border-none bg-transparent text-base leading-none text-muted transition-colors hover:bg-surface-border hover:text-foreground"
         >
           ×
         </button>
       </div>
 
       {/* Form body */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+      <div className="flex-1 overflow-y-auto p-4">
         {children}
       </div>
 
       {/* Footer */}
-      <div style={{ padding: "12px 16px", borderTop: "1px solid var(--surface-border)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div className="border-t border-surface-border px-4 py-3">
+        <div className="flex items-center gap-2">
           {footerExtra}
           <button
             onClick={onRun}
             disabled={!canRun}
-            style={{
-              flex: 1,
-              padding: "10px 0",
-              borderRadius: 6,
-              border: "none",
-              background: !canRun ? "var(--surface-border)" : "var(--accent)",
-              color: !canRun ? "var(--text-muted)" : "var(--accent-fg)",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: !canRun ? "not-allowed" : "pointer",
-              letterSpacing: "0.02em",
-              transition: "background 150ms",
-            }}
-            onMouseEnter={e => { if (canRun) e.currentTarget.style.background = "var(--accent-hover)"; }}
-            onMouseLeave={e => { if (canRun) e.currentTarget.style.background = "var(--accent)"; }}
+            className="flex-1 cursor-pointer rounded-md border-none bg-accent py-2.5 text-[13px] font-semibold tracking-[0.02em] text-accent-fg transition-colors hover:enabled:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-border disabled:text-muted"
           >
             {runLabel}
           </button>
