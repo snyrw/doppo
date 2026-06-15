@@ -2,9 +2,9 @@
 
 import React from "react";
 import { interpolateColorDivergent } from "../lib/palette";
-import { TIER_LABELS } from "../lib/tiers";
 import type { SteeringComponent } from "./SteeringCard";
-import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, useElapsedMs, stageLabel } from "./CardShell";
+import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs, stageLabel } from "./CardShell";
+import { cn } from "../lib/cn";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 
 export type TopKComponent = {
@@ -130,47 +130,28 @@ function AttributionCard({
     <div
       ref={ref}
       data-card-id={card.id}
-      style={{
-        position: "absolute",
-        left: card.position.x,
-        top: card.position.y,
-        zIndex: 10,
-        background: "var(--card)",
-        borderRadius: 8,
-        border: "1px solid var(--card-border)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        display: "flex",
-        flexDirection: "column",
-        ...(card.status === "loading" ? { width: 280, height: 200 } : {}),
-        ...(card.status === "error" ? { width: 280 } : {}),
-        ...(card.status === "result" ? { width: cardWidth } : {}),
-      }}
+      className={cn(
+        "absolute z-10 flex flex-col rounded-lg border border-card-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
+        card.status === "loading" && "h-[200px] w-[280px]",
+        card.status === "error" && "w-[280px]",
+      )}
+      style={{ left: card.position.x, top: card.position.y, ...(card.status === "result" ? { width: cardWidth } : {}) }}
     >
       {/* Hover popup */}
       {headerHovered && (
-        <div style={{
-          position: "absolute", bottom: "calc(100% + 6px)", left: 0,
-          background: "var(--card)", border: "1px solid var(--card-border)",
-          borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-          padding: "10px 12px", zIndex: 100, pointerEvents: "none",
-          minWidth: 220, maxWidth: 340, animation: "fadeUp 120ms ease-out",
-        }}>
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
+        <div className="pointer-events-none absolute bottom-[calc(100%+6px)] left-0 z-[100] min-w-[220px] max-w-[340px] animate-fade-up rounded-lg border border-card-border bg-card px-3 py-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
+          <p className="m-0 break-all text-[11px] font-semibold text-foreground">
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "5px 0 2px", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
-            <span style={{ opacity: 0.6 }}>ref: </span>{card.cleanPrompt}
+          <p className="m-0 mb-0.5 mt-[5px] break-words text-[10px] leading-[1.5] text-muted">
+            <span className="opacity-60">ref: </span>{card.cleanPrompt}
           </p>
-          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
-            <span style={{ opacity: 0.6 }}>∼: </span>{card.corruptedPrompt}
+          <p className="m-0 break-words text-[10px] leading-[1.5] text-muted">
+            <span className="opacity-60">∼: </span>{card.corruptedPrompt}
           </p>
-          <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
-            {card.gpuTier && (
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
-                {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
-              </span>
-            )}
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.06em", color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {card.gpuTier && <TierBadge tier={card.gpuTier} />}
+            <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.06em] text-accent">
               Attribution
             </span>
           </div>
@@ -184,30 +165,22 @@ function AttributionCard({
         onPointerUp={onDragEnd}
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
-        style={{
-          borderBottom: "1px solid var(--surface-border)",
-          display: "flex",
-          flexDirection: "column",
-          flexShrink: 0,
-          borderRadius: "8px 8px 0 0",
-          cursor: "grab",
-          userSelect: "none",
-        }}
+        className="flex shrink-0 cursor-grab select-none flex-col rounded-t-lg border-b border-surface-border"
       >
         {/* Row 1: drag strip */}
-        <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
+        <div className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2.5 py-[7px]">
           <CardDragHandle />
-          <span style={{ fontSize: 11, color: "var(--text)", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="shrink-0 truncate text-[11px] font-semibold text-foreground">
             {card.modelName}
           </span>
-          <span style={{ fontSize: 10, color: "var(--text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="min-w-0 flex-1 truncate text-[10px] text-muted">
             {card.cleanPrompt}
           </span>
           {!tutorialMode && (
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={() => onRemove(card.id)}
-              style={{ fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+              className="shrink-0 cursor-pointer border-none bg-transparent px-0.5 text-xs leading-none text-muted"
             >
               ×
             </button>
@@ -218,38 +191,25 @@ function AttributionCard({
         {canToggle && (
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{
-              padding: "4px 10px",
-              borderTop: "1px solid var(--surface-border)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
+            className="flex items-center gap-1.5 border-t border-surface-border px-2.5 py-1"
           >
             {card.data?.target_token && (
-              <span style={{
-                fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontWeight: 600,
-                color: "var(--accent)", background: "var(--surface-border)",
-                border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px",
-                whiteSpace: "nowrap",
-              }}>
+              <span className="whitespace-nowrap rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold text-accent">
                 {card.data.contrastive_token
                   ? `${JSON.stringify(card.data.target_token)} vs ${JSON.stringify(card.data.contrastive_token)}`
                   : `→ ${JSON.stringify(card.data.target_token)}`}
               </span>
             )}
-            <div style={{ flex: 1 }} />
-            <div style={{ display: "flex", border: "1px solid var(--card-border)", borderRadius: 4, overflow: "hidden" }}>
+            <div className="flex-1" />
+            <div className="flex overflow-hidden rounded border border-card-border">
               {(["layer", "head"] as const).map(v => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  style={{
-                    fontSize: 9, padding: "2px 6px",
-                    background: view === v ? "var(--accent)" : "transparent",
-                    color: view === v ? "var(--accent-fg)" : "var(--text-muted)",
-                    border: "none", cursor: "pointer", lineHeight: 1.4, textTransform: "capitalize",
-                  }}
+                  className={cn(
+                    "cursor-pointer border-none px-1.5 py-0.5 text-[9px] capitalize leading-[1.4]",
+                    view === v ? "bg-accent text-accent-fg" : "bg-transparent text-muted",
+                  )}
                 >
                   {v}
                 </button>
@@ -262,39 +222,27 @@ function AttributionCard({
         {canToggle && (
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{
-              padding: "4px 10px",
-              borderTop: "1px solid var(--surface-border)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
+            className="flex items-center gap-1.5 border-t border-surface-border px-2.5 py-1"
           >
-            <span style={{ fontSize: 9, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+            <span className="whitespace-nowrap text-[9px] text-muted">
               Verify top-K
             </span>
-            <div style={{ flex: 1 }} />
+            <div className="flex-1" />
             {isVerified ? (
-              <span style={{
-                fontSize: 9, fontWeight: 600, color: "#16a34a",
-                background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.25)",
-                borderRadius: 3, padding: "2px 6px", whiteSpace: "nowrap",
-              }}>
+              <span className="whitespace-nowrap rounded-[3px] border border-[rgba(22,163,74,0.25)] bg-[rgba(22,163,74,0.08)] px-1.5 py-0.5 text-[9px] font-semibold text-green-600">
                 ✓ Verified
               </span>
             ) : (
               <>
-                <div style={{ display: "flex", border: "1px solid var(--card-border)", borderRadius: 4, overflow: "hidden" }}>
+                <div className="flex overflow-hidden rounded border border-card-border">
                   {K_OPTIONS.map(k => (
                     <button
                       key={k}
                       onClick={() => setSelectedK(k)}
-                      style={{
-                        fontSize: 9, padding: "2px 5px",
-                        background: selectedK === k ? "var(--surface-border)" : "transparent",
-                        color: selectedK === k ? "var(--text)" : "var(--text-muted)",
-                        border: "none", cursor: "pointer", lineHeight: 1.4,
-                      }}
+                      className={cn(
+                        "cursor-pointer border-none px-[5px] py-0.5 text-[9px] leading-[1.4]",
+                        selectedK === k ? "bg-surface-border text-foreground" : "bg-transparent text-muted",
+                      )}
                     >
                       {k}
                     </button>
@@ -303,18 +251,11 @@ function AttributionCard({
                 <button
                   onClick={() => onVerifyTopK(card.id, selectedK)}
                   disabled={isVerifying}
-                  style={{
-                    fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                    background: isVerifying ? "var(--surface-border)" : "var(--accent)",
-                    color: isVerifying ? "var(--text-muted)" : "var(--accent-fg)",
-                    border: "none", borderRadius: 4, cursor: isVerifying ? "not-allowed" : "pointer",
-                    display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap",
-                    transition: "background 120ms",
-                  }}
+                  className="flex cursor-pointer items-center gap-1 whitespace-nowrap rounded border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg transition-colors disabled:cursor-not-allowed disabled:bg-surface-border disabled:text-muted"
                 >
                   {isVerifying ? (
                     <>
-                      <div style={{ width: 8, height: 8, border: "1.5px solid currentColor", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                      <div className="h-2 w-2 animate-spinner rounded-full border-[1.5px] border-current border-t-transparent" />
                       Verifying…
                     </>
                   ) : (
@@ -329,12 +270,7 @@ function AttributionCard({
                 <button
                   onPointerDown={e => e.stopPropagation()}
                   onClick={() => onSteerComponents(card.id, [{ layer: topLayer, head: null, injectionType: "residual" }])}
-                  style={{
-                    fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                    background: "var(--accent)", color: "var(--accent-fg)",
-                    border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
-                    transition: "background 120ms",
-                  }}
+                  className="cursor-pointer whitespace-nowrap rounded border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg"
                 >
                   Steer →
                 </button>
@@ -342,12 +278,7 @@ function AttributionCard({
                   <button
                     onPointerDown={e => e.stopPropagation()}
                     onClick={() => { onSteerComponents(card.id, selectedComponents); setSelectedComponents([]); }}
-                    style={{
-                      fontSize: 9, fontWeight: 600, padding: "2px 7px",
-                      background: "var(--accent)", color: "var(--accent-fg)",
-                      border: "none", borderRadius: 4, cursor: "pointer", whiteSpace: "nowrap",
-                      transition: "background 120ms",
-                    }}
+                    className="cursor-pointer whitespace-nowrap rounded border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg"
                   >
                     Steer {selectedComponents.length} →
                   </button>
@@ -360,7 +291,7 @@ function AttributionCard({
 
       {/* Loading */}
       {card.status === "loading" && (
-        <div style={{ display: "flex", flexDirection: "column", padding: "12px 14px", gap: 10, minHeight: 110 }}>
+        <div className="flex min-h-[110px] flex-col gap-2.5 px-3.5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
           <CardLoadingState
             stage={stageLabel(card.loadingStage, elapsedMs, STAGE_LABELS)}
@@ -374,7 +305,7 @@ function AttributionCard({
 
       {/* Result */}
       {card.status === "result" && card.data && (
-        <div style={{ overflowY: "auto", overflowX: "hidden", padding: 6, background: "var(--card)" }}>
+        <div className="overflow-y-auto overflow-x-hidden bg-card p-1.5">
           {view === "layer" ? (
             <LayerView data={card.data} absMax={absMax} />
           ) : (
@@ -390,7 +321,7 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
   const [tooltip, setTooltip] = React.useState<TooltipState>(null);
   return (
     <>
-    <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
+    <div className="inline-flex flex-col" style={{ gap: COL_GAP }}>
       {data.y_labels.map((label, i) => {
         const val = data.layer_attribution[i];
         const color = interpolateColorDivergent("rdbu", val, absMax);
@@ -398,30 +329,31 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
         const isPositive = val >= 0;
 
         return (
-          <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-            <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)" }}>
+          <div key={label} className="flex items-center" style={{ gap: COL_GAP }}>
+            <div className="shrink-0 pr-1 text-right text-[9px] text-muted" style={{ width: Y_LABEL_W }}>
               {label}
             </div>
             <div
-              onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span style={{ fontWeight: 600 }}>{label}</span>{" "}<span style={{ fontVariantNumeric: "tabular-nums" }}>{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
+              onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span className="font-semibold">{label}</span>{" "}<span className="tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
               onMouseLeave={() => setTooltip(null)}
-              style={{ width: LAYER_BAR_W, height: LAYER_CELL_H, flexShrink: 0, display: "flex", alignItems: "stretch", borderRadius: 2, overflow: "hidden", background: "var(--surface-border)", position: "relative" }}
+              className="relative flex shrink-0 items-stretch overflow-hidden rounded-sm bg-surface-border"
+              style={{ width: LAYER_BAR_W, height: LAYER_CELL_H }}
             >
-              <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "var(--card-border)", zIndex: 1 }} />
+              <div className="absolute bottom-0 left-1/2 top-0 z-[1] w-px bg-card-border" />
               {isPositive ? (
                 <>
-                  <div style={{ width: "50%" }} />
-                  <div style={{ width: `${barFrac * 50}%`, background: color, borderRadius: "0 2px 2px 0" }} />
+                  <div className="w-1/2" />
+                  <div className="rounded-r-sm" style={{ width: `${barFrac * 50}%`, background: color }} />
                 </>
               ) : (
                 <>
-                  <div style={{ flex: 1 }} />
-                  <div style={{ width: `${barFrac * 50}%`, background: color, borderRadius: "2px 0 0 2px", alignSelf: "stretch" }} />
-                  <div style={{ width: "50%" }} />
+                  <div className="flex-1" />
+                  <div className="self-stretch rounded-l-sm" style={{ width: `${barFrac * 50}%`, background: color }} />
+                  <div className="w-1/2" />
                 </>
               )}
             </div>
-            <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", width: 44, flexShrink: 0, fontVariantNumeric: "tabular-nums", textAlign: "right" }}>
+            <span className="w-11 shrink-0 text-right text-[9px] tabular-nums text-muted">
               {val >= 0 ? "+" : ""}{val.toFixed(2)}
             </span>
           </div>
@@ -445,25 +377,22 @@ function HeadView({
   const [tooltip, setTooltip] = React.useState<TooltipState>(null);
   return (
     <>
-    <div style={{ display: "inline-flex", flexDirection: "column", gap: COL_GAP }}>
-      <div style={{ display: "flex", gap: COL_GAP }}>
-        <div style={{ width: Y_LABEL_W, flexShrink: 0 }} />
+    <div className="inline-flex flex-col" style={{ gap: COL_GAP }}>
+      <div className="flex" style={{ gap: COL_GAP }}>
+        <div className="shrink-0" style={{ width: Y_LABEL_W }} />
         {data.x_labels.map((h, i) => (
           <div
             key={i}
-            style={{
-              width: HEAD_CELL_SIZE, flexShrink: 0, fontSize: 7, textAlign: "center",
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)",
-              overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", paddingBottom: 2,
-            }}
+            className="shrink-0 truncate pb-0.5 text-center text-[7px] text-muted"
+            style={{ width: HEAD_CELL_SIZE }}
           >
             {h}
           </div>
         ))}
       </div>
       {data.y_labels.map((label, li) => (
-        <div key={label} style={{ display: "flex", alignItems: "center", gap: COL_GAP }}>
-          <div style={{ width: Y_LABEL_W, flexShrink: 0, fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", paddingRight: 4, textAlign: "right", color: "var(--text-muted)" }}>
+        <div key={label} className="flex items-center" style={{ gap: COL_GAP }}>
+          <div className="shrink-0 pr-1 text-right text-[9px] text-muted" style={{ width: Y_LABEL_W }}>
             {label}
           </div>
           {data.head_attribution[li].map((val, hi) => {
@@ -472,15 +401,15 @@ function HeadView({
             return (
               <div
                 key={hi}
-                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span style={{ fontWeight: 600 }}>{label}</span>{" H"}{hi}<br /><span style={{ fontVariantNumeric: "tabular-nums" }}>{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
+                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span className="font-semibold">{label}</span>{" H"}{hi}<br /><span className="tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
                 onMouseLeave={() => setTooltip(null)}
                 onPointerDown={e => e.stopPropagation()}
                 onClick={tutorialMode ? undefined : () => onToggleComponent({ layer: li, head: hi, injectionType: "attn_head" })}
+                className="box-border shrink-0 cursor-pointer rounded-sm"
                 style={{
-                  width: HEAD_CELL_SIZE, height: HEAD_CELL_SIZE, flexShrink: 0,
+                  width: HEAD_CELL_SIZE, height: HEAD_CELL_SIZE,
                   backgroundColor: color,
                   border: isSelected ? "1.5px solid var(--text)" : "0.5px solid var(--surface-border)",
-                  borderRadius: 2, boxSizing: "border-box", cursor: "pointer",
                   outline: isSelected ? "1px solid var(--accent)" : "none",
                   outlineOffset: 1,
                 }}
