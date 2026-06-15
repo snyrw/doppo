@@ -2,8 +2,8 @@
 
 import React from "react";
 import { getHeadColor } from "../lib/palette";
-import { TIER_LABELS } from "../lib/tiers";
-import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, useElapsedMs } from "./CardShell";
+import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs } from "./CardShell";
+import { cn } from "../lib/cn";
 
 export type AttentionData = {
   tokens: string[];
@@ -96,12 +96,12 @@ const AttentionMatrixCanvas = React.memo(function AttentionMatrixCanvas({
   }
 
   return (
-    <div style={{ position: "relative", width: canvasPx, height: canvasPx, flexShrink: 0 }}>
+    <div className="relative shrink-0" style={{ width: canvasPx, height: canvasPx }}>
       <canvas
         ref={canvasRef}
         width={canvasPx}
         height={canvasPx}
-        style={{ display: "block", cursor: "crosshair" }}
+        className="block cursor-crosshair"
         onPointerDown={e => e.stopPropagation()}
         onClick={e => {
           const c = getCellAt(e);
@@ -114,17 +114,10 @@ const AttentionMatrixCanvas = React.memo(function AttentionMatrixCanvas({
         onMouseLeave={onHoverEnd}
       />
       {selectedCell && (
-        <div style={{
-          position: "absolute",
-          left: selectedCell.k * CELL_SIZE,
-          top: selectedCell.q * CELL_SIZE,
-          width: CELL_SIZE,
-          height: CELL_SIZE,
-          outline: "2px solid var(--text)",
-          outlineOffset: "-1px",
-          pointerEvents: "none",
-          zIndex: 1,
-        }} />
+        <div
+          className="pointer-events-none absolute z-[1] h-2 w-2 outline outline-2 -outline-offset-1 outline-foreground"
+          style={{ left: selectedCell.k * CELL_SIZE, top: selectedCell.q * CELL_SIZE }}
+        />
       )}
     </div>
   );
@@ -242,21 +235,13 @@ function AttentionCard({
     <div
       ref={ref}
       data-card-id={card.id}
-      style={{
-        position: "absolute",
-        left: card.position.x,
-        top: card.position.y,
-        zIndex: 10,
-        background: "var(--card)",
-        borderRadius: 8,
-        border: "1px solid var(--card-border)",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-        display: "flex",
-        flexDirection: "column",
-        ...(card.status === "loading" ? { width: 280, height: 200 } : {}),
-        ...(card.status === "error" ? { width: 280 } : {}),
-        ...(data ? { maxWidth: 760 } : {}),
-      }}
+      className={cn(
+        "absolute z-10 flex flex-col rounded-lg border border-card-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
+        card.status === "loading" && "h-[200px] w-[280px]",
+        card.status === "error" && "w-[280px]",
+        data && "max-w-[760px]",
+      )}
+      style={{ left: card.position.x, top: card.position.y }}
     >
       <style>{`
         @keyframes pulseRing {
@@ -271,26 +256,16 @@ function AttentionCard({
 
       {/* Hover popup */}
       {headerHovered && (
-        <div style={{
-          position: "absolute", bottom: "calc(100% + 6px)", left: 0,
-          background: "var(--card)", border: "1px solid var(--card-border)",
-          borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-          padding: "10px 12px", zIndex: 100, pointerEvents: "none",
-          minWidth: 200, maxWidth: 320,
-        }}>
-          <p style={{ fontSize: 11, fontWeight: 600, margin: 0, color: "var(--text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-all" }}>
+        <div className="pointer-events-none absolute bottom-[calc(100%+6px)] left-0 z-[100] min-w-[200px] max-w-[320px] rounded-lg border border-card-border bg-card px-3 py-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
+          <p className="m-0 break-all text-[11px] font-semibold text-foreground">
             {card.modelName}
           </p>
-          <p style={{ fontSize: 10, color: "var(--text-muted)", margin: "5px 0 0", lineHeight: 1.5, fontFamily: "var(--font-ibm-plex-sans), sans-serif", wordBreak: "break-word" }}>
+          <p className="m-0 mt-[5px] break-words text-[10px] leading-[1.5] text-muted">
             {card.prompt}
           </p>
-          <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
-            {card.gpuTier && (
-              <span style={{ fontSize: 9, fontWeight: 600, color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
-                {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
-              </span>
-            )}
-            <span style={{ fontSize: 9, fontWeight: 600, color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {card.gpuTier && <TierBadge tier={card.gpuTier} />}
+            <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold text-accent">
               Attn
             </span>
           </div>
@@ -304,25 +279,21 @@ function AttentionCard({
         onPointerUp={onDragEnd}
         onMouseEnter={() => setHeaderHovered(true)}
         onMouseLeave={() => setHeaderHovered(false)}
-        style={{
-          borderBottom: "1px solid var(--surface-border)",
-          display: "flex", flexDirection: "column", flexShrink: 0,
-          borderRadius: "8px 8px 0 0", cursor: "grab", userSelect: "none",
-        }}
+        className="flex shrink-0 cursor-grab select-none flex-col rounded-t-lg border-b border-surface-border"
       >
-        <div style={{ padding: "7px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+        <div className="flex items-center gap-1.5 px-2.5 py-[7px]">
           <CardDragHandle />
-          <span style={{ fontSize: 11, color: "var(--text)", fontWeight: 600, flexShrink: 0 }}>
+          <span className="shrink-0 text-[11px] font-semibold text-foreground">
             {card.modelName}
           </span>
-          <span style={{ fontSize: 10, color: "var(--text-muted)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="min-w-0 flex-1 truncate text-[10px] text-muted">
             {card.prompt}
           </span>
           {!tutorialMode && (
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={() => onRemove(card.id)}
-              style={{ fontSize: 12, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: "0 2px", flexShrink: 0, lineHeight: 1 }}
+              className="shrink-0 cursor-pointer border-none bg-transparent px-0.5 text-xs leading-none text-muted"
             >
               ×
             </button>
@@ -332,29 +303,25 @@ function AttentionCard({
         {data && (
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{ padding: "4px 10px", borderTop: "1px solid var(--surface-border)", display: "flex", alignItems: "center", gap: 6 }}
+            className="flex items-center gap-1.5 border-t border-surface-border px-2.5 py-1"
           >
             <button
               onClick={() => handleLayerChange(-1)}
               disabled={currentLayer === 0}
-              style={{ fontSize: 12, background: "none", border: "none", cursor: currentLayer === 0 ? "not-allowed" : "pointer", color: currentLayer === 0 ? "var(--text-muted)" : "var(--text)", padding: "0 4px", lineHeight: 1 }}
+              className="cursor-pointer border-none bg-transparent px-1 text-xs leading-none text-foreground disabled:cursor-not-allowed disabled:text-muted"
             >←</button>
-            <span style={{ fontSize: 10, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text)", minWidth: 28, textAlign: "center", fontVariantNumeric: "tabular-nums" }}>
+            <span className="min-w-[28px] text-center text-[10px] tabular-nums text-foreground">
               L{currentLayer}
             </span>
             <button
               onClick={() => handleLayerChange(1)}
               disabled={currentLayer === nLayers - 1}
-              style={{ fontSize: 12, background: "none", border: "none", cursor: currentLayer === nLayers - 1 ? "not-allowed" : "pointer", color: currentLayer === nLayers - 1 ? "var(--text-muted)" : "var(--text)", padding: "0 4px", lineHeight: 1 }}
+              className="cursor-pointer border-none bg-transparent px-1 text-xs leading-none text-foreground disabled:cursor-not-allowed disabled:text-muted"
             >→</button>
-            <div style={{ flex: 1 }} />
-            {card.gpuTier && (
-              <span style={{ fontSize: 9, fontWeight: 600, color: "var(--accent)", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
-                {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
-              </span>
-            )}
+            <div className="flex-1" />
+            {card.gpuTier && <TierBadge tier={card.gpuTier} />}
             {data.truncated && (
-              <span style={{ fontSize: 9, fontWeight: 600, color: "#d97706", background: "var(--surface-border)", border: "1px solid var(--card-border)", borderRadius: 3, padding: "1px 5px" }}>
+              <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold text-amber-600">
                 truncated to 30 tok
               </span>
             )}
@@ -364,7 +331,7 @@ function AttentionCard({
 
       {/* Loading */}
       {card.status === "loading" && (
-        <div style={{ display: "flex", flexDirection: "column", padding: "12px 14px", gap: 10, minHeight: 110 }}>
+        <div className="flex min-h-[110px] flex-col gap-2.5 px-3.5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
           <CardLoadingState stage="Computing attention patterns…" warmup={elapsedMs > 30_000} />
         </div>
@@ -380,10 +347,9 @@ function AttentionCard({
           <div
             onPointerDown={e => e.stopPropagation()}
             onWheel={e => e.stopPropagation()}
-            className="attn-browse"
-            style={{ overflowX: "auto", overflowY: "hidden", background: "var(--card)" }}
+            className="attn-browse overflow-x-auto overflow-y-hidden bg-card"
           >
-            <div style={{ display: "flex", gap: 8, padding: "8px 10px" }}>
+            <div className="flex gap-2 px-2.5 py-2">
               {Array.from({ length: data.n_heads }, (_, h) => {
                 const isPinned = pinnedHeads.some(p => p.layer === currentLayer && p.head === h);
                 const isFocused = focusedHead?.layer === currentLayer && focusedHead?.head === h;
@@ -392,11 +358,8 @@ function AttentionCard({
                 return (
                   <div
                     key={h}
+                    className="flex shrink-0 flex-col rounded outline-none transition-shadow"
                     style={{
-                      flexShrink: 0,
-                      display: "flex",
-                      flexDirection: "column",
-                      borderRadius: 4,
                       // Aura appears on first click; pulses until second click
                       animation: isFocused ? "pulseRing 1.8s ease-in-out infinite" : "none",
                       boxShadow: isFocused
@@ -404,8 +367,6 @@ function AttentionCard({
                         : isPinned
                           ? "0 0 0 1px var(--accent)"
                           : "none",
-                      transition: "box-shadow 150ms",
-                      outline: "none",
                     }}
                   >
                     {/* Head label — click target for two-click pinning */}
@@ -413,25 +374,13 @@ function AttentionCard({
                       onPointerDown={e => e.stopPropagation()}
                       onClick={() => handleHeadLabelClick(currentLayer, h)}
                       title={isFocused ? "Click again to pin" : "Click to select, click again to pin"}
-                      style={{
-                        height: HEAD_LABEL_H,
-                        width: gridW,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        borderRadius: "4px 4px 0 0",
-                        userSelect: "none",
-                      }}
+                      className="flex cursor-pointer select-none items-center justify-center rounded-t"
+                      style={{ height: HEAD_LABEL_H, width: gridW }}
                     >
-                      <span style={{
-                        fontSize: 8,
-                        fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                        fontWeight: 700,
-                        letterSpacing: "0.04em",
-                        color: isFocused ? "var(--accent)" : isPinned ? "var(--accent)" : "var(--text-muted)",
-                        transition: "color 150ms",
-                      }}>
+                      <span className={cn(
+                        "text-[8px] font-bold tracking-[0.04em] transition-colors",
+                        isFocused || isPinned ? "text-accent" : "text-muted",
+                      )}>
                         H{h}
                       </span>
                     </div>
@@ -454,47 +403,38 @@ function AttentionCard({
           {/* Info bar */}
           <div
             onPointerDown={e => e.stopPropagation()}
-            style={{
-              height: 22,
-              padding: "0 10px",
-              display: "flex",
-              alignItems: "center",
-              borderTop: "1px solid var(--surface-border)",
-              background: "var(--card)",
-              overflow: "hidden",
-              flexShrink: 0,
-            }}
+            className="flex h-[22px] shrink-0 items-center overflow-hidden border-t border-surface-border bg-card px-2.5"
           >
             {infoContent.type === "confirm" && (
-              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>
+              <span className="whitespace-nowrap text-[9px] font-semibold text-accent">
                 {infoContent.text}
               </span>
             )}
             {infoContent.type === "focused" && (
-              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+              <span className="whitespace-nowrap text-[9px] text-muted">
                 {infoContent.text}
               </span>
             )}
             {infoContent.type === "hover" && (
-              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+              <span className="whitespace-nowrap text-[9px] text-muted">
                 {"H" + infoContent.head + "  ·  "}
-                <span style={{ color: "var(--text)" }}>&ldquo;{infoContent.tokens[infoContent.q]}&rdquo;</span>
+                <span className="text-foreground">&ldquo;{infoContent.tokens[infoContent.q]}&rdquo;</span>
                 {"  →  "}
-                <span style={{ color: "var(--text)" }}>&ldquo;{infoContent.tokens[infoContent.k]}&rdquo;</span>
+                <span className="text-foreground">&ldquo;{infoContent.tokens[infoContent.k]}&rdquo;</span>
                 {"  =  "}
-                <span style={{ color: "var(--text)", fontWeight: 600 }}>{infoContent.w.toFixed(3)}</span>
+                <span className="font-semibold text-foreground">{infoContent.w.toFixed(3)}</span>
               </span>
             )}
             {infoContent.type === "selected" && (
-              <span style={{ fontSize: 9, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+              <span className="whitespace-nowrap text-[9px] text-muted">
                 {"selected  "}
-                <span style={{ color: "var(--text)" }}>&ldquo;{infoContent.tokens[infoContent.q]}&rdquo;</span>
+                <span className="text-foreground">&ldquo;{infoContent.tokens[infoContent.q]}&rdquo;</span>
                 {"  →  "}
-                <span style={{ color: "var(--text)" }}>&ldquo;{infoContent.tokens[infoContent.k]}&rdquo;</span>
+                <span className="text-foreground">&ldquo;{infoContent.tokens[infoContent.k]}&rdquo;</span>
               </span>
             )}
             {infoContent.type === "idle" && (
-              <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+              <span className="text-[9px] text-muted">
                 hover cells to inspect  ·  click a head label once then again to pin
               </span>
             )}
@@ -502,26 +442,22 @@ function AttentionCard({
 
           {/* Pinned comparison section */}
           {pinnedHeads.length > 0 && (
-            <div style={{
-              borderTop: "2px solid var(--surface-border)",
-              background: "var(--panel)",
-              borderRadius: "0 0 8px 8px",
-            }}>
+            <div className="rounded-b-lg border-t-2 border-surface-border bg-panel">
               <div
                 onPointerDown={e => e.stopPropagation()}
-                style={{ padding: "5px 10px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid var(--surface-border)" }}
+                className="flex items-center gap-1.5 border-b border-surface-border px-2.5 py-[5px]"
               >
-                <span style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", letterSpacing: "0.08em" }}>
+                <span className="text-[9px] font-bold tracking-[0.08em] text-muted">
                   PINNED
                 </span>
-                <span style={{ fontSize: 9, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+                <span className="text-[9px] text-muted">
                   {pinnedHeads.length}/{MAX_PINS}
                 </span>
-                <div style={{ flex: 1 }} />
+                <div className="flex-1" />
                 <button
                   onPointerDown={e => e.stopPropagation()}
                   onClick={() => setPinnedHeads([])}
-                  style={{ fontSize: 9, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}
+                  className="cursor-pointer border-none bg-transparent p-0 text-[9px] text-muted"
                 >
                   clear all
                 </button>
@@ -530,27 +466,22 @@ function AttentionCard({
               <div
                 onPointerDown={e => e.stopPropagation()}
                 onWheel={e => e.stopPropagation()}
-                className="attn-browse"
-                style={{ overflowX: "auto", background: "var(--panel)" }}
+                className="attn-browse overflow-x-auto bg-panel"
               >
-                <div style={{ display: "flex", gap: 8, padding: "8px 10px" }}>
+                <div className="flex gap-2 px-2.5 py-2">
                   {pinnedHeads.map(({ layer, head }) => (
-                    <div key={`${layer}-${head}`} style={{ flexShrink: 0, display: "flex", flexDirection: "column" }}>
-                      <div style={{
-                        height: HEAD_LABEL_H,
-                        width: data.tokens.length * CELL_SIZE,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        position: "relative",
-                      }}>
-                        <span style={{ fontSize: 8, fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--accent)", fontWeight: 700 }}>
+                    <div key={`${layer}-${head}`} className="flex shrink-0 flex-col">
+                      <div
+                        className="relative flex items-center justify-center"
+                        style={{ height: HEAD_LABEL_H, width: data.tokens.length * CELL_SIZE }}
+                      >
+                        <span className="text-[8px] font-bold text-accent">
                           L{layer}·H{head}
                         </span>
                         <button
                           onPointerDown={e => e.stopPropagation()}
                           onClick={() => handleUnpin(layer, head)}
-                          style={{ fontSize: 10, background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "0 2px", lineHeight: 1, position: "absolute", right: 0 }}
+                          className="absolute right-0 cursor-pointer border-none bg-transparent px-0.5 text-[10px] leading-none text-muted"
                         >×</button>
                       </div>
                       <AttentionMatrixCanvas
