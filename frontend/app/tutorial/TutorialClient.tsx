@@ -1,6 +1,7 @@
 "use client";
 
 import { useReducer, useRef, useCallback, useState, useEffect } from "react";
+import { cn } from "../lib/cn";
 import SandboxCanvas from "../components/SandboxCanvas";
 import ConfigPane from "../components/ConfigPane";
 import DlaConfigPane from "../components/DlaConfigPane";
@@ -262,12 +263,12 @@ export default function TutorialClient({ steps }: Props) {
 
   if (!dataReady) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+      <div className="flex min-h-screen flex-col bg-background">
         <Navbar />
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ textAlign: "center", fontFamily: "var(--font-ibm-plex-sans), sans-serif", color: "var(--text-muted)", fontSize: 13, lineHeight: 1.7 }}>
+        <div className="flex flex-1 items-center justify-center">
+          <div className="text-center text-[13px] leading-[1.7] text-muted">
             <p>Tutorial data not yet generated.</p>
-            <p>Run <code style={{ background: "var(--surface-border)", padding: "1px 6px", borderRadius: 3 }}>python scripts/generate_tutorial_data.py</code> to populate it.</p>
+            <p>Run <code className="rounded-[3px] bg-surface-border px-1.5 py-px">python scripts/generate_tutorial_data.py</code> to populate it.</p>
           </div>
         </div>
       </div>
@@ -275,7 +276,7 @@ export default function TutorialClient({ steps }: Props) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+    <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
 
       {phase === "welcome" && (
@@ -291,26 +292,18 @@ export default function TutorialClient({ steps }: Props) {
         <TutorialCompleteModal onDismiss={() => setPhase("active")} />
       )}
 
-      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
-        <div ref={addRef} style={{ position: "absolute", top: 12, left: 12, zIndex: 35 }}>
+      <div className="relative flex flex-1 flex-col">
+        <div ref={addRef} className="absolute left-3 top-3 z-[35]">
           <button
             onClick={() => setAddDropdownOpen(o => !o)}
-            style={{
-              background: "var(--accent)", color: "var(--accent-fg)", border: "none",
-              borderRadius: 6, padding: "5px 10px", fontSize: 13, fontWeight: 600, cursor: "pointer",
-              display: "flex", alignItems: "center", gap: 6, letterSpacing: "0.01em",
-            }}
+            className="flex cursor-pointer items-center gap-1.5 rounded-md border-none bg-accent px-2.5 py-[5px] text-[13px] font-semibold tracking-[0.01em] text-accent-fg"
           >
-            <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
+            <span className="-mt-px text-base leading-none">+</span>
             Add
           </button>
 
           {addDropdownOpen && (
-            <div style={{
-              position: "absolute", top: "calc(100% + 6px)", left: 0, background: "var(--card)",
-              border: "1px solid var(--card-border)", borderRadius: 8,
-              boxShadow: "0 4px 16px rgba(0,0,0,0.12)", overflow: "hidden", minWidth: 200, zIndex: 40,
-            }}>
+            <div className="absolute left-0 top-[calc(100%+6px)] z-40 min-w-[200px] overflow-hidden rounded-lg border border-card-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
               {[1, 2, 3, 4, 6].map((i, listIdx) => {
                 const isEnabled = i === 6
                   ? currentStep === 6 && !completedSteps.has(6)
@@ -325,15 +318,11 @@ export default function TutorialClient({ steps }: Props) {
                       setAddDropdownOpen(false);
                     }}
                     disabled={!isEnabled}
-                    style={{
-                      display: "block", width: "100%", padding: "10px 16px", textAlign: "left",
-                      background: "var(--card)", border: "none",
-                      borderBottom: listIdx < 4 ? "1px solid var(--surface-border)" : "none",
-                      fontSize: 13, fontWeight: 500, cursor: isEnabled ? "pointer" : "default",
-                      color: isEnabled ? "var(--text)" : "var(--text-muted)",
-                      opacity: isEnabled ? 1 : 0.45,
-                      transition: "background 120ms",
-                    }}
+                    className={cn(
+                      "block w-full border-x-0 border-t-0 px-4 py-2.5 text-left text-[13px] font-medium transition-colors",
+                      listIdx < 4 ? "border-b border-surface-border" : "border-b-0",
+                      isEnabled ? "cursor-pointer bg-card text-foreground" : "cursor-default bg-card text-muted opacity-45",
+                    )}
                   >
                     {TECHNIQUE_LABELS[i]}
                   </button>

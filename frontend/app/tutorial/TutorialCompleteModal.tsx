@@ -40,67 +40,40 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 200,
-        background: "rgba(0,0,0,0.55)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        animation: fadingOut
-          ? "fadeIn 180ms ease reverse forwards"
-          : "fadeIn 180ms ease",
-      }}
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/55 p-6"
+      style={{ animation: fadingOut ? "fadeIn 180ms ease reverse forwards" : "fadeIn 180ms ease" }}
     >
-      <div
-        style={{
-          background: "var(--card)",
-          border: "1px solid var(--card-border)",
-          borderRadius: 12,
-          boxShadow: "0 16px 64px rgba(0,0,0,0.24)",
-          width: "100%",
-          maxWidth: 560,
-          maxHeight: "calc(100vh - 48px)",
-          overflowY: "auto",
-          padding: "36px 40px 32px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 20,
-          animation: "fadeUp 220ms ease",
-        }}
-      >
+      <div className="flex max-h-[calc(100vh-48px)] w-full max-w-[560px] animate-fade-up flex-col gap-5 overflow-y-auto rounded-xl border border-card-border bg-card px-10 pb-8 pt-9 shadow-[0_16px_64px_rgba(0,0,0,0.24)]">
         <div>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 10px" }}>
+          <p className="m-0 mb-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
             Tutorial Finished
           </p>
-          <h1 style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 22, fontWeight: 500, color: "var(--text)", margin: 0, lineHeight: 1.4, letterSpacing: "-0.01em" }}>
+          <h1 className="m-0 text-[22px] font-medium leading-[1.4] tracking-[-0.01em] text-foreground">
             Complete!
           </h1>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--text-muted)", margin: 0 }}>
+        <div className="flex flex-col gap-3">
+          <p className="m-0 text-sm leading-[1.75] text-muted">
             {`Part 1 allowed you to trace the IOI circuit end-to-end: from the logit lens showing when " Mary" first appears, through the attention heads that spot the duplicate and suppress it, to the Name Movers that copy the answer, and verified the whole thing causally with activation patching.`}
           </p>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 14, lineHeight: 1.75, color: "var(--text-muted)", margin: 0 }}>
+          <p className="m-0 text-sm leading-[1.75] text-muted">
             Part 2 showed a separate approach: instead of asking how a behavior is implemented, you directly controlled it by injecting a learned direction in activation space. The focus of those doing interpretability has expanded greatly in scope from these tasks, both perspectives (circuit analysis and representation engineering) are important branches of mechanistic interpretability research today.
           </p>
         </div>
 
         <div>
-          <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 8px" }}>
+          <p className="m-0 mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
             Further reading
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          <div className="flex flex-col gap-[5px]">
             {READING_LIST.map(l => (
               <a
                 key={l.url}
                 href={l.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 12, color: "var(--text)", textDecoration: "none", borderBottom: "1px solid var(--surface-border)", paddingBottom: 5 }}
+                className="border-b border-surface-border pb-[5px] text-xs text-foreground no-underline"
               >
                 {l.label} ↗
               </a>
@@ -108,35 +81,16 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+        <div className="mt-1 flex gap-2.5">
           <button
             onClick={handleGoToProjects}
-            style={{
-              padding: "10px 20px",
-              background: "var(--accent)",
-              color: "var(--accent-fg)",
-              border: "none",
-              borderRadius: 6,
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="cursor-pointer rounded-md border-none bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg"
           >
             Try it on your own model →
           </button>
           <button
             onClick={handleDismiss}
-            style={{
-              padding: "10px 20px",
-              background: "none",
-              color: "var(--text-muted)",
-              border: "1px solid var(--surface-border)",
-              borderRadius: 6,
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              fontSize: 14,
-              cursor: "pointer",
-            }}
+            className="cursor-pointer rounded-md border border-surface-border bg-transparent px-5 py-2.5 text-sm text-muted"
           >
             Back to canvas
           </button>
