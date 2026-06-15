@@ -18,6 +18,7 @@ import type { SteeringCardData, SteeringComponent } from "../components/Steering
 import type { EntropyCardData } from "../components/EntropyCard";
 import type { AttentionCardData, AttentionData } from "../components/AttentionCard";
 import { useSession } from "../lib/auth-client";
+import { cn } from "../lib/cn";
 import type { ModelInfo } from "../hooks/useModelSelection";
 import {
   createProject,
@@ -139,26 +140,14 @@ function MenuItem({ onClick, disabled, title, radius, last, danger, children }: 
       onClick={onClick}
       disabled={disabled}
       title={title}
-      style={{
-        width: "100%",
-        background: "var(--card)",
-        border: "none",
-        borderBottom: last ? "none" : "1px solid var(--surface-border)",
-        borderRadius: radius ?? 0,
-        padding: "10px 16px",
-        fontSize: 13,
-        fontWeight: 500,
-        textAlign: "left",
-        transition: "background 120ms",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        color: enabled ? (danger ? "#dc2626" : "var(--text)") : "var(--text-muted)",
-        cursor: enabled ? "pointer" : "default",
-        opacity: enabled ? 1 : danger ? 0.4 : 0.5,
-      }}
-      onMouseEnter={e => { if (enabled) e.currentTarget.style.background = "var(--surface-border)"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = "var(--card)"; }}
+      className={cn(
+        "flex w-full items-center justify-between border-x-0 border-t-0 px-4 py-2.5 text-left text-[13px] font-medium transition-colors",
+        last ? "border-b-0" : "border-b border-surface-border",
+        enabled
+          ? cn("cursor-pointer bg-card hover:bg-surface-border", danger ? "text-red-600" : "text-foreground")
+          : cn("cursor-default bg-card text-muted", danger ? "opacity-40" : "opacity-50"),
+      )}
+      style={{ borderRadius: radius ?? 0 }}
     >
       {children}
     </button>
@@ -448,94 +437,43 @@ function Projects() {
   const resolvedCards = state.lensCards.filter(c => c.status === "result");
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+    <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
 
       {creditsToast && (
-        <div style={{
-          position: "fixed",
-          bottom: 24,
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "var(--card)",
-          border: "1px solid var(--card-border)",
-          borderRadius: 8,
-          padding: "10px 18px",
-          fontSize: 12,
-          fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-          color: "var(--text)",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-          zIndex: 300,
-          whiteSpace: "nowrap",
-        }}>
+        <div className="fixed bottom-6 left-1/2 z-[300] -translate-x-1/2 whitespace-nowrap rounded-lg border border-card-border bg-card px-[18px] py-2.5 text-xs text-foreground shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
           Credits added successfully
         </div>
       )}
 
       {/* Canvas area — relative so the "Add Lens +" button can float over it */}
-      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column" }}>
+      <div className="relative flex flex-1 flex-col">
         {/* Floating buttons — top-left, over the canvas */}
-        <div style={{ position: "absolute", top: 12, left: 12, zIndex: 35, display: "flex", gap: 8, alignItems: "center" }}>
-          <div ref={addRef} style={{ position: "relative" }}>
+        <div className="absolute left-3 top-3 z-[35] flex items-center gap-2">
+          <div ref={addRef} className="relative">
             {/* "Add +" button */}
             <button
               onClick={() => setOpenPane(p => (p === null ? "add" : null))}
-              style={{
-                background: openPane !== null ? "var(--accent-hover)" : "var(--accent)",
-                color: "var(--accent-fg)",
-                border: "none",
-                borderRadius: 6,
-                padding: "5px 10px",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                transition: "background 150ms, box-shadow 150ms",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                letterSpacing: "0.01em",
-              }}
-              onMouseEnter={e => { if (openPane === null) e.currentTarget.style.background = "var(--accent-hover)"; }}
-              onMouseLeave={e => { if (openPane === null) e.currentTarget.style.background = "var(--accent)"; }}
+              className={cn(
+                "flex cursor-pointer items-center gap-1.5 rounded-md border-none px-2.5 py-[5px] text-[13px] font-semibold tracking-[0.01em] text-accent-fg shadow-[0_2px_8px_rgba(0,0,0,0.15)] transition-colors",
+                openPane !== null ? "bg-accent-hover" : "bg-accent hover:bg-accent-hover",
+              )}
             >
-              <span style={{ fontSize: 16, lineHeight: 1, marginTop: -1 }}>+</span>
+              <span className="-mt-px text-base leading-none">+</span>
               Add
             </button>
 
             {/* Dropdown — choose a technique */}
             {openPane === "add" && (
-              <div style={{
-                position: "absolute",
-                top: "calc(100% + 6px)",
-                left: 0,
-                background: "var(--card)",
-                border: "1px solid var(--card-border)",
-                borderRadius: 6,
-                boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
-                display: "flex",
-                flexDirection: "column",
-                minWidth: 160,
-                zIndex: 31,
-                animation: "cfgDropIn 140ms ease-out",
-              }}>
-                {ADD_MENU_ITEMS.map((item, i) => (
+              <div className="absolute left-0 top-[calc(100%+6px)] z-[31] flex min-w-40 animate-cfg-drop-in flex-col rounded-md border border-card-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.10)]">
+                {ADD_MENU_ITEMS.map((item) => (
                   <button
                     key={item.pane}
                     onClick={() => setOpenPane(item.pane)}
-                    style={{
-                      background: "var(--card)",
-                      border: "none",
-                      borderBottom: i < ADD_MENU_ITEMS.length - 1 ? "1px solid var(--surface-border)" : "none",
-                      borderRadius: i === 0 ? "6px 6px 0 0" : i === ADD_MENU_ITEMS.length - 1 ? "0 0 6px 6px" : 0,
-                      padding: "10px 16px", fontSize: 13, fontWeight: 500, textAlign: "left", cursor: "pointer",
-                      color: "var(--text)", transition: "background 120ms", display: "flex", flexDirection: "column", gap: 2,
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-border)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "var(--card)"; }}
+                    className="flex cursor-pointer flex-col gap-0.5 border-x-0 border-t-0 border-b border-surface-border bg-card px-4 py-2.5 text-left text-[13px] font-medium text-foreground transition-colors first:rounded-t-md last:rounded-b-md last:border-b-0 hover:bg-surface-border"
                   >
                     <span>{item.label}</span>
-                    <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 400 }}>{item.description}</span>
+                    <span className="text-[10px] font-normal text-muted">{item.description}</span>
                   </button>
                 ))}
               </div>
@@ -579,42 +517,16 @@ function Projects() {
           </div>
 
           {/* Projects button + dropdown */}
-          <div ref={projectsRef} style={{ position: "relative" }}>
+          <div ref={projectsRef} className="relative">
             <button
               onClick={() => setProjectsOpen(o => !o)}
-              style={{
-                background: "var(--card)",
-                color: "var(--text)",
-                border: "1px solid var(--card-border)",
-                borderRadius: 6,
-                padding: "5px 10px",
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                transition: "background 150ms, border-color 150ms",
-                letterSpacing: "0.01em",
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--card)"; }}
+              className="cursor-pointer rounded-md border border-card-border bg-card px-2.5 py-[5px] text-[13px] font-semibold tracking-[0.01em] text-foreground shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-colors hover:bg-surface-border"
             >
               Projects
             </button>
 
             {projectsOpen && (
-              <div style={{
-                position: "absolute",
-                top: "calc(100% + 6px)",
-                left: 0,
-                background: "var(--card)",
-                border: "1px solid var(--card-border)",
-                borderRadius: 6,
-                boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
-                display: "flex",
-                flexDirection: "column",
-                minWidth: 160,
-                overflow: "visible",
-              }}>
+              <div className="absolute left-0 top-[calc(100%+6px)] flex min-w-40 flex-col overflow-visible rounded-md border border-card-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.10)]">
                 <MenuItem
                   onClick={() => { setProjectsOpen(false); setSearchOpen(true); }}
                   disabled={!loggedIn}
@@ -622,16 +534,7 @@ function Projects() {
                   radius="6px 6px 0 0"
                 >
                   <span>Search</span>
-                  <kbd style={{
-                    fontSize: 10,
-                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    background: "var(--surface-border)",
-                    color: "var(--text-muted)",
-                    border: "1px solid var(--card-border)",
-                    borderRadius: 3,
-                    padding: "0 4px",
-                    lineHeight: "16px",
-                  }}>⌘K</kbd>
+                  <kbd className="rounded-[3px] border border-card-border bg-surface-border px-1 text-[10px] leading-4 text-muted">⌘K</kbd>
                 </MenuItem>
 
                 <MenuItem onClick={handleNew} disabled={!loggedIn} title={loggedIn ? undefined : "Sign in to save projects"}>
@@ -643,54 +546,29 @@ function Projects() {
                 </MenuItem>
 
                 {/* Export — submenu to the right */}
-                <div style={{ position: "relative" }}>
+                <div className="relative">
                   <MenuItem onClick={() => setExportOpen(o => !o)} disabled={!resolvedCards.length}>
                     <span>Export</span>
-                    <span style={{ fontSize: 10, opacity: 0.5 }}>▶</span>
+                    <span className="text-[10px] opacity-50">▶</span>
                   </MenuItem>
 
                   {exportOpen && resolvedCards.length > 0 && (
-                    <div style={{
-                      position: "absolute",
-                      top: 0,
-                      left: "calc(100% + 6px)",
-                      background: "var(--card)",
-                      border: "1px solid var(--card-border)",
-                      borderRadius: 6,
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
-                      display: "flex",
-                      flexDirection: "column",
-                      minWidth: 220,
-                      maxHeight: 320,
-                      overflowY: "auto",
-                      zIndex: 10,
-                    }}>
-                      {resolvedCards.map((card, i) => (
+                    <div className="absolute left-[calc(100%+6px)] top-0 z-10 flex max-h-80 min-w-[220px] flex-col overflow-y-auto rounded-md border border-card-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.10)]">
+                      {resolvedCards.map((card) => (
                         <button
                           key={card.id}
                           onClick={() => handleExport(card.id, card.modelName, getCardPrompt(card))}
                           disabled={exportingId === card.id}
-                          style={{
-                            background: "var(--card)",
-                            border: "none",
-                            borderBottom: i < resolvedCards.length - 1 ? "1px solid var(--surface-border)" : "none",
-                            padding: "9px 14px",
-                            fontSize: 12,
-                            textAlign: "left",
-                            cursor: exportingId === card.id ? "default" : "pointer",
-                            transition: "background 120ms",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 2,
-                            opacity: exportingId === card.id ? 0.5 : 1,
-                          }}
-                          onMouseEnter={e => { if (!exportingId) (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)"; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--card)"; }}
+                          className={cn(
+                            "flex flex-col gap-0.5 border-x-0 border-t-0 border-b border-surface-border bg-card px-3.5 py-[9px] text-left text-xs transition-colors last:border-b-0",
+                            exportingId === card.id ? "cursor-default opacity-50" : "cursor-pointer",
+                            !exportingId && "hover:bg-surface-border",
+                          )}
                         >
-                          <span style={{ fontWeight: 600, color: "var(--text)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: 11 }}>
+                          <span className="text-[11px] font-semibold text-foreground">
                             {card.modelName.split("/").pop()}
                           </span>
-                          <span style={{ color: "var(--text-muted)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 192 }}>
+                          <span className="max-w-48 truncate text-[11px] text-muted">
                             {exportingId === card.id ? "Exporting…" : getCardPrompt(card)}
                           </span>
                         </button>
@@ -709,43 +587,16 @@ function Projects() {
 
                 {/* Delete — inline confirmation */}
                 {deleteConfirming ? (
-                  <div style={{ display: "flex", borderTop: "1px solid var(--surface-border)" }}>
+                  <div className="flex border-t border-surface-border">
                     <button
                       onClick={() => setDeleteConfirming(false)}
-                      style={{
-                        flex: 1,
-                        background: "var(--card)",
-                        color: "var(--text-muted)",
-                        border: "none",
-                        borderRight: "1px solid var(--surface-border)",
-                        borderRadius: "0 0 0 6px",
-                        padding: "10px 12px",
-                        fontSize: 12,
-                        fontWeight: 500,
-                        cursor: "pointer",
-                        transition: "background 120ms",
-                      }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--card)"; }}
+                      className="flex-1 cursor-pointer rounded-bl-md border-y-0 border-l-0 border-r border-surface-border bg-card px-3 py-2.5 text-xs font-medium text-muted transition-colors hover:bg-surface-border"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleDeleteConfirmed}
-                      style={{
-                        flex: 1,
-                        background: "var(--card)",
-                        color: "#dc2626",
-                        border: "none",
-                        borderRadius: "0 0 6px 0",
-                        padding: "10px 12px",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "background 120ms",
-                      }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--card)"; }}
+                      className="flex-1 cursor-pointer rounded-br-md border-none bg-card px-3 py-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-surface-border"
                     >
                       Confirm
                     </button>
@@ -768,13 +619,7 @@ function Projects() {
 
           {/* Inline project name — only shown when a project is loaded */}
           {projectId && (
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              paddingLeft: 10,
-              borderLeft: "1px solid var(--card-border)",
-            }}>
+            <div className="flex items-center gap-1.5 border-l border-card-border pl-2.5">
               {nameEditing ? (
                 <input
                   ref={nameInputRef}
@@ -784,53 +629,15 @@ function Projects() {
                     if (e.key === "Escape") { setNameEditing(false); }
                   }}
                   onBlur={e => handleRename(e.target.value)}
-                  style={{
-                    border: "1px solid var(--accent)",
-                    borderRadius: 5,
-                    padding: "3px 8px",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: "var(--text)",
-                    background: "var(--bg)",
-                    outline: "none",
-                    minWidth: 100,
-                    maxWidth: 220,
-                    fontFamily: "inherit",
-                  }}
+                  className="min-w-[100px] max-w-[220px] rounded-[5px] border border-accent bg-background px-2 py-[3px] font-[inherit] text-[13px] font-medium text-foreground outline-none"
                 />
               ) : (
                 <button
                   onClick={() => setNameEditing(true)}
                   title="Rename project"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "text",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: "var(--text)",
-                    padding: "3px 6px",
-                    borderRadius: 5,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                    maxWidth: 220,
-                    transition: "background 120ms",
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)";
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "none";
-                  }}
+                  className="flex max-w-[220px] cursor-text items-center gap-[5px] rounded-[5px] border-none bg-transparent px-1.5 py-[3px] text-[13px] font-medium text-foreground transition-colors hover:bg-surface-border"
                 >
-                  <span style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    maxWidth: 190,
-                    display: "block",
-                  }}>
+                  <span className="block max-w-[190px] truncate">
                     {projectName}
                   </span>
                   {/* Pencil icon */}
@@ -843,7 +650,7 @@ function Projects() {
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    style={{ flexShrink: 0 }}
+                    className="shrink-0"
                   >
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -876,21 +683,7 @@ function Projects() {
       </div>
 
       {shareCopied && (
-        <div style={{
-          position: "fixed",
-          bottom: 20,
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "var(--accent)",
-          color: "var(--accent-fg)",
-          padding: "8px 18px",
-          borderRadius: 6,
-          fontSize: 13,
-          fontWeight: 500,
-          zIndex: 1000,
-          boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
-          pointerEvents: "none",
-        }}>
+        <div className="pointer-events-none fixed bottom-5 left-1/2 z-[1000] -translate-x-1/2 rounded-md bg-accent px-[18px] py-2 text-[13px] font-medium text-accent-fg shadow-[0_2px_12px_rgba(0,0,0,0.18)]">
           Link copied to clipboard
         </div>
       )}

@@ -9,6 +9,7 @@ import darkLogo from "../darklogo.png";
 import { PALETTE_META, PALETTE_ORDER, type PaletteName } from "../lib/palette";
 import { usePalette } from "../hooks/usePalette";
 import { CreditsButton } from "./CreditsDisplay";
+import { cn } from "../lib/cn";
 
 // Server snapshot is false, client snapshot is true: during hydration React uses
 // the server value, then re-renders once mounted — same effect as the old
@@ -96,57 +97,28 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
   };
 
   return (
-    <header
-      style={{
-        background: "var(--bg)",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "0 20px",
-        height: 50,
-        borderBottom: "1px solid var(--surface-border)",
-        flexShrink: 0,
-        zIndex: 40,
-        position: "relative",
-      }}
-    >
-      <Link
-        href="/"
-        style={{
-          textDecoration: "none",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
+    <header className="relative z-40 flex h-[50px] shrink-0 items-center justify-between border-b border-surface-border bg-background px-5">
+      <Link href="/" className="flex items-center gap-2 no-underline">
         <Image
           src={mounted && isDark ? darkLogo : lightLogo}
           alt="Doppo logo"
           height={24}
           suppressHydrationWarning
         />
-        <span
-          style={{
-            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-            fontSize: 14,
-            fontWeight: 500,
-            color: "var(--accent)",
-            letterSpacing: "-0.01em",
-          }}
-        >
+        <span className="text-sm font-medium tracking-[-0.01em] text-accent">
           Doppo
         </span>
       </Link>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div className="flex items-center gap-2">
         {actions}
         <AuthButtons />
-        <div style={{ width: 1, height: 16, background: "var(--surface-border)", flexShrink: 0 }} />
+        <div className="h-4 w-px shrink-0 bg-surface-border" />
 
         <CreditsButton />
 
         {/* Palette picker */}
-        <div ref={paletteRef} style={{ position: "relative" }}>
+        <div ref={paletteRef} className="relative">
           <button
             className="theme-toggle"
             onClick={() => setPaletteOpen(o => !o)}
@@ -158,31 +130,8 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
           </button>
 
           {mounted && paletteOpen && (
-            <div
-              style={{
-                position: "absolute",
-                top: "calc(100% + 8px)",
-                right: 0,
-                background: "var(--card)",
-                border: "1px solid var(--card-border)",
-                borderRadius: 8,
-                boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
-                width: 224,
-                overflow: "hidden",
-                zIndex: 100,
-              }}
-            >
-              <div
-                style={{
-                  padding: "8px 12px 7px",
-                  borderBottom: "1px solid var(--surface-border)",
-                  fontSize: 9,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--text-muted)",
-                  fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                }}
-              >
+            <div className="absolute right-0 top-[calc(100%+8px)] z-[100] w-56 overflow-hidden rounded-lg border border-card-border bg-card shadow-[0_4px_20px_rgba(0,0,0,0.12)]">
+              <div className="border-b border-surface-border px-3 pb-[7px] pt-2 text-[9px] uppercase tracking-[0.08em] text-muted">
                 Heatmap palette
               </div>
 
@@ -194,58 +143,27 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
                   <button
                     key={name}
                     onClick={() => handlePaletteChange(name)}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 6,
-                      width: "100%",
-                      padding: "10px 12px",
-                      background: isSelected ? "var(--surface-border)" : "var(--card)",
-                      border: "none",
-                      borderBottom: isLast ? "none" : "1px solid var(--surface-border)",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      transition: "background 100ms",
-                    }}
-                    onMouseEnter={e => {
-                      if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-border)";
-                    }}
-                    onMouseLeave={e => {
-                      if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "var(--card)";
-                    }}
+                    className={cn(
+                      "flex w-full cursor-pointer flex-col gap-1.5 border-x-0 border-t-0 px-3 py-2.5 text-left transition-colors",
+                      isLast ? "border-b-0" : "border-b border-surface-border",
+                      isSelected ? "bg-surface-border" : "bg-card hover:bg-surface-border",
+                    )}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span
-                        style={{
-                          fontSize: 12,
-                          fontWeight: isSelected ? 700 : 500,
-                          color: "var(--text)",
-                          fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                        }}
-                      >
+                    <div className="flex items-center justify-between">
+                      <span className={cn("text-xs text-foreground", isSelected ? "font-bold" : "font-medium")}>
                         {meta.label}
                       </span>
                       {isSelected && (
-                        <span style={{ color: "var(--accent)" }}>
+                        <span className="text-accent">
                           <CheckIcon />
                         </span>
                       )}
                     </div>
                     <div
-                      style={{
-                        height: 8,
-                        borderRadius: 3,
-                        background: meta.swatchCss,
-                        border: "1px solid var(--surface-border)",
-                      }}
+                      className="h-2 rounded-[3px] border border-surface-border"
+                      style={{ background: meta.swatchCss }}
                     />
-                    <span
-                      style={{
-                        fontSize: 9,
-                        color: "var(--text-muted)",
-                        fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                      }}
-                    >
+                    <span className="text-[9px] text-muted">
                       {meta.description}
                     </span>
                   </button>
