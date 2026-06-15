@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "../lib/auth-client";
+import { cn } from "../lib/cn";
 import { interpolateColor, interpolateColorDivergent } from "../lib/palette";
 import { CREDIT_PACKS, TIER_RATES_MICROS_PER_SEC } from "../lib/rates";
 import WaveformLayers from "./WaveformLayers";
@@ -12,6 +13,11 @@ import WaveformLayers from "./WaveformLayers";
 type Tab = "techniques" | "inference" | "pricing";
 
 const TAB_ORDER: Tab[] = ["techniques", "inference", "pricing"];
+
+// Repeated responsive type scales (static — clamp values port to arbitrary utilities).
+const TXT_BODY = "text-[clamp(9px,0.7vw,13px)]";
+const TXT_SMALL = "text-[clamp(8px,0.6vw,11px)]";
+const TXT_EMPH = "text-[clamp(10px,0.78vw,14px)]";
 
 // ─── Motifs ────────────────────────────────────────────────────────────────
 
@@ -23,18 +29,14 @@ function MiniHeatmap() {
     [0.62, 0.88, 0.93, 0.84],
   ];
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    <div className="flex flex-col gap-0.5">
       {probs.map((row, y) => (
-        <div key={y} style={{ display: "flex", gap: 2 }}>
+        <div key={y} className="flex gap-0.5">
           {row.map((p, x) => (
             <div
               key={x}
-              style={{
-                width: 12,
-                height: 8,
-                borderRadius: 1,
-                backgroundColor: interpolateColor("warm-mono", p),
-              }}
+              className="h-2 w-3 rounded-[1px]"
+              style={{ backgroundColor: interpolateColor("warm-mono", p) }}
             />
           ))}
         </div>
@@ -52,18 +54,14 @@ function MiniAttnGrid() {
     [0.60, 0.10, 0.31, 0.55],
   ];
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    <div className="flex flex-col gap-0.5">
       {weights.map((row, y) => (
-        <div key={y} style={{ display: "flex", gap: 2 }}>
+        <div key={y} className="flex gap-0.5">
           {row.map((w, x) => (
             <div
               key={x}
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: 1,
-                backgroundColor: interpolateColor("warm-mono", w),
-              }}
+              className="h-3 w-3 rounded-[1px]"
+              style={{ backgroundColor: interpolateColor("warm-mono", w) }}
             />
           ))}
         </div>
@@ -77,21 +75,21 @@ function MiniDlaBars() {
   const maxAbs = 1.6;
   const halfW = 36;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+    <div className="flex flex-col gap-[3px]">
       {vals.map((v, i) => {
         const color = interpolateColorDivergent("rdbu", v, maxAbs);
         const barW = (Math.abs(v) / maxAbs) * halfW;
         return (
-          <div key={i} style={{ display: "flex", alignItems: "center" }}>
-            <div style={{ width: halfW, display: "flex", justifyContent: "flex-end" }}>
+          <div key={i} className="flex items-center">
+            <div className="flex w-9 justify-end">
               {v < 0 && (
-                <div style={{ width: barW, height: 5, backgroundColor: color, borderRadius: "2px 0 0 2px" }} />
+                <div className="h-[5px] rounded-l-[2px]" style={{ width: barW, backgroundColor: color }} />
               )}
             </div>
-            <div style={{ width: 1, height: 7, backgroundColor: "var(--surface-border)", flexShrink: 0 }} />
-            <div style={{ width: halfW }}>
+            <div className="h-[7px] w-px shrink-0 bg-surface-border" />
+            <div className="w-9">
               {v > 0 && (
-                <div style={{ width: barW, height: 5, backgroundColor: color, borderRadius: "0 2px 2px 0" }} />
+                <div className="h-[5px] rounded-r-[2px]" style={{ width: barW, backgroundColor: color }} />
               )}
             </div>
           </div>
@@ -110,18 +108,18 @@ function MiniPatchBars() {
     { attr: 0.61, effect: 0.13 },
   ];
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+    <div className="flex flex-col gap-[5px]">
       {rows.map((r, i) => (
-        <div key={i} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <div style={{ width: r.attr * 68, height: 4, borderRadius: 1, backgroundColor: amber }} />
-          <div style={{ width: r.effect * 68, height: 4, borderRadius: 1, backgroundColor: green }} />
+        <div key={i} className="flex flex-col gap-0.5">
+          <div className="h-1 rounded-[1px]" style={{ width: r.attr * 68, backgroundColor: amber }} />
+          <div className="h-1 rounded-[1px]" style={{ width: r.effect * 68, backgroundColor: green }} />
         </div>
       ))}
-      <div style={{ display: "flex", gap: 8, marginTop: 1 }}>
+      <div className="mt-px flex gap-2">
         {([{ color: amber, label: "pred" }, { color: green, label: "actual" }] as const).map(({ color, label }) => (
-          <div key={label} style={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <div style={{ width: 8, height: 3, borderRadius: 1, backgroundColor: color }} />
-            <span style={{ fontSize: 7, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>{label}</span>
+          <div key={label} className="flex items-center gap-[3px]">
+            <div className="h-[3px] w-2 rounded-[1px]" style={{ backgroundColor: color }} />
+            <span className="text-[7px] text-muted">{label}</span>
           </div>
         ))}
       </div>
@@ -130,30 +128,26 @@ function MiniPatchBars() {
 }
 
 function MiniSteeringMotif() {
-  const amber = "rgba(175,118,32,0.75)";
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+    <div className="flex flex-col gap-[5px]">
       {[
         { label: "base", tokens: ["Mary", "gave"], highlight: false },
         { label: "strd", tokens: ["John", "took"], highlight: true },
       ].map(({ label, tokens, highlight }) => (
-        <div key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 6, width: 22, flexShrink: 0, color: "var(--text-muted)", fontFamily: "var(--font-ibm-plex-sans), sans-serif" }}>
+        <div key={label} className="flex items-center gap-1">
+          <span className="w-[22px] shrink-0 text-[6px] text-muted">
             {label}
           </span>
-          <div style={{ display: "flex", gap: 2 }}>
+          <div className="flex gap-0.5">
             {tokens.map((t, i) => (
               <div
                 key={i}
-                style={{
-                  fontSize: 6,
-                  padding: "1px 3px",
-                  border: `1px solid ${highlight ? amber : "var(--surface-border)"}`,
-                  borderRadius: 2,
-                  fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                  color: highlight ? "var(--text)" : "var(--text-muted)",
-                  backgroundColor: highlight ? "rgba(175,118,32,0.08)" : "transparent",
-                }}
+                className={cn(
+                  "rounded-[2px] border px-[3px] py-px text-[6px]",
+                  highlight
+                    ? "border-[rgba(175,118,32,0.75)] bg-[rgba(175,118,32,0.08)] text-foreground"
+                    : "border-surface-border bg-transparent text-muted",
+                )}
               >
                 {t}
               </div>
@@ -217,68 +211,25 @@ export default function HeroContent() {
   const tabIndex = TAB_ORDER.indexOf(tab);
 
   return (
-    <main
-      style={{
-        flex: 1,
-        display: "grid",
-        gridTemplateColumns: "1fr 2.5fr",
-        overflow: "hidden",
-      }}
-    >
+    <main className="grid flex-1 grid-cols-[1fr_2.5fr] overflow-hidden">
       {/* ── Left rail ── */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          padding: "0 clamp(24px, 2.5vw, 56px) 0 clamp(28px, 3.5vw, 72px)",
-          borderRight: "1px solid var(--surface-border)",
-        }}
-      >
-        <p
-          style={{
-            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-            fontSize: "clamp(9px, 0.65vw, 13px)",
-            fontWeight: 600,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            color: "var(--text-muted)",
-            margin: "0 0 clamp(12px, 1.1vw, 22px)",
-          }}
-        >
+      <div className="flex flex-col justify-center border-r border-surface-border pr-[clamp(24px,2.5vw,56px)] pl-[clamp(28px,3.5vw,72px)]">
+        <p className="m-0 mb-[clamp(12px,1.1vw,22px)] text-[clamp(9px,0.65vw,13px)] font-semibold uppercase tracking-[0.1em] text-muted">
           doppo
         </p>
 
-        <h1
-          style={{
-            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-            fontSize: "clamp(14px, 1.3vw, 24px)",
-            fontWeight: 500,
-            lineHeight: 1.6,
-            letterSpacing: "-0.01em",
-            color: "var(--text)",
-            margin: "0 0 clamp(14px, 1.2vw, 24px)",
-          }}
-        >
+        <h1 className="m-0 mb-[clamp(14px,1.2vw,24px)] text-[clamp(14px,1.3vw,24px)] font-medium leading-[1.6] tracking-[-0.01em] text-foreground">
           A no-code mechanistic interpretability sandbox on TransformerLens models up to 100B parameters.
         </h1>
 
-        <p
-          style={{
-            fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-            fontSize: "clamp(10px, 0.8vw, 15px)",
-            lineHeight: 1.85,
-            color: "var(--text-muted)",
-            margin: "0 0 clamp(20px, 1.8vw, 36px)",
-          }}
-        >
+        <p className="m-0 mb-[clamp(20px,1.8vw,36px)] text-[clamp(10px,0.8vw,15px)] leading-[1.85] text-muted">
           Run logit lens, attention analysis, patching, and steering on thousands of compatible models.
           Compute, environment set-up, and visualization are handled by us.
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(6px, 0.5vw, 10px)", marginBottom: "clamp(28px, 2.8vw, 56px)" }}>
+        <div className="mb-[clamp(28px,2.8vw,56px)] flex flex-col gap-[clamp(6px,0.5vw,10px)]">
           <button
-            className="btn-accent"
+            className="btn-accent inline-flex cursor-pointer items-center rounded-md border-none px-[clamp(12px,1.1vw,22px)] py-[clamp(7px,0.65vw,12px)] text-[clamp(10px,0.8vw,14px)] font-medium tracking-[0.02em]"
             onClick={() => {
               if (session?.user) {
                 router.push("/projects");
@@ -286,60 +237,20 @@ export default function HeroContent() {
                 window.dispatchEvent(new CustomEvent("doppo:open-auth", { detail: { mode: "signup" } }));
               }
             }}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              padding: "clamp(7px, 0.65vw, 12px) clamp(12px, 1.1vw, 22px)",
-              borderRadius: 6,
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              fontSize: "clamp(10px, 0.8vw, 14px)",
-              fontWeight: 500,
-              letterSpacing: "0.02em",
-              border: "none",
-              cursor: "pointer",
-            }}
           >
             Projects
           </button>
           <Link
             href="/tutorial"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              padding: "clamp(7px, 0.65vw, 12px) clamp(12px, 1.1vw, 22px)",
-              borderRadius: 6,
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              fontSize: "clamp(10px, 0.8vw, 14px)",
-              fontWeight: 500,
-              letterSpacing: "0.02em",
-              color: "var(--text)",
-              border: "1px solid var(--surface-border)",
-              textDecoration: "none",
-            }}
+            className="inline-flex items-center rounded-md border border-surface-border px-[clamp(12px,1.1vw,22px)] py-[clamp(7px,0.65vw,12px)] text-[clamp(10px,0.8vw,14px)] font-medium tracking-[0.02em] text-foreground no-underline"
           >
             Tutorial
           </Link>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "clamp(5px, 0.5vw, 9px)",
-            paddingTop: "clamp(14px, 1.4vw, 28px)",
-            borderTop: "1px solid var(--surface-border)",
-          }}
-        >
+        <div className="flex flex-col gap-[clamp(5px,0.5vw,9px)] border-t border-surface-border pt-[clamp(14px,1.4vw,28px)]">
           {["TransformerLens 3.0", "On-demand compute", "Saved projects", "Easily shareable results"].map((tag) => (
-            <span
-              key={tag}
-              style={{
-                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                fontSize: "clamp(9px, 0.65vw, 13px)",
-                color: "var(--text-muted)",
-                letterSpacing: "0.04em",
-              }}
-            >
+            <span key={tag} className="text-[clamp(9px,0.65vw,13px)] tracking-[0.04em] text-muted">
               {tag}
             </span>
           ))}
@@ -347,80 +258,38 @@ export default function HeroContent() {
       </div>
 
       {/* ── Right panel ── */}
-      <div
-        style={{
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
+      <div className="relative overflow-hidden">
         {/* Waveform — fills entire right panel as background */}
-        <div style={{ position: "absolute", inset: 0 }}>
+        <div className="absolute inset-0">
           <WaveformLayers />
         </div>
 
         {/* Floating tab card */}
         <div
+          className="absolute left-1/2 top-1/2 flex h-[72%] w-4/5 flex-col overflow-hidden rounded-xl border border-card-border px-[clamp(20px,2.4vw,48px)] py-[clamp(16px,1.8vw,32px)]"
           style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
             transform: "translate(-50%, -50%)",
-            width: "80%",
-            height: "72%",
-            display: "flex",
-            flexDirection: "column",
-            padding: "clamp(16px, 1.8vw, 32px) clamp(20px, 2.4vw, 48px)",
             background: "color-mix(in srgb, var(--card) 90%, transparent)",
-            border: "1px solid var(--card-border)",
-            borderRadius: 12,
             boxShadow: "0 8px 48px rgba(0,0,0,0.14), 0 2px 12px rgba(0,0,0,0.08)",
-            overflow: "hidden",
           }}
         >
           {/* Tab strip */}
-          <div
-            style={{
-              display: "flex",
-              borderBottom: "1px solid var(--surface-border)",
-              marginBottom: "clamp(14px, 1.4vw, 28px)",
-              flexShrink: 0,
-            }}
-          >
+          <div className="mb-[clamp(14px,1.4vw,28px)] flex shrink-0 border-b border-surface-border">
             {TAB_ORDER.map((t) => {
               const isActive = tab === t;
               return (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  style={{
-                    fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                    fontSize: "clamp(9px, 0.65vw, 12px)",
-                    letterSpacing: "0.06em",
-                    color: isActive ? "var(--text)" : "var(--text-muted)",
-                    background: "none",
-                    border: "none",
-                    borderBottom: "2px solid transparent",
-                    padding: "0 0 clamp(8px, 0.75vw, 14px)",
-                    marginBottom: -1,
-                    marginRight: "clamp(16px, 1.8vw, 36px)",
-                    cursor: "pointer",
-                    transition: "color 180ms ease",
-                    position: "relative",
-                  }}
+                  className={cn(
+                    "relative -mb-px mr-[clamp(16px,1.8vw,36px)] cursor-pointer border-none border-b-2 border-b-transparent bg-transparent pb-[clamp(8px,0.75vw,14px)] text-[clamp(9px,0.65vw,12px)] tracking-[0.06em] transition-colors duration-[180ms]",
+                    isActive ? "text-foreground" : "text-muted",
+                  )}
                 >
                   {t}
                   <span
-                    style={{
-                      position: "absolute",
-                      bottom: -1,
-                      left: 0,
-                      right: 0,
-                      height: 1,
-                      background: "var(--text)",
-                      transform: isActive ? "scaleX(1)" : "scaleX(0)",
-                      transformOrigin: "left center",
-                      transition: "transform 220ms cubic-bezier(0.4, 0, 0.2, 1)",
-                    }}
+                    className="absolute -bottom-px left-0 right-0 h-px origin-left bg-[var(--text)] transition-transform duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+                    style={{ transform: isActive ? "scaleX(1)" : "scaleX(0)" }}
                   />
                 </button>
               );
@@ -428,31 +297,23 @@ export default function HeroContent() {
           </div>
 
           {/* Tab content */}
-          <div
-            style={{
-              flex: 1,
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
+          <div className="relative flex-1 overflow-hidden">
             {TAB_ORDER.map((t) => {
               const isActive = tab === t;
               const dir = TAB_ORDER.indexOf(t) - tabIndex;
               return (
                 <div
                   key={t}
+                  className={cn(
+                    "absolute inset-0 overflow-y-auto transition-[opacity,transform] duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
+                    isActive ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+                  )}
                   style={{
-                    position: "absolute",
-                    inset: 0,
-                    overflowY: "auto",
-                    opacity: isActive ? 1 : 0,
                     transform: isActive
                       ? "translateY(0px)"
                       : dir > 0
                       ? "translateY(6px)"
                       : "translateY(-6px)",
-                    transition: "opacity 220ms ease, transform 220ms cubic-bezier(0.4, 0, 0.2, 1)",
-                    pointerEvents: isActive ? "auto" : "none",
                   }}
                 >
                   {t === "techniques" && <TechniquesTab />}
@@ -472,43 +333,23 @@ export default function HeroContent() {
 
 function TechniquesTab() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between" }}>
+    <div className="flex h-full flex-col justify-between">
       {TECHNIQUES.map((t, i) => (
         <div
           key={t.name}
-          style={{
-            display: "flex",
-            gap: "clamp(10px, 1vw, 18px)",
-            padding: "clamp(6px, 0.6vw, 12px) 0",
-            borderBottom: i < TECHNIQUES.length - 1 ? "1px solid var(--surface-border)" : "none",
-            alignItems: "center",
-          }}
+          className={cn(
+            "flex items-center gap-[clamp(10px,1vw,18px)] py-[clamp(6px,0.6vw,12px)]",
+            i < TECHNIQUES.length - 1 && "border-b border-surface-border",
+          )}
         >
-          <div style={{ width: "clamp(60px, 5.5vw, 100px)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="flex w-[clamp(60px,5.5vw,100px)] shrink-0 items-center justify-center">
             {t.motif}
           </div>
           <div>
-            <p
-              style={{
-                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                fontSize: "clamp(9px, 0.7vw, 13px)",
-                fontWeight: 600,
-                letterSpacing: "0.04em",
-                color: "var(--text)",
-                margin: "0 0 clamp(3px, 0.3vw, 6px)",
-              }}
-            >
+            <p className={cn("m-0 mb-[clamp(3px,0.3vw,6px)] font-semibold tracking-[0.04em] text-foreground", TXT_BODY)}>
               {t.name}
             </p>
-            <p
-              style={{
-                fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-                fontSize: "clamp(9px, 0.7vw, 13px)",
-                lineHeight: 1.55,
-                color: "var(--text-muted)",
-                margin: 0,
-              }}
-            >
+            <p className={cn("m-0 leading-[1.55] text-muted", TXT_BODY)}>
               {t.description}
             </p>
           </div>
@@ -522,19 +363,19 @@ function TechniquesTab() {
 
 function InferenceTab() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "clamp(16px, 2vw, 36px)", height: "100%", justifyContent: "space-between" }}>
+    <div className="flex h-full flex-col justify-between gap-[clamp(16px,2vw,36px)]">
       <div>
         <SectionLabel>GPU tiers</SectionLabel>
-        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(5px, 0.55vw, 9px)" }}>
+        <div className="flex flex-col gap-[clamp(5px,0.55vw,9px)]">
           {GPU_TIERS.map((tier) => (
-            <div key={tier.tier} style={{ display: "flex", alignItems: "center" }}>
-              <div style={{ width: "clamp(72px, 6.5vw, 120px)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(10px, 0.78vw, 14px)", color: "var(--text)", fontWeight: 500 }}>
+            <div key={tier.tier} className="flex items-center">
+              <div className={cn("w-[clamp(72px,6.5vw,120px)] font-medium text-foreground", TXT_EMPH)}>
                 {tier.tier}
               </div>
-              <div style={{ flex: 1, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--text-muted)" }}>
+              <div className={cn("flex-1 text-muted", TXT_BODY)}>
                 {tier.range}
               </div>
-              <div style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--text-muted)" }}>
+              <div className={cn("text-muted", TXT_BODY)}>
                 ${(tier.microsPerSec / 1_000_000).toFixed(6)}/sec
               </div>
             </div>
@@ -568,35 +409,35 @@ function InferenceTab() {
 
 function PricingTab() {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "clamp(16px, 2vw, 36px)", height: "100%", justifyContent: "space-between" }}>
+    <div className="flex h-full flex-col justify-between gap-[clamp(16px,2vw,36px)]">
       <div>
         <SectionLabel>Free tier</SectionLabel>
-        <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(10px, 0.78vw, 14px)", color: "var(--text)", lineHeight: 1.75, margin: "0 0 clamp(6px, 0.55vw, 10px)" }}>
+        <p className={cn("m-0 mb-[clamp(6px,0.55vw,10px)] leading-[1.75] text-foreground", TXT_EMPH)}>
           Every account receives $1.00 in GPU credits each month, automatically. No payment method required to get started.
         </p>
-        <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--text-muted)", lineHeight: 1.7, margin: 0 }}>
+        <p className={cn("m-0 leading-[1.7] text-muted", TXT_BODY)}>
           On the L4 tier (GPT-2–scale models), $1.00 covers roughly 87 minutes of active inference time.
         </p>
       </div>
 
       <div>
         <SectionLabel>Credit packs</SectionLabel>
-        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(5px, 0.55vw, 9px)" }}>
+        <div className="flex flex-col gap-[clamp(5px,0.55vw,9px)]">
           {CREDIT_PACKS.map((pack) => (
-            <div key={pack.label} style={{ display: "flex", alignItems: "center" }}>
-              <div style={{ width: "clamp(36px, 3.2vw, 60px)", fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(10px, 0.78vw, 14px)", color: "var(--text)" }}>
+            <div key={pack.label} className="flex items-center">
+              <div className={cn("w-[clamp(36px,3.2vw,60px)] text-foreground", TXT_EMPH)}>
                 {pack.label}
               </div>
-              <div style={{ flex: 1, fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--text-muted)" }}>
+              <div className={cn("flex-1 text-muted", TXT_BODY)}>
                 ${(pack.creditMicros / 1_000_000).toFixed(2)} in GPU credit
               </div>
-              <div style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--text-muted)" }}>
+              <div className={cn("text-muted", TXT_BODY)}>
                 ${(pack.chargeCents / 100).toFixed(2)} charged
               </div>
             </div>
           ))}
         </div>
-        <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(8px, 0.6vw, 11px)", color: "var(--text-muted)", opacity: 0.65, margin: "clamp(8px, 0.8vw, 14px) 0 0", lineHeight: 1.6 }}>
+        <p className={cn("m-0 mt-[clamp(8px,0.8vw,14px)] leading-[1.6] text-muted opacity-65", TXT_SMALL)}>
           The difference between credit value and charge is Stripe&apos;s processing fee.
           GPU compute is priced at Modal serverless rates with no additional markup.
         </p>
@@ -604,17 +445,17 @@ function PricingTab() {
 
       <div>
         <SectionLabel>How billing works</SectionLabel>
-        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(6px, 0.65vw, 11px)" }}>
+        <div className="flex flex-col gap-[clamp(6px,0.65vw,11px)]">
           {[
             "Credits are deducted per second of GPU compute at the rate for your model's tier.",
             "Cached analyses (logit lens, DLA, attribution) don't consume credits on repeat runs with the same model and prompt.",
             "Activation patching and steering are not cached — each run is billed separately.",
           ].map((line, i) => (
-            <div key={i} style={{ display: "flex", gap: "clamp(7px, 0.75vw, 14px)", alignItems: "flex-start" }}>
-              <span style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(8px, 0.6vw, 11px)", color: "var(--text-muted)", opacity: 0.4, paddingTop: 2, flexShrink: 0 }}>
+            <div key={i} className="flex items-start gap-[clamp(7px,0.75vw,14px)]">
+              <span className={cn("shrink-0 pt-0.5 text-muted opacity-40", TXT_SMALL)}>
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <p style={{ fontFamily: "var(--font-ibm-plex-sans), sans-serif", fontSize: "clamp(9px, 0.7vw, 13px)", color: "var(--text)", lineHeight: 1.65, margin: 0 }}>
+              <p className={cn("m-0 leading-[1.65] text-foreground", TXT_BODY)}>
                 {line}
               </p>
             </div>
@@ -629,16 +470,7 @@ function PricingTab() {
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <p
-      style={{
-        fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-        fontSize: "clamp(8px, 0.6vw, 11px)",
-        letterSpacing: "0.08em",
-        textTransform: "uppercase",
-        color: "var(--text-muted)",
-        margin: "0 0 clamp(8px, 0.8vw, 14px)",
-      }}
-    >
+    <p className={cn("m-0 mb-[clamp(8px,0.8vw,14px)] uppercase tracking-[0.08em] text-muted", TXT_SMALL)}>
       {children}
     </p>
   );
@@ -646,30 +478,13 @@ function SectionLabel({ children }: { children: ReactNode }) {
 
 function FactList({ items }: { items: [string, string][] }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "clamp(5px, 0.6vw, 10px)" }}>
+    <div className="flex flex-col gap-[clamp(5px,0.6vw,10px)]">
       {items.map(([label, value]) => (
-        <div key={label} style={{ display: "flex", gap: "clamp(8px, 1vw, 18px)", alignItems: "flex-start" }}>
-          <div
-            style={{
-              width: "clamp(56px, 5.5vw, 96px)",
-              flexShrink: 0,
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              fontSize: "clamp(8px, 0.6vw, 11px)",
-              color: "var(--text-muted)",
-              letterSpacing: "0.04em",
-              paddingTop: 1,
-            }}
-          >
+        <div key={label} className="flex items-start gap-[clamp(8px,1vw,18px)]">
+          <div className={cn("w-[clamp(56px,5.5vw,96px)] shrink-0 pt-px tracking-[0.04em] text-muted", TXT_SMALL)}>
             {label}
           </div>
-          <div
-            style={{
-              fontFamily: "var(--font-ibm-plex-sans), sans-serif",
-              fontSize: "clamp(9px, 0.7vw, 13px)",
-              color: "var(--text)",
-              lineHeight: 1.65,
-            }}
-          >
+          <div className={cn("leading-[1.65] text-foreground", TXT_BODY)}>
             {value}
           </div>
         </div>
