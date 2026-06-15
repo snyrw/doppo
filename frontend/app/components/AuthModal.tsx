@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { signIn, signUp, signOut, useSession, requestPasswordReset } from "../lib/auth-client";
-import { cn } from "../lib/cn";
 import { Modal } from "./ui/Modal";
 
 type Mode = "signin" | "signup" | "verify" | "forgot" | "forgot-sent";
