@@ -10,8 +10,8 @@ import type { SteeringCardData, SteeringResult, SteeringComponent } from "@/app/
 
 type Deps = {
   dispatch: Dispatch<AppAction>;
-  projectIdRef: RefObject<string | null>;
   stateRef: RefObject<AppState>;
+  ensureProject: () => Promise<string>;
 };
 
 /** Maps a steering card's fields to the spawn-steering request body. */
@@ -25,15 +25,16 @@ function spawnBody(card: SteeringCardData, alpha: number) {
   };
 }
 
-export function useSteeringHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
+export function useSteeringHandlers({ dispatch, stateRef, ensureProject }: Deps) {
   // stateRef lags the dispatch that created/re-ran the card, so the resolved
-  // card is substituted explicitly instead of relying on the snapshot.
-  const persist = useCallback((cardId: string, serialized: ReturnType<typeof serializeCard>) => {
-    const pid = projectIdRef.current;
-    if (!pid) return;
+  // card is substituted explicitly instead of relying on the snapshot. ensureProject
+  // lazily materializes the draft row on this first save (awaited so the row
+  // exists before the UPDATE writes the card).
+  const persist = useCallback(async (cardId: string, serialized: ReturnType<typeof serializeCard>) => {
+    const pid = await ensureProject();
     const others = stateRef.current.lensCards.filter(c => c.status === "result" && c.id !== cardId).map(serializeCard);
     updateProject(pid, [...others, serialized], stateRef.current.canvas).catch(console.error);
-  }, [projectIdRef, stateRef]);
+  }, [ensureProject, stateRef]);
 
   const runSteeringJob = useCallback((card: SteeringCardData, alpha: number) => {
     void runJob({

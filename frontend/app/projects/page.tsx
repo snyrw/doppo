@@ -175,11 +175,31 @@ function Projects() {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const projectIdRef = useRef<string | null>(null);
   const stateRef = useRef(state);
+  // In-flight lazy-create promise: dedupes concurrent first-writes so an
+  // untitled draft yields exactly one row. Reset to null on every project switch.
+  const creatingRef = useRef<Promise<string> | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, isPending: sessionPending } = useSession();
-  const jobHandlers = useJobHandlers({ dispatch, projectIdRef, stateRef });
-  const steeringHandlers = useSteeringHandlers({ dispatch, projectIdRef, stateRef });
+
+  // Lazily materialize the draft into a DB row the first time it has something
+  // worth saving (a resolved card or a real rename). Opening /projects shows an
+  // untitled draft immediately but writes nothing until then — so abandoned
+  // drafts never leave an empty row behind.
+  const ensureProject = useCallback((): Promise<string> => {
+    if (projectIdRef.current) return Promise.resolve(projectIdRef.current);
+    if (creatingRef.current) return creatingRef.current;
+    creatingRef.current = createProject([], stateRef.current.canvas).then(({ id }) => {
+      projectIdRef.current = id;
+      setProjectId(id);
+      router.replace(`/projects?id=${id}`);
+      return id;
+    });
+    return creatingRef.current;
+  }, [router]);
+
+  const jobHandlers = useJobHandlers({ dispatch, stateRef, ensureProject });
+  const steeringHandlers = useSteeringHandlers({ dispatch, stateRef, ensureProject });
 
   useEffect(() => {
     if (!sessionPending && !session?.user) {
@@ -230,6 +250,8 @@ function Projects() {
   }, [projectsOpen]);
 
   const loadAndSetProject = useCallback(async (id: string) => {
+    creatingRef.current = null;
+    projectIdRef.current = id;
     setProjectId(id);
     router.replace(`/projects?id=${id}`);
     try {
@@ -364,24 +386,30 @@ function Projects() {
     jobHandlers.addAttn(args);
   };
 
-  async function handleNew() {
+  // "New" just resets to a fresh untitled draft — the row is created lazily by
+  // ensureProject once the draft gets a card or a real name (see mount note).
+  function handleNew() {
     if (!session?.user) return;
     setProjectsOpen(false);
-    const { id } = await createProject([], state.canvas);
-    setProjectId(id);
+    creatingRef.current = null;
+    projectIdRef.current = null;
+    setProjectId(null);
     setProjectName("Untitled Project");
+    setShareId(null);
     dispatch({ type: "RESET_CANVAS" });
-    router.replace(`/projects?id=${id}`);
-    setNameEditing(true);
+    router.replace("/projects");
   }
 
   async function handleRename(newName: string) {
     const trimmed = newName.trim() || "Untitled Project";
     setProjectName(trimmed);
     setNameEditing(false);
-    if (!projectId) return;
-    const resultCards = state.lensCards.filter(c => c.status === "result").map(serializeCard);
-    updateProject(projectId, resultCards, state.canvas, trimmed).catch(console.error);
+    // Renaming a still-pristine draft to the default name is a no-op — don't
+    // materialize an empty row for it. A real name is intent to keep, so create.
+    if (!projectIdRef.current && trimmed === "Untitled Project") return;
+    const id = await ensureProject();
+    const resultCards = stateRef.current.lensCards.filter(c => c.status === "result").map(serializeCard);
+    updateProject(id, resultCards, stateRef.current.canvas, trimmed).catch(console.error);
   }
 
   async function handleDuplicate() {
@@ -396,6 +424,8 @@ function Projects() {
   async function handleDeleteConfirmed() {
     if (!projectId) return;
     await deleteProject(projectId);
+    creatingRef.current = null;
+    projectIdRef.current = null;
     setProjectId(null);
     setDeleteConfirming(false);
     dispatch({ type: "RESET_CANVAS" });
@@ -617,8 +647,9 @@ function Projects() {
             )}
           </div>
 
-          {/* Inline project name — only shown when a project is loaded */}
-          {projectId && (
+          {/* Inline project name — the active draft's identity, even before it
+              is materialized into a DB row (created lazily on first save). */}
+          {loggedIn && (
             <div className="flex items-center gap-1.5 border-l border-card-border pl-2.5">
               {nameEditing ? (
                 <input

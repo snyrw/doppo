@@ -13,19 +13,20 @@ import type { AttentionCardData, AttentionData } from "@/app/components/Attentio
 
 type Deps = {
   dispatch: Dispatch<AppAction>;
-  projectIdRef: RefObject<string | null>;
   stateRef: RefObject<AppState>;
+  ensureProject: () => Promise<string>;
 };
 
-export function useJobHandlers({ dispatch, projectIdRef, stateRef }: Deps) {
+export function useJobHandlers({ dispatch, stateRef, ensureProject }: Deps) {
   // stateRef lags the ADD_CARD dispatch when a job resolves, so the resolved
-  // card is appended explicitly instead of relying on the snapshot.
-  const persist = useCallback((cardId: string, serialized: ReturnType<typeof serializeCard>) => {
-    const pid = projectIdRef.current;
-    if (!pid) return;
+  // card is appended explicitly instead of relying on the snapshot. ensureProject
+  // lazily materializes the draft row on this first save (awaited so the row
+  // exists before the UPDATE writes the card).
+  const persist = useCallback(async (cardId: string, serialized: ReturnType<typeof serializeCard>) => {
+    const pid = await ensureProject();
     const existing = stateRef.current.lensCards.filter(c => c.status === "result" && c.id !== cardId).map(serializeCard);
     updateProject(pid, [...existing, serialized], stateRef.current.canvas).catch(console.error);
-  }, [projectIdRef, stateRef]);
+  }, [ensureProject, stateRef]);
 
   const addLens = useCallback(({ modelName, prompt, gpuTier, topK }: {
     modelName: string; prompt: string; gpuTier?: string; topK: number;
