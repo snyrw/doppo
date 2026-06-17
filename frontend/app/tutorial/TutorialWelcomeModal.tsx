@@ -28,7 +28,7 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/55 p-6"
       style={{ animation: fadingOut ? "fadeIn 180ms ease reverse forwards" : "fadeIn 180ms ease" }}
     >
-      <div className="flex w-full max-w-[560px] animate-fade-up flex-col gap-5 rounded-xl border border-card-border bg-card px-10 pb-8 pt-9 shadow-[0_16px_64px_rgba(0,0,0,0.24)]">
+      <div className="flex max-h-[calc(100vh-48px)] w-full max-w-[560px] animate-fade-up flex-col gap-5 overflow-y-auto rounded-xl border border-card-border bg-card px-10 pb-8 pt-9 shadow-[0_16px_64px_rgba(0,0,0,0.24)]">
         <div>
           <p className="m-0 mb-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
             Tutorial

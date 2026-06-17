@@ -1,0 +1,24 @@
+name: Sweep stale jobs
+
+# Settles GPU jobs whose owner stopped polling (closed tab, network drop) and
+# times out hung ones. Without this, leaked active_jobs rows accumulate and
+# eventually pin users at MAX_ACTIVE_JOBS_PER_USER ("Too many jobs in flight").
+# See frontend/app/api/jobs/sweep/route.ts.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *" # every 5 minutes
+  workflow_dispatch: {} # allow manual runs
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit sweep endpoint
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://doppo.tools' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/jobs/sweep"

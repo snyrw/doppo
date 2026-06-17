@@ -20,5 +20,10 @@ def require_secret(authorization: str | None = Header(default=None)) -> None:
         # Fail closed: a misconfigured backend must not silently accept traffic.
         raise HTTPException(status_code=503, detail="Backend auth not configured")
     token = (authorization or "").removeprefix("Bearer ").strip()
-    if not token or not hmac.compare_digest(token, expected):
+    # Compare as bytes: hmac.compare_digest rejects str inputs containing any
+    # non-ASCII character with a TypeError (even when the values are equal), and
+    # the shared secret may contain such characters.
+    if not token or not hmac.compare_digest(
+        token.encode("utf-8"), expected.encode("utf-8")
+    ):
         raise HTTPException(status_code=401, detail="Unauthorized")
