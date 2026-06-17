@@ -251,7 +251,7 @@ function AttributionCard({
                 <button
                   onClick={() => onVerifyTopK(card.id, selectedK)}
                   disabled={isVerifying}
-                  className="flex cursor-pointer items-center gap-1 whitespace-nowrap rounded border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg transition-colors disabled:cursor-not-allowed disabled:bg-surface-border disabled:text-muted"
+                  className="flex cursor-pointer items-center gap-1 whitespace-nowrap chamfer [--c:3px] border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg transition-colors disabled:cursor-not-allowed disabled:bg-surface-border disabled:text-muted"
                 >
                   {isVerifying ? (
                     <>
@@ -270,7 +270,7 @@ function AttributionCard({
                 <button
                   onPointerDown={e => e.stopPropagation()}
                   onClick={() => onSteerComponents(card.id, [{ layer: topLayer, head: null, injectionType: "residual" }])}
-                  className="cursor-pointer whitespace-nowrap rounded border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg"
+                  className="cursor-pointer whitespace-nowrap chamfer [--c:3px] border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg transition-transform active:translate-y-px"
                 >
                   Steer →
                 </button>
@@ -278,7 +278,7 @@ function AttributionCard({
                   <button
                     onPointerDown={e => e.stopPropagation()}
                     onClick={() => { onSteerComponents(card.id, selectedComponents); setSelectedComponents([]); }}
-                    className="cursor-pointer whitespace-nowrap rounded border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg"
+                    className="cursor-pointer whitespace-nowrap chamfer [--c:3px] border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg transition-transform active:translate-y-px"
                   >
                     Steer {selectedComponents.length} →
                   </button>

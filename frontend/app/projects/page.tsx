@@ -10,6 +10,7 @@ import SteeringConfigPane from "../components/SteeringConfigPane";
 import AttentionConfigPane from "../components/AttentionConfigPane";
 import Navbar from "../components/Navbar";
 import { ProjectSearch } from "../components/ProjectSearch";
+import { TactileButton } from "../components/ui/TactileButton";
 import type { LensCardData } from "../components/LensCard";
 import type { DlaCardData } from "../components/DlaCard";
 import type { AttributionCardData } from "../components/AttributionCard";
@@ -479,19 +480,20 @@ function Projects() {
       {/* Canvas area — relative so the "Add Lens +" button can float over it */}
       <div className="relative flex flex-1 flex-col">
         {/* Floating buttons — top-left, over the canvas */}
-        <div className="absolute left-3 top-3 z-[35] flex items-center gap-2">
+        <div className="absolute left-3 top-3 z-[35] flex items-center gap-3">
           <div ref={addRef} className="relative">
             {/* "Add +" button */}
-            <button
+            <TactileButton
+              variant="primary"
               onClick={() => setOpenPane(p => (p === null ? "add" : null))}
-              className={cn(
-                "flex cursor-pointer items-center gap-1.5 rounded-md border-none px-2.5 py-[5px] text-[13px] font-semibold tracking-[0.01em] text-accent-fg shadow-[0_2px_8px_rgba(0,0,0,0.15)] transition-colors",
-                openPane !== null ? "bg-accent-hover" : "bg-accent hover:bg-accent-hover",
+              faceClassName={cn(
+                "gap-1.5 px-2.5 py-[5px] text-[13px] tracking-[0.01em]",
+                openPane !== null && "bg-accent-hover",
               )}
             >
               <span className="-mt-px text-base leading-none">+</span>
               Add
-            </button>
+            </TactileButton>
 
             {/* Dropdown — choose a technique */}
             {openPane === "add" && (
@@ -548,12 +550,13 @@ function Projects() {
 
           {/* Projects button + dropdown */}
           <div ref={projectsRef} className="relative">
-            <button
+            <TactileButton
+              variant="ghost"
               onClick={() => setProjectsOpen(o => !o)}
-              className="cursor-pointer rounded-md border border-card-border bg-card px-2.5 py-[5px] text-[13px] font-semibold tracking-[0.01em] text-foreground shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-colors hover:bg-surface-border"
+              faceClassName="px-2.5 py-[5px] text-[13px] font-semibold tracking-[0.01em]"
             >
               Projects
-            </button>
+            </TactileButton>
 
             {projectsOpen && (
               <div className="absolute left-0 top-[calc(100%+6px)] flex min-w-40 flex-col overflow-visible rounded-md border border-card-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.10)]">

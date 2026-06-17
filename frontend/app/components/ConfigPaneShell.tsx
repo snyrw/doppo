@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { TactileButton } from "./ui/TactileButton";
 
 /**
  * Shared chrome for the five technique config panes: the positioned dropdown
@@ -58,13 +59,15 @@ export default function ConfigPaneShell({
       <div className="border-t border-surface-border px-4 py-3">
         <div className="flex items-center gap-2">
           {footerExtra}
-          <button
+          <TactileButton
+            variant="primary"
             onClick={onRun}
             disabled={!canRun}
-            className="flex-1 cursor-pointer rounded-md border-none bg-accent py-2.5 text-[13px] font-semibold tracking-[0.02em] text-accent-fg transition-colors hover:enabled:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-border disabled:text-muted"
+            className="flex-1"
+            faceClassName="w-full justify-center py-2.5 text-[13px] tracking-[0.02em] disabled:cursor-not-allowed"
           >
             {runLabel}
-          </button>
+          </TactileButton>
         </div>
       </div>
     </div>

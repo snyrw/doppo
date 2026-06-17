@@ -9,6 +9,7 @@ import AttributionConfigPane from "../components/AttributionConfigPane";
 import SteeringConfigPane from "../components/SteeringConfigPane";
 import AttentionConfigPane from "../components/AttentionConfigPane";
 import Navbar from "../components/Navbar";
+import { TactileButton } from "../components/ui/TactileButton";
 import type { LensCardData, HeatmapData } from "../components/LensCard";
 import type { DlaCardData, DlaData } from "../components/DlaCard";
 import type { AttributionCardData, AttributionData } from "../components/AttributionCard";
@@ -294,13 +295,17 @@ export default function TutorialClient({ steps }: Props) {
 
       <div className="relative flex flex-1 flex-col">
         <div ref={addRef} className="absolute left-3 top-3 z-[35]">
-          <button
+          <TactileButton
+            variant="primary"
             onClick={() => setAddDropdownOpen(o => !o)}
-            className="flex cursor-pointer items-center gap-1.5 rounded-md border-none bg-accent px-2.5 py-[5px] text-[13px] font-semibold tracking-[0.01em] text-accent-fg"
+            faceClassName={cn(
+              "gap-1.5 px-2.5 py-[5px] text-[13px] tracking-[0.01em]",
+              addDropdownOpen && "bg-accent-hover",
+            )}
           >
             <span className="-mt-px text-base leading-none">+</span>
             Add
-          </button>
+          </TactileButton>
 
           {addDropdownOpen && (
             <div className="absolute left-0 top-[calc(100%+6px)] z-40 min-w-[200px] overflow-hidden rounded-lg border border-card-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.12)]">

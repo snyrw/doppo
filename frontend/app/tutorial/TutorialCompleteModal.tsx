@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { TactileButton } from "../components/ui/TactileButton";
 
 type Props = {
   onDismiss: () => void;
@@ -82,18 +83,20 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
         </div>
 
         <div className="mt-1 flex gap-2.5">
-          <button
+          <TactileButton
+            variant="primary"
             onClick={handleGoToProjects}
-            className="cursor-pointer rounded-md border-none bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg"
+            faceClassName="text-sm"
           >
             Try it on your own model →
-          </button>
-          <button
+          </TactileButton>
+          <TactileButton
+            variant="ghost"
             onClick={handleDismiss}
-            className="cursor-pointer rounded-md border border-surface-border bg-transparent px-5 py-2.5 text-sm text-muted"
+            faceClassName="text-sm"
           >
             Back to canvas
-          </button>
+          </TactileButton>
         </div>
       </div>
     </div>

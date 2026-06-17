@@ -116,7 +116,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
       <div
         onClick={onClose}
         className={cn(
-          "fixed inset-0 z-50 bg-[rgba(15,23,42,0.52)] transition-opacity duration-[160ms]",
+          "fixed inset-0 z-50 bg-black/50 transition-opacity duration-[160ms]",
           isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
       />
@@ -125,7 +125,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
       <div
         onKeyDown={handleKeyDown}
         className={cn(
-          "fixed left-1/2 top-[18%] z-[51] flex w-[580px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[10px] bg-card shadow-[0_0_0_1px_rgba(15,23,42,0.07),0_8px_24px_rgba(15,23,42,0.1),0_32px_64px_rgba(15,23,42,0.14)] transition-[opacity,transform] duration-[160ms]",
+          "fixed left-1/2 top-[18%] z-[51] flex w-[580px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[10px] border border-card-border bg-card shadow-[0_8px_24px_rgba(0,0,0,0.12),0_32px_64px_rgba(0,0,0,0.18)] transition-[opacity,transform] duration-[160ms]",
           isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
         style={{ transform: `translateX(-50%) scale(${isOpen ? 1 : 0.97})` }}

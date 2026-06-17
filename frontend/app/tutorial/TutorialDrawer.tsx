@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { cn } from "../lib/cn";
+import { TactileButton } from "../components/ui/TactileButton";
 import type { TutorialStep } from "./steps";
 
 type Props = {
@@ -182,13 +183,15 @@ export default function TutorialDrawer({
           )}
 
           {isIntroStep && viewStep === currentStep && (
-            <button
+            <TactileButton
+              variant="primary"
               onPointerDown={e => e.stopPropagation()}
               onClick={onContinueIntro}
-              className="mt-1 cursor-pointer rounded-md border-none bg-accent px-[18px] py-[9px] text-[13px] font-semibold text-accent-fg"
+              className="mt-1"
+              faceClassName="text-[13px]"
             >
               Start Part 1 →
-            </button>
+            </TactileButton>
           )}
         </div>
       </div>

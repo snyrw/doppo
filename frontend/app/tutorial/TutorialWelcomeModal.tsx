@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { TactileButton } from "../components/ui/TactileButton";
 
 type Props = {
   onStart: () => void;
@@ -71,12 +72,14 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
           </div>
         </div>
 
-        <button
+        <TactileButton
+          variant="primary"
           onClick={handleStart}
-          className="mt-1 cursor-pointer self-start rounded-md border-none bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg"
+          className="mt-1 self-start"
+          faceClassName="text-sm"
         >
           Start →
-        </button>
+        </TactileButton>
       </div>
     </div>
   );

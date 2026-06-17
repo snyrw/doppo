@@ -10,6 +10,7 @@ import { PALETTE_META, PALETTE_ORDER, type PaletteName } from "../lib/palette";
 import { usePalette } from "../hooks/usePalette";
 import { CreditsButton } from "./CreditsDisplay";
 import { cn } from "../lib/cn";
+import { IconTile } from "./ui/IconTile";
 
 // Server snapshot is false, client snapshot is true: during hydration React uses
 // the server value, then re-renders once mounted — same effect as the old
@@ -110,7 +111,7 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
         </span>
       </Link>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {actions}
         <AuthButtons />
         <div className="h-4 w-px shrink-0 bg-surface-border" />
@@ -119,15 +120,14 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
 
         {/* Palette picker */}
         <div ref={paletteRef} className="relative">
-          <button
-            className="theme-toggle"
+          <IconTile
             onClick={() => setPaletteOpen(o => !o)}
             aria-label="Heatmap palette"
             title="Heatmap palette"
             suppressHydrationWarning
           >
             <GearIcon />
-          </button>
+          </IconTile>
 
           {mounted && paletteOpen && (
             <div className="absolute right-0 top-[calc(100%+8px)] z-[100] w-56 overflow-hidden rounded-lg border border-card-border bg-card shadow-[0_4px_20px_rgba(0,0,0,0.12)]">
@@ -173,14 +173,13 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
           )}
         </div>
 
-        <button
-          className="theme-toggle"
+        <IconTile
           onClick={toggleTheme}
           aria-label="Toggle theme"
           suppressHydrationWarning
         >
           {mounted ? (isDark ? <SunIcon /> : <MoonIcon />) : <MoonIcon />}
-        </button>
+        </IconTile>
       </div>
     </header>
   );

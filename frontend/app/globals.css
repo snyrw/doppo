@@ -14,7 +14,8 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-fg: var(--accent-fg);
-  --font-sans: var(--font-ibm-plex-sans), sans-serif;
+  --font-sans: var(--font-recursive), system-ui, sans-serif;
+  --font-display: var(--font-xenon), Georgia, serif;
   --animate-spinner: spin 0.8s linear infinite;
   --animate-cfg-drop-in: cfgDropIn 140ms ease-out;
   --animate-fade-up: fadeUp 200ms ease-out;
@@ -33,6 +34,8 @@
   --accent: #3a3938;
   --accent-hover: #1c1c1c;
   --accent-fg: #ecebe4;
+  /* darker tone beneath chamfered accent fills — reads as the tactile "side" */
+  --accent-side: #111110;
   /* heatmap cell color as r,g,b channels for use in rgba() */
   --heatmap-rgb: 28, 28, 28;
 }
@@ -48,6 +51,7 @@
   --accent: #d4d2cb;
   --accent-hover: #ecebe4;
   --accent-fg: #1c1c1c;
+  --accent-side: #8d8c88;
   --heatmap-rgb: 220, 218, 210;
 }
 
@@ -55,25 +59,155 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-ibm-plex-sans), sans-serif;
+  font-family: var(--font-recursive), system-ui, sans-serif;
+  /* Pin Recursive to its proportional-linear instance; tabular figures keep
+     numeric columns aligned now that the body font is no longer monospaced. */
+  font-variation-settings: "MONO" 0, "CASL" 0;
+  font-variant-numeric: tabular-nums;
 }
 
-/* === Shared utilities === */
-.btn-accent {
+/* ===========================================================================
+   Tactile chamfered button system (monochrome, Sentry-flavoured)
+   - corners are cut at 45° via clip-path (no border-radius anywhere)
+   - chunky "side" the face sinks onto when pressed
+   House style: --c (chamfer) 8px, --depth 5px, --bw (cut border) 1.5px.
+   In @layer components so Tailwind utilities (faceClassName) win on conflict.
+   =========================================================================== */
+@layer components {
+
+/* Cut all four corners at 45°. Size driven by --c. */
+.chamfer {
+  clip-path: polygon(
+    var(--c) 0, calc(100% - var(--c)) 0,
+    100% var(--c), 100% calc(100% - var(--c)),
+    calc(100% - var(--c)) 100%, var(--c) 100%,
+    0 calc(100% - var(--c)), 0 var(--c)
+  );
+}
+/* Parallel inner cut, inset by --bw — used for two-layer cut borders. */
+.chamfer-inner {
+  clip-path: polygon(
+    calc(var(--c) - var(--bw)) 0, calc(100% - (var(--c) - var(--bw))) 0,
+    100% calc(var(--c) - var(--bw)), 100% calc(100% - (var(--c) - var(--bw))),
+    calc(100% - (var(--c) - var(--bw))) 100%, calc(var(--c) - var(--bw)) 100%,
+    0 calc(100% - (var(--c) - var(--bw))), 0 calc(var(--c) - var(--bw))
+  );
+}
+
+/* Layered tactile button (TactileButton / IconTile primitives). */
+.tactile {
+  --c: 8px;
+  --depth: 5px;
+  --bw: 1.5px;
+  /* Single source for face padding. primary applies it directly; ghost subtracts
+     --bw from its inner so the cut-border layer doesn't make it 2*--bw larger than
+     a primary with the same values. Override per-instance (style / utility) to keep
+     a primary+ghost pair dimensionally identical. */
+  --pad-x: 20px;
+  --pad-y: 9px;
+  position: relative;
+  display: inline-flex;
+  margin-bottom: var(--depth);   /* reserve room for the side the face sits on */
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.tactile__base {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transform: translateY(var(--depth));
+  background: var(--tactile-side);
+}
+.tactile__face {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 90ms cubic-bezier(0.3, 0.7, 0.4, 1), background 140ms ease, color 140ms ease;
+  will-change: transform;
+}
+.tactile:hover:not(:disabled) .tactile__face  { transform: translateY(-1px); }
+.tactile:active:not(:disabled) .tactile__face { transform: translateY(var(--depth)); }  /* full sink */
+.tactile:disabled { cursor: default; }
+
+/* primary — filled accent */
+.tactile--primary { --tactile-side: var(--accent-side); }
+.tactile--primary .tactile__face {
   background: var(--accent);
   color: var(--accent-fg);
-  transition: background 150ms ease;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: var(--pad-y) var(--pad-x);
 }
-.btn-accent:hover {
-  background: var(--accent-hover);
+.tactile--primary:hover:not(:disabled) .tactile__face { background: var(--accent-hover); }
+.tactile--primary:disabled { --tactile-side: var(--surface-border); }
+.tactile--primary:disabled .tactile__face { background: var(--surface-border); color: var(--text-muted); }
+
+/* secondary — cut border (outer = border tone, inner = surface) */
+.tactile--ghost { --tactile-side: var(--card-border); }
+.tactile--ghost .tactile__face { background: var(--card-border); padding: var(--bw); }
+.tactile--ghost .tactile__inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: calc(var(--pad-y) - var(--bw)) calc(var(--pad-x) - var(--bw));
 }
 
+/* icon tile — square, modest chamfer, cut border */
+.icon-tile { --c: 6px; --tactile-side: var(--card-border); }
+.icon-tile .tactile__face { background: var(--card-border); padding: var(--bw); }
+.icon-tile .tactile__inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg);
+  color: var(--text-muted);
+  transition: color 140ms ease;
+}
+.icon-tile:hover:not(:disabled) .tactile__inner { color: var(--text); }
+
+/* Single-element chamfered accent chip — for the many small in-card buttons
+   that just want the look without a layered DOM. Depth via a shaped shadow
+   (drop-shadow follows the clip-path silhouette). */
+.btn-accent {
+  --c: 6px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  clip-path: polygon(
+    var(--c) 0, calc(100% - var(--c)) 0,
+    100% var(--c), 100% calc(100% - var(--c)),
+    calc(100% - var(--c)) 100%, var(--c) 100%,
+    0 calc(100% - var(--c)), 0 var(--c)
+  );
+  filter: drop-shadow(0 3px 0 var(--accent-side));
+  margin-bottom: 3px;
+  transition: transform 90ms cubic-bezier(0.3, 0.7, 0.4, 1), filter 90ms cubic-bezier(0.3, 0.7, 0.4, 1), background 140ms ease;
+}
+.btn-accent:hover:not(:disabled) { background: var(--accent-hover); }
+.btn-accent:active:not(:disabled) {
+  transform: translateY(3px);
+  filter: drop-shadow(0 0 0 var(--accent-side));
+}
+
+/* Ghost text button (nav links, e.g. Log In + user email). */
 .nav-btn-ghost {
   background: none;
   border: none;
   cursor: pointer;
   color: var(--text-muted);
-  font-family: var(--font-ibm-plex-sans), sans-serif;
+  font-family: var(--font-recursive), system-ui, sans-serif;
   font-size: 12px;
   font-weight: 500;
   transition: color 120ms ease;
@@ -84,42 +218,7 @@ body {
   color: var(--text);
 }
 
-.nav-btn-outline {
-  background: none;
-  border: 1px solid var(--surface-border);
-  border-radius: 5px;
-  cursor: pointer;
-  color: var(--text-muted);
-  font-family: var(--font-ibm-plex-sans), sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 3px 10px;
-  transition: border-color 120ms ease, color 120ms ease;
-  line-height: 1.5;
-}
-.nav-btn-outline:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.theme-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background 120ms ease, color 120ms ease;
-  flex-shrink: 0;
-}
-.theme-toggle:hover {
-  background: var(--panel);
-  color: var(--text);
-}
+} /* end @layer components */
 
 /* === Card animations === */
 @keyframes spin { to { transform: rotate(360deg); } }

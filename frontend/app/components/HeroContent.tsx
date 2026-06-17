@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
-import Link from "next/link";
+import type { CSSProperties, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "../lib/auth-client";
 import { cn } from "../lib/cn";
 import { interpolateColor, interpolateColorDivergent } from "../lib/palette";
 import { CREDIT_PACKS, TIER_RATES_MICROS_PER_SEC } from "../lib/rates";
 import WaveformLayers from "./WaveformLayers";
+import { TactileButton } from "./ui/TactileButton";
 
 type Tab = "techniques" | "inference" | "pricing";
 
@@ -18,6 +18,13 @@ const TAB_ORDER: Tab[] = ["techniques", "inference", "pricing"];
 const TXT_BODY = "text-[clamp(9px,0.7vw,13px)]";
 const TXT_SMALL = "text-[clamp(8px,0.6vw,11px)]";
 const TXT_EMPH = "text-[clamp(10px,0.78vw,14px)]";
+
+// Shared face padding for the hero CTA pair — fed to the tactile --pad-* vars so the
+// primary and ghost buttons come out the same height (and width, via the block container).
+const HERO_BTN_PAD = {
+  "--pad-x": "clamp(12px,1.1vw,22px)",
+  "--pad-y": "clamp(7px,0.65vw,12px)",
+} as CSSProperties;
 
 // ─── Motifs ────────────────────────────────────────────────────────────────
 
@@ -218,7 +225,7 @@ export default function HeroContent() {
           doppo
         </p>
 
-        <h1 className="m-0 mb-[clamp(14px,1.2vw,24px)] text-[clamp(14px,1.3vw,24px)] font-medium leading-[1.6] tracking-[-0.01em] text-foreground">
+        <h1 className="m-0 mb-[clamp(14px,1.2vw,24px)] font-display text-[clamp(15px,1.4vw,26px)] font-medium leading-[1.5] tracking-[-0.01em] text-foreground">
           A no-code mechanistic interpretability sandbox on TransformerLens models up to 100B parameters.
         </h1>
 
@@ -227,9 +234,12 @@ export default function HeroContent() {
           Compute, environment set-up, and visualization are handled by us.
         </p>
 
-        <div className="mb-[clamp(28px,2.8vw,56px)] flex flex-col gap-[clamp(6px,0.5vw,10px)]">
-          <button
-            className="btn-accent inline-flex cursor-pointer items-center rounded-md border-none px-[clamp(12px,1.1vw,22px)] py-[clamp(7px,0.65vw,12px)] text-[clamp(10px,0.8vw,14px)] font-medium tracking-[0.02em]"
+        <div className="mb-[clamp(28px,2.8vw,56px)] flex w-[clamp(160px,14vw,220px)] flex-col gap-[clamp(12px,1vw,18px)]">
+          <TactileButton
+            variant="primary"
+            block
+            style={HERO_BTN_PAD}
+            faceClassName="text-[clamp(10px,0.8vw,14px)] tracking-[0.02em]"
             onClick={() => {
               if (session?.user) {
                 router.push("/projects");
@@ -239,13 +249,16 @@ export default function HeroContent() {
             }}
           >
             Projects
-          </button>
-          <Link
+          </TactileButton>
+          <TactileButton
+            variant="ghost"
             href="/tutorial"
-            className="inline-flex items-center rounded-md border border-surface-border px-[clamp(12px,1.1vw,22px)] py-[clamp(7px,0.65vw,12px)] text-[clamp(10px,0.8vw,14px)] font-medium tracking-[0.02em] text-foreground no-underline"
+            block
+            style={HERO_BTN_PAD}
+            faceClassName="text-[clamp(10px,0.8vw,14px)] tracking-[0.02em]"
           >
             Tutorial
-          </Link>
+          </TactileButton>
         </div>
 
         <div className="flex flex-col gap-[clamp(5px,0.5vw,9px)] border-t border-surface-border pt-[clamp(14px,1.4vw,28px)]">

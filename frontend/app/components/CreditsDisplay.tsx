@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, Suspense } from "react";
 import { LOW_BALANCE_THRESHOLD_MICROS } from "@/app/lib/rates";
 import { cn } from "../lib/cn";
 import { BuyCreditsModal } from "./BuyCreditsModal";
+import { IconTile } from "./ui/IconTile";
 
 function formatMicros(micros: number): string {
   return `$${(micros / 1_000_000).toFixed(2)}`;
@@ -58,27 +59,24 @@ function CreditsButtonInner() {
 
   const isLow = balanceMicros !== null && balanceMicros < LOW_BALANCE_THRESHOLD_MICROS;
   const isEmpty = balanceMicros === 0;
-  const stateColorCls =
-    balanceMicros === null ? "border-surface-border text-muted"
-    : isEmpty ? "border-red-600 text-red-600"
-    : isLow ? "border-orange-600 text-orange-600"
-    : "border-muted text-muted";
+  const glyphColorCls =
+    balanceMicros === null ? "text-muted"
+    : isEmpty ? "text-red-600"
+    : isLow ? "text-orange-600"
+    : "text-muted";
   const balanceColorCls = isEmpty ? "text-red-600" : isLow ? "text-orange-600" : "text-foreground";
 
   return (
     <>
     <div ref={ref} className="relative">
-      <button
+      <IconTile
         onClick={() => setOpen(o => !o)}
         aria-label="Credits"
         title="Credits"
-        className={cn(
-          "flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-[1.5px] bg-transparent text-xs font-semibold transition-colors hover:bg-panel",
-          stateColorCls,
-        )}
+        innerClassName={cn("text-[13px] font-bold", glyphColorCls)}
       >
         $
-      </button>
+      </IconTile>
 
       {open && (
         <div className="absolute right-0 top-[calc(100%+8px)] z-[100] w-[220px] overflow-hidden rounded-lg border border-card-border bg-card shadow-[0_4px_20px_rgba(0,0,0,0.12)]">

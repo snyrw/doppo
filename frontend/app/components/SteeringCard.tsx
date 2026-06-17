@@ -185,7 +185,7 @@ function SteeringCard({
             <button
               onPointerDown={e => e.stopPropagation()}
               onClick={() => onRerun(card.id, localAlpha)}
-              className="cursor-pointer whitespace-nowrap rounded border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg"
+              className="cursor-pointer whitespace-nowrap chamfer [--c:3px] border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg transition-transform active:translate-y-px"
             >
               Re-run →
             </button>

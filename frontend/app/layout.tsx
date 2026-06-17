@@ -1,11 +1,23 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const ibmPlexSans = IBM_Plex_Sans({
-  variable: "--font-ibm-plex-sans",
-  subsets: ["latin"],
-  weight: "variable",
+// Recursive — the UI / body voice (proportional, linear). One variable family;
+// we use its default proportional-linear instance (MONO 0, CASL 0) and lean on
+// tabular-nums for numeric column alignment instead of a monospace cut.
+const recursive = localFont({
+  src: "./fonts/RecursiveVar.woff2",
+  variable: "--font-recursive",
+  weight: "300 1000",
+  display: "swap",
+});
+
+// Monaspace Xenon — slab-serif, reserved for editorial display moments.
+const xenon = localFont({
+  src: "./fonts/MonaspaceXenonVar.woff2",
+  variable: "--font-xenon",
+  weight: "200 800",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -22,7 +34,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${ibmPlexSans.variable} h-full antialiased`}
+      className={`${recursive.variable} ${xenon.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

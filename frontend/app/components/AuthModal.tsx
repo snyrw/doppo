@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import { signIn, signUp, signOut, useSession, requestPasswordReset } from "../lib/auth-client";
 import { Modal } from "./ui/Modal";
+import { TactileButton } from "./ui/TactileButton";
 
 type Mode = "signin" | "signup" | "verify" | "forgot" | "forgot-sent";
+
+// Compact face padding so the navbar auth buttons land at the same ~34px face
+// height as the icon tiles next to them (text-xs line box 16px + 2*9px).
+const NAV_BTN_PAD = { "--pad-x": "14px", "--pad-y": "9px" } as CSSProperties;
 
 export default function AuthButtons() {
   const { data: session } = useSession();
@@ -73,7 +78,7 @@ export default function AuthButtons() {
   };
 
   const inputCls = "box-border w-full rounded-md border border-card-border bg-background px-2.5 py-1.5 font-[inherit] text-[13px] text-foreground outline-none";
-  const submitBtnCls = "w-full cursor-pointer rounded-md border-none bg-accent py-2 text-[13px] font-semibold text-accent-fg transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+  const submitBtnCls = "btn-accent w-full cursor-pointer py-2 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-50";
   const linkBtnCls = "cursor-pointer border-none bg-transparent p-0 text-[13px] text-accent underline";
   const errorCls = "m-0 text-xs text-red-600";
 
@@ -87,25 +92,41 @@ export default function AuthButtons() {
 
   if (session?.user) {
     return (
-      <div className="flex items-center gap-2.5">
-        <span className="nav-btn-ghost cursor-default">
+      <div className="flex items-center gap-3">
+        {/* mb matches the tactile depth reserve so the email baseline lines up with the button faces */}
+        <span className="nav-btn-ghost mb-[5px] cursor-default">
           {session.user.email}
         </span>
-        <button onClick={() => signOut()} className="nav-btn-outline">
+        <TactileButton
+          variant="ghost"
+          onClick={() => signOut()}
+          style={NAV_BTN_PAD}
+          faceClassName="text-xs font-medium"
+        >
           Sign Out
-        </button>
+        </TactileButton>
       </div>
     );
   }
 
   return (
     <>
-      <button onClick={() => openModal("signin")} className="nav-btn-ghost">
+      <TactileButton
+        variant="ghost"
+        onClick={() => openModal("signin")}
+        style={NAV_BTN_PAD}
+        faceClassName="text-xs font-medium"
+      >
         Log In
-      </button>
-      <button onClick={() => openModal("signup")} className="nav-btn-outline">
+      </TactileButton>
+      <TactileButton
+        variant="primary"
+        onClick={() => openModal("signup")}
+        style={NAV_BTN_PAD}
+        faceClassName="text-xs font-semibold"
+      >
         Sign Up
-      </button>
+      </TactileButton>
 
       {open && (
         <Modal onClose={() => setOpen(false)} className="w-full max-w-96">
