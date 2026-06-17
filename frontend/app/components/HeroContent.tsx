@@ -260,14 +260,6 @@ export default function HeroContent() {
             Tutorial
           </TactileButton>
         </div>
-
-        <div className="flex flex-col gap-[clamp(5px,0.5vw,9px)] border-t border-surface-border pt-[clamp(14px,1.4vw,28px)]">
-          {["TransformerLens 3.0", "On-demand compute", "Saved projects", "Easily shareable results"].map((tag) => (
-            <span key={tag} className="text-[clamp(9px,0.65vw,13px)] tracking-[0.04em] text-muted">
-              {tag}
-            </span>
-          ))}
-        </div>
       </div>
 
       {/* ── Right panel ── */}
