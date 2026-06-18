@@ -16,3 +16,15 @@ export const TIER_PAIR_CAPS: Record<string, number> = {
   tl_xxlarge: 10,
 };
 export const DEFAULT_PAIR_CAP = 20;
+
+// GPU tiers requiring a verified payment method before a run (anti-abuse on
+// expensive GPUs). "Large and above": A100-80GB / H200 / B200.
+export const GATED_TIERS: ReadonlySet<string> = new Set([
+  "tl_large",
+  "tl_xlarge",
+  "tl_xxlarge",
+]);
+
+export function isGatedTier(tier: string): boolean {
+  return GATED_TIERS.has(tier);
+}
