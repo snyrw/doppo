@@ -6,12 +6,14 @@ export const heatmapCache = pgTable(
     id: text("id").primaryKey(),
     prompt: text("prompt").notNull(),
     modelName: text("model_name").notNull(),
+    userId: text("user_id"),
     r2Key: text("r2_key"),
     createdAt: timestamp("created_at").defaultNow(),
     lastAccessedAt: timestamp("last_accessed_at"),
   },
   (table) => [
     index("prompt_model_idx").on(table.prompt, table.modelName),
+    index("heatmap_cache_user_idx").on(table.userId),
   ]
 );
 
@@ -23,12 +25,14 @@ export const dlaCache = pgTable(
     prompt: text("prompt").notNull(),
     targetPosition: text("target_position").notNull(),
     targetToken: text("target_token").notNull(),
+    userId: text("user_id"),
     r2Key: text("r2_key"),
     createdAt: timestamp("created_at").defaultNow(),
     lastAccessedAt: timestamp("last_accessed_at"),
   },
   (table) => [
     index("dla_prompt_model_idx").on(table.modelName, table.prompt, table.targetPosition, table.targetToken),
+    index("dla_cache_user_idx").on(table.userId),
   ]
 );
 
@@ -41,6 +45,7 @@ export const attributionCache = pgTable(
     corruptedPrompt: text("corrupted_prompt").notNull(),
     targetPosition: text("target_position").notNull(),
     targetToken: text("target_token").notNull(),
+    userId: text("user_id"),
     r2Key: text("r2_key"),
     createdAt: timestamp("created_at").defaultNow(),
     lastAccessedAt: timestamp("last_accessed_at"),
@@ -50,37 +55,59 @@ export const attributionCache = pgTable(
       table.modelName, table.prompt, table.corruptedPrompt,
       table.targetPosition, table.targetToken
     ),
+    index("attribution_cache_user_idx").on(table.userId),
   ]
 );
 
-export const steeringCache = pgTable("steering_cache", {
-  id: text("id").primaryKey(),
-  modelName: text("model_name").notNull(),
-  cleanPrompt: text("clean_prompt").notNull(),
-  corruptedPrompt: text("corrupted_prompt").notNull(),
-  r2Key: text("r2_key"),
-  createdAt: timestamp("created_at").defaultNow(),
-  lastAccessedAt: timestamp("last_accessed_at"),
-});
+export const steeringCache = pgTable(
+  "steering_cache",
+  {
+    id: text("id").primaryKey(),
+    modelName: text("model_name").notNull(),
+    cleanPrompt: text("clean_prompt").notNull(),
+    corruptedPrompt: text("corrupted_prompt").notNull(),
+    userId: text("user_id"),
+    r2Key: text("r2_key"),
+    createdAt: timestamp("created_at").defaultNow(),
+    lastAccessedAt: timestamp("last_accessed_at"),
+  },
+  (table) => [
+    index("steering_cache_user_idx").on(table.userId),
+  ]
+);
 
-export const activationPatchCache = pgTable("activation_patch_cache", {
-  id: text("id").primaryKey(),
-  modelName: text("model_name").notNull(),
-  cleanPrompt: text("clean_prompt").notNull(),
-  corruptedPrompt: text("corrupted_prompt").notNull(),
-  r2Key: text("r2_key"),
-  createdAt: timestamp("created_at").defaultNow(),
-  lastAccessedAt: timestamp("last_accessed_at"),
-});
+export const activationPatchCache = pgTable(
+  "activation_patch_cache",
+  {
+    id: text("id").primaryKey(),
+    modelName: text("model_name").notNull(),
+    cleanPrompt: text("clean_prompt").notNull(),
+    corruptedPrompt: text("corrupted_prompt").notNull(),
+    userId: text("user_id"),
+    r2Key: text("r2_key"),
+    createdAt: timestamp("created_at").defaultNow(),
+    lastAccessedAt: timestamp("last_accessed_at"),
+  },
+  (table) => [
+    index("activation_patch_cache_user_idx").on(table.userId),
+  ]
+);
 
-export const attnCache = pgTable("attn_cache", {
-  id: text("id").primaryKey(),
-  modelName: text("model_name").notNull(),
-  prompt: text("prompt").notNull(),
-  r2Key: text("r2_key"),
-  createdAt: timestamp("created_at").defaultNow(),
-  lastAccessedAt: timestamp("last_accessed_at"),
-});
+export const attnCache = pgTable(
+  "attn_cache",
+  {
+    id: text("id").primaryKey(),
+    modelName: text("model_name").notNull(),
+    prompt: text("prompt").notNull(),
+    userId: text("user_id"),
+    r2Key: text("r2_key"),
+    createdAt: timestamp("created_at").defaultNow(),
+    lastAccessedAt: timestamp("last_accessed_at"),
+  },
+  (table) => [
+    index("attn_cache_user_idx").on(table.userId),
+  ]
+);
 
 // BetterAuth required tables
 export const user = pgTable("user", {
