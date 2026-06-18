@@ -3,8 +3,13 @@ import type { AppAction } from "../types";
 
 const POLL_INTERVAL_MS = 5000;
 
-function handleSpawnError(status: number, err: { error?: string }): { error: string; showBuyCredits?: boolean } {
+function handleSpawnError(
+  status: number,
+  err: { error?: string; code?: string }
+): { error: string; showBuyCredits?: boolean; showVerifyCard?: boolean } {
   if (status === 402) return { error: err.error ?? "Insufficient credits", showBuyCredits: true };
+  if (status === 403 && err.code === "verification_required")
+    return { error: err.error ?? "Add a card to run this GPU tier.", showVerifyCard: true };
   if (status === 401) return { error: err.error ?? "Sign in to run inference" };
   return { error: err.error ?? `Request failed (${status})` };
 }
@@ -31,8 +36,8 @@ export async function runJob({ endpoint, body, cardId, startedAt, dispatch, fina
   onResolve: (data: unknown) => void;
   onError?: () => void;
 }): Promise<void> {
-  const fail = (error: string, showBuyCredits?: boolean) => {
-    dispatch({ type: "CARD_ERRORED", id: cardId, error, showBuyCredits });
+  const fail = (error: string, showBuyCredits?: boolean, showVerifyCard?: boolean) => {
+    dispatch({ type: "CARD_ERRORED", id: cardId, error, showBuyCredits, showVerifyCard });
     onError?.();
   };
 
@@ -47,9 +52,9 @@ export async function runJob({ endpoint, body, cardId, startedAt, dispatch, fina
     return;
   }
   if (!spawnRes.ok) {
-    const err = await spawnRes.json().catch(() => ({})) as { error?: string };
-    const { error, showBuyCredits } = handleSpawnError(spawnRes.status, err);
-    fail(error, showBuyCredits);
+    const err = await spawnRes.json().catch(() => ({})) as { error?: string; code?: string };
+    const { error, showBuyCredits, showVerifyCard } = handleSpawnError(spawnRes.status, err);
+    fail(error, showBuyCredits, showVerifyCard);
     return;
   }
 

@@ -31,6 +31,7 @@ export type LensCardData = {
   data: HeatmapData | null;
   error: string | null;
   showBuyCredits?: boolean;
+  showVerifyCard?: boolean;
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
@@ -408,7 +409,7 @@ function LensCard({
         </div>
       )}
 
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} showVerifyCard={card.showVerifyCard} />}
 
       {card.status === "result" && card.data && (
         <div className="overflow-y-auto overflow-x-hidden bg-card p-1.5">

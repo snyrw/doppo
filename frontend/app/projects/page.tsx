@@ -75,7 +75,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType !== "entropy" ? { ...c, status: "error" as const, error: action.error, showBuyCredits: action.showBuyCredits } : c
+          c.id === action.id && c.cardType !== "entropy" ? { ...c, status: "error" as const, error: action.error, showBuyCredits: action.showBuyCredits, showVerifyCard: action.showVerifyCard } : c
         ),
       };
     case "MOVE_CARD":

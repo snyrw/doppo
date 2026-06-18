@@ -39,6 +39,7 @@ export type SteeringCardData = {
   data: SteeringResult | null;
   error: string | null;
   showBuyCredits?: boolean;
+  showVerifyCard?: boolean;
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
@@ -207,7 +208,7 @@ function SteeringCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} showVerifyCard={card.showVerifyCard} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (
