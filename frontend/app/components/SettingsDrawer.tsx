@@ -42,6 +42,10 @@ export default function SettingsDrawer() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // `open` may be initialized true from the ?settings= URL param before the
+  // session resolves; it survives the session-loading re-render because this
+  // component is mounted once in Navbar and never remounts, so the drawer
+  // appears as soon as session?.user becomes truthy.
   if (!open || !session?.user) return null;
 
   return (
@@ -66,7 +70,7 @@ export default function SettingsDrawer() {
             </button>
           ))}
         </nav>
-        <div className="flex-1 overflow-auto p-5" style={{ background: "var(--color-card)" }}>
+        <div className="flex-1 overflow-auto p-5 bg-card">
           {/* Sections wired in later tasks */}
           {section === "appearance" && <div data-section="appearance" />}
           {section === "account" && <div data-section="account" />}
