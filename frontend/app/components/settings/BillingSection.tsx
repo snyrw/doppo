@@ -16,12 +16,18 @@ function label(r: Row) {
 
 export default function BillingSection() {
   const [balance, setBalance] = useState<number | null>(null);
+  const [balanceError, setBalanceError] = useState(false);
   const [rows, setRows] = useState<Row[]>([]);
   const [portalErr, setPortalErr] = useState("");
 
   useEffect(() => {
-    fetch("/api/credits/balance").then((r) => r.json()).then((d) => setBalance(d.balanceMicros)).catch(() => {});
-    getCreditLedger().then(setRows).catch(() => {});
+    fetch("/api/credits/balance")
+      .then((r) => r.json())
+      .then((d) => setBalance(d.balanceMicros))
+      .catch((e) => { console.warn("balance fetch failed", e); setBalanceError(true); });
+    getCreditLedger()
+      .then(setRows)
+      .catch((e) => console.warn("ledger fetch failed", e));
   }, []);
 
   const openPortal = async () => {
@@ -36,7 +42,7 @@ export default function BillingSection() {
       <div className="flex items-center justify-between">
         <div>
           <div className="text-[10px] uppercase tracking-[0.08em] text-muted">Balance</div>
-          <div className="text-lg font-semibold text-foreground">{balance === null ? "…" : fmt(balance)}</div>
+          <div className="text-lg font-semibold text-foreground">{balanceError ? "—" : balance === null ? "…" : fmt(balance)}</div>
         </div>
         <button className="btn-accent cursor-pointer rounded-md px-3 py-1.5 text-[13px] font-semibold"
           onClick={() => window.dispatchEvent(new CustomEvent("open-buy-credits"))}>
@@ -56,9 +62,11 @@ export default function BillingSection() {
         <div className="flex flex-col gap-1">
           {rows.length === 0 && <p className="m-0 text-xs text-muted">No activity yet.</p>}
           {rows.map((r, i) => (
-            <div key={i} className="flex items-center justify-between border-b border-surface-border py-1.5 text-xs last:border-b-0">
+            <div key={`${r.createdAt}-${r.type}-${i}`} className="flex items-center justify-between border-b border-surface-border py-1.5 text-xs last:border-b-0">
               <span className="text-foreground">{label(r)}</span>
-              <span className={r.amountMicros < 0 ? "text-muted" : "text-foreground"}>{fmt(r.amountMicros)}</span>
+              <span className={r.amountMicros < 0 ? "text-muted" : "text-foreground"}>
+                {r.amountMicros < 0 ? "−" : "+"}{fmt(Math.abs(r.amountMicros))}
+              </span>
             </div>
           ))}
         </div>
