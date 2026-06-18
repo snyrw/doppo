@@ -3,7 +3,7 @@
 import { eq, and, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "./db";
-import { project } from "./schema";
+import { project, creditLedger } from "./schema";
 import { auth } from "./lib/auth";
 
 type SerializedCard = {
@@ -176,4 +176,21 @@ export async function listProjects(): Promise<ProjectSummary[]> {
       firstPrompt: cards[0]?.prompt ?? null,
     };
   });
+}
+
+export async function getCreditLedger() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) throw new Error("Unauthorized");
+  return db
+    .select({
+      type: creditLedger.type,
+      amountMicros: creditLedger.amountMicros,
+      jobTier: creditLedger.jobTier,
+      jobDurationMs: creditLedger.jobDurationMs,
+      createdAt: creditLedger.createdAt,
+    })
+    .from(creditLedger)
+    .where(eq(creditLedger.userId, session.user.id))
+    .orderBy(desc(creditLedger.createdAt))
+    .limit(100);
 }

@@ -5,6 +5,7 @@ import { useSession } from "../lib/auth-client";
 import { cn } from "../lib/cn";
 import AppearanceSection from "./settings/AppearanceSection";
 import AccountSection from "./settings/AccountSection";
+import BillingSection from "./settings/BillingSection";
 
 type Section = "appearance" | "account" | "billing" | "privacy";
 const SECTIONS: { id: Section; label: string }[] = [
@@ -76,7 +77,7 @@ export default function SettingsDrawer() {
           {/* Sections wired in later tasks */}
           {section === "appearance" && <AppearanceSection />}
           {section === "account" && <AccountSection />}
-          {section === "billing" && <div data-section="billing" />}
+          {section === "billing" && <BillingSection />}
           {section === "privacy" && <div data-section="privacy" />}
         </div>
       </div>
