@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, type CSSProperties } from "react";
+import Link from "next/link";
 import { signIn, signUp, signOut, useSession, requestPasswordReset } from "../lib/auth-client";
 import { Modal } from "./ui/Modal";
 import { TactileButton } from "./ui/TactileButton";
@@ -244,6 +245,15 @@ export default function AuthButtons() {
                   </svg>
                   {socialLoading === "github" ? "Connecting..." : "GitHub"}
                 </button>
+
+                {mode === "signup" && (
+                  <p className="mb-0 mt-3 text-center text-[11px] leading-5 text-muted">
+                    By creating an account, you agree to our{" "}
+                    <Link href="/terms" target="_blank" className="text-accent underline">Terms of Service</Link>{" "}
+                    and{" "}
+                    <Link href="/privacy" target="_blank" className="text-accent underline">Privacy Policy</Link>.
+                  </p>
+                )}
 
                 <p className="mb-0 mt-3 text-center text-[13px] text-muted">
                   {mode === "signin" ? (
