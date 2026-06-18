@@ -9,7 +9,13 @@ const btnCls = "btn-accent cursor-pointer rounded-md px-3 py-1.5 text-[13px] fon
 
 export default function AccountSection() {
   const { data: session } = useSession();
-  const [name, setName] = useState(session?.user.name ?? "");
+  const [prevName, setPrevName] = useState<string | undefined>(undefined);
+  const [name, setName] = useState("");
+  const sessionName = session?.user.name;
+  if (sessionName && sessionName !== prevName) {
+    setPrevName(sessionName);
+    setName(sessionName);
+  }
   const [newEmail, setNewEmail] = useState("");
   const [curPw, setCurPw] = useState("");
   const [newPw, setNewPw] = useState("");
@@ -20,18 +26,21 @@ export default function AccountSection() {
     listAccounts().then((res) => {
       const accounts = (res.data ?? []) as { providerId: string }[];
       setShowPw(shouldShowPasswordChange(accounts));
-    }).catch(() => {});
+    }).catch((e) => console.warn("listAccounts failed", e));
   }, []);
 
   const saveName = async () => {
+    setMsg("");
     const { error } = await updateUser({ name });
     setMsg(error ? (error.message ?? "Unknown error") : "Name updated.");
   };
   const sendEmailChange = async () => {
+    setMsg("");
     const { error } = await changeEmail({ newEmail, callbackURL: "/projects?settings=account" });
     setMsg(error ? (error.message ?? "Unknown error") : "Check your current inbox to confirm the change.");
   };
   const savePassword = async () => {
+    setMsg("");
     const { error } = await changePassword({ currentPassword: curPw, newPassword: newPw, revokeOtherSessions: true });
     setMsg(error ? (error.message ?? "Unknown error") : "Password updated.");
     if (!error) { setCurPw(""); setNewPw(""); }
