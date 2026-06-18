@@ -1,6 +1,7 @@
 // frontend/tests/helpers.test.ts
 import { describe, it, expect } from "vitest";
 import { autoArrangePos, findSpawnPos, getCardPrompt, serializeCard } from "../app/projects/helpers";
+import type { AnyCard } from "../app/components/SandboxCanvas";
 
 // Constants from helpers.ts (not exported — kept in sync manually)
 const CARD_COL_WIDTH = 380;
@@ -55,29 +56,29 @@ describe("findSpawnPos", () => {
 
 describe("getCardPrompt", () => {
   it("logit-lens → prompt", () => {
-    expect(getCardPrompt({ cardType: "logit-lens", prompt: "hello" } as any)).toBe("hello");
+    expect(getCardPrompt({ cardType: "logit-lens", prompt: "hello" } as unknown as AnyCard)).toBe("hello");
   });
 
   it("dla → prompt", () => {
-    expect(getCardPrompt({ cardType: "dla", prompt: "dla prompt" } as any)).toBe("dla prompt");
+    expect(getCardPrompt({ cardType: "dla", prompt: "dla prompt" } as unknown as AnyCard)).toBe("dla prompt");
   });
 
   it("attention-pattern → prompt", () => {
-    expect(getCardPrompt({ cardType: "attention-pattern", prompt: "attn" } as any)).toBe("attn");
+    expect(getCardPrompt({ cardType: "attention-pattern", prompt: "attn" } as unknown as AnyCard)).toBe("attn");
   });
 
   it("attribution → cleanPrompt", () => {
     expect(
-      getCardPrompt({ cardType: "attribution", cleanPrompt: "clean", corruptedPrompt: "corrupt" } as any)
+      getCardPrompt({ cardType: "attribution", cleanPrompt: "clean", corruptedPrompt: "corrupt" } as unknown as AnyCard)
     ).toBe("clean");
   });
 
   it("activation → cleanPrompt", () => {
-    expect(getCardPrompt({ cardType: "activation", cleanPrompt: "activate" } as any)).toBe("activate");
+    expect(getCardPrompt({ cardType: "activation", cleanPrompt: "activate" } as unknown as AnyCard)).toBe("activate");
   });
 
   it("steering → cleanPrompt", () => {
-    expect(getCardPrompt({ cardType: "steering", cleanPrompt: "steer" } as any)).toBe("steer");
+    expect(getCardPrompt({ cardType: "steering", cleanPrompt: "steer" } as unknown as AnyCard)).toBe("steer");
   });
 });
 
@@ -94,11 +95,11 @@ describe("serializeCard", () => {
       topK: 5,
       status: "result" as const,
     };
-    const result = serializeCard(card as any);
+    const result = serializeCard(card as unknown as AnyCard);
     expect(result.id).toBe("c1");
     expect(result.cardType).toBe("logit-lens");
     expect(result.prompt).toBe("hello world");
-    expect((result as any).topK).toBe(5);
+    expect((result as Record<string, unknown>).topK).toBe(5);
   });
 
   it("attribution card maps cleanPrompt → prompt and preserves corruptedPrompt", () => {
@@ -116,10 +117,10 @@ describe("serializeCard", () => {
       contrastiveToken: "dog",
       status: "result" as const,
     };
-    const result = serializeCard(card as any);
+    const result = serializeCard(card as unknown as AnyCard);
     expect(result.cardType).toBe("attribution");
     expect(result.prompt).toBe("The cat");
-    expect((result as any).corruptedPrompt).toBe("The dog");
+    expect((result as Record<string, unknown>).corruptedPrompt).toBe("The dog");
   });
 
   it("steering card preserves nPairs and extraPairs", () => {
@@ -143,10 +144,10 @@ describe("serializeCard", () => {
       parentCardId: undefined,
       status: "result" as const,
     };
-    const result = serializeCard(card as any);
+    const result = serializeCard(card as unknown as AnyCard);
     expect(result.cardType).toBe("steering");
-    expect((result as any).nPairs).toBe(3);
-    expect((result as any).extraPairs).toHaveLength(1);
+    expect((result as Record<string, unknown>).nPairs).toBe(3);
+    expect((result as Record<string, unknown>).extraPairs).toHaveLength(1);
   });
 
   it("entropy card preserves entropyData and parentLensId", () => {
@@ -162,10 +163,10 @@ describe("serializeCard", () => {
       yLabels: ["L0", "L1"],
       status: "result" as const,
     };
-    const result = serializeCard(card as any);
+    const result = serializeCard(card as unknown as AnyCard);
     expect(result.cardType).toBe("entropy");
-    expect((result as any).parentLensId).toBe("parent-1");
-    expect((result as any).entropyData).toEqual([0.1, 0.2]);
+    expect((result as Record<string, unknown>).parentLensId).toBe("parent-1");
+    expect((result as Record<string, unknown>).entropyData).toEqual([0.1, 0.2]);
   });
 
   it("attention-pattern card serializes correctly", () => {
@@ -179,7 +180,7 @@ describe("serializeCard", () => {
       gpuTier: "tl_small",
       status: "result" as const,
     };
-    const result = serializeCard(card as any);
+    const result = serializeCard(card as unknown as AnyCard);
     expect(result.cardType).toBe("attention-pattern");
     expect(result.prompt).toBe("attn prompt");
   });
