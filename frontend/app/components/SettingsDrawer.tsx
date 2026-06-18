@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "../lib/auth-client";
 import { cn } from "../lib/cn";
 import AppearanceSection from "./settings/AppearanceSection";
+import AccountSection from "./settings/AccountSection";
 
 type Section = "appearance" | "account" | "billing" | "privacy";
 const SECTIONS: { id: Section; label: string }[] = [
@@ -74,7 +75,7 @@ export default function SettingsDrawer() {
         <div className="flex-1 overflow-auto p-5 bg-card">
           {/* Sections wired in later tasks */}
           {section === "appearance" && <AppearanceSection />}
-          {section === "account" && <div data-section="account" />}
+          {section === "account" && <AccountSection />}
           {section === "billing" && <div data-section="billing" />}
           {section === "privacy" && <div data-section="privacy" />}
         </div>
