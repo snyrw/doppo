@@ -11,6 +11,8 @@ import { usePalette } from "../hooks/usePalette";
 import { CreditsButton } from "./CreditsDisplay";
 import { cn } from "../lib/cn";
 import { IconTile } from "./ui/IconTile";
+import { useSession } from "../lib/auth-client";
+import SettingsDrawer from "./SettingsDrawer";
 
 // Server snapshot is false, client snapshot is true: during hydration React uses
 // the server value, then re-renders once mounted — same effect as the old
@@ -69,6 +71,7 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
   );
   const mounted = useMounted();
   const palette = usePalette();
+  const { data: session } = useSession();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const paletteRef = useRef<HTMLDivElement>(null);
 
@@ -98,6 +101,7 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
   };
 
   return (
+    <>
     <header className="relative z-40 flex h-[50px] shrink-0 items-center justify-between border-b border-surface-border bg-background px-5">
       <Link href="/" className="flex items-center gap-2 no-underline">
         <Image
@@ -126,7 +130,7 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
             title="Heatmap palette"
             suppressHydrationWarning
           >
-            <GearIcon />
+            <span className="h-3.5 w-3.5 rounded-[3px] border border-surface-border" style={{ background: PALETTE_META[palette].swatchCss }} />
           </IconTile>
 
           {mounted && paletteOpen && (
@@ -180,7 +184,20 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
         >
           {mounted ? (isDark ? <SunIcon /> : <MoonIcon />) : <MoonIcon />}
         </IconTile>
+
+        {/* settings gear — only when signed in */}
+        {session?.user && (
+          <IconTile
+            onClick={() => window.dispatchEvent(new CustomEvent("open-settings"))}
+            aria-label="Settings"
+            title="Settings"
+          >
+            <GearIcon />
+          </IconTile>
+        )}
       </div>
     </header>
+    <SettingsDrawer />
+  </>
   );
 }
