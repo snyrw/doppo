@@ -148,6 +148,8 @@ export const userCredits = pgTable("user_credits", {
     .primaryKey(),
   balanceMicros: bigint("balance_micros", { mode: "number" }).notNull().default(0),
   lastFreeGrantMonth: text("last_free_grant_month"), // YYYY-MM, nullable
+  stripeCustomerId: text("stripe_customer_id"), // cus_… ; created lazily on first gate hit
+  paymentVerifiedAt: timestamp("payment_verified_at"), // set by setup session OR purchase
 });
 
 export const creditLedger = pgTable("credit_ledger", {
