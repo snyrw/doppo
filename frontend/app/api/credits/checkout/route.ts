@@ -1,13 +1,11 @@
-import Stripe from "stripe";
 import { headers } from "next/headers";
 import { auth } from "@/app/lib/auth";
 import { CREDIT_PACKS } from "@/app/lib/rates";
+import { getStripe, getOrCreateStripeCustomer } from "@/app/lib/stripe";
 
 export async function POST(req: Request) {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return new Response("Payments not yet configured", { status: 503 });
-  }
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const stripe = getStripe();
+  if (!stripe) return new Response("Payments not yet configured", { status: 503 });
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) return new Response("Unauthorized", { status: 401 });
@@ -16,9 +14,11 @@ export async function POST(req: Request) {
   const pack = CREDIT_PACKS.find((p) => p.label === packLabel);
   if (!pack) return new Response("Invalid pack", { status: 400 });
 
+  const customerId = await getOrCreateStripeCustomer(session.user.id, session.user.email);
+
   const checkout = await stripe.checkout.sessions.create({
     mode: "payment",
-    payment_method_types: ["card"],
+    customer: customerId,
     line_items: [
       {
         price_data: {
@@ -34,7 +34,6 @@ export async function POST(req: Request) {
       },
     ],
     client_reference_id: session.user.id,
-    customer_email: session.user.email ?? undefined,
     metadata: {
       userId: session.user.id,
       creditMicros: String(pack.creditMicros),

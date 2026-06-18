@@ -4,6 +4,8 @@ import Stripe from "stripe";
 import { db } from "@/app/db";
 import { userCredits, creditLedger } from "@/app/schema";
 import { sql } from "drizzle-orm";
+import { getStripe } from "@/app/lib/stripe";
+import { markPaymentVerified } from "@/app/lib/credits";
 
 async function creditUser(
   sessionId: string,
@@ -33,51 +35,54 @@ async function creditUser(
     });
 }
 
+/** Credit a paid purchase session and mark the buyer's card verified. */
+async function handlePurchase(session: Stripe.Checkout.Session): Promise<Response> {
+  const userId = session.metadata?.userId;
+  const creditMicrosRaw = session.metadata?.creditMicros;
+  if (!userId || !creditMicrosRaw || !Number.isFinite(Number(creditMicrosRaw))) {
+    return new Response("Invalid metadata", { status: 400 });
+  }
+  const creditMicros = Number(creditMicrosRaw);
+  await db.transaction((tx) => creditUser(session.id, userId, creditMicros, tx));
+  // Buyers have a real card on file → they satisfy the gate too (short-circuit).
+  await markPaymentVerified(userId);
+  return new Response("OK");
+}
+
 export async function POST(req: Request) {
-  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+  const stripe = getStripe();
+  if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
     return new Response("Payments not yet configured", { status: 503 });
   }
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
   const sig = req.headers.get("stripe-signature")!;
   const body = await req.text();
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch {
     return new Response("Bad signature", { status: 400 });
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    if (session.payment_status !== "paid") return new Response("OK");
-    const userId = session.metadata?.userId;
-    const creditMicrosRaw = session.metadata?.creditMicros;
-    if (!userId || !creditMicrosRaw || !Number.isFinite(Number(creditMicrosRaw))) {
-      return new Response("Invalid metadata", { status: 400 });
+
+    // Setup-mode session: a card was saved, no payment. Mark verified.
+    if (session.mode === "setup") {
+      const userId = session.metadata?.userId;
+      if (!userId) return new Response("Invalid metadata", { status: 400 });
+      await markPaymentVerified(userId);
+      return new Response("OK");
     }
-    const creditMicros = Number(creditMicrosRaw);
-    await db.transaction((tx) =>
-      creditUser(session.id, userId, creditMicros, tx)
-    );
+
+    // Payment-mode session: only act once actually paid.
+    if (session.payment_status !== "paid") return new Response("OK");
+    return handlePurchase(session);
   }
 
   if (event.type === "checkout.session.async_payment_succeeded") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const userId = session.metadata?.userId;
-    const creditMicrosRaw = session.metadata?.creditMicros;
-    if (!userId || !creditMicrosRaw || !Number.isFinite(Number(creditMicrosRaw))) {
-      return new Response("Invalid metadata", { status: 400 });
-    }
-    const creditMicros = Number(creditMicrosRaw);
-    await db.transaction((tx) =>
-      creditUser(session.id, userId, creditMicros, tx)
-    );
+    return handlePurchase(event.data.object as Stripe.Checkout.Session);
   }
 
   return new Response("OK");
