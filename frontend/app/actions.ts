@@ -3,8 +3,9 @@
 import { eq, and, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "./db";
-import { project, creditLedger } from "./schema";
+import { project, creditLedger, user as userTable } from "./schema";
 import { auth } from "./lib/auth";
+import { buildDataExport, type DataExport } from "./lib/data-export";
 
 type SerializedCard = {
   id: string;
@@ -193,4 +194,16 @@ export async function getCreditLedger() {
     .where(eq(creditLedger.userId, session.user.id))
     .orderBy(desc(creditLedger.createdAt))
     .limit(100);
+}
+
+export async function exportMyData(): Promise<DataExport> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) throw new Error("Unauthorized");
+  const uid = session.user.id;
+
+  const [u] = await db.select({ name: userTable.name, email: userTable.email, emailVerified: userTable.emailVerified, createdAt: userTable.createdAt }).from(userTable).where(eq(userTable.id, uid));
+  const projects = await db.select({ id: project.id, name: project.name, cards: project.cards, canvas: project.canvas, createdAt: project.createdAt, updatedAt: project.updatedAt }).from(project).where(eq(project.userId, uid));
+  const ledger = await getCreditLedger();
+
+  return buildDataExport(u, projects as DataExport["projects"], ledger);
 }
