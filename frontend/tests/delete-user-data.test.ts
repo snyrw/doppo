@@ -5,7 +5,7 @@ const customersDel = vi.fn().mockResolvedValue({});
 vi.mock("../app/lib/stripe", () => ({
   getStripe: () => ({ customers: { del: customersDel } }),
 }));
-const deleteHeatmaps = vi.fn(async (_keys: string[]) => { calls.push("r2"); });
+const deleteHeatmaps = vi.fn(async (keys: string[]) => { void keys; calls.push("r2"); });
 vi.mock("../app/lib/r2", () => ({ deleteHeatmaps: (keys: string[]) => deleteHeatmaps(keys) }));
 
 // db mock: first select returns stripeCustomerId; subsequent selects return cache row ids.

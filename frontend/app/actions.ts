@@ -202,6 +202,7 @@ export async function exportMyData(): Promise<DataExport> {
   const uid = session.user.id;
 
   const [u] = await db.select({ name: userTable.name, email: userTable.email, emailVerified: userTable.emailVerified, createdAt: userTable.createdAt }).from(userTable).where(eq(userTable.id, uid));
+  if (!u) throw new Error("User not found");
   const projects = await db.select({ id: project.id, name: project.name, cards: project.cards, canvas: project.canvas, createdAt: project.createdAt, updatedAt: project.updatedAt }).from(project).where(eq(project.userId, uid));
   const ledger = await getCreditLedger();
 

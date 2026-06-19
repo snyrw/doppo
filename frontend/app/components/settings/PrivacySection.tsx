@@ -24,7 +24,11 @@ export default function PrivacySection() {
     setErr("");
     const { error } = await deleteUser();
     if (error) {
-      setErr(error.message?.toLowerCase().includes("fresh") ? "For security, please sign out and back in, then retry." : error.message ?? "Something went wrong.");
+      const isStaleSession =
+        (error as { code?: string }).code === "SESSION_EXPIRED" ||
+        error.message?.toLowerCase().includes("session expired") ||
+        error.message?.toLowerCase().includes("fresh");
+      setErr(isStaleSession ? "For security, please sign out and back in, then retry." : error.message ?? "Something went wrong.");
       return;
     }
     window.location.href = "/";
@@ -59,7 +63,7 @@ export default function PrivacySection() {
         {err && <p className="m-0 text-xs text-red-600">{err}</p>}
         <button
           className="cursor-pointer self-start rounded-md border-none bg-red-600 px-3 py-1.5 text-[13px] font-semibold text-white disabled:opacity-40"
-          disabled={confirm !== email}
+          disabled={!email || confirm !== email}
           onClick={del}
         >
           Delete my account
