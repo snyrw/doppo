@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { Resend } from "resend";
 import { db } from "../db";
 import * as schema from "../schema";
+import { deleteUserData } from "./account";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -83,6 +84,12 @@ export const auth = betterAuth({
         } else {
           console.log(`[DEV] Change email for ${user.email} -> ${newEmail}: ${url}`);
         }
+      },
+    },
+    deleteUser: {
+      enabled: true,
+      beforeDelete: async (user: { id: string }) => {
+        await deleteUserData(user.id);
       },
     },
   },
