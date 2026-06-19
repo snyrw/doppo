@@ -6,6 +6,7 @@ import { cn } from "../lib/cn";
 import AppearanceSection from "./settings/AppearanceSection";
 import AccountSection from "./settings/AccountSection";
 import BillingSection from "./settings/BillingSection";
+import PrivacySection from "./settings/PrivacySection";
 
 type Section = "appearance" | "account" | "billing" | "privacy";
 const SECTIONS: { id: Section; label: string }[] = [
@@ -78,7 +79,7 @@ export default function SettingsDrawer() {
           {section === "appearance" && <AppearanceSection />}
           {section === "account" && <AccountSection />}
           {section === "billing" && <BillingSection />}
-          {section === "privacy" && <div data-section="privacy" />}
+          {section === "privacy" && <PrivacySection />}
         </div>
       </div>
     </div>
