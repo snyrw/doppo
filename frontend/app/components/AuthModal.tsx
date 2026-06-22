@@ -102,7 +102,7 @@ export default function AuthButtons() {
           variant="ghost"
           onClick={() => signOut()}
           style={NAV_BTN_PAD}
-          faceClassName="text-xs font-medium"
+          faceClassName="text-xs font-medium text-muted"
         >
           Sign Out
         </TactileButton>
@@ -116,7 +116,7 @@ export default function AuthButtons() {
         variant="ghost"
         onClick={() => openModal("signin")}
         style={NAV_BTN_PAD}
-        faceClassName="text-xs font-medium"
+        faceClassName="text-xs font-medium text-muted"
       >
         Log In
       </TactileButton>
@@ -124,7 +124,7 @@ export default function AuthButtons() {
         variant="ghost"
         onClick={() => openModal("signup")}
         style={NAV_BTN_PAD}
-        faceClassName="text-xs font-medium"
+        faceClassName="text-xs font-medium text-muted"
       >
         Sign Up
       </TactileButton>
