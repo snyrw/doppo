@@ -85,17 +85,17 @@ export async function settleJob(
     try {
       await putHeatmap(job.cacheKey, result.data);
       if (job.jobType === "lens") {
-        await db.insert(heatmapCache).values({ id: job.cacheKey, prompt: payload.prompt, modelName: payload.modelName, r2Key: job.cacheKey }).onConflictDoNothing();
+        await db.insert(heatmapCache).values({ id: job.cacheKey, prompt: payload.prompt, modelName: payload.modelName, userId: job.userId, r2Key: job.cacheKey }).onConflictDoNothing();
       } else if (job.jobType === "attn") {
-        await db.insert(attnCache).values({ id: job.cacheKey, modelName: payload.modelName, prompt: payload.prompt, r2Key: job.cacheKey }).onConflictDoNothing();
+        await db.insert(attnCache).values({ id: job.cacheKey, modelName: payload.modelName, prompt: payload.prompt, userId: job.userId, r2Key: job.cacheKey }).onConflictDoNothing();
       } else if (job.jobType === "dla") {
-        await db.insert(dlaCache).values({ id: job.cacheKey, modelName: payload.modelName, prompt: payload.prompt, targetPosition: payload.targetPosition, targetToken: payload.targetToken, r2Key: job.cacheKey }).onConflictDoNothing();
+        await db.insert(dlaCache).values({ id: job.cacheKey, modelName: payload.modelName, prompt: payload.prompt, targetPosition: payload.targetPosition, targetToken: payload.targetToken, userId: job.userId, r2Key: job.cacheKey }).onConflictDoNothing();
       } else if (job.jobType === "attribution") {
-        await db.insert(attributionCache).values({ id: job.cacheKey, modelName: payload.modelName, prompt: payload.prompt, corruptedPrompt: payload.corruptedPrompt, targetPosition: payload.targetPosition, targetToken: payload.targetToken, r2Key: job.cacheKey }).onConflictDoNothing();
+        await db.insert(attributionCache).values({ id: job.cacheKey, modelName: payload.modelName, prompt: payload.prompt, corruptedPrompt: payload.corruptedPrompt, targetPosition: payload.targetPosition, targetToken: payload.targetToken, userId: job.userId, r2Key: job.cacheKey }).onConflictDoNothing();
       } else if (job.jobType === "activation-patch") {
-        await db.insert(activationPatchCache).values({ id: job.cacheKey, modelName: payload.modelName, cleanPrompt: payload.cleanPrompt, corruptedPrompt: payload.corruptedPrompt, r2Key: job.cacheKey }).onConflictDoNothing();
+        await db.insert(activationPatchCache).values({ id: job.cacheKey, modelName: payload.modelName, cleanPrompt: payload.cleanPrompt, corruptedPrompt: payload.corruptedPrompt, userId: job.userId, r2Key: job.cacheKey }).onConflictDoNothing();
       } else if (job.jobType === "steering") {
-        await db.insert(steeringCache).values({ id: job.cacheKey, modelName: payload.modelName, cleanPrompt: payload.cleanPrompt, corruptedPrompt: payload.corruptedPrompt, r2Key: job.cacheKey }).onConflictDoNothing();
+        await db.insert(steeringCache).values({ id: job.cacheKey, modelName: payload.modelName, cleanPrompt: payload.cleanPrompt, corruptedPrompt: payload.corruptedPrompt, userId: job.userId, r2Key: job.cacheKey }).onConflictDoNothing();
       }
     } catch (err) {
       console.error("Cache write failed:", err);

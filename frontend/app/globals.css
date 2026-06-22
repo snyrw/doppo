@@ -14,12 +14,19 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-fg: var(--accent-fg);
-  --font-sans: var(--font-recursive), system-ui, sans-serif;
-  --font-display: var(--font-xenon), Georgia, serif;
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  /* Same family as --font-sans for now; kept as a seam for a future distinct
+     display face. Heading sites use the `font-display` utility. */
+  --font-display: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
   --animate-spinner: spin 0.8s linear infinite;
   --animate-cfg-drop-in: cfgDropIn 140ms ease-out;
   --animate-fade-up: fadeUp 200ms ease-out;
   --animate-fade-in: fadeIn 150ms ease-out;
+  /* Hero entrance: words rise+fade quickly; figure rows fade in after. `both`
+     holds the from-state during the per-element animation-delay (set inline). */
+  --animate-hero-word: heroWord 260ms ease-out both;
+  --animate-hero-row: fadeIn 420ms ease-out both;
 }
 
 /* === Theme tokens === */
@@ -38,6 +45,12 @@
   --accent-side: #111110;
   /* heatmap cell color as r,g,b channels for use in rgba() */
   --heatmap-rgb: 28, 28, 28;
+  /* Hero figure lattice — faded-viridis faces + darker same-hue twins behind.
+     Light = the Figma values (sit just below warm paper, so they recede). */
+  --hero-l0-face: #a382ab; --hero-l0-back: #7e5987; /* mauve */
+  --hero-l1-face: #9b90be; --hero-l1-back: #6b5e93; /* periwinkle */
+  --hero-l2-face: #a9c5ce; --hero-l2-back: #7399a6; /* teal */
+  --hero-l3-face: #ccdbad; --hero-l3-back: #b1c583; /* green */
 }
 
 [data-theme="dark"] {
@@ -53,16 +66,21 @@
   --accent-fg: #1c1c1c;
   --accent-side: #8d8c88;
   --heatmap-rgb: 220, 218, 210;
+  /* Dark re-samples viridis at its deeper band so the tiles sit just above ink
+     and recede, instead of glowing like the light pastels do against black. */
+  --hero-l0-face: #876191; --hero-l0-back: #603B69; /* deep purple */
+  --hero-l1-face: #786BA1; --hero-l1-back: #54477B; /* deep periwinkle */
+  --hero-l2-face: #7EA2AD; --hero-l2-back: #557B87; /* deep teal */
+  --hero-l3-face: #B2C48D; --hero-l3-back: #8B9E62; /* deep green */
 }
 
 /* === Base === */
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-recursive), system-ui, sans-serif;
-  /* Pin Recursive to its proportional-linear instance; tabular figures keep
-     numeric columns aligned now that the body font is no longer monospaced. */
-  font-variation-settings: "MONO" 0, "CASL" 0;
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+  /* Tabular figures keep inline sans numerics aligned; dense data readouts use
+     the monospaced font-mono utility instead. */
   font-variant-numeric: tabular-nums;
 }
 
@@ -207,7 +225,7 @@ body {
   border: none;
   cursor: pointer;
   color: var(--text-muted);
-  font-family: var(--font-recursive), system-ui, sans-serif;
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
   font-size: 12px;
   font-weight: 500;
   transition: color 120ms ease;
@@ -225,6 +243,14 @@ body {
 @keyframes fadeUp { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes cfgDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes heroWord { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Respect reduced-motion: no animation → `both` fill-mode drops, elements show
+   at their natural (full) opacity immediately. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-word,
+  .animate-hero-row { animation: none; }
+}
 
 /* === Hero specimen palette animation === */
 @keyframes hero-swatch-in {

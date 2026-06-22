@@ -31,6 +31,7 @@ export type ActivationCardData = {
   data: ActivationPatchResult | null;
   error: string | null;
   showBuyCredits?: boolean;
+  showVerifyCard?: boolean;
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
@@ -176,7 +177,7 @@ function ActivationCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} showVerifyCard={card.showVerifyCard} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (
@@ -204,7 +205,7 @@ function ActivationCard({
               const tooltipContent = (
                 <>
                   <div className="mb-[3px] font-semibold">{label}</div>
-                  <div className="flex flex-col gap-0.5 tabular-nums">
+                  <div className="flex flex-col gap-0.5 font-mono tabular-nums">
                     <div className="flex justify-between gap-3.5">
                       <span className="text-muted">attr</span>
                       <span>{comp.attribution_score >= 0 ? "+" : ""}{comp.attribution_score.toFixed(3)}</span>
@@ -243,7 +244,7 @@ function ActivationCard({
                   )}
                 >
                   {/* Component label */}
-                  <span className="w-16 shrink-0 truncate text-[9px] font-semibold text-foreground">
+                  <span className="w-16 shrink-0 truncate font-mono text-[9px] font-semibold text-foreground">
                     {label}
                   </span>
 

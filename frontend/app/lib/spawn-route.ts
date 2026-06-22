@@ -19,7 +19,8 @@ import {
   backendHeaders,
   MAX_PROMPT_CHARS,
 } from "./api-helpers";
-import { checkBalance } from "./credits";
+import { checkBalance, isPaymentVerified } from "./credits";
+import { isGatedTier } from "./tiers";
 import { countActiveJobs, MAX_ACTIVE_JOBS_PER_USER } from "./jobs";
 
 type CacheTable =
@@ -91,6 +92,16 @@ export function createSpawnHandler<P extends { modelName: string }>(cfg: SpawnCo
 
     const { allowed } = await checkBalance(userId, resolvedTier);
     if (!allowed) return Response.json({ error: "Insufficient credits. Add credits to continue." }, { status: 402 });
+
+    if (isGatedTier(resolvedTier) && !(await isPaymentVerified(userId))) {
+      return Response.json(
+        {
+          error: "Add a card to run models on A100-class GPUs and larger. You won't be charged for verification.",
+          code: "verification_required",
+        },
+        { status: 403 }
+      );
+    }
 
     const spawnRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/spawn-${cfg.jobType}`, {
       method: "POST",

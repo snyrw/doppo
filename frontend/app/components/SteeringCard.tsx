@@ -39,6 +39,7 @@ export type SteeringCardData = {
   data: SteeringResult | null;
   error: string | null;
   showBuyCredits?: boolean;
+  showVerifyCard?: boolean;
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
@@ -117,7 +118,7 @@ function SteeringCard({
             <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.06em] text-accent">
               Steering
             </span>
-            <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] text-muted">
+            <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px font-mono text-[9px] text-muted">
               T={card.temperature.toFixed(1)}  rep={card.repetitionPenalty.toFixed(2)}
             </span>
           </div>
@@ -164,13 +165,13 @@ function SteeringCard({
         {card.components.map((c, i) => (
           <span
             key={i}
-            className="shrink-0 rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold text-accent"
+            className="shrink-0 rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px font-mono text-[9px] font-semibold text-accent"
           >
             {componentLabel(c)}
           </span>
         ))}
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
-          <span className="w-9 text-right text-[9px] text-muted">
+          <span className="w-9 text-right font-mono text-[9px] text-muted">
             α={localAlpha >= 0 ? localAlpha.toFixed(2) : localAlpha.toFixed(2)}
           </span>
           <input
@@ -207,7 +208,7 @@ function SteeringCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} showVerifyCard={card.showVerifyCard} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (
@@ -242,7 +243,7 @@ function SteeringCard({
               </p>
               <span
                 className={cn(
-                  "rounded-[3px] border px-[5px] py-px text-[9px] font-semibold",
+                  "rounded-[3px] border px-[5px] py-px font-mono text-[9px] font-semibold",
                   card.data.logit_diff >= 0
                     ? "border-[rgba(22,163,74,0.25)] bg-[rgba(22,163,74,0.08)] text-green-600"
                     : "border-[rgba(220,38,38,0.25)] bg-[rgba(220,38,38,0.08)] text-red-600",
@@ -260,7 +261,7 @@ function SteeringCard({
                   Steered
                 </p>
                 {card.data.top_k_steered.map((t, i) => (
-                  <div key={i} className="mb-[3px] flex items-center gap-1">
+                  <div key={i} className="mb-[3px] flex items-center gap-1 font-mono">
                     <span className="w-[60px] shrink-0 truncate text-[9px] text-foreground">
                       {JSON.stringify(t.token)}
                     </span>
@@ -280,7 +281,7 @@ function SteeringCard({
                   Baseline
                 </p>
                 {card.data.top_k_baseline.map((t, i) => (
-                  <div key={i} className="mb-[3px] flex items-center gap-1">
+                  <div key={i} className="mb-[3px] flex items-center gap-1 font-mono">
                     <span className="w-[60px] shrink-0 truncate text-[9px] text-muted">
                       {JSON.stringify(t.token)}
                     </span>

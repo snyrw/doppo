@@ -47,6 +47,20 @@ function CreditsButtonInner() {
   }, []);
 
   useEffect(() => {
+    const handler = async () => {
+      try {
+        const res = await fetch("/api/credits/verify-card", { method: "POST" });
+        const json = await res.json().catch(() => ({}));
+        if (res.ok && json.url) window.location.assign(json.url);
+      } catch {
+        // network error — user can retry from the card
+      }
+    };
+    window.addEventListener("open-verify-card", handler);
+    return () => window.removeEventListener("open-verify-card", handler);
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {

@@ -8,8 +8,8 @@ import { cn } from "../lib/cn";
 
 // Shared cell classes for the DLA grid views (dimensional widths stay inline
 // because they're derived from the layout constants below).
-const yLabelCls = "shrink-0 pr-1 text-right text-[9px] text-muted";
-const valueCls = "w-11 shrink-0 text-right text-[9px] tabular-nums text-muted";
+const yLabelCls = "shrink-0 pr-1 text-right font-mono text-[9px] text-muted";
+const valueCls = "w-11 shrink-0 text-right font-mono text-[9px] tabular-nums text-muted";
 
 export type DlaData = {
   target_token: string;
@@ -33,6 +33,7 @@ export type DlaCardData = {
   data: DlaData | null;
   error: string | null;
   showBuyCredits?: boolean;
+  showVerifyCard?: boolean;
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
@@ -217,7 +218,7 @@ function DlaCard({
       )}
 
       {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} />}
+      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} showVerifyCard={card.showVerifyCard} />}
 
       {/* Result */}
       {card.status === "result" && card.data && (
@@ -295,14 +296,14 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
           </div>
           {hasAttnMlp ? (
             <>
-              <DivergingBar val={data.embed_dla} absMax={absMax} width={LAYER_BAR_W + 4} tooltipContent={<><span className="font-semibold">Embed</span>{" "}<span className="tabular-nums">{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
+              <DivergingBar val={data.embed_dla} absMax={absMax} width={LAYER_BAR_W + 4} tooltipContent={<><span className="font-semibold">Embed</span>{" "}<span className="font-mono tabular-nums">{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
               <span className={valueCls}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
             </>
           ) : (
             <>
-              <DivergingBar val={data.embed_dla} absMax={absMax} tooltipContent={<><span className="font-semibold">Embed</span>{" "}<span className="tabular-nums">{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
+              <DivergingBar val={data.embed_dla} absMax={absMax} tooltipContent={<><span className="font-semibold">Embed</span>{" "}<span className="font-mono tabular-nums">{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
               <span className={valueCls}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
@@ -319,7 +320,7 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
         const tooltipContent: React.ReactNode = hasAttnMlp ? (
           <>
             <div className="mb-[3px] font-semibold">{label}</div>
-            <div className="flex flex-col gap-0.5 tabular-nums">
+            <div className="flex flex-col gap-0.5 font-mono tabular-nums">
               <div className="flex justify-between gap-3.5">
                 <span className="text-muted">Attn</span>
                 <span>{attnVal! >= 0 ? "+" : ""}{attnVal!.toFixed(3)}</span>
@@ -335,7 +336,7 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
             </div>
           </>
         ) : (
-          <><span className="font-semibold">{label}</span>{" "}<span className="tabular-nums">{combined >= 0 ? "+" : ""}{combined.toFixed(3)}</span></>
+          <><span className="font-semibold">{label}</span>{" "}<span className="font-mono tabular-nums">{combined >= 0 ? "+" : ""}{combined.toFixed(3)}</span></>
         );
 
         return (
@@ -375,7 +376,7 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
         {data.x_labels.map((h, i) => (
           <div
             key={i}
-            className="shrink-0 truncate pb-0.5 text-center text-[7px] text-muted"
+            className="shrink-0 truncate pb-0.5 text-center font-mono text-[7px] text-muted"
             style={{ width: HEAD_CELL_SIZE }}
           >
             {h}
@@ -394,7 +395,7 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
             return (
               <div
                 key={hi}
-                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span className="font-semibold">{label}</span>{" H"}{hi}<br /><span className="tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
+                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span className="font-semibold">{label}</span>{" H"}{hi}<br /><span className="font-mono tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
                 onMouseLeave={() => setTooltip(null)}
                 className="box-border shrink-0 rounded-sm border-[0.5px] border-surface-border"
                 style={{ width: HEAD_CELL_SIZE, height: HEAD_CELL_SIZE, backgroundColor: color }}
@@ -430,7 +431,7 @@ function TopView({ data, absMax }: { data: DlaData; absMax: number }) {
           <div className={yLabelCls} style={{ width: Y_LABEL_W + 14 }}>
             {label}
           </div>
-          <DivergingBar val={val} absMax={absMax} width={TOP_BAR_W} height={LAYER_CELL_H} tooltipContent={<><span className="font-semibold">{label}</span>{" "}<span className="tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></>} />
+          <DivergingBar val={val} absMax={absMax} width={TOP_BAR_W} height={LAYER_CELL_H} tooltipContent={<><span className="font-semibold">{label}</span>{" "}<span className="font-mono tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></>} />
           <span className={valueCls}>
             {val >= 0 ? "+" : ""}{val.toFixed(2)}
           </span>

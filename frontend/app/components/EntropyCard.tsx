@@ -192,7 +192,7 @@ function EntropyCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, 
         </svg>
 
         {tooltipData && (
-          <div className="pointer-events-none absolute right-1 top-1.5 rounded border border-card-border bg-card px-1.5 py-[3px] text-[8px] leading-[1.6] text-muted">
+          <div className="pointer-events-none absolute right-1 top-1.5 rounded border border-card-border bg-card px-1.5 py-[3px] font-mono text-[8px] leading-[1.6] text-muted">
             <span className="font-bold text-accent">
               {tooltipData.layerLabel}
             </span>

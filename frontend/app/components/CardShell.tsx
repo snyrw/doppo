@@ -38,7 +38,7 @@ export function CardLoadingHeader({ gpuTier, elapsedMs }: { gpuTier: string | un
   return (
     <div className="flex items-center justify-between">
       {gpuTier ? <TierBadge tier={gpuTier} /> : <span />}
-      <span className="text-[10px] tabular-nums text-muted">
+      <span className="font-mono text-[10px] tabular-nums text-muted">
         {formatElapsed(elapsedMs)}
       </span>
     </div>
@@ -102,9 +102,11 @@ export function CardLoadingState({
 export function CardErrorState({
   message,
   showBuyCredits,
+  showVerifyCard,
 }: {
   message: string | undefined;
   showBuyCredits?: boolean;
+  showVerifyCard?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2 px-3.5 py-3">
@@ -117,6 +119,14 @@ export function CardErrorState({
           className="self-start rounded-md bg-background px-2.5 py-1 text-[11px] text-foreground"
         >
           Add credits →
+        </ControlButton>
+      )}
+      {showVerifyCard && (
+        <ControlButton
+          onClick={() => window.dispatchEvent(new CustomEvent("open-verify-card"))}
+          className="self-start rounded-md bg-background px-2.5 py-1 text-[11px] text-foreground"
+        >
+          Add a card →
         </ControlButton>
       )}
     </div>

@@ -107,3 +107,23 @@ export async function deductJobCost(
   });
   return costMicros;
 }
+
+/** Mark a user's payment method as verified (idempotent upsert). */
+export async function markPaymentVerified(userId: string): Promise<void> {
+  await db
+    .insert(userCredits)
+    .values({ userId, balanceMicros: 0, paymentVerifiedAt: new Date() })
+    .onConflictDoUpdate({
+      target: userCredits.userId,
+      set: { paymentVerifiedAt: new Date() },
+    });
+}
+
+/** True once the user has a verified card on file (via setup or a purchase). */
+export async function isPaymentVerified(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ v: userCredits.paymentVerifiedAt })
+    .from(userCredits)
+    .where(eq(userCredits.userId, userId));
+  return row?.v != null;
+}

@@ -20,3 +20,4 @@ docs/
 
 # Local type-study scratch (not for general audience)
 frontend/font-specimen.html
+scripts/regen_tutorial_circuit.py
