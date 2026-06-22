@@ -88,16 +88,6 @@ export function interpolateColorDivergent(palette: PaletteName, value: number, a
   return interpolateColor(palette, t);
 }
 
-// Fades a palette color toward the runtime background. fade ∈ [0,1]:
-// 0 = full palette color, 1 = fully --bg. Theme-aware — the mix targets var(--bg),
-// so cells fade to cream in light mode and charcoal in dark mode automatically.
-// This is the reusable seam for faded heatmaps on cards.
-export function fadedColor(palette: PaletteName, prob: number, fade: number): string {
-  const f = Math.max(0, Math.min(1, fade));
-  const pct = Math.round((1 - f) * 100);
-  return `color-mix(in srgb, ${interpolateColor(palette, prob)} ${pct}%, var(--bg))`;
-}
-
 export function getContrastColor(palette: PaletteName, prob: number): string {
   if (palette === "warm-mono") {
     return prob > 0.55 ? "#ecebe4" : "#1c1c1c";
