@@ -331,11 +331,11 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
 
         return (
           <div key={label} className="flex items-center" style={{ gap: COL_GAP }}>
-            <div className="shrink-0 pr-1 text-right text-[9px] text-muted" style={{ width: Y_LABEL_W }}>
+            <div className="shrink-0 pr-1 text-right font-mono text-[9px] text-muted" style={{ width: Y_LABEL_W }}>
               {label}
             </div>
             <div
-              onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span className="font-semibold">{label}</span>{" "}<span className="tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
+              onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span className="font-semibold">{label}</span>{" "}<span className="font-mono tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
               onMouseLeave={() => setTooltip(null)}
               className="relative flex shrink-0 items-stretch overflow-hidden rounded-sm bg-surface-border"
               style={{ width: LAYER_BAR_W, height: LAYER_CELL_H }}
@@ -354,7 +354,7 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
                 </>
               )}
             </div>
-            <span className="w-11 shrink-0 text-right text-[9px] tabular-nums text-muted">
+            <span className="w-11 shrink-0 text-right font-mono text-[9px] tabular-nums text-muted">
               {val >= 0 ? "+" : ""}{val.toFixed(2)}
             </span>
           </div>
@@ -384,7 +384,7 @@ function HeadView({
         {data.x_labels.map((h, i) => (
           <div
             key={i}
-            className="shrink-0 truncate pb-0.5 text-center text-[7px] text-muted"
+            className="shrink-0 truncate pb-0.5 text-center font-mono text-[7px] text-muted"
             style={{ width: HEAD_CELL_SIZE }}
           >
             {h}
@@ -393,7 +393,7 @@ function HeadView({
       </div>
       {data.y_labels.map((label, li) => (
         <div key={label} className="flex items-center" style={{ gap: COL_GAP }}>
-          <div className="shrink-0 pr-1 text-right text-[9px] text-muted" style={{ width: Y_LABEL_W }}>
+          <div className="shrink-0 pr-1 text-right font-mono text-[9px] text-muted" style={{ width: Y_LABEL_W }}>
             {label}
           </div>
           {data.head_attribution[li].map((val, hi) => {
@@ -402,7 +402,7 @@ function HeadView({
             return (
               <div
                 key={hi}
-                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span className="font-semibold">{label}</span>{" H"}{hi}<br /><span className="tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
+                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span className="font-semibold">{label}</span>{" H"}{hi}<br /><span className="font-mono tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
                 onMouseLeave={() => setTooltip(null)}
                 onPointerDown={e => e.stopPropagation()}
                 onClick={tutorialMode ? undefined : () => onToggleComponent({ layer: li, head: hi, injectionType: "attn_head" })}

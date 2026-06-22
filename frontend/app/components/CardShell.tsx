@@ -38,7 +38,7 @@ export function CardLoadingHeader({ gpuTier, elapsedMs }: { gpuTier: string | un
   return (
     <div className="flex items-center justify-between">
       {gpuTier ? <TierBadge tier={gpuTier} /> : <span />}
-      <span className="text-[10px] tabular-nums text-muted">
+      <span className="font-mono text-[10px] tabular-nums text-muted">
         {formatElapsed(elapsedMs)}
       </span>
     </div>

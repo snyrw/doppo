@@ -235,14 +235,14 @@ function LensCard({
             {panelData.tokens.map((tok, i) => {
               const prob = panelData.probs[i];
               return (
-                <div key={i} className="flex items-center gap-[5px]">
+                <div key={i} className="flex items-center gap-[5px] font-mono">
                   <span className="w-12 shrink-0 truncate text-right text-[9px] text-foreground">
                     {JSON.stringify(tok)}
                   </span>
                   <div className="h-2 flex-1 overflow-hidden rounded-sm bg-surface-border">
                     <div className={cn("h-full rounded-sm transition-[width] duration-120 ease-out", i === 0 ? "bg-accent" : "bg-card-border")} style={{ width: `${prob * 100}%` }} />
                   </div>
-                  <span className="w-[30px] shrink-0 text-right text-[9px] tabular-nums text-muted">
+                  <span className="w-[34px] shrink-0 text-right font-mono text-[9px] tabular-nums text-muted">
                     {(prob * 100).toFixed(1)}%
                   </span>
                 </div>
@@ -422,7 +422,7 @@ function LensCard({
                   key={i}
                   onClick={() => canPin && handleColClick(i)}
                   className={cn(
-                    "box-border shrink-0 truncate pb-1 text-center text-[7px]",
+                    "box-border shrink-0 truncate pb-1 text-center font-mono text-[7px]",
                     pinnedCol === i ? "font-bold text-accent" : "font-normal text-muted",
                     canPin ? "cursor-pointer" : "cursor-default",
                   )}
@@ -449,7 +449,7 @@ function LensCard({
                 >
                   <div
                     className={cn(
-                      "shrink-0 overflow-hidden pr-1 text-right text-[9px]",
+                      "shrink-0 overflow-hidden pr-1 text-right font-mono text-[9px]",
                       yLabelActive ? "font-bold text-accent" : "font-normal text-muted",
                     )}
                     style={{ width: Y_LABEL_W }}
@@ -489,21 +489,21 @@ function LensCard({
                         <div className="mb-0.5 text-muted">
                           <span className="font-semibold text-foreground">{xLabel}</span>{" · "}layer {yIndex}
                         </div>
-                        <div>rank <span className="font-semibold">#{rank}</span></div>
+                        <div className="font-mono">rank <span className="font-semibold">#{rank}</span></div>
                       </>
                     ) : inEntropyMode && entropy !== null ? (
                       <>
                         <div className="mb-0.5 text-muted">
                           <span className="font-semibold text-foreground">{xLabel}</span>{" · "}layer {yIndex}
                         </div>
-                        <div className="tabular-nums">H = <span className="font-semibold">{entropy.toFixed(3)}</span> nats</div>
+                        <div className="font-mono tabular-nums">H = <span className="font-semibold">{entropy.toFixed(3)}</span> nats</div>
                       </>
                     ) : inKlMode && klVal !== null ? (
                       <>
                         <div className="mb-0.5 text-muted">
                           <span className="font-semibold text-foreground">{xLabel}</span>{" · "}layer {yIndex}
                         </div>
-                        <div className="tabular-nums">KL = <span className="font-semibold">{klVal.toFixed(3)}</span> nats</div>
+                        <div className="font-mono tabular-nums">KL = <span className="font-semibold">{klVal.toFixed(3)}</span> nats</div>
                       </>
                     ) : inTokensMode && card.data!.topk_tokens && card.data!.topk_probs ? (
                       <>
@@ -511,7 +511,7 @@ function LensCard({
                           <span className="font-semibold text-foreground">{xLabel}</span>{" · "}layer {yIndex}
                         </div>
                         {card.data!.topk_tokens[yIndex][xIndex].map((t, i) => (
-                          <div key={i} className="flex gap-2.5 tabular-nums">
+                          <div key={i} className="flex gap-2.5 font-mono tabular-nums">
                             <span className="min-w-[30px] text-right text-muted">
                               {(card.data!.topk_probs![yIndex][xIndex][i] * 100).toFixed(1)}%
                             </span>
@@ -524,7 +524,7 @@ function LensCard({
                         <div className="mb-0.5 text-muted">
                           <span className="font-semibold text-foreground">{xLabel}</span>{" · "}layer {yIndex}
                         </div>
-                        <div className="tabular-nums">p = <span className="font-semibold">{(prob * 100).toFixed(2)}%</span></div>
+                        <div className="font-mono tabular-nums">p = <span className="font-semibold">{(prob * 100).toFixed(2)}%</span></div>
                       </>
                     );
 
@@ -542,12 +542,12 @@ function LensCard({
                         onClick={() => canPin && handleColClick(xIndex)}
                       >
                         {inTokensMode && topToken !== null && (
-                          <span className="max-w-full overflow-hidden whitespace-nowrap text-[7px] leading-none" style={{ color: getContrastColor(palette, topProb) }}>
+                          <span className="max-w-full overflow-hidden whitespace-nowrap font-mono text-[7px] leading-none" style={{ color: getContrastColor(palette, topProb) }}>
                             {topToken}
                           </span>
                         )}
                         {showRankNumber && !inTokensMode && (
-                          <span className="max-w-full overflow-hidden whitespace-nowrap text-[7px] leading-none" style={{ color: getContrastColor(palette, cellColorValue) }}>
+                          <span className="max-w-full overflow-hidden whitespace-nowrap font-mono text-[7px] leading-none" style={{ color: getContrastColor(palette, cellColorValue) }}>
                             {rank}
                           </span>
                         )}

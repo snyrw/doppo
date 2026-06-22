@@ -311,7 +311,7 @@ function AttentionCard({
               disabled={currentLayer === 0}
               className="cursor-pointer border-none bg-transparent px-1 text-xs leading-none text-foreground disabled:cursor-not-allowed disabled:text-muted"
             >←</button>
-            <span className="min-w-[28px] text-center text-[10px] tabular-nums text-foreground">
+            <span className="min-w-[28px] text-center font-mono text-[10px] tabular-nums text-foreground">
               L{currentLayer}
             </span>
             <button
@@ -379,7 +379,7 @@ function AttentionCard({
                       style={{ height: HEAD_LABEL_H, width: gridW }}
                     >
                       <span className={cn(
-                        "text-[8px] font-bold tracking-[0.04em] transition-colors",
+                        "font-mono text-[8px] font-bold tracking-[0.04em] transition-colors",
                         isFocused || isPinned ? "text-accent" : "text-muted",
                       )}>
                         H{h}
@@ -417,7 +417,7 @@ function AttentionCard({
               </span>
             )}
             {infoContent.type === "hover" && (
-              <span className="whitespace-nowrap text-[9px] text-muted">
+              <span className="whitespace-nowrap font-mono text-[9px] text-muted">
                 {"H" + infoContent.head + "  ·  "}
                 <span className="text-foreground">&ldquo;{infoContent.tokens[infoContent.q]}&rdquo;</span>
                 {"  →  "}
@@ -427,7 +427,7 @@ function AttentionCard({
               </span>
             )}
             {infoContent.type === "selected" && (
-              <span className="whitespace-nowrap text-[9px] text-muted">
+              <span className="whitespace-nowrap font-mono text-[9px] text-muted">
                 {"selected  "}
                 <span className="text-foreground">&ldquo;{infoContent.tokens[infoContent.q]}&rdquo;</span>
                 {"  →  "}
@@ -476,7 +476,7 @@ function AttentionCard({
                         className="relative flex items-center justify-center"
                         style={{ height: HEAD_LABEL_H, width: data.tokens.length * CELL_SIZE }}
                       >
-                        <span className="text-[8px] font-bold text-accent">
+                        <span className="font-mono text-[8px] font-bold text-accent">
                           L{layer}·H{head}
                         </span>
                         <button

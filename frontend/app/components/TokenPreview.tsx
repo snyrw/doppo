@@ -14,7 +14,7 @@ function TokenChip({ tok, index }: { tok: Token; index: number }) {
     <span
       title={`pos ${index}`}
       className={cn(
-        "m-0.5 inline-block rounded-[3px] border px-1 py-0.5 align-middle text-[11px] leading-none tracking-normal",
+        "m-0.5 inline-block rounded-[3px] border px-1 py-0.5 align-middle font-mono text-[11px] leading-none tracking-normal",
         tok.special
           ? "border-accent bg-[rgba(175,118,32,0.14)] font-semibold text-accent"
           : "border-card-border bg-background font-normal text-foreground",

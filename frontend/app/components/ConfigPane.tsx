@@ -84,7 +84,7 @@ export default function ConfigPane({
       <button onClick={() => setTopK(k => Math.max(1, k - 1))} disabled={tutorialMode} className={stepperBtnCls}>
         −
       </button>
-      <span className="min-w-[14px] text-center text-[11px] tabular-nums text-foreground">
+      <span className="min-w-[14px] text-center font-mono text-[11px] tabular-nums text-foreground">
         {topK}
       </span>
       <button onClick={() => setTopK(k => Math.min(10, k + 1))} disabled={tutorialMode} className={stepperBtnCls}>
