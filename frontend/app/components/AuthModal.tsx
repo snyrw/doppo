@@ -121,10 +121,10 @@ export default function AuthButtons() {
         Log In
       </TactileButton>
       <TactileButton
-        variant="primary"
+        variant="ghost"
         onClick={() => openModal("signup")}
         style={NAV_BTN_PAD}
-        faceClassName="text-xs font-semibold"
+        faceClassName="text-xs font-medium"
       >
         Sign Up
       </TactileButton>

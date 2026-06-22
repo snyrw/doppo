@@ -103,16 +103,13 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
   return (
     <>
     <header className="relative z-40 flex h-[50px] shrink-0 items-center justify-between border-b border-surface-border bg-background px-5">
-      <Link href="/" className="flex items-center gap-2 no-underline">
+      <Link href="/" className="flex items-center no-underline">
         <Image
           src={mounted && isDark ? darkLogo : lightLogo}
           alt="Doppo logo"
           height={24}
           suppressHydrationWarning
         />
-        <span className="text-sm font-medium tracking-[-0.01em] text-accent">
-          Doppo
-        </span>
       </Link>
 
       <div className="flex items-center gap-3">
