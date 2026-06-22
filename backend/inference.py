@@ -522,7 +522,7 @@ class _TLBase:
                 "layer": L,
                 "head": H,
                 "component_type": comp["component_type"],
-                "attribution_score": comp["attribution_score"],
+                "attribution_score": comp.get("attribution_score"),
                 "actual_effect": actual_effect,
             })
 

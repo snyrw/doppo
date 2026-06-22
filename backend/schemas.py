@@ -54,6 +54,10 @@ class ActivationComponent(BaseModel):
     # components, and the frontend forwards top_k_components verbatim — so -1
     # must validate here. The worker treats any non-attn_head comp as MLP.
     head: int | None = Field(default=None, ge=-1)
+    # Carried through from the attribution result so the worker can echo it back
+    # in the activation-patch response (ActivationCard colors cells by it). Must
+    # be declared here or model_dump() drops it before the Modal call.
+    attribution_score: float | None = None
 
 
 class ActivationPatchRequest(BaseModel):
