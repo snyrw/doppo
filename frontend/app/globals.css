@@ -14,8 +14,11 @@
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-fg: var(--accent-fg);
-  --font-sans: var(--font-recursive), system-ui, sans-serif;
-  --font-display: var(--font-xenon), Georgia, serif;
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  /* Same family as --font-sans for now; kept as a seam for a future distinct
+     display face. Heading sites use the `font-display` utility. */
+  --font-display: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
   --animate-spinner: spin 0.8s linear infinite;
   --animate-cfg-drop-in: cfgDropIn 140ms ease-out;
   --animate-fade-up: fadeUp 200ms ease-out;
@@ -59,10 +62,9 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-recursive), system-ui, sans-serif;
-  /* Pin Recursive to its proportional-linear instance; tabular figures keep
-     numeric columns aligned now that the body font is no longer monospaced. */
-  font-variation-settings: "MONO" 0, "CASL" 0;
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+  /* Tabular figures keep inline sans numerics aligned; dense data readouts use
+     the monospaced font-mono utility instead. */
   font-variant-numeric: tabular-nums;
 }
 
@@ -207,7 +209,7 @@ body {
   border: none;
   cursor: pointer;
   color: var(--text-muted);
-  font-family: var(--font-recursive), system-ui, sans-serif;
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
   font-size: 12px;
   font-weight: 500;
   transition: color 120ms ease;

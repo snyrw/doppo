@@ -2,21 +2,23 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
-// Recursive — the UI / body voice (proportional, linear). One variable family;
-// we use its default proportional-linear instance (MONO 0, CASL 0) and lean on
-// tabular-nums for numeric column alignment instead of a monospace cut.
-const recursive = localFont({
-  src: "./fonts/RecursiveVar.woff2",
-  variable: "--font-recursive",
-  weight: "300 1000",
+// IBM Plex Sans — the single grotesque voice for display + body (Swiss
+// International Typographic style). One variable family across all weights.
+const plexSans = localFont({
+  src: "./fonts/IBMPlexSansVar.woff2",
+  variable: "--font-plex-sans",
+  weight: "100 700",
   display: "swap",
 });
 
-// Monaspace Xenon — slab-serif, reserved for editorial display moments.
-const xenon = localFont({
-  src: "./fonts/MonaspaceXenonVar.woff2",
-  variable: "--font-xenon",
-  weight: "200 800",
+// IBM Plex Mono — technical/data voice (token cells, logit & probability
+// readouts). Not a variable font; ship Regular + Medium as static cuts.
+const plexMono = localFont({
+  src: [
+    { path: "./fonts/IBMPlexMono-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/IBMPlexMono-Medium.woff2", weight: "500", style: "normal" },
+  ],
+  variable: "--font-plex-mono",
   display: "swap",
 });
 
@@ -34,7 +36,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${recursive.variable} ${xenon.variable} h-full antialiased`}
+      className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
