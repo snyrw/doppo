@@ -5,6 +5,7 @@ import {
   interpolateColorDivergent,
   getContrastColor,
   getHeadColor,
+  fadedColor,
 } from "../app/lib/palette";
 
 describe("interpolateColor — warm-mono", () => {
@@ -142,5 +143,33 @@ describe("getHeadColor", () => {
     // saturation = 1*80=80%, lightness = 95-70=25%
     expect(result).toContain("80.0%,");
     expect(result).toContain("25.0%");
+  });
+});
+
+describe("fadedColor", () => {
+  it("fade=0 keeps the palette color at 100%", () => {
+    expect(fadedColor("viridis", 0, 0)).toBe(
+      "color-mix(in srgb, rgb(68,1,84) 100%, var(--bg))"
+    );
+  });
+
+  it("fade=1 drops the palette color to 0% (fully background)", () => {
+    expect(fadedColor("viridis", 1, 1)).toBe(
+      "color-mix(in srgb, rgb(253,231,37) 0%, var(--bg))"
+    );
+  });
+
+  it("fade=0.5 mixes the palette color at 50%", () => {
+    expect(fadedColor("viridis", 0.5, 0.5)).toMatch(
+      /^color-mix\(in srgb, rgb\(\d+,\d+,\d+\) 50%, var\(--bg\)\)$/
+    );
+  });
+
+  it("clamps fade below 0 to 0 (→ 100%)", () => {
+    expect(fadedColor("viridis", 0, -1)).toBe(fadedColor("viridis", 0, 0));
+  });
+
+  it("clamps fade above 1 to 1 (→ 0%)", () => {
+    expect(fadedColor("viridis", 0, 2)).toBe(fadedColor("viridis", 0, 1));
   });
 });
