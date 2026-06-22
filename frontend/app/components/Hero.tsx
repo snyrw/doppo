@@ -61,6 +61,7 @@ export default function Hero() {
       {/* ── Right: hero figure (desktop only) ── */}
       <div className="relative hidden overflow-hidden border-l border-surface-border md:block">
         <HeroFigure />
+        {/* 73° ≈ 90 − 18°: runs parallel to the figure's lattice axis (HeroFigure is rotated −18°). */}
         <span
           className="pointer-events-none absolute left-[6%] top-1/2 origin-left font-mono text-[clamp(13px,1.1vw,22px)] text-muted"
           style={{ transform: "translateY(-50%) rotate(73deg)" }}

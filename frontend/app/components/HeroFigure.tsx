@@ -17,7 +17,7 @@ export default function HeroFigure() {
   const cells = [];
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
-      const d = (r + c) / (ROWS - 1 + COLS - 1); // diagonal sweep 0..1
+      const d = (r + c) / (ROWS + COLS - 2); // diagonal sweep 0..1 (max index = ROWS-1 + COLS-1)
       const t = T_MIN + d * (T_MAX - T_MIN);
       cells.push(
         <div
