@@ -13,7 +13,7 @@ const HERO_BTN_PAD = {
   "--pad-y": "clamp(9px,0.7vw,13px)",
 } as CSSProperties;
 
-const HERO_BTN_FACE = "font-mono font-light text-[clamp(13px,1vw,18px)] tracking-[0.01em] justify-start text-muted";
+const HERO_BTN_FACE = "font-sans font-normal text-[clamp(13px,1vw,18px)] tracking-[0.01em] justify-start text-muted";
 
 // Entrance choreography (ms). Headline words rise+fade in quick succession, then
 // the left-column controls settle, then HeroFigure paints row-by-row (timed in
