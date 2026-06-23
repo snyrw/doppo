@@ -102,7 +102,7 @@ export default function AuthButtons() {
           variant="ghost"
           onClick={() => signOut()}
           style={NAV_BTN_PAD}
-          faceClassName="text-xs font-medium text-muted"
+          faceClassName="font-mono text-xs font-light text-muted"
         >
           Sign Out
         </TactileButton>

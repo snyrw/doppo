@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "../lib/auth-client";
 import { TactileButton } from "./ui/TactileButton";
 import HeroFigure from "./HeroFigure";
+import EyebrowNav from "./EyebrowNav";
 
 // Keep the two CTAs dimensionally identical (shared face padding via the tactile vars).
 const HERO_BTN_PAD = {
@@ -12,7 +13,7 @@ const HERO_BTN_PAD = {
   "--pad-y": "clamp(9px,0.7vw,13px)",
 } as CSSProperties;
 
-const HERO_BTN_FACE = "font-mono text-[clamp(13px,1vw,18px)] tracking-[0.01em] justify-start text-muted";
+const HERO_BTN_FACE = "font-mono font-light text-[clamp(13px,1vw,18px)] tracking-[0.01em] justify-start text-muted";
 
 // Entrance choreography (ms). Headline words rise+fade in quick succession, then
 // the left-column controls settle, then HeroFigure paints row-by-row (timed in
@@ -30,21 +31,39 @@ export default function Hero() {
     <main className="relative grid flex-1 grid-cols-1 overflow-hidden md:grid-cols-[1fr_1.6fr]">
       {/* ── Left: copy + CTAs ── */}
       <div className="flex flex-col justify-center px-[clamp(28px,6vw,96px)]">
-        <h1 className="m-0 font-display text-[clamp(34px,5vw,58px)] font-normal leading-[1.08] tracking-[-0.01em] text-accent">
-          {HEADLINE.split(" ").map((word, i) => (
-            <Fragment key={i}>
-              <span
-                className="inline-block animate-hero-word"
-                style={{ animationDelay: `${i * WORD_STAGGER}ms` }}
-              >
-                {word}
-              </span>{" "}
-            </Fragment>
-          ))}
-        </h1>
+        {/* Eyebrow section nav (dummy — clicking lights a section locally; not yet
+            wired to routes). Fades in with the headline; reduced-motion shows it
+            at full opacity via the .animate-hero-row media query. */}
+        <div className="mb-[clamp(30px,4.5vw,58px)] animate-hero-row">
+          <EyebrowNav />
+        </div>
+
+        {/* Title block. A registration corner (equal-length arms) frames the
+            headline's top-left; the <hr> below closes the implied "box-but-not-a-box".
+            pt/pl inset the headline so the corner sits just outside the text with a
+            small margin, mirroring the Figma. Corner and rule share one muted tone and
+            one 1px weight — neither is promoted to ink. */}
+        <div className="relative">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -left-[26px] -top-6 h-[clamp(56px,7vw,96px)] w-[clamp(56px,7vw,96px)] animate-hero-row border-l border-t border-muted"
+          />
+          <h1 className="m-0 font-display text-[clamp(34px,5vw,58px)] font-normal leading-[1.08] tracking-[-0.01em] text-accent">
+            {HEADLINE.split(" ").map((word, i) => (
+              <Fragment key={i}>
+                <span
+                  className="inline-block animate-hero-word"
+                  style={{ animationDelay: `${i * WORD_STAGGER}ms` }}
+                >
+                  {word}
+                </span>{" "}
+              </Fragment>
+            ))}
+          </h1>
+        </div>
 
         <hr
-          className="my-[clamp(24px,3vw,44px)] w-full border-0 border-t border-surface-border animate-hero-row"
+          className="my-[clamp(24px,3vw,44px)] w-full border-0 border-t border-muted animate-hero-row"
           style={{ animationDelay: `${CONTROLS_DELAY}ms` }}
         />
 
@@ -101,8 +120,8 @@ export default function Hero() {
       />
       {/* 73° ≈ 90 − 18°: runs parallel to the figure's lattice axis (HeroFigure is rotated −18°). */}
       <span
-        className="pointer-events-none absolute left-[37%] top-[34%] hidden origin-left font-mono text-[clamp(13px,1.1vw,22px)] text-accent md:block animate-hero-row"
-        style={{ transform: "rotate(73deg)", animationDelay: `${CAPTION_DELAY}ms` }}
+        className="pointer-events-none absolute left-[39%] top-[51%] hidden origin-left font-mono text-[clamp(11px,1.1vw,15px)] text-muted md:block animate-hero-row"
+        style={{ transform: "rotate(72deg)", animationDelay: `${CAPTION_DELAY}ms` }}
       >
         hero fig., abstract viridis logit lens
       </span>
