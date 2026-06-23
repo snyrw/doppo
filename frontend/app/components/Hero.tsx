@@ -28,7 +28,7 @@ export default function Hero() {
   const { data: session } = useSession();
 
   return (
-    <main className="relative grid flex-1 grid-cols-1 overflow-hidden md:grid-cols-[1fr_1.6fr]">
+    <div className="relative grid h-full grid-cols-1 overflow-hidden md:grid-cols-[1fr_1.6fr]">
       {/* ── Left: copy + CTAs ── */}
       <div className="flex flex-col justify-center px-[clamp(28px,6vw,96px)]">
         {/* Eyebrow section nav (dummy — clicking lights a section locally; not yet
@@ -125,6 +125,6 @@ export default function Hero() {
       >
         hero fig., abstract viridis logit lens
       </span>
-    </main>
+    </div>
   );
 }

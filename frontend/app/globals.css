@@ -261,3 +261,18 @@ body {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* === Section deck === */
+.deck-section {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: var(--bg);
+}
+.deck-section[hidden] { display: none; }
+.deck-section:focus { outline: none; }
+.deck-section-leaving { animation: deckFadeOut 250ms ease-in both; } /* match EXIT_MS */
+@keyframes deckFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .deck-section-leaving { animation: none; }
+}
