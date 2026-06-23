@@ -71,3 +71,60 @@ describe("isTypingTarget", () => {
     expect(isTypingTarget(null)).toBe(false);
   });
 });
+
+import { wheelDecision, shouldStepFromScroll, type WheelState } from "../app/components/deck/deck-logic";
+
+describe("wheelDecision", () => {
+  const fresh = (): WheelState => ({ lastNonQuietAt: Number.NEGATIVE_INFINITY });
+
+  it("steps once on a strong deliberate scroll", () => {
+    const r = wheelDecision(fresh(), 120, 1000);
+    expect(r.step).toBe(1);
+    expect(r.state.lastNonQuietAt).toBe(1000);
+  });
+
+  it("steps backward on negative delta", () => {
+    expect(wheelDecision(fresh(), -90, 1000).step).toBe(-1);
+  });
+
+  it("swallows the inertial momentum tail right after a step", () => {
+    const a = wheelDecision(fresh(), 120, 1000);        // step
+    const b = wheelDecision(a.state, 80, 1016);          // inertia, 16ms later
+    expect(b.step).toBe(0);
+    const c = wheelDecision(b.state, 40, 1040);          // still inertia
+    expect(c.step).toBe(0);
+  });
+
+  it("allows a new step after a quiet gap", () => {
+    const a = wheelDecision(fresh(), 120, 1000);         // step @1000
+    const b = wheelDecision(a.state, 4, 1300);           // quiet (<=8) → no step, lastNonQuietAt unchanged
+    expect(b.step).toBe(0);
+    expect(b.state.lastNonQuietAt).toBe(1000);
+    const d = wheelDecision(b.state, 90, 1600);          // 600ms since last non-quiet → step
+    expect(d.step).toBe(1);
+  });
+
+  it("ignores deltas below the threshold", () => {
+    const r = wheelDecision(fresh(), 12, 1000); // > quietDelta(8) but < threshold(20)
+    expect(r.step).toBe(0);
+    expect(r.state.lastNonQuietAt).toBe(1000);  // counts as non-quiet
+  });
+});
+
+describe("shouldStepFromScroll", () => {
+  it("always steps when the section does not overflow", () => {
+    expect(shouldStepFromScroll({ scrollTop: 0, scrollHeight: 800, clientHeight: 800 }, 1)).toBe(true);
+    expect(shouldStepFromScroll({ scrollTop: 0, scrollHeight: 800, clientHeight: 800 }, -1)).toBe(true);
+  });
+  it("lets inner content scroll until it hits the edge", () => {
+    const m = { scrollTop: 100, scrollHeight: 1600, clientHeight: 800 }; // mid-scroll, overflow
+    expect(shouldStepFromScroll(m, 1)).toBe(false);  // not at bottom → inner scroll
+    expect(shouldStepFromScroll(m, -1)).toBe(false); // not at top → inner scroll
+  });
+  it("steps at the bottom edge scrolling down", () => {
+    expect(shouldStepFromScroll({ scrollTop: 800, scrollHeight: 1600, clientHeight: 800 }, 1)).toBe(true);
+  });
+  it("steps at the top edge scrolling up", () => {
+    expect(shouldStepFromScroll({ scrollTop: 0, scrollHeight: 1600, clientHeight: 800 }, -1)).toBe(true);
+  });
+});
