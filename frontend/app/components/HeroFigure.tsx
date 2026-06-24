@@ -1,3 +1,6 @@
+import { cn } from "../lib/cn";
+import { useSectionEntrance } from "./deck/DeckContext";
+
 // Decorative logit-lens lattice — an exact transcription of the Figma hero figure
 // (node 8:389). A grid of tiles, rotated and bled off the panel edges, where each
 // tile is a light "face" with a darker same-hue twin peeking out behind it
@@ -44,6 +47,7 @@ const ROW_BASE_DELAY = 540; // ms
 const ROW_STAGGER = 130; // ms per row
 
 export default function HeroFigure() {
+  const entering = useSectionEntrance();
   return (
     <div
       aria-hidden="true"
@@ -71,7 +75,7 @@ export default function HeroFigure() {
           row.map((level, c) => (
             <div
               key={`${r}-${c}`}
-              className="animate-hero-row"
+              className={cn(entering && "animate-hero-row")}
               style={{
                 background: LEVELS[level].face,
                 boxShadow: `${SHADOW} ${LEVELS[level].back}`,
