@@ -3,9 +3,11 @@
 import { Fragment, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "../lib/auth-client";
+import { cn } from "../lib/cn";
 import { TactileButton } from "./ui/TactileButton";
 import HeroFigure from "./HeroFigure";
 import EyebrowNav from "./EyebrowNav";
+import { useSectionEntrance } from "./deck/DeckContext";
 
 // Keep the two CTAs dimensionally identical (shared face padding via the tactile vars).
 const HERO_BTN_PAD = {
@@ -24,6 +26,7 @@ const CONTROLS_DELAY = 380;
 const CAPTION_DELAY = 1080;
 
 export default function Hero() {
+  const entering = useSectionEntrance();
   const router = useRouter();
   const { data: session } = useSession();
 
@@ -34,7 +37,7 @@ export default function Hero() {
         {/* Eyebrow section nav (dummy — clicking lights a section locally; not yet
             wired to routes). Fades in with the headline; reduced-motion shows it
             at full opacity via the .animate-hero-row media query. */}
-        <div className="mb-[clamp(30px,4.5vw,58px)] animate-hero-row">
+        <div className={cn("mb-[clamp(30px,4.5vw,58px)]", entering && "animate-hero-row")}>
           <EyebrowNav />
         </div>
 
@@ -46,13 +49,13 @@ export default function Hero() {
         <div className="relative">
           <span
             aria-hidden
-            className="pointer-events-none absolute -left-[26px] -top-6 h-[clamp(56px,7vw,96px)] w-[clamp(56px,7vw,96px)] animate-hero-row border-l border-t border-muted"
+            className={cn("pointer-events-none absolute -left-[26px] -top-6 h-[clamp(56px,7vw,96px)] w-[clamp(56px,7vw,96px)] border-l border-t border-muted", entering && "animate-hero-row")}
           />
           <h1 className="m-0 font-display text-[clamp(34px,5vw,58px)] font-normal leading-[1.08] tracking-[-0.01em] text-accent">
             {HEADLINE.split(" ").map((word, i) => (
               <Fragment key={i}>
                 <span
-                  className="inline-block animate-hero-word"
+                  className={cn("inline-block", entering && "animate-hero-word")}
                   style={{ animationDelay: `${i * WORD_STAGGER}ms` }}
                 >
                   {word}
@@ -63,12 +66,12 @@ export default function Hero() {
         </div>
 
         <hr
-          className="my-[clamp(24px,3vw,44px)] w-full border-0 border-t border-muted animate-hero-row"
+          className={cn("my-[clamp(24px,3vw,44px)] w-full border-0 border-t border-muted", entering && "animate-hero-row")}
           style={{ animationDelay: `${CONTROLS_DELAY}ms` }}
         />
 
         <div
-          className="flex w-[clamp(170px,15vw,240px)] flex-col gap-[clamp(12px,1vw,18px)] animate-hero-row"
+          className={cn("flex w-[clamp(170px,15vw,240px)] flex-col gap-[clamp(12px,1vw,18px)]", entering && "animate-hero-row")}
           style={{ animationDelay: `${CONTROLS_DELAY}ms` }}
         >
           <TactileButton
@@ -115,12 +118,12 @@ export default function Hero() {
           left-[33%] above. Both run parallel to the lattice columns. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-[33%] top-0 hidden h-[140%] w-px bg-surface-border md:block animate-hero-row"
+        className={cn("pointer-events-none absolute left-[33%] top-0 hidden h-[140%] w-px bg-surface-border md:block", entering && "animate-hero-row")}
         style={{ transformOrigin: "top left", transform: "rotate(-18deg)", animationDelay: `${CAPTION_DELAY}ms` }}
       />
       {/* 73° ≈ 90 − 18°: runs parallel to the figure's lattice axis (HeroFigure is rotated −18°). */}
       <span
-        className="pointer-events-none absolute left-[39%] top-[51%] hidden origin-left font-mono text-[clamp(11px,1.1vw,15px)] text-muted md:block animate-hero-row"
+        className={cn("pointer-events-none absolute left-[39%] top-[51%] hidden origin-left font-mono text-[clamp(11px,1.1vw,15px)] text-muted md:block", entering && "animate-hero-row")}
         style={{ transform: "rotate(72deg)", animationDelay: `${CAPTION_DELAY}ms` }}
       >
         hero fig., abstract viridis logit lens
