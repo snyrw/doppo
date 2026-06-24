@@ -52,6 +52,7 @@ export interface Sphere {
   delayMs: number;
 }
 
+// Note: rightVw is negative for faces whose right edge bleeds past the 1920px frame (left+size > 1920); valid CSS, clipped by SphereField's overflow-hidden.
 export const SPHERES: readonly Sphere[] = SOURCE.map((s) => ({
   node: s.node,
   rightVw: pxToVw(DESIGN_W - (s.left + s.size)),

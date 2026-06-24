@@ -41,6 +41,22 @@ describe("SPHERES", () => {
     expect(twin.sizeVw).toBe(face.sizeVw);
   });
 
+  it("offsets every twin down-right of its face, same diameter", () => {
+    const pairs: [string, string][] = [
+      ["80:24", "80:5"],
+      ["80:26", "80:7"],
+      ["80:28", "80:9"],
+      ["80:30", "80:11"],
+    ];
+    for (const [twinNode, faceNode] of pairs) {
+      const twin = SPHERES.find((s) => s.node === twinNode)!;
+      const face = SPHERES.find((s) => s.node === faceNode)!;
+      expect(twin.topVw).toBeGreaterThan(face.topVw);
+      expect(twin.rightVw).toBeLessThan(face.rightVw);
+      expect(twin.sizeVw).toBe(face.sizeVw);
+    }
+  });
+
   it("lists the twin before its face so the twin paints behind", () => {
     const twinIdx = SPHERES.findIndex((s) => s.node === "80:24");
     const faceIdx = SPHERES.findIndex((s) => s.node === "80:5");

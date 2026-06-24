@@ -48,7 +48,7 @@ export default function DoppoInfoCard({
         </p>
         <p className="m-0">
           Users are allotted $1/month priced against our service provider{" "}
-          <a href="https://modal.com" target="_blank" rel="noreferrer" className={LINK}>Modal</a> to
+          <a href="https://modal.com" target="_blank" rel="noopener noreferrer" className={LINK}>Modal</a> to
           use for free. Additional credit packs available for purchase with no further markup beyond
           the Stripe fee.
         </p>
