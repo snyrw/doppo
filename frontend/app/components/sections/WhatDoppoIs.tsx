@@ -62,13 +62,12 @@ export default function WhatDoppoIs() {
           )}
           style={{ animationDelay: `${CONTROLS_DELAY - 60}ms` }}
         >
-          a brief overview of what we are and technical basics
+          a brief overview of what we are <br /> and technical basics
         </p>
 
         <hr
           className={cn(
-            "mt-[clamp(24px,3vw,44px)] w-full border-0 border-t border-muted",
-            entering && "animate-hero-row",
+            "mt-[clamp(24px,3vw,34px)] w-[calc(100%-160px)] border-0 border-t border-muted",
           )}
           style={{ animationDelay: `${CONTROLS_DELAY}ms` }}
         />
@@ -78,7 +77,7 @@ export default function WhatDoppoIs() {
       <div className="relative z-10 flex items-center justify-center px-[clamp(28px,4vw,72px)] pb-[clamp(24px,4vw,40px)] md:pb-0">
         <DoppoInfoCard
           className={cn("w-[clamp(320px,32vw,620px)]", entering && "animate-hero-row")}
-          style={{ animationDelay: `${CARD_DELAY}ms` }}
+          style={{ animationDelay: `${CARD_DELAY}ms`, transform: "translateX(-60px)" }}
         />
       </div>
     </div>

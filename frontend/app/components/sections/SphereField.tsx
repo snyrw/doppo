@@ -29,10 +29,12 @@ export default function SphereField() {
         />
       ))}
       {/* Single diagonal hairline crossing the field (decorative; matches the
-          mock's long diagonal). Fades in late, like Hero's caption rule. */}
+          mock's long diagonal). Negative rotation about the top-left origin sends
+          it down-RIGHT, so the visible span lands near the large sphere's left
+          edge as in the Figma. Fades in late, like Hero's caption rule. */}
       <div
         className={cn("absolute left-[30%] top-0 h-[160%] w-px bg-surface-border", entering && "animate-hero-row")}
-        style={{ transformOrigin: "top left", transform: "rotate(20deg)", animationDelay: "1080ms" }}
+        style={{ transformOrigin: "top left", transform: "rotate(-20deg)", animationDelay: "1080ms" }}
       />
     </div>
   );

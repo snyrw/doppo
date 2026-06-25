@@ -39,7 +39,7 @@ export default function DoppoInfoCard({
         <span className="shrink-0 text-[11px] font-semibold text-foreground">Home / Doppo</span>
         <span className="min-w-0 flex-1 truncate text-[10px] text-muted">What is Doppo?</span>
       </header>
-      <div className="flex flex-col gap-[0.9em] px-[clamp(16px,1.6vw,28px)] py-[clamp(14px,1.5vw,24px)] text-[clamp(13px,1.05vw,16px)] leading-[1.55] text-foreground">
+      <div className="flex flex-col gap-[0.7em] px-[clamp(16px,1.6vw,28px)] py-[clamp(14px,1.4vw,22px)] text-[clamp(12px,1vw,15px)] leading-[1.5] text-foreground">
         <p className="m-0">
           Doppo is a <span className={LINK}>mechanistic interpretability</span> tool that aims to
           deliver basic techniques the field has developed in an easy and organized no-code
