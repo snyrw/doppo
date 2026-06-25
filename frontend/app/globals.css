@@ -51,6 +51,8 @@
   --hero-l1-face: #9b90be; --hero-l1-back: #6b5e93; /* periwinkle */
   --hero-l2-face: #a9c5ce; --hero-l2-back: #7399a6; /* teal */
   --hero-l3-face: #ccdbad; --hero-l3-back: #b1c583; /* green */
+  /* WhatDoppoIs background spheres — flat fills, exact Figma values (light). */
+  --sphere-face: #d9d9d9; --sphere-back: #b6b6b6;
 }
 
 [data-theme="dark"] {
@@ -72,6 +74,8 @@
   --hero-l1-face: #786BA1; --hero-l1-back: #54477B; /* deep periwinkle */
   --hero-l2-face: #7EA2AD; --hero-l2-back: #557B87; /* deep teal */
   --hero-l3-face: #B2C48D; --hero-l3-back: #8B9E62; /* deep green */
+  /* Recessive grays just above ink so spheres recede instead of glowing. */
+  --sphere-face: #32322f; --sphere-back: #262624;
 }
 
 /* === Base === */
