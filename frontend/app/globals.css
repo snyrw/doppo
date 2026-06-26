@@ -52,7 +52,7 @@
   --hero-l2-face: #a9c5ce; --hero-l2-back: #7399a6; /* teal */
   --hero-l3-face: #ccdbad; --hero-l3-back: #b1c583; /* green */
   /* WhatDoppoIs background spheres — flat fills, exact Figma values (light). */
-  --sphere-face: #d9d9d9; --sphere-back: #b6b6b6;
+  --sphere-face: #dddcd5; --sphere-back: #bbb9b2;
 }
 
 [data-theme="dark"] {
