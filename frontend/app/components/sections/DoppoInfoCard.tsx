@@ -21,8 +21,8 @@ export default function DoppoInfoCard({
   style?: CSSProperties;
 }) {
   const { go, sections } = useDeck();
-  const goPricing = () => {
-    const i = sections.findIndex((s) => s.id === "pricing");
+  const goSelfHosting = () => {
+    const i = sections.findIndex((s) => s.id === "self-hosting");
     if (i >= 0) go(i);
   };
 
@@ -60,7 +60,7 @@ export default function DoppoInfoCard({
           More about that can be found{" "}
           <button
             type="button"
-            onClick={goPricing}
+            onClick={goSelfHosting}
             className={cn(LINK, "cursor-pointer bg-transparent p-0 text-inherit")}
           >
             here
