@@ -75,8 +75,8 @@ Full hook name strings only — tuple shorthand is gone:
 
 All frontend source lives under `frontend/app/`.
 
-- `frontend/app/page.tsx` — hero (server component); renders `<Navbar>` + `<HeroContent>`
-- `frontend/app/components/HeroContent.tsx` — hero UI with tabs (techniques / inference / pricing)
+- `frontend/app/page.tsx` — landing (server); renders `<Navbar>` + `<Deck>` + footer
+- `frontend/app/components/deck/` — deck system: `sections.ts` (`SECTIONS`), `Deck.tsx` (orchestrator + `#<id>` hash deep-link), `DeckContext.ts` (`useDeck`/`useSectionEntrance`), `SectionShell.tsx`; section bodies in `components/sections/*.tsx`. See "Landing page / deck sections" in `.claude/rules/frontend.md`
 - `frontend/app/projects/page.tsx` — canvas; `useReducer` for `{ lensCards, canvas }`; imports from hooks/types/helpers
 - `frontend/app/projects/hooks/job-runner.ts` — `runJob()`: the single spawn+poll lifecycle (spawn fetch → cached short-circuit → poll `/api/job/{id}` → resolve/error) used by every job-backed card
 - `frontend/app/projects/hooks/useJobHandlers.ts` — card creation via `runJob`: lens, DLA, attribution, activation, attn. `spawnEntropyCard` is the one exception (synchronous, derived from parent lens card).
