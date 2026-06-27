@@ -2,6 +2,9 @@
 .env.local
 .env.*
 
+# Dependencies
+node_modules/
+
 # macOS
 .DS_Store
 
