@@ -37,3 +37,18 @@ export const LENS_GRID: LensCell[][] = [
   [c(",", 2), c("world", 2), c(".", 2), c("<eos>", 2)], // L27
   [c(",", 3), c("world", 3), c(".", 3), c("<eos>", 3)], // L31 — resolves
 ];
+
+// ── Attention ─────────────────────────────────────────────────────────────────
+// Lower-triangular query(row)×key(col) grid over `<bos> Hello , world .`. Encodes
+// the attested Gemma-2-9B-it behavior: comma attends to Hello, period attends to
+// world (strong); light cells = attention-sink-to-<bos> / self. "" = upper
+// triangle (not a real query→key cell). Illustrative, not a logged run.
+export type AttnStrength = "" | "weak" | "strong";
+export const ATTN_TOKENS = ["<bos>", "Hello", ",", "world", "."];
+export const ATTN_GRID: AttnStrength[][] = [
+  ["weak", "", "", "", ""], //                        <bos>
+  ["weak", "weak", "", "", ""], //                    Hello
+  ["weak", "strong", "weak", "", ""], //              ,      → Hello
+  ["weak", "weak", "weak", "weak", ""], //            world
+  ["weak", "weak", "weak", "strong", "weak"], //      .      → world
+];

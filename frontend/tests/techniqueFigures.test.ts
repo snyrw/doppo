@@ -32,3 +32,26 @@ describe("logit lens grid (dim until the last layer)", () => {
     expect(LENS_GRID[LENS_GRID.length - 1].map((c) => c.token)).toEqual([",", "world", ".", "<eos>"]);
   });
 });
+
+import { ATTN_TOKENS, ATTN_GRID } from "../app/components/sections/techniqueFigureData";
+
+describe("attention grid (Gemma Hello,world. pattern)", () => {
+  it("is lower-triangular over the bos-prefixed prompt", () => {
+    expect(ATTN_TOKENS).toEqual(["<bos>", "Hello", ",", "world", "."]);
+    expect(ATTN_GRID).toHaveLength(ATTN_TOKENS.length);
+    ATTN_GRID.forEach((row, r) => {
+      expect(row).toHaveLength(ATTN_TOKENS.length);
+      for (let cKey = r + 1; cKey < row.length; cKey++) expect(row[cKey]).toBe(""); // upper triangle empty
+    });
+  });
+
+  it("makes comma→Hello and period→world the only strong cells", () => {
+    const strong: [number, number][] = [];
+    ATTN_GRID.forEach((row, r) => row.forEach((s, cKey) => s === "strong" && strong.push([r, cKey])));
+    // row 2 = ",", col 1 = "Hello"; row 4 = ".", col 3 = "world"
+    expect(strong).toEqual([
+      [2, 1],
+      [4, 3],
+    ]);
+  });
+});

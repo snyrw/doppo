@@ -3,7 +3,11 @@
 import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
 import { cn } from "../../lib/cn";
 import { STEERING_EXAMPLES } from "./techniqueCardData";
-import { BAR_LIP, CELL_LIP, ATTN_CELL_LIP, LENS_COLS, LENS_ROWS, LENS_GRID, type LensCell } from "./techniqueFigureData";
+import {
+  BAR_LIP, CELL_LIP, ATTN_CELL_LIP,
+  LENS_COLS, LENS_ROWS, LENS_GRID, type LensCell,
+  ATTN_TOKENS, ATTN_GRID, type AttnStrength,
+} from "./techniqueFigureData";
 
 // The five decorative figures that sit in the left column of each technique card
 // (Figma nodes 134-2/3/5/6/7). These are static, on-brand recreations built from
@@ -91,25 +95,20 @@ function LensRow({ label, row }: { label: string; row: LensCell[] }) {
 }
 
 // ── 1. Attention Analysis — 5×5 lower-triangular grid ─────────────────────────
-const ATTN_TOKENS = ["EOT", "Hello", ",", "World", "."];
-const ATTN_GRID: string[][] = [
-  ["#86744c", "", "", "", ""],
-  ["#b59e6b", "#d8be85", "", "", ""],
-  ["#d8be85", "", "#d8be85", "", ""],
-  ["#e6d4ac", "", "", "#d8be85", ""],
-  ["#d8be85", "", "", "", "#d8be85"],
-];
-const ATTN_LIP: Record<string, string> = {
-  "#86744c": "#4b412a",
-  "#b59e6b": "#947636",
-  "#d8be85": "#ba9952",
-  "#e6d4ac": "#cab07a",
+// strength → {face, lip}: strong = darkest amber, weak = pale amber
+const ATTN_FACE: Record<"weak" | "strong", { face: string; lip: string }> = {
+  strong: { face: "#86744c", lip: "#4b412a" },
+  weak: { face: "#e6d4ac", lip: "#cab07a" },
 };
 const ATTN_EMPTY_LIP = "#c4c3bc";
 
 export function AttentionFigure() {
   return (
-    <FigureBox>
+    <FigureBox className="flex-col items-stretch">
+      {/* "darker = more attention" legend */}
+      <span className={cn(LABEL, "mb-[clamp(6px,0.8vw,12px)] self-start text-[clamp(8px,0.8vw,13px)]")}>
+        darker = more attention
+      </span>
       <div
         className="grid items-center gap-x-[clamp(5px,0.55vw,8px)] gap-y-[clamp(6px,0.7vw,11px)]"
         style={{ gridTemplateColumns: "auto repeat(5, minmax(0, 1fr))" }}
@@ -117,7 +116,7 @@ export function AttentionFigure() {
         {ATTN_GRID.map((row, r) => (
           <AttnRow key={r} token={ATTN_TOKENS[r]} row={row} />
         ))}
-        {/* bottom axis: blank corner + column token labels */}
+        {/* bottom axis: blank corner + column (key) token labels */}
         <span />
         {ATTN_TOKENS.map((t, i) => (
           <span key={`b${i}`} className={cn(LABEL, "pt-[clamp(2px,0.4vw,6px)] text-center text-[clamp(8px,0.8vw,13px)]")}>
@@ -125,23 +124,28 @@ export function AttentionFigure() {
           </span>
         ))}
       </div>
+      {/* axis cues */}
+      <span className={cn(LABEL, "mt-[clamp(5px,0.7vw,10px)] self-end text-[clamp(8px,0.8vw,13px)]")}>
+        query ↓ &nbsp; key →
+      </span>
     </FigureBox>
   );
 }
 
-function AttnRow({ token, row }: { token: string; row: string[] }) {
+function AttnRow({ token, row }: { token: string; row: AttnStrength[] }) {
   return (
     <>
       <span className={cn(LABEL, LABEL_SIZE, "pr-[clamp(4px,0.6vw,10px)] text-right")}>{token}</span>
-      {row.map((face, c) => {
-        const filled = face !== "";
+      {row.map((strength, cKey) => {
+        const filled = strength !== "";
+        const color = filled ? ATTN_FACE[strength] : null;
         return (
           <span
-            key={c}
+            key={cKey}
             className="aspect-square w-[clamp(24px,2.9vw,42px)] rounded-[2px]"
             style={{
-              background: filled ? face : "#ffffff",
-              boxShadow: `0 ${ATTN_CELL_LIP} 0 0 ${filled ? ATTN_LIP[face] : ATTN_EMPTY_LIP}`,
+              background: color ? color.face : "#ffffff",
+              boxShadow: `0 ${ATTN_CELL_LIP} 0 0 ${color ? color.lip : ATTN_EMPTY_LIP}`,
             }}
           />
         );
