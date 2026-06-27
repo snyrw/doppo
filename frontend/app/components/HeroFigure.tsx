@@ -27,17 +27,17 @@ const MATRIX = [
   [3, 2, 0, 3],
 ];
 
-// Sizes are in vw so the figure keeps the Figma proportions (tile = 275px in a
+// Sizes are in cqi so the figure keeps the Figma proportions (tile = 275px in a
 // 1920px frame) at any width — fixed px overpower a panel far narrower than the
 // 1920 design frame.
-const CELL_W = 14.3; // vw (275 / 1920)
-const CELL_H = 8.75; // vw (168 / 1920)
-const GAP = 2.4; // vw (46 / 1920)
+const CELL_W = 14.3; // cqi (275 / 1920)
+const CELL_H = 8.75; // cqi (168 / 1920)
+const GAP = 2.4; // cqi (46 / 1920)
 
 // Darker backing tile, offset down-right by ≈(56,34)px-in-1920 in *screen* space,
 // expressed in the grid's pre-rotation space (= screen offset rotated +18°) and in
-// vw so it scales with the tiles.
-const SHADOW = `2.2vw 2.6vw 0 0`;
+// cqi so it scales with the tiles.
+const SHADOW = `2.2cqi 2.6cqi 0 0`;
 
 // Row-by-row entrance: the first row lands after the headline words have settled
 // (see Hero.tsx choreography), then each subsequent row follows. All tiles in a
@@ -66,9 +66,9 @@ export default function HeroFigure() {
           top: "20%",
           transformOrigin: "top left",
           transform: "rotate(-18deg)",
-          gridTemplateColumns: `repeat(${MATRIX[0].length}, ${CELL_W}vw)`,
-          gridAutoRows: `${CELL_H}vw`,
-          gap: `${GAP}vw`,
+          gridTemplateColumns: `repeat(${MATRIX[0].length}, ${CELL_W}cqi)`,
+          gridAutoRows: `${CELL_H}cqi`,
+          gap: `${GAP}cqi`,
         }}
       >
         {MATRIX.flatMap((row, r) =>

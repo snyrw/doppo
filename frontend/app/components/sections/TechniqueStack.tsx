@@ -8,9 +8,10 @@ import { TECHNIQUES } from "./techniqueBars";
 // Right-side figure of the "techniques" section (Figma node 15:483): five level,
 // tactile technique bars laid over a tilted stack of two blank cards.
 //
-// The whole thing is a fixed-aspect "stage" whose width is driven in vw, so every
-// child keeps its 1:1 mock proportions at any viewport (no px caps that splay the
-// card on wide screens). All percentages below are read straight off the mock's
+// The whole thing is a fixed-aspect "stage" whose width is driven in cqi against
+// its `.figure-stage` column, so every child keeps its 1:1 mock proportions at any
+// column width (no px caps that splay the card on wide screens). All percentages
+// below are read straight off the mock's
 // 1142×872 card+bars bounding box:
 //   bars region  x 12.8%→84%   y 18.3%→82.8%   (bar 11.9% tall, gaps even)
 //   blank card   79.5% × 100%, centred at 60.2%/50%, tilted clockwise
@@ -95,7 +96,7 @@ export default function TechniqueStack({
             >
               <span
                 className="font-sans font-normal leading-none text-white"
-                style={{ fontSize: "clamp(13px, 1.7vw, 32px)" }}
+                style={{ fontSize: "clamp(13px, 1.7cqi, 32px)" }}
               >
                 {t.name}
               </span>
