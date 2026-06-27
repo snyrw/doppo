@@ -3,6 +3,7 @@
 import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
 import { cn } from "../../lib/cn";
 import { STEERING_EXAMPLES } from "./techniqueCardData";
+import { BAR_LIP, CELL_LIP, ATTN_CELL_LIP } from "./techniqueFigureData";
 
 // The five decorative figures that sit in the left column of each technique card
 // (Figma nodes 134-2/3/5/6/7). These are static, on-brand recreations built from
@@ -34,8 +35,6 @@ function FigureBox({ children, className }: { children: ReactNode; className?: s
 
 const LABEL = "font-mono text-muted leading-none";
 const LABEL_SIZE = "text-[clamp(9px,0.95vw,15px)]";
-const CELL_DEPTH = 3; // px lip under heatmap / attention cells
-const BAR_DEPTH = 4; // px lip under DLA / patching bars
 
 // ── 0. Logit Lens — 8×4 warm heatmap ─────────────────────────────────────────
 const LENS_COLS = ["Hello", ",", "World", "."];
@@ -89,7 +88,7 @@ function Cells({ label, row, lip }: { label: string; row: string[]; lip: Record<
         <span
           key={c}
           className="h-[clamp(16px,1.8vw,28px)] w-[clamp(30px,3.6vw,54px)] rounded-[2px]"
-          style={{ background: face, boxShadow: `0 ${CELL_DEPTH}px 0 0 ${lip[face] ?? "#0003"}` }}
+          style={{ background: face, boxShadow: `0 ${CELL_LIP} 0 0 ${lip[face] ?? "#0003"}` }}
         />
       ))}
     </>
@@ -147,7 +146,7 @@ function AttnRow({ token, row }: { token: string; row: string[] }) {
             className="aspect-square w-[clamp(24px,2.9vw,42px)] rounded-[2px]"
             style={{
               background: filled ? face : "#ffffff",
-              boxShadow: `0 ${CELL_DEPTH}px 0 0 ${filled ? ATTN_LIP[face] : ATTN_EMPTY_LIP}`,
+              boxShadow: `0 ${ATTN_CELL_LIP} 0 0 ${filled ? ATTN_LIP[face] : ATTN_EMPTY_LIP}`,
             }}
           />
         );
@@ -161,7 +160,7 @@ function Bar({ len, face, lip }: { len: number; face: string; lip: string }) {
   return (
     <div
       className="h-[clamp(15px,1.8vw,30px)] rounded-[2px]"
-      style={{ width: `${len * 100}%`, background: face, boxShadow: `0 ${BAR_DEPTH}px 0 0 ${lip}` }}
+      style={{ width: `${len * 100}%`, background: face, boxShadow: `0 ${BAR_LIP} 0 0 ${lip}` }}
     />
   );
 }
