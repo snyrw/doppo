@@ -7,6 +7,7 @@ import {
   BAR_LIP, CELL_LIP, ATTN_CELL_LIP,
   LENS_COLS, LENS_ROWS, LENS_GRID, type LensCell,
   ATTN_TOKENS, ATTN_GRID, type AttnStrength,
+  DLA_BARS,
 } from "./techniqueFigureData";
 
 // The five decorative figures that sit in the left column of each technique card
@@ -164,27 +165,34 @@ function Bar({ len, face, lip }: { len: number; face: string; lip: string }) {
   );
 }
 
-// ── 2. Direct Logit Attribution — divergent bars around a center axis ──────────
-type DivBar = { side: "left" | "right"; len: number; face: string; lip: string };
-const DLA_BARS: DivBar[] = [
-  { side: "right", len: 0.9, face: "#739157", lip: "#446327" },
-  { side: "left", len: 0.36, face: "#bbd0a7", lip: "#91b76f" },
-  { side: "right", len: 0.64, face: "#a2ba8b", lip: "#699440" },
-  { side: "left", len: 0.54, face: "#a2ba8b", lip: "#699440" },
-  { side: "right", len: 0.36, face: "#bbd0a7", lip: "#91b76f" },
-];
+// ── 2. Direct Logit Attribution — per-layer divergent bars (8× stride) ─────────
+const DLA_FACE = { pos: "#739157", neg: "#a2ba8b" } as const;
+const DLA_LIP = { pos: "#446327", neg: "#699440" } as const;
 
 export function DlaFigure() {
   return (
     <FigureBox>
-      <div className="flex w-[clamp(190px,23vw,290px)] flex-col gap-[clamp(9px,1.1vw,18px)]">
-        {DLA_BARS.map((b, i) => (
-          <div key={i} className="flex w-full items-center">
-            <div className="flex flex-1 justify-end">{b.side === "left" && <Bar {...b} />}</div>
-            <div className="flex flex-1 justify-start">{b.side === "right" && <Bar {...b} />}</div>
-          </div>
-        ))}
+      <div className="flex w-[clamp(210px,26vw,320px)] flex-col gap-[clamp(9px,1.1vw,18px)]">
+        {DLA_BARS.map((b, i) => {
+          const neg = b.signed < 0;
+          const len = Math.abs(b.signed);
+          const kind = neg ? "neg" : "pos";
+          return (
+            <div key={i} className="flex w-full items-center gap-[clamp(6px,0.8vw,12px)]">
+              <span className={cn(LABEL, LABEL_SIZE, "w-[clamp(22px,2.6vw,38px)] shrink-0 text-right tabular-nums")}>
+                {b.label}
+              </span>
+              <div className="flex flex-1 justify-end">
+                {neg && <Bar len={len} face={DLA_FACE[kind]} lip={DLA_LIP[kind]} />}
+              </div>
+              <div className="flex flex-1 justify-start">
+                {!neg && <Bar len={len} face={DLA_FACE[kind]} lip={DLA_LIP[kind]} />}
+              </div>
+            </div>
+          );
+        })}
         <div className="mt-[clamp(3px,0.6vw,9px)] flex w-full">
+          <span className="w-[clamp(22px,2.6vw,38px)] shrink-0" />
           <span className={cn(LABEL, LABEL_SIZE, "flex-1 pr-2 text-right")}>neg</span>
           <span className={cn(LABEL, LABEL_SIZE, "flex-1 pl-2 text-left")}>pos</span>
         </div>

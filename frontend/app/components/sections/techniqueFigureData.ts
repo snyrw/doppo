@@ -52,3 +52,19 @@ export const ATTN_GRID: AttnStrength[][] = [
   ["weak", "weak", "weak", "weak", ""], //            world
   ["weak", "weak", "weak", "strong", "weak"], //      .      → world
 ];
+
+// ── Direct Logit Attribution ──────────────────────────────────────────────────
+// One divergent bar per layer at 8× stride. `signed` ∈ [-1,1]: sign = side
+// (neg = left, pos = right), magnitude = bar length. Meanders early, strongest at
+// the bottom (deepest layer contributes most directly to the logits). Illustrative.
+export interface DlaBar {
+  label: string;
+  signed: number;
+}
+export const DLA_BARS: DlaBar[] = [
+  { label: "L0", signed: 0.18 },
+  { label: "L8", signed: 0.25 },
+  { label: "L16", signed: -0.3 },
+  { label: "L24", signed: 0.22 },
+  { label: "L31", signed: 0.95 },
+];

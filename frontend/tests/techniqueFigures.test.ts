@@ -55,3 +55,25 @@ describe("attention grid (Gemma Hello,world. pattern)", () => {
     ]);
   });
 });
+
+import { DLA_BARS } from "../app/components/sections/techniqueFigureData";
+
+describe("DLA bars (per-layer, 8x stride)", () => {
+  it("labels each bar with its layer and uses the requested signs", () => {
+    expect(DLA_BARS.map((b) => b.label)).toEqual(["L0", "L8", "L16", "L24", "L31"]);
+    const by = Object.fromEntries(DLA_BARS.map((b) => [b.label, b.signed]));
+    expect(by.L0).toBeGreaterThan(0);
+    expect(by.L8).toBeGreaterThan(0);
+    expect(by.L24).toBeGreaterThan(0);
+    expect(by.L16).toBeLessThan(0); // L16 negative
+  });
+
+  it("is strongest at the bottom (last bar has the largest magnitude, positive)", () => {
+    const last = DLA_BARS[DLA_BARS.length - 1];
+    expect(last.label).toBe("L31");
+    expect(last.signed).toBeGreaterThan(0);
+    for (let i = 0; i < DLA_BARS.length - 1; i++) {
+      expect(Math.abs(DLA_BARS[i].signed)).toBeLessThan(Math.abs(last.signed));
+    }
+  });
+});
