@@ -21,13 +21,14 @@ const CARD_DELAY = 1200;    // card lands after the last sphere (~1060ms)
 export default function WhatDoppoIs() {
   const entering = useSectionEntrance();
   return (
-    // Edge-anchored row: copy capped + pinned left, figure stage capped + pinned
-    // right; the center gap (md:justify-between + md:gap) absorbs extra width on
-    // ultrawide so content stops scaling instead of splaying. Below md the section
-    // flows as a normal column (copy then card) so the page scrolls.
-    <div className="relative flex h-full flex-col justify-center gap-[clamp(24px,4vw,48px)] px-[clamp(28px,6vw,96px)] py-[clamp(48px,8vw,0px)] md:flex-row md:items-center md:justify-between md:gap-[clamp(32px,6vw,160px)] md:py-0">
-      {/* ── Left: copy (capped + pinned left) ── */}
-      <div className="relative z-10 flex max-w-[600px] flex-col md:flex-1">
+    <div className="relative grid h-full grid-cols-1 md:grid-cols-[1fr_1fr]">
+      {/* Background sphere field — desktop only (self-clips via SphereField). */}
+      <div className="absolute inset-0 hidden md:block">
+        <SphereField />
+      </div>
+
+      {/* ── Left: copy ── */}
+      <div className="relative z-10 flex flex-col justify-center px-[clamp(28px,6vw,96px)]">
         <div className={cn("mb-[clamp(30px,4.5vw,58px)]", entering && "animate-hero-row")}>
           <EyebrowNav />
         </div>
@@ -72,18 +73,11 @@ export default function WhatDoppoIs() {
         />
       </div>
 
-      {/* ── Right: figure stage (capped + pinned right) ──
-          container-type: inline-size (.figure-stage) so the sphere field's cqi
-          geometry scales to THIS column, not the viewport; the column's max-width
-          therefore bounds the figure. Anchoring is structural now (no translateX). */}
-      <div className="figure-stage relative z-10 flex w-full max-w-[720px] items-center justify-center md:flex-1">
-        {/* Background sphere field — desktop only (self-clips via SphereField). */}
-        <div className="absolute inset-0 hidden overflow-hidden md:block">
-          <SphereField />
-        </div>
+      {/* ── Right: card ── */}
+      <div className="relative z-10 flex items-center justify-center px-[clamp(28px,4vw,72px)] pb-[clamp(24px,4vw,40px)] md:pb-0">
         <DoppoInfoCard
-          className={cn("relative w-full max-w-[620px]", entering && "animate-hero-row")}
-          style={{ animationDelay: `${CARD_DELAY}ms` }}
+          className={cn("w-[clamp(320px,32vw,620px)]", entering && "animate-hero-row")}
+          style={{ animationDelay: `${CARD_DELAY}ms`, transform: "translateX(-60px)" }}
         />
       </div>
     </div>
