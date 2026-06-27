@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useIsDesktop } from "../../hooks/useIsDesktop";
 import { DeckContext, type DeckContextValue, type Phase } from "./DeckContext";
 import { SECTIONS } from "./sections";
 import SectionShell from "./SectionShell";
@@ -12,7 +11,6 @@ import {
 } from "./deck-logic";
 
 export default function Deck() {
-  const isDesktop = useIsDesktop();
   const [active, setActive] = useState(0);
   const [phase, setPhase] = useState<Phase>("idle");
   const [liveMsg, setLiveMsg] = useState("");
@@ -85,7 +83,7 @@ export default function Deck() {
   // would no-op. We attach wheel/touchmove non-passively and cancel selectively.
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || !isDesktop) return; // mobile: no snap navigation
+    if (!root) return;
 
     const step = (dir: StepDir) => go(nextIndex(activeRef.current, dir, SECTIONS.length));
     const activeSection = () => root.querySelector<HTMLElement>(".deck-section:not([hidden])");
@@ -137,7 +135,7 @@ export default function Deck() {
       root.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [go, isDesktop]);
+  }, [go]);
 
   const ctx: DeckContextValue = { active, phase, sections: SECTIONS, go };
 
@@ -151,7 +149,6 @@ export default function Deck() {
             index={i}
             active={active}
             phase={phase}
-            isDesktop={isDesktop}
             onExited={handleExited}
           />
         ))}
