@@ -1,0 +1,95 @@
+// frontend/tests/techniqueFigures.test.ts
+import { describe, it, expect } from "vitest";
+import { CELL_LIP, ATTN_CELL_LIP, BAR_LIP } from "../app/components/sections/techniqueFigureData";
+import { LENS_COLS, LENS_ROWS, LENS_GRID } from "../app/components/sections/techniqueFigureData";
+
+describe("figure depth lips (~20% of mark height)", () => {
+  it("scales each lip with a clamp() that tracks the mark's size", () => {
+    expect(CELL_LIP).toBe("clamp(3px,0.36vw,6px)");
+    expect(ATTN_CELL_LIP).toBe("clamp(5px,0.55vw,8px)");
+    expect(BAR_LIP).toBe("clamp(3px,0.4vw,6px)");
+  });
+});
+
+describe("logit lens grid (dim until the last layer)", () => {
+  it("has one row per layer label and one column per position token", () => {
+    expect(LENS_COLS).toEqual(["Hello", ",", "world", "."]);
+    expect(LENS_ROWS).toHaveLength(8);
+    expect(LENS_GRID).toHaveLength(LENS_ROWS.length);
+    for (const row of LENS_GRID) expect(row).toHaveLength(LENS_COLS.length);
+  });
+
+  it("lights up only at the deepest layer — final row is strictly brightest", () => {
+    const maxLevel = (row: { level: number }[]) => Math.max(...row.map((c) => c.level));
+    const last = LENS_GRID.length - 1;
+    const finalMax = maxLevel(LENS_GRID[last]);
+    expect(finalMax).toBe(3);
+    for (let r = 0; r < last; r++) expect(maxLevel(LENS_GRID[r])).toBeLessThan(finalMax);
+    expect(maxLevel(LENS_GRID[0])).toBeLessThanOrEqual(1); // earliest layers are dim
+  });
+
+  it("resolves to the real continuation at the deepest layer", () => {
+    expect(LENS_GRID[LENS_GRID.length - 1].map((c) => c.token)).toEqual([",", "world", ".", "<eos>"]);
+  });
+});
+
+import { ATTN_TOKENS, ATTN_GRID } from "../app/components/sections/techniqueFigureData";
+
+describe("attention grid (Gemma Hello,world. pattern)", () => {
+  it("is lower-triangular over the bos-prefixed prompt", () => {
+    expect(ATTN_TOKENS).toEqual(["<bos>", "Hello", ",", "world", "."]);
+    expect(ATTN_GRID).toHaveLength(ATTN_TOKENS.length);
+    ATTN_GRID.forEach((row, r) => {
+      expect(row).toHaveLength(ATTN_TOKENS.length);
+      for (let cKey = r + 1; cKey < row.length; cKey++) expect(row[cKey]).toBe(""); // upper triangle empty
+    });
+  });
+
+  it("makes comma→Hello and period→world the only strong cells", () => {
+    const strong: [number, number][] = [];
+    ATTN_GRID.forEach((row, r) => row.forEach((s, cKey) => s === "strong" && strong.push([r, cKey])));
+    // row 2 = ",", col 1 = "Hello"; row 4 = ".", col 3 = "world"
+    expect(strong).toEqual([
+      [2, 1],
+      [4, 3],
+    ]);
+  });
+});
+
+import { DLA_BARS } from "../app/components/sections/techniqueFigureData";
+
+describe("DLA bars (per-layer, 8x stride)", () => {
+  it("labels each bar with its layer and uses the requested signs", () => {
+    expect(DLA_BARS.map((b) => b.label)).toEqual(["L0", "L8", "L16", "L24", "L31"]);
+    const by = Object.fromEntries(DLA_BARS.map((b) => [b.label, b.signed]));
+    expect(by.L0).toBeGreaterThan(0);
+    expect(by.L8).toBeGreaterThan(0);
+    expect(by.L24).toBeGreaterThan(0);
+    expect(by.L16).toBeLessThan(0); // L16 negative
+  });
+
+  it("is strongest at the bottom (last bar has the largest magnitude, positive)", () => {
+    const last = DLA_BARS[DLA_BARS.length - 1];
+    expect(last.label).toBe("L31");
+    expect(last.signed).toBeGreaterThan(0);
+    for (let i = 0; i < DLA_BARS.length - 1; i++) {
+      expect(Math.abs(DLA_BARS[i].signed)).toBeLessThan(Math.abs(last.signed));
+    }
+  });
+});
+
+import { PATCH_PAIRS } from "../app/components/sections/techniqueFigureData";
+
+describe("patching pairs (predict vs actual)", () => {
+  it("uses the four requested component labels in order", () => {
+    expect(PATCH_PAIRS.map((p) => p.label)).toEqual(["L31·MLP", "L30·H15", "L24·H21", "L19·MLP"]);
+  });
+
+  it("has predict stronger than actual in every pair", () => {
+    for (const p of PATCH_PAIRS) {
+      expect(p.predict).toBeGreaterThan(p.actual);
+      expect(p.predict).toBeLessThanOrEqual(1);
+      expect(p.actual).toBeGreaterThan(0);
+    }
+  });
+});
