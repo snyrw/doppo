@@ -33,20 +33,12 @@ export default function Techniques() {
         />
       </div>
 
-      {/* ── Technique stack (desktop only) ──
-          Positioned against the section (not inside a grid column) with a single
-          left-vw knob, like Hero's figure — so it bleeds across the centerline and
-          just past the right edge exactly as in the mock. Driving the width in vw
-          lands the bars on the mock's coordinates (left edge 49.3vw) at any width;
-          the wrapper's overflow-hidden clips the off-screen-right bleed. */}
-      <div className="absolute inset-0 hidden overflow-hidden md:block">
-        <div className="absolute left-[calc(41.7vw+45px)] top-1/2 w-[55vw] -translate-y-1/2">
-          <TechniqueStack onSelect={setSelected} />
-        </div>
-      </div>
-
+      {/* Edge-anchored row: copy capped + pinned left, technique stage capped +
+          pinned right; the center gap grows on ultrawide. Below md the stack drops
+          under the copy and the section flows (continuous scroll). */}
+      <div className="relative flex h-full flex-col justify-center gap-[clamp(24px,4vw,48px)] px-[clamp(28px,6vw,96px)] py-[clamp(48px,8vw,0px)] md:flex-row md:items-center md:justify-between md:gap-[clamp(32px,6vw,160px)] md:py-0">
       {/* ── Left: copy ── */}
-      <div className="relative z-10 flex h-full max-w-[46vw] flex-col justify-center px-[clamp(28px,6vw,96px)]">
+      <div className="relative z-10 flex max-w-[600px] flex-col md:flex-1">
         <div className={cn("mb-[clamp(30px,4.5vw,58px)]", entering && "animate-hero-row")}>
           <EyebrowNav />
         </div>
@@ -90,6 +82,15 @@ export default function Techniques() {
           )}
           style={{ animationDelay: `${CONTROLS_DELAY}ms` }}
         />
+      </div>
+
+        {/* ── Right: technique stage (all breakpoints) ──
+            .figure-stage gives the stack a container-query context so its cqi font
+            cap scales to this column; w-full fills the capped column. Stack drops
+            under the copy on mobile and its tap-to-open modal still works. */}
+        <div className="figure-stage relative z-10 flex w-full max-w-[760px] items-center justify-center md:flex-1">
+          <TechniqueStack className="w-full" onSelect={setSelected} />
+        </div>
       </div>
 
       {selected !== null && (
