@@ -275,18 +275,6 @@ body {
 }
 .deck-section[hidden] { display: none; }
 .deck-section:focus { outline: none; }
-/* Mobile flow mode: sections stack and the page scrolls (see Deck.tsx / SectionShell.tsx). */
-.deck-section-flow {
-  position: static;
-  inset: auto;
-  overflow: visible;
-  background: var(--bg);
-}
-/* Figure stage: container-query context so figure geometry (cqi units) scales to the
-   capped, edge-anchored column instead of the viewport. */
-.figure-stage {
-  container-type: inline-size;
-}
 .deck-section-leaving { animation: deckFadeOut 250ms ease-in both; } /* match EXIT_MS */
 @keyframes deckFadeOut { from { opacity: 1; } to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
