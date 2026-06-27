@@ -77,3 +77,19 @@ describe("DLA bars (per-layer, 8x stride)", () => {
     }
   });
 });
+
+import { PATCH_PAIRS } from "../app/components/sections/techniqueFigureData";
+
+describe("patching pairs (predict vs actual)", () => {
+  it("uses the four requested component labels in order", () => {
+    expect(PATCH_PAIRS.map((p) => p.label)).toEqual(["L31·MLP", "L30·H15", "L24·H21", "L19·MLP"]);
+  });
+
+  it("has predict stronger than actual in every pair", () => {
+    for (const p of PATCH_PAIRS) {
+      expect(p.predict).toBeGreaterThan(p.actual);
+      expect(p.predict).toBeLessThanOrEqual(1);
+      expect(p.actual).toBeGreaterThan(0);
+    }
+  });
+});

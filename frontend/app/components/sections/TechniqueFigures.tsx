@@ -8,6 +8,7 @@ import {
   LENS_COLS, LENS_ROWS, LENS_GRID, type LensCell,
   ATTN_TOKENS, ATTN_GRID, type AttnStrength,
   DLA_BARS,
+  PATCH_PAIRS,
 } from "./techniqueFigureData";
 
 // The five decorative figures that sit in the left column of each technique card
@@ -201,27 +202,22 @@ export function DlaFigure() {
   );
 }
 
-// ── 3. Patching — left-aligned bars, alternating predict / actual ─────────────
-type PatchBar = { len: number; kind: "predict" | "actual" };
-const PATCH_BARS: PatchBar[] = [
-  { len: 0.72, kind: "predict" },
-  { len: 0.18, kind: "actual" },
-  { len: 0.44, kind: "predict" },
-  { len: 0.53, kind: "actual" },
-  { len: 0.86, kind: "predict" },
-  { len: 0.65, kind: "actual" },
-];
+// ── 3. Patching — grouped predict / actual pairs per component ─────────────────
 const PATCH_FACE = { predict: "#7399a6", actual: "#9dc1cd" } as const;
 const PATCH_LIP = { predict: "#487c8d", actual: "#6f9aa9" } as const;
 
 export function PatchingFigure() {
   return (
     <FigureBox>
-      <div className="flex w-[clamp(205px,25vw,300px)] flex-col gap-[clamp(9px,1.1vw,18px)]">
-        {PATCH_BARS.map((b, i) => (
-          <Bar key={i} len={b.len} face={PATCH_FACE[b.kind]} lip={PATCH_LIP[b.kind]} />
+      <div className="flex w-[clamp(210px,26vw,320px)] flex-col gap-[clamp(11px,1.4vw,22px)]">
+        {PATCH_PAIRS.map((p) => (
+          <div key={p.label} className="flex flex-col gap-[clamp(3px,0.5vw,7px)]">
+            <span className={cn(LABEL, LABEL_SIZE, "tabular-nums")}>{p.label}</span>
+            <Bar len={p.predict} face={PATCH_FACE.predict} lip={PATCH_LIP.predict} />
+            <Bar len={p.actual} face={PATCH_FACE.actual} lip={PATCH_LIP.actual} />
+          </div>
         ))}
-        <span className={cn(LABEL, LABEL_SIZE, "mt-[clamp(3px,0.6vw,9px)]")}>dark = predict, light = actual</span>
+        <span className={cn(LABEL, LABEL_SIZE, "mt-[clamp(2px,0.4vw,6px)]")}>dark = predict, light = actual</span>
       </div>
     </FigureBox>
   );

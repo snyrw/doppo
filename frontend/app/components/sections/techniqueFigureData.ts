@@ -68,3 +68,19 @@ export const DLA_BARS: DlaBar[] = [
   { label: "L24", signed: 0.22 },
   { label: "L31", signed: 0.95 },
 ];
+
+// ── Activation Patching ───────────────────────────────────────────────────────
+// One row per component: predict bar (what attribution estimates) over actual bar
+// (what patching it in really does). Predict > actual in every pair — attribution
+// tends to over-estimate the patched effect. Component labels are illustrative.
+export interface PatchPair {
+  label: string;
+  predict: number; // bar length 0..1
+  actual: number; // bar length 0..1, < predict
+}
+export const PATCH_PAIRS: PatchPair[] = [
+  { label: "L31·MLP", predict: 0.92, actual: 0.3 },
+  { label: "L30·H15", predict: 0.66, actual: 0.42 },
+  { label: "L24·H21", predict: 0.5, actual: 0.2 },
+  { label: "L19·MLP", predict: 0.4, actual: 0.28 },
+];
