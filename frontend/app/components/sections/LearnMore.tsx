@@ -23,7 +23,12 @@ const CARD_DELAY = 1200; // card lands after the triangle field settles (~1060ms
 export default function LearnMore() {
   const entering = useSectionEntrance();
   return (
-    <div className="relative h-full overflow-hidden">
+    <div className="relative grid h-full grid-cols-1 overflow-hidden md:grid-cols-[1fr_1fr]">
+      {/* Background triangle field — desktop only (self-clips via TriangleField). */}
+      <div className="absolute inset-0 hidden md:block">
+        <TriangleField />
+      </div>
+
       {/* Diagonal gutter hairline — self-clipping so it never adds scroll. Positive
           rotation about the top-left origin sends the bottom down-LEFT, matching the
           mock's lean (top ≈44% → bottom-left). Same shade as every other hairline. */}
@@ -34,12 +39,8 @@ export default function LearnMore() {
         />
       </div>
 
-      {/* Edge-anchored row: copy capped + pinned left, card stage capped + pinned
-          right; the center gap grows on ultrawide. Below md the card drops under the
-          copy and the section flows (continuous scroll). */}
-      <div className="relative flex h-full flex-col justify-center gap-[clamp(24px,4vw,48px)] px-[clamp(28px,6vw,96px)] py-[clamp(48px,8vw,0px)] md:flex-row md:items-center md:justify-between md:gap-[clamp(32px,6vw,160px)] md:py-0">
       {/* ── Left: copy ── */}
-      <div className="relative z-10 flex max-w-[600px] flex-col md:flex-1">
+      <div className="relative z-10 flex flex-col justify-center px-[clamp(28px,6vw,96px)]">
         <div className={cn("mb-[clamp(30px,4.5vw,58px)]", entering && "animate-hero-row")}>
           <EyebrowNav />
         </div>
@@ -85,20 +86,12 @@ export default function LearnMore() {
         />
       </div>
 
-        {/* ── Right: card stage (capped + pinned right) ──
-            container-type: inline-size (.figure-stage) so the triangle field's cqi
-            geometry scales to THIS column, not the viewport; the column's max-width
-            therefore bounds the figure. Anchoring is structural now (no translateX). */}
-        <div className="figure-stage relative z-10 flex w-full max-w-[720px] items-center justify-center md:flex-1">
-          {/* Background triangle field — desktop only (self-clips via TriangleField). */}
-          <div className="absolute inset-0 hidden overflow-hidden md:block">
-            <TriangleField />
-          </div>
-          <LearnMoreCard
-            className={cn("relative w-full max-w-[620px]", entering && "animate-hero-row")}
-            style={{ animationDelay: `${CARD_DELAY}ms` }}
-          />
-        </div>
+      {/* ── Right: card ── */}
+      <div className="relative z-10 flex items-center justify-center px-[clamp(28px,4vw,72px)] pb-[clamp(24px,4vw,40px)] md:pb-0">
+        <LearnMoreCard
+          className={cn("w-[clamp(320px,32vw,620px)]", entering && "animate-hero-row")}
+          style={{ animationDelay: `${CARD_DELAY}ms`, transform: "translateX(-60px)" }}
+        />
       </div>
     </div>
   );
