@@ -31,13 +31,9 @@ export default function Hero() {
   const { data: session } = useSession();
 
   return (
-    // Edge-anchored row: copy capped + pinned left, lattice stage capped + pinned
-    // right; the center gap (md:justify-between + md:gap) absorbs extra width on
-    // ultrawide so the lattice stops stretching across center. Below md the section
-    // flows as a normal column (copy + CTAs only — Hero has no mobile figure).
-    <div className="relative flex h-full flex-col justify-center gap-[clamp(24px,4vw,48px)] px-[clamp(28px,6vw,96px)] py-[clamp(48px,8vw,0px)] md:flex-row md:items-center md:justify-between md:gap-[clamp(32px,6vw,120px)] md:py-0">
-      {/* ── Left: copy + CTAs (capped + pinned left) ── */}
-      <div className="relative z-10 flex max-w-[600px] flex-col md:flex-1">
+    <div className="relative grid h-full grid-cols-1 overflow-hidden md:grid-cols-[1fr_1.6fr]">
+      {/* ── Left: copy + CTAs ── */}
+      <div className="flex flex-col justify-center px-[clamp(28px,6vw,96px)]">
         {/* Eyebrow section nav (dummy — clicking lights a section locally; not yet
             wired to routes). Fades in with the headline; reduced-motion shows it
             at full opacity via the .animate-hero-row media query. */}
@@ -107,30 +103,31 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* ── Right: hero lattice stage (desktop only, capped + pinned right) ──
-          .figure-stage gives HeroFigure a container-query context so its cqi geometry
-          scales to THIS column, not the viewport; max-width bounds it and md:flex-[1.6]
-          preserves Hero's wider figure ratio. HeroFigure is absolute inset-0 internally,
-          so it fills the stage and overflow-hidden clips its left/right bleed. The gutter
-          hairline + caption live inside the stage now, anchored stage-relative. */}
-      <div className="figure-stage relative z-10 hidden h-full max-w-[860px] items-center overflow-hidden md:flex md:flex-[1.6]">
+      {/* ── Right: hero figure (desktop only) ──
+          Absolutely positioned against <main> with a single left-% knob, rather than
+          living in the 1.6fr grid column. The column's overflow:hidden pinned the
+          lattice's left edge at the column boundary; positioning it here lets the
+          whole grid slide left past that line, clipped only by the viewport. Tweak
+          left-[33%] to slide the lattice horizontally. */}
+      <div className="absolute inset-y-0 left-[35%] right-0 hidden overflow-hidden md:block">
         <HeroFigure />
-
-        {/* Diagonal gutter hairline near the stage's left edge — self-clips. Runs
-            parallel to the lattice columns (HeroFigure is rotated −18°). */}
-        <div
-          aria-hidden="true"
-          className={cn("pointer-events-none absolute left-[2%] top-0 h-[140%] w-px bg-surface-border", entering && "animate-hero-row")}
-          style={{ transformOrigin: "top left", transform: "rotate(-18deg)", animationDelay: `${CAPTION_DELAY}ms` }}
-        />
-        {/* 72° ≈ 90 − 18°: parallel to the lattice axis. */}
-        <span
-          className={cn("pointer-events-none absolute left-[8%] top-[51%] origin-left font-mono text-[clamp(11px,1.1cqi,15px)] text-muted", entering && "animate-hero-row")}
-          style={{ transform: "rotate(72deg)", animationDelay: `${CAPTION_DELAY}ms` }}
-        >
-          hero fig., abstract viridis logit lens
-        </span>
       </div>
+
+      {/* Hairline divider + caption in the cream gutter just left of the lattice,
+          positioned against <main> in viewport-% and kept ~the same distance left of
+          left-[33%] above. Both run parallel to the lattice columns. */}
+      <div
+        aria-hidden="true"
+        className={cn("pointer-events-none absolute left-[33%] top-0 hidden h-[140%] w-px bg-surface-border md:block", entering && "animate-hero-row")}
+        style={{ transformOrigin: "top left", transform: "rotate(-18deg)", animationDelay: `${CAPTION_DELAY}ms` }}
+      />
+      {/* 73° ≈ 90 − 18°: runs parallel to the figure's lattice axis (HeroFigure is rotated −18°). */}
+      <span
+        className={cn("pointer-events-none absolute left-[39%] top-[51%] hidden origin-left font-mono text-[clamp(11px,1.1vw,15px)] text-muted md:block", entering && "animate-hero-row")}
+        style={{ transform: "rotate(72deg)", animationDelay: `${CAPTION_DELAY}ms` }}
+      >
+        hero fig., abstract viridis logit lens
+      </span>
     </div>
   );
 }
