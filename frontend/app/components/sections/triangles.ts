@@ -3,10 +3,11 @@
 // down-right) tile across the 1920px frame in a band that sweeps up-right: a left-side run,
 // a dense center-right run that sits BEHIND the right-hand card (only its slivers poke past
 // the card edges), and a right run whose last triangle bleeds off the frame. Positions are
-// expressed in vw against the 1920px design width so the field pins to the frame, bleeds off
-// the edges as drawn (clipped by TriangleField's overflow-hidden), and scales with viewport
-// width. The triangle analog of the WhatDoppoIs sphere field (see spheres.ts). `fill`
-// resolves to theme-flipping CSS vars at render time.
+// expressed in cqi (container inline units, against the 1920px design frame) so the field
+// pins to the frame, bleeds off the edges as drawn (clipped by TriangleField's
+// overflow-hidden), and scales with the container width. The triangle analog of the
+// WhatDoppoIs sphere field (see spheres.ts). `fill` resolves to theme-flipping CSS vars at
+// render time.
 //
 // COORDS DERIVED FROM THE NODE METADATA (not Figma's per-node code export, which drops the
 // polygons' 90° rotation and exports up-pointing SVGs at 2× the size — wrong). Each visible
@@ -19,8 +20,8 @@
 
 export const DESIGN_W = 1920;
 
-/** Design px (in the 1920px frame) → vw, rounded to 3 decimals. */
-export function pxToVw(px: number): number {
+/** Design px (in the 1920px frame) → cqi (container inline units, against the 1920px design frame), rounded to 3 decimals. */
+export function pxToCqi(px: number): number {
   return Math.round((px / DESIGN_W) * 100_000) / 1000;
 }
 
@@ -87,10 +88,10 @@ export type TriangleFill = "face" | "shadow";
 
 export interface TrianglePart {
   key: string;
-  leftVw: number;
-  topVw: number;
-  wVw: number;
-  hVw: number;
+  leftCqi: number;
+  topCqi: number;
+  wCqi: number;
+  hCqi: number;
   fill: TriangleFill;
   delayMs: number;
 }
@@ -99,10 +100,10 @@ function part(t: TriangleSource, i: number, fill: TriangleFill): TrianglePart {
   const shadow = fill === "shadow";
   return {
     key: `${t.node}-${fill}`,
-    leftVw: pxToVw(t.x + (shadow ? SHADOW_DX : 0) + FIELD_NUDGE_X),
-    topVw: pxToVw(t.y + (shadow ? SHADOW_DY : 0) + FIELD_NUDGE_Y),
-    wVw: pxToVw(TRI_W),
-    hVw: pxToVw(TRI_H),
+    leftCqi: pxToCqi(t.x + (shadow ? SHADOW_DX : 0) + FIELD_NUDGE_X),
+    topCqi: pxToCqi(t.y + (shadow ? SHADOW_DY : 0) + FIELD_NUDGE_Y),
+    wCqi: pxToCqi(TRI_W),
+    hCqi: pxToCqi(TRI_H),
     fill,
     delayMs: TRIANGLE_BASE_DELAY_MS + i * TRIANGLE_STAGGER_MS,
   };
