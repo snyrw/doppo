@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/cn";
 import { SectionEntranceContext, type Phase } from "./DeckContext";
 import type { SectionDef } from "./sections";
@@ -11,15 +11,30 @@ interface SectionShellProps {
   index: number;
   active: number;
   phase: Phase;
+  isDesktop: boolean;
   onExited: () => void;
 }
 
-export default function SectionShell({ section, index, active, phase, onExited }: SectionShellProps) {
+export default function SectionShell({ section, index, active, phase, isDesktop, onExited }: SectionShellProps) {
   const ref = useRef<HTMLElement>(null);
   const isCurrent = index === active;
   const visualState: "active" | "leaving" | "hidden" =
     phase === "exiting" && isCurrent ? "leaving" : isCurrent ? "active" : "hidden";
   const Component = section.Component;
+
+  // Mobile: replay entrance when the section scrolls into view.
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    if (isDesktop) return;
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.25 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [isDesktop]);
 
   // While leaving: advance the deck when the fade-out ends (guarded) — with a
   // fallback timer so reduced-motion (0s) / interrupted animations can't deadlock.
@@ -44,15 +59,20 @@ export default function SectionShell({ section, index, active, phase, onExited }
     };
   }, [visualState, onExited]);
 
+  const entered = isDesktop ? visualState === "active" : inView;
+
   return (
     <section
       ref={ref}
       tabIndex={-1}
       aria-label={section.label}
-      hidden={visualState === "hidden"}
-      className={cn("deck-section", visualState === "leaving" && "deck-section-leaving")}
+      hidden={isDesktop && visualState === "hidden"}
+      className={cn(
+        isDesktop ? "deck-section" : "deck-section-flow",
+        isDesktop && visualState === "leaving" && "deck-section-leaving",
+      )}
     >
-      <SectionEntranceContext.Provider value={visualState === "active"}>
+      <SectionEntranceContext.Provider value={entered}>
         <Component label={section.label} />
       </SectionEntranceContext.Provider>
     </section>
