@@ -19,10 +19,10 @@ export default function SphereField() {
           key={s.node}
           className={cn("absolute rounded-full", entering && "animate-hero-row")}
           style={{
-            right: `${s.rightCqi}cqi`,
-            top: `${s.topCqi}cqi`,
-            width: `${s.sizeCqi}cqi`,
-            height: `${s.sizeCqi}cqi`,
+            right: `${s.rightVw}vw`,
+            top: `${s.topVw}vw`,
+            width: `${s.sizeVw}vw`,
+            height: `${s.sizeVw}vw`,
             background: s.fill === "face" ? "var(--sphere-face)" : "var(--sphere-back)",
             animationDelay: `${s.delayMs}ms`,
           }}
