@@ -243,7 +243,10 @@ export function SteeringFigure() {
         <p className={cn(body, "m-0")}>{ex.question}</p>
         <div className="my-[clamp(2px,0.5vw,8px)] h-px w-3/5 bg-surface-border" />
 
-        <span className="self-start rounded-[4px] bg-[#d9d9d9] px-[0.6em] py-[0.3em] font-mono text-[clamp(9px,0.9vw,14px)] leading-none text-[#555]">
+        <span
+          className="self-start rounded-[4px] bg-[#d9d9d9] px-[0.6em] py-[0.3em] font-mono text-[clamp(9px,0.9vw,14px)] leading-none text-[#555]"
+          style={{ boxShadow: "0 3px 0 0 #b9b9b9" }}
+        >
           base
         </span>
         <p className={cn(body, "m-0")}>{ex.base}</p>
