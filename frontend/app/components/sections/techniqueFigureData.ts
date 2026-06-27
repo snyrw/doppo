@@ -12,3 +12,28 @@
 export const CELL_LIP = "clamp(3px,0.36vw,6px)"; // heatmap cell  h: clamp(16,1.8vw,28)
 export const ATTN_CELL_LIP = "clamp(5px,0.55vw,8px)"; // attention cell w: clamp(24,2.9vw,42)
 export const BAR_LIP = "clamp(3px,0.4vw,6px)"; // DLA / patch bar h: clamp(15,1.8vw,30)
+
+// ── Logit Lens ────────────────────────────────────────────────────────────────
+// rows = layers (top→bottom, deepening), cols = positions; each cell is the
+// predicted *next* token at that position/layer. Honors the real signature: dim
+// (low-confidence, generic) until the deepest layer, where it resolves to the
+// actual continuation. `level` 0 = palest/least confident … 3 = brightest. Tokens
+// + levels are illustrative and tunable.
+export interface LensCell {
+  token: string;
+  level: 0 | 1 | 2 | 3;
+}
+export const LENS_COLS = ["Hello", ",", "world", "."];
+export const LENS_ROWS = [0, 4, 9, 13, 18, 22, 27, 31]; // layer labels (32-layer model)
+
+const c = (token: string, level: 0 | 1 | 2 | 3): LensCell => ({ token, level });
+export const LENS_GRID: LensCell[][] = [
+  [c("the", 0), c("the", 0), c("the", 0), c("the", 0)], // L0
+  [c("the", 0), c(",", 0), c("the", 0), c(".", 0)], //     L4
+  [c(",", 0), c("a", 0), c("is", 0), c(".", 0)], //        L9
+  [c(",", 1), c("the", 1), c("world", 1), c(".", 1)], //   L13
+  [c(",", 1), c("the", 1), c("world", 1), c(".", 1)], //   L18
+  [c(",", 1), c("world", 1), c(".", 1), c("the", 1)], //   L22
+  [c(",", 2), c("world", 2), c(".", 2), c("<eos>", 2)], // L27
+  [c(",", 3), c("world", 3), c(".", 3), c("<eos>", 3)], // L31 — resolves
+];

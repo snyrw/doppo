@@ -3,7 +3,7 @@
 import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
 import { cn } from "../../lib/cn";
 import { STEERING_EXAMPLES } from "./techniqueCardData";
-import { BAR_LIP, CELL_LIP, ATTN_CELL_LIP } from "./techniqueFigureData";
+import { BAR_LIP, CELL_LIP, ATTN_CELL_LIP, LENS_COLS, LENS_ROWS, LENS_GRID, type LensCell } from "./techniqueFigureData";
 
 // The five decorative figures that sit in the left column of each technique card
 // (Figma nodes 134-2/3/5/6/7). These are static, on-brand recreations built from
@@ -37,24 +37,12 @@ const LABEL = "font-mono text-muted leading-none";
 const LABEL_SIZE = "text-[clamp(9px,0.95vw,15px)]";
 
 // ── 0. Logit Lens — 8×4 warm heatmap ─────────────────────────────────────────
-const LENS_COLS = ["Hello", ",", "World", "."];
-const LENS_FACE = "#d88585";
-const LENS_LIGHT = "#e7a8a8";
-const LENS_DARK = "#c26868";
-const LENS_GRID: string[][] = [
-  [LENS_FACE, LENS_LIGHT, LENS_FACE, LENS_FACE],
-  [LENS_FACE, LENS_FACE, LENS_FACE, LENS_FACE],
-  [LENS_DARK, LENS_FACE, LENS_FACE, LENS_FACE],
-  [LENS_FACE, LENS_DARK, LENS_LIGHT, LENS_FACE],
-  [LENS_FACE, LENS_DARK, LENS_LIGHT, LENS_FACE],
-  [LENS_LIGHT, LENS_FACE, LENS_LIGHT, LENS_FACE],
-  [LENS_FACE, LENS_FACE, LENS_LIGHT, LENS_FACE],
-  [LENS_FACE, LENS_FACE, LENS_FACE, LENS_FACE],
-];
-const LENS_LIP: Record<string, string> = {
-  [LENS_FACE]: "#c06e6e",
-  [LENS_LIGHT]: "#cf8f8f",
-  [LENS_DARK]: "#a04747",
+// confidence level → {face, lip}: pale (low) → saturated warm (high)
+const LENS_LEVEL: Record<LensCell["level"], { face: string; lip: string }> = {
+  0: { face: "#efdede", lip: "#e2cccc" },
+  1: { face: "#e7b8b8", lip: "#d49f9f" },
+  2: { face: "#d88585", lip: "#c06e6e" },
+  3: { face: "#c26868", lip: "#a04747" },
 };
 
 export function LensFigure() {
@@ -64,33 +52,40 @@ export function LensFigure() {
         className="grid items-center gap-x-[clamp(5px,0.6vw,9px)] gap-y-[clamp(6px,0.8vw,12px)]"
         style={{ gridTemplateColumns: "auto repeat(4, minmax(0, 1fr))" }}
       >
-        {/* header row: empty corner + column token labels */}
+        {/* header row: empty corner + column position-token labels */}
         <span />
         {LENS_COLS.map((c, i) => (
           <span key={`h${i}`} className={cn(LABEL, LABEL_SIZE, "pb-[clamp(2px,0.4vw,6px)] text-center")}>
             {c}
           </span>
         ))}
-        {/* 8 data rows: layer index + 4 cells */}
+        {/* 8 layer rows: layer label + 4 predicted-token cells */}
         {LENS_GRID.map((row, r) => (
-          <Cells key={`r${r}`} label={String(r)} row={row} lip={LENS_LIP} />
+          <LensRow key={`r${r}`} label={`L${LENS_ROWS[r]}`} row={row} />
         ))}
       </div>
     </FigureBox>
   );
 }
 
-function Cells({ label, row, lip }: { label: string; row: string[]; lip: Record<string, string> }) {
+function LensRow({ label, row }: { label: string; row: LensCell[] }) {
   return (
     <>
       <span className={cn(LABEL, LABEL_SIZE, "pr-[clamp(4px,0.6vw,10px)] text-right tabular-nums")}>{label}</span>
-      {row.map((face, c) => (
-        <span
-          key={c}
-          className="h-[clamp(16px,1.8vw,28px)] w-[clamp(30px,3.6vw,54px)] rounded-[2px]"
-          style={{ background: face, boxShadow: `0 ${CELL_LIP} 0 0 ${lip[face] ?? "#0003"}` }}
-        />
-      ))}
+      {row.map((cell, ci) => {
+        const { face, lip } = LENS_LEVEL[cell.level];
+        return (
+          <span
+            key={ci}
+            className="flex h-[clamp(16px,1.8vw,28px)] w-[clamp(30px,3.6vw,54px)] items-center justify-center overflow-hidden rounded-[2px] px-[2px]"
+            style={{ background: face, boxShadow: `0 ${CELL_LIP} 0 0 ${lip}` }}
+          >
+            <span className="truncate font-mono text-[clamp(7px,0.78vw,12px)] leading-none text-[#3a2a2a]">
+              {cell.token}
+            </span>
+          </span>
+        );
+      })}
     </>
   );
 }
