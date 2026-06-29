@@ -50,6 +50,30 @@ def _detect_gpu_tier(config: dict) -> str:
     return "tl_large"  # unknown shape — conservative fallback
 
 
+_BRIDGEABLE_VLM_ARCHS = {
+    "Gemma3ForConditionalGeneration",
+    "Gemma3nForConditionalGeneration",
+    "LlavaForConditionalGeneration",
+    "LlavaNextForConditionalGeneration",
+    "LlavaOnevisionForConditionalGeneration",
+    "Qwen3_5ForConditionalGeneration",
+}
+
+
+def _vlm_rejection(config: dict) -> str | None:
+    """Return a rejection reason if this is a VLM TransformerLens cannot bridge, else None."""
+    is_vlm = "vision_config" in config or "text_config" in config
+    if not is_vlm:
+        return None
+    archs = config.get("architectures") or []
+    if any(a in _BRIDGEABLE_VLM_ARCHS for a in archs):
+        return None
+    return (
+        "This is a vision-language model TransformerLens can't yet bridge. "
+        "Try the text-only variant (e.g. google/gemma-3-1b-it)."
+    )
+
+
 def validate_hf_repo(repo_id: str, hf_token: str | None) -> dict:
     """
     Safety-check a user-supplied HuggingFace repo before loading it on GPU.
@@ -111,6 +135,9 @@ def validate_hf_repo(repo_id: str, hf_token: str | None) -> dict:
                     return _invalid(
                         "Model config uses auto_map with custom module paths, which is not allowed."
                     )
+            vlm_reason = _vlm_rejection(config)
+            if vlm_reason:
+                return _invalid(vlm_reason)
             detected = _detect_gpu_tier(config)
             if detected is None:
                 return _invalid(

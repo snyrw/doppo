@@ -109,6 +109,23 @@ export async function validateHfRepo(repoId: string): Promise<ValidationResult> 
           }
         }
 
+        const BRIDGEABLE_VLM = new Set([
+          "Gemma3ForConditionalGeneration", "Gemma3nForConditionalGeneration",
+          "LlavaForConditionalGeneration", "LlavaNextForConditionalGeneration",
+          "LlavaOnevisionForConditionalGeneration", "Qwen3_5ForConditionalGeneration",
+        ]);
+        const isVlm = "vision_config" in config || "text_config" in config;
+        const archs = (config.architectures as string[] | undefined) ?? [];
+        if (isVlm && !archs.some((a) => BRIDGEABLE_VLM.has(a))) {
+          return {
+            valid: false,
+            gpu_tier: null,
+            reason:
+              "This is a vision-language model TransformerLens can't yet bridge. " +
+              "Try the text-only variant (e.g. google/gemma-3-1b-it).",
+          };
+        }
+
         const detected = detectGpuTier(config);
         if (detected === null) {
           return {
