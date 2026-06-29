@@ -53,6 +53,8 @@ def _detect_gpu_tier(config: dict) -> str:
 _BRIDGEABLE_VLM_ARCHS = {
     "Gemma3ForConditionalGeneration",
     "Gemma3nForConditionalGeneration",
+    "Gemma4ForConditionalGeneration",
+    "Gemma4UnifiedForConditionalGeneration",
     "LlavaForConditionalGeneration",
     "LlavaNextForConditionalGeneration",
     "LlavaOnevisionForConditionalGeneration",

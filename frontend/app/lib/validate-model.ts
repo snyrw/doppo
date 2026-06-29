@@ -111,6 +111,7 @@ export async function validateHfRepo(repoId: string): Promise<ValidationResult> 
 
         const BRIDGEABLE_VLM = new Set([
           "Gemma3ForConditionalGeneration", "Gemma3nForConditionalGeneration",
+          "Gemma4ForConditionalGeneration", "Gemma4UnifiedForConditionalGeneration",
           "LlavaForConditionalGeneration", "LlavaNextForConditionalGeneration",
           "LlavaOnevisionForConditionalGeneration", "Qwen3_5ForConditionalGeneration",
         ]);
