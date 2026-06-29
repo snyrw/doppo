@@ -6,6 +6,7 @@ export type ValidationResult = {
   valid: boolean;
   gpu_tier: GpuTier | null;
   reason: string;
+  adapter?: { base_id: string; adapter_id: string };
 };
 
 /**
@@ -46,12 +47,67 @@ export async function validateHfRepo(repoId: string): Promise<ValidationResult> 
 
   const fileSet = new Set(siblings.map((s) => s.rfilename));
 
-  // 2. Reject LoRA/PEFT adapters.
+  // 2. LoRA/PEFT adapters: accept LoRA/DoRA whose resolved base passes the SAME gate.
+  //    Mirrors backend _validate_adapter / _adapter_decision. The recursive base
+  //    re-validation is the load-bearing security control; never use AutoPeftModel.
   if (fileSet.has("adapter_config.json")) {
+    if (!fileSet.has("adapter_model.safetensors")) {
+      return {
+        valid: false,
+        gpu_tier: null,
+        reason:
+          "Adapter weights must be safetensors. Re-upload the adapter as adapter_model.safetensors.",
+      };
+    }
+    let ac: Record<string, unknown>;
+    try {
+      const r = await fetch(
+        `https://huggingface.co/${encodedRepoId}/resolve/main/adapter_config.json`,
+        { headers: authHeaders }
+      );
+      if (!r.ok) {
+        return { valid: false, gpu_tier: null, reason: "Could not read adapter_config.json." };
+      }
+      ac = (await r.json()) as Record<string, unknown>;
+    } catch {
+      return { valid: false, gpu_tier: null, reason: "Could not read adapter_config.json." };
+    }
+    if ("auto_mapping" in ac) {
+      return {
+        valid: false,
+        gpu_tier: null,
+        reason: "Adapter config uses auto_mapping (custom class import), which is not allowed.",
+      };
+    }
+    if (String(ac.peft_type ?? "").toUpperCase() !== "LORA") {
+      return {
+        valid: false,
+        gpu_tier: null,
+        reason: `Unsupported adapter type '${ac.peft_type}'. Only LoRA/DoRA adapters are supported.`,
+      };
+    }
+    const baseId = ac.base_model_name_or_path;
+    if (typeof baseId !== "string" || !baseId) {
+      return {
+        valid: false,
+        gpu_tier: null,
+        reason: "Adapter config has no base_model_name_or_path — cannot resolve the base model.",
+      };
+    }
+    // Recurse: the base must pass the same safetensors / no-remote-code / size gate.
+    const base = await validateHfRepo(baseId);
+    if (!base.valid) {
+      return {
+        valid: false,
+        gpu_tier: null,
+        reason: `Adapter's base model '${baseId}' failed validation: ${base.reason}`,
+      };
+    }
     return {
-      valid: false,
-      gpu_tier: null,
-      reason: "LoRA/PEFT adapters are not supported — upload the merged full-weight model instead.",
+      valid: true,
+      gpu_tier: base.gpu_tier,
+      reason: "OK",
+      adapter: { base_id: baseId, adapter_id: repoId },
     };
   }
 
