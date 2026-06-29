@@ -184,7 +184,11 @@ export const FEATURED_MODELS: Record<string, FeaturedModel> = {
  * Matches the logic in backend/main.py _detect_gpu_tier.
  */
 export function detectGpuTier(config: Record<string, unknown>): GpuTier | null {
-  const numParams = config.num_parameters;
+  // Multimodal configs (Gemma3ForConditionalGeneration, LLaVA, Qwen-VL) nest the
+  // language-model dims under text_config; read those so VLM text towers size correctly.
+  const tc = config.text_config;
+  const source = (tc && typeof tc === "object" ? tc : config) as Record<string, unknown>;
+  const numParams = source.num_parameters;
   if (typeof numParams === "number") {
     if (numParams < 4e9)   return "tl_small";
     if (numParams < 10e9)  return "tl_medium";
@@ -193,8 +197,8 @@ export function detectGpuTier(config: Record<string, unknown>): GpuTier | null {
     if (numParams < 100e9) return "tl_xxlarge";
     return null;
   }
-  const layers = typeof config.num_hidden_layers === "number" ? config.num_hidden_layers : 0;
-  const hidden = typeof config.hidden_size === "number" ? config.hidden_size : 0;
+  const layers = typeof source.num_hidden_layers === "number" ? source.num_hidden_layers : 0;
+  const hidden = typeof source.hidden_size === "number" ? source.hidden_size : 0;
   const proxy = layers * hidden;
   if (proxy > 0) {
     if (proxy < 90_000)  return "tl_small";

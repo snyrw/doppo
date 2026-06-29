@@ -11,7 +11,10 @@ def _detect_gpu_tier(config: dict) -> str:
       tl_xlarge  → H200       (25–69B; H200 141 GB fits up to ~65B comfortably)
       tl_xxlarge → B200       (70B–100B; B200 192 GB gives ~52 GB headroom for 70B + TL cache)
     """
-    num_params = config.get("num_parameters")
+    # Multimodal configs (Gemma3ForConditionalGeneration, LLaVA, Qwen-VL) nest the
+    # language-model dims under text_config; read those so VLM text towers size correctly.
+    source = config.get("text_config") if isinstance(config.get("text_config"), dict) else config
+    num_params = source.get("num_parameters")
     if isinstance(num_params, (int, float)):
         if num_params < 4e9:
             return "tl_small"
@@ -28,8 +31,8 @@ def _detect_gpu_tier(config: dict) -> str:
     # Proxy: num_hidden_layers × hidden_size scales predictably with model size.
     # Thresholds calibrated against known models: GPT-2 XL=76K, Llama3-8B=131K,
     # Qwen3-14B=205K, Gemma3-27B=333K, Llama3.3-70B=655K.
-    layers = config.get("num_hidden_layers", 0)
-    hidden = config.get("hidden_size", 0)
+    layers = source.get("num_hidden_layers", 0)
+    hidden = source.get("hidden_size", 0)
     proxy = layers * hidden
     if proxy and proxy < 90_000:
         return "tl_small"
