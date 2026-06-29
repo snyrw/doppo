@@ -122,6 +122,11 @@ export default function ModelPicker({
             {picker.customValidation.valid
               ? `✓ Valid — ${picker.customValidation.gpu_tier ? TIER_LABELS[picker.customValidation.gpu_tier] ?? picker.customValidation.gpu_tier : "unknown GPU"}`
               : `✗ ${picker.customValidation.reason}`}
+            {picker.customValidation.valid && picker.customValidation.adapter && (
+              <span className="block text-muted">
+                Adapter → merges onto {picker.customValidation.adapter.base_id}
+              </span>
+            )}
           </p>
         )}
       </div>
