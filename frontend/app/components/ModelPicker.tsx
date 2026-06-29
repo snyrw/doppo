@@ -75,11 +75,6 @@ export default function ModelPicker({
                       <span className="line-clamp-2 overflow-hidden text-[10px] leading-[1.4] text-muted">
                         {m.description}
                       </span>
-                      {m.requires_hf_token && (
-                        <span className="mt-px text-[9px] tracking-[0.02em] text-muted">
-                          HF token required
-                        </span>
-                      )}
                     </button>
                   );
                 })}
