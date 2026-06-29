@@ -1,5 +1,5 @@
 # backend/tests/test_validation.py
-from backend.validation import _detect_gpu_tier, _vlm_rejection
+from backend.validation import _adapter_decision, _detect_gpu_tier, _vlm_rejection
 
 
 def test_flat_text_config_unchanged():
@@ -41,3 +41,70 @@ def test_unbridgeable_vlm_rejected():
 
 def test_text_only_not_treated_as_vlm():
     assert _vlm_rejection(TEXT_ONLY) is None
+
+
+# ── LoRA/PEFT adapter validation (_adapter_decision is the pure decision core;
+#    base_validator is injected so no network/HF calls are needed) ──────────────
+
+def _ok_base(_base_id):
+    return {"valid": True, "gpu_tier": "tl_medium", "reason": "OK"}
+
+
+def _bad_base(_base_id):
+    return {"valid": False, "gpu_tier": None, "reason": "only pickle weights"}
+
+
+def test_adapter_safetensors_base_valid():
+    files = {"adapter_config.json", "adapter_model.safetensors"}
+    ac = {"peft_type": "LORA", "base_model_name_or_path": "meta/base"}
+    res = _adapter_decision("user/lora", files, ac, _ok_base)
+    assert res["valid"] is True
+    assert res["gpu_tier"] == "tl_medium"  # inherits the base's tier
+    assert res["adapter"] == {"base_id": "meta/base", "adapter_id": "user/lora"}
+
+
+def test_adapter_dora_accepted():
+    # DoRA rides on a LORA config via use_dora=True — must be accepted.
+    files = {"adapter_config.json", "adapter_model.safetensors"}
+    ac = {"peft_type": "LORA", "use_dora": True, "base_model_name_or_path": "meta/base"}
+    assert _adapter_decision("user/dora", files, ac, _ok_base)["valid"] is True
+
+
+def test_adapter_bin_only_rejected():
+    files = {"adapter_config.json", "adapter_model.bin"}
+    ac = {"peft_type": "LORA", "base_model_name_or_path": "meta/base"}
+    res = _adapter_decision("user/lora", files, ac, _ok_base)
+    assert res["valid"] is False
+    assert "safetensors" in res["reason"]
+
+
+def test_adapter_auto_mapping_rejected():
+    files = {"adapter_config.json", "adapter_model.safetensors"}
+    ac = {"peft_type": "LORA", "base_model_name_or_path": "meta/base",
+          "auto_mapping": {"base_model_class": "x.Y"}}
+    res = _adapter_decision("user/lora", files, ac, _ok_base)
+    assert res["valid"] is False
+    assert "auto_mapping" in res["reason"]
+
+
+def test_adapter_bad_peft_type_rejected():
+    files = {"adapter_config.json", "adapter_model.safetensors"}
+    ac = {"peft_type": "PREFIX_TUNING", "base_model_name_or_path": "meta/base"}
+    assert _adapter_decision("user/lora", files, ac, _ok_base)["valid"] is False
+
+
+def test_adapter_missing_base_rejected():
+    files = {"adapter_config.json", "adapter_model.safetensors"}
+    ac = {"peft_type": "LORA"}
+    res = _adapter_decision("user/lora", files, ac, _ok_base)
+    assert res["valid"] is False
+    assert "base_model_name_or_path" in res["reason"]
+
+
+def test_adapter_unsafe_base_rejected():
+    # base fails the recursive gate -> adapter rejected, surfacing the base reason.
+    files = {"adapter_config.json", "adapter_model.safetensors"}
+    ac = {"peft_type": "LORA", "base_model_name_or_path": "evil/base"}
+    res = _adapter_decision("user/lora", files, ac, _bad_base)
+    assert res["valid"] is False
+    assert "evil/base" in res["reason"]

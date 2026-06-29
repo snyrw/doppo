@@ -76,6 +76,67 @@ def _vlm_rejection(config: dict) -> str | None:
     )
 
 
+_ALLOWED_PEFT_TYPES = {"LORA"}  # DoRA rides on LORA via use_dora=True
+
+
+def _adapter_decision(repo_id: str, files, adapter_config: dict, base_validator) -> dict:
+    """Pure decision logic for a LoRA/PEFT adapter repo (no I/O — testable in isolation).
+
+    Guardrails: safetensors-only adapter weights, no auto_mapping (custom class import),
+    LoRA/DoRA peft_type only, and the resolved base must pass the SAME validation gate.
+    `base_validator(base_id) -> validation dict` is injected so the recursive base check
+    (the load-bearing security control) is exercised without network access in tests.
+    """
+    def _invalid(reason: str) -> dict:
+        return {"valid": False, "gpu_tier": None, "reason": reason}
+
+    if "adapter_model.safetensors" not in files:
+        return _invalid(
+            "Adapter weights must be safetensors. Re-upload the adapter as adapter_model.safetensors."
+        )
+    if "auto_mapping" in adapter_config:
+        return _invalid("Adapter config uses auto_mapping (custom class import), which is not allowed.")
+    if (adapter_config.get("peft_type") or "").upper() not in _ALLOWED_PEFT_TYPES:
+        return _invalid(
+            f"Unsupported adapter type '{adapter_config.get('peft_type')}'. "
+            "Only LoRA/DoRA adapters are supported."
+        )
+    base_id = adapter_config.get("base_model_name_or_path")
+    if not base_id or not isinstance(base_id, str):
+        return _invalid("Adapter config has no base_model_name_or_path — cannot resolve the base model.")
+
+    # Re-validate the resolved base through the SAME gate (load-bearing security control).
+    base = base_validator(base_id)
+    if not base.get("valid"):
+        return _invalid(f"Adapter's base model '{base_id}' failed validation: {base.get('reason')}")
+
+    return {
+        "valid": True,
+        "gpu_tier": base["gpu_tier"],
+        "reason": "OK",
+        "adapter": {"base_id": base_id, "adapter_id": repo_id},
+    }
+
+
+def _validate_adapter(repo_id: str, files: set, hf_token: str | None) -> dict:
+    """Download + parse adapter_config.json, then defer to the pure _adapter_decision.
+    The base is re-validated by recursing into validate_hf_repo with the same token."""
+    import json
+    from huggingface_hub import hf_hub_download
+
+    try:
+        ac_path = hf_hub_download(repo_id, "adapter_config.json", token=hf_token)
+        with open(ac_path) as f:
+            adapter_config = json.load(f)
+    except Exception as e:
+        return {"valid": False, "gpu_tier": None, "reason": f"Could not read adapter_config.json: {e}"}
+
+    return _adapter_decision(
+        repo_id, files, adapter_config,
+        lambda base_id: validate_hf_repo(base_id, hf_token),
+    )
+
+
 def validate_hf_repo(repo_id: str, hf_token: str | None) -> dict:
     """
     Safety-check a user-supplied HuggingFace repo before loading it on GPU.
@@ -98,9 +159,7 @@ def validate_hf_repo(repo_id: str, hf_token: str | None) -> dict:
         return _invalid(f"Could not list repo files: {e}")
 
     if "adapter_config.json" in files:
-        return _invalid(
-            "LoRA/PEFT adapters are not supported — upload the merged full-weight model instead."
-        )
+        return _validate_adapter(repo_id, files, hf_token)
 
     has_safetensors = any(
         f.endswith(".safetensors") or f.endswith(".safetensors.index.json")
