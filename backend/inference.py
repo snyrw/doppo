@@ -60,10 +60,34 @@ class _TLBase:
         boot_cpu_start = _cpu_seconds()
         torch.set_grad_enabled(False)
 
-        self.model = TransformerBridge.boot_transformers(
-            self.model_id,
-            dtype=torch.bfloat16,
-        )
+        # LoRA/DoRA adapter repos carry only a delta — merge it onto the base (which
+        # the web layer already re-validated through the same gate) before bridging.
+        # Manual PEFT path only: never AutoPeftModel (it honors auto_mapping + forwards
+        # trust_remote_code). The merged in-memory model is handed straight to TL.
+        from huggingface_hub import list_repo_files
+
+        if "adapter_config.json" in set(list_repo_files(self.model_id)):
+            import json
+
+            from huggingface_hub import hf_hub_download
+            from peft import PeftModel
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+
+            with open(hf_hub_download(self.model_id, "adapter_config.json")) as f:
+                base_id = json.load(f)["base_model_name_or_path"]
+            base = AutoModelForCausalLM.from_pretrained(
+                base_id, torch_dtype=torch.bfloat16, trust_remote_code=False
+            )
+            merged = PeftModel.from_pretrained(base, self.model_id).merge_and_unload()
+            tok = AutoTokenizer.from_pretrained(base_id, trust_remote_code=False)
+            self.model = TransformerBridge.boot_transformers(
+                base_id, hf_model=merged, tokenizer=tok, dtype=torch.bfloat16
+            )
+        else:
+            self.model = TransformerBridge.boot_transformers(
+                self.model_id,
+                dtype=torch.bfloat16,
+            )
         self.model.eval()
 
         # not sure if this is needed since we don't do snapshots anymore
