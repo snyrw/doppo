@@ -20,9 +20,8 @@ _HF_CACHE_ENV = {
 tl_image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install(
-        "torch==2.7.1",  # pinned to pair with torchvision 0.22.1 (torchvision exact-pins torch)
-        "torchvision==0.22.1",  # kept for VLM image-processor imports; this pair is the combo verified to boot gemma-3-4b
-        "transformer-lens==3.5.0",  # 3.5 bridges VLM text towers (Gemma3/4, LLaVA, Qwen3.5); 3.4 crashed on the Siglip vision path
+        "torch==2.11.0",
+        "transformer-lens==3.5.0",  # 3.5 bridges VLM text towers (Gemma3/4, LLaVA, Qwen3.5); 3.4 crashed on the Siglip vision path and hard-pinned torchvision (which exact-pinned torch down to 2.7.x)
         "einops==0.8.1",
         "fancy-einsum==0.0.3",
         "jaxtyping==0.3.2",
