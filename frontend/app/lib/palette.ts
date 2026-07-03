@@ -1,17 +1,24 @@
-export type PaletteName = "warm-mono" | "rdbu" | "viridis" | "inferno";
+export type SequentialPaletteName = "mono" | "viridis" | "inferno";
+export type DivergingPaletteName = "rdbu" | "puor";
+export type PaletteName = SequentialPaletteName | DivergingPaletteName;
 
 type RGB = [number, number, number];
 
 export const PALETTE_META: Record<PaletteName, { label: string; description: string; swatchCss: string }> = {
-  "warm-mono": {
-    label: "Warm Mono",
-    description: "Amber fade, theme-aware",
-    swatchCss: "linear-gradient(to right, transparent, rgba(175, 118, 32, 0.5), rgb(175, 118, 32))",
+  mono: {
+    label: "Mono",
+    description: "Theme-aware grayscale fade",
+    swatchCss: "linear-gradient(to right, transparent, rgba(var(--heatmap-rgb), 1))",
   },
   rdbu: {
     label: "RdBu",
     description: "Diverging blue–gray–red (ColorBrewer)",
     swatchCss: "linear-gradient(to right, #053061, #4393c3, #d1e5f0, #f7f7f7, #fddbc7, #f4a582, #67001f)",
+  },
+  puor: {
+    label: "PuOr",
+    description: "Diverging orange–gray–purple (ColorBrewer, colorblind-safe)",
+    swatchCss: "linear-gradient(to right, #7f3b08, #b35806, #e08214, #fdb863, #fee0b6, #f7f7f7, #d8daeb, #b2abd2, #8073ac, #542788, #2d004b)",
   },
   viridis: {
     label: "Viridis",
@@ -25,9 +32,10 @@ export const PALETTE_META: Record<PaletteName, { label: string; description: str
   },
 };
 
-export const PALETTE_ORDER: PaletteName[] = ["warm-mono", "rdbu", "viridis", "inferno"];
+export const SEQUENTIAL_PALETTE_ORDER: SequentialPaletteName[] = ["mono", "viridis", "inferno"];
+export const DIVERGING_PALETTE_ORDER: DivergingPaletteName[] = ["rdbu", "puor"];
 
-const GRADIENT_STOPS: Record<Exclude<PaletteName, "warm-mono">, RGB[]> = {
+const GRADIENT_STOPS: Record<Exclude<PaletteName, "mono">, RGB[]> = {
   // ColorBrewer RdBu 11-class, reversed so blue=0, red=1
   rdbu: [
     [5, 48, 97],
@@ -41,6 +49,20 @@ const GRADIENT_STOPS: Record<Exclude<PaletteName, "warm-mono">, RGB[]> = {
     [214, 96, 77],
     [178, 24, 43],
     [103, 0, 31],
+  ],
+  // ColorBrewer PuOr 11-class, reversed so orange=0 (negative), purple=1 (positive).
+  puor: [
+    [127, 59, 8],
+    [179, 88, 6],
+    [224, 130, 20],
+    [253, 184, 99],
+    [254, 224, 182],
+    [247, 247, 247],
+    [216, 218, 235],
+    [178, 171, 210],
+    [128, 115, 172],
+    [84, 39, 136],
+    [45, 0, 75],
   ],
   viridis: [
     [68, 1, 84],
@@ -74,23 +96,23 @@ function lerpStops(stops: RGB[], t: number): RGB {
 }
 
 export function interpolateColor(palette: PaletteName, prob: number): string {
-  if (palette === "warm-mono") {
-    return `rgba(175, 118, 32, ${prob})`;
+  if (palette === "mono") {
+    return `rgba(var(--heatmap-rgb), ${prob})`;
   }
   const [r, g, b] = lerpStops(GRADIENT_STOPS[palette], prob);
   return `rgb(${r},${g},${b})`;
 }
 
 // For signed DLA values: maps value ∈ [-absMax, +absMax] to [0,1] anchored at 0.5 (neutral).
-// Negative → blue end of rdbu, positive → red end.
+// Negative → blue end of rdbu / orange end of puor. Positive → red end of rdbu / purple end of puor.
 export function interpolateColorDivergent(palette: PaletteName, value: number, absMax: number): string {
   const t = absMax === 0 ? 0.5 : Math.max(0, Math.min(1, (value + absMax) / (2 * absMax)));
   return interpolateColor(palette, t);
 }
 
 export function getContrastColor(palette: PaletteName, prob: number): string {
-  if (palette === "warm-mono") {
-    return prob > 0.55 ? "#ecebe4" : "#1c1c1c";
+  if (palette === "mono") {
+    return prob > 0.55 ? "var(--bg)" : "var(--text)";
   }
   const [r, g, b] = lerpStops(GRADIENT_STOPS[palette], prob);
   const lum = 0.2126 * (r / 255) + 0.7152 * (g / 255) + 0.0722 * (b / 255);

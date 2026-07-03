@@ -19,7 +19,7 @@ export default async function SharePage({
   const project = await loadPublicProject(shareId);
   if (!project) notFound();
 
-  const cards: AnyCard[] = project.cards.map(c => {
+  const cards: AnyCard[] = project.cards.filter(c => c.cardType !== "entropy").map(c => {
     if (c.cardType === "dla") {
       return { ...c, cardType: "dla" as const, status: "result" as const, error: null } as DlaCardData;
     }
@@ -44,7 +44,6 @@ export default async function SharePage({
         targetPosition: c.targetPosition ?? "last", targetToken: c.targetToken ?? null,
         components: (c.components ?? []) as SteeringComponent[],
         alpha: c.alpha ?? 1.0, nTokens: c.nTokens ?? 20,
-        parentCardId: c.parentCardId ?? "",
         streamingText: undefined,
       } as unknown as SteeringCardData;
     }

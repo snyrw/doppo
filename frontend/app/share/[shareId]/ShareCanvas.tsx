@@ -20,9 +20,7 @@ export default function ShareCanvas({
       onMoveCard={() => {}}
       onRemoveCard={() => {}}
       onVerifyTopK={() => {}}
-      onSteerComponents={() => {}}
       onRerunSteering={() => {}}
-      onSpawnEntropyCard={() => {}}
     />
   );
 }

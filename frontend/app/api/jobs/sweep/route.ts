@@ -46,13 +46,23 @@ async function sweepOne(job: ActiveJob): Promise<"settled" | "timed_out" | "skip
     return "settled";
   }
 
-  // Still running (or unpollable) past the hard timeout: cancel and bill elapsed.
+  // Still running (or unpollable) past the hard timeout: cancel, then bill only
+  // execution time (heartbeat-based) — not the queue/boot wait before it.
   if (ageMs > JOB_HARD_TIMEOUT_MS) {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${job.id}`, {
-      method: "DELETE",
-      headers: backendHeaders(),
-    }).catch(console.error);
-    await billStoppedJob(job);
+    let execStartedTs: number | null | undefined = undefined;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${job.id}`, {
+        method: "DELETE",
+        headers: backendHeaders(),
+      });
+      if (res.ok) {
+        const body = await res.json() as { exec_started_ts?: number | null };
+        if ("exec_started_ts" in body) execStartedTs = body.exec_started_ts;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    await billStoppedJob(job, execStartedTs);
     return "timed_out";
   }
 

@@ -25,10 +25,21 @@ export async function GET(
   });
   if (!pollRes.ok) return Response.json({ status: "error", error: `Poll failed (${pollRes.status})` });
 
-  const result = await pollRes.json() as { status: string; data?: unknown; error?: string };
+  const result = await pollRes.json() as {
+    status: string; data?: unknown; error?: string;
+    stage?: string | null; stage_age_s?: number | null;
+    progress?: { done_bytes: number; total_bytes: number | null } | null;
+  };
 
   if (result.status === "running") {
-    return Response.json({ status: "running" });
+    return Response.json({
+      status: "running",
+      stage: result.stage ?? null,
+      stageAgeS: result.stage_age_s ?? null,
+      progress: result.progress
+        ? { doneBytes: result.progress.done_bytes, totalBytes: result.progress.total_bytes ?? null }
+        : null,
+    });
   }
 
   // No row means the job was already settled (sweeper or a concurrent poll) —
@@ -57,10 +68,21 @@ export async function DELETE(
   if (rows.length > 0 && rows[0].userId !== userId)
     return Response.json({ error: "Unauthorized" }, { status: 403 });
 
-  await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${jobId}`, { method: "DELETE", headers: backendHeaders() }).catch(console.error);
+  // The backend reads the job's heartbeat before killing it: exec_started_ts is
+  // when execution actually began (null = never started, or heartbeat missing).
+  let execStartedTs: number | null | undefined = undefined;
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${jobId}`, { method: "DELETE", headers: backendHeaders() });
+    if (res.ok) {
+      const body = await res.json() as { exec_started_ts?: number | null };
+      if ("exec_started_ts" in body) execStartedTs = body.exec_started_ts;
+    }
+  } catch (err) {
+    console.error(err);
+  }
 
-  // The GPU ran until the cancel landed — bill the elapsed time.
-  if (rows.length > 0) await billStoppedJob(rows[0]);
+  // Bill only GPU execution time, not queue/boot wait before the job started.
+  if (rows.length > 0) await billStoppedJob(rows[0], execStartedTs);
 
   return Response.json({ cancelled: true });
 }

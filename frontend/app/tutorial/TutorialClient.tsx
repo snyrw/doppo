@@ -191,7 +191,6 @@ export default function TutorialClient({ steps }: Props) {
           repetitionPenalty: raw.repetitionPenalty as number,
           nTokens: raw.nTokens as number,
           nPairs: raw.nPairs as number,
-          parentCardId: "",
           data: raw.data as SteeringResult,
         } as SteeringCardData;
       default:
@@ -412,9 +411,7 @@ export default function TutorialClient({ steps }: Props) {
           onMoveCard={(id, pos) => dispatch({ type: "MOVE_CARD", id, pos })}
           onRemoveCard={() => {}}
           onVerifyTopK={handleVerifyTopK}
-          onSteerComponents={() => {}}
           onRerunSteering={() => {}}
-          onSpawnEntropyCard={() => {}}
           tutorialMode
         />
       </div>

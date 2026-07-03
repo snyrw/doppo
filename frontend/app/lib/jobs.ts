@@ -106,9 +106,22 @@ export async function settleJob(
 
 /**
  * Bill a job that was stopped before producing a result (user cancel or sweeper
- * timeout). The GPU ran for the elapsed time either way.
+ * timeout), charging only GPU execution time.
+ *
+ * `execStartedTsS` comes from the backend's heartbeat (epoch seconds):
+ * - number  → execution began then; bill from there, not from spawn (spawn→exec
+ *             gap is queue/cold-boot wait the user's job never ran during)
+ * - null    → no heartbeat: the job never started executing (or the heartbeat
+ *             was unreadable). Charge nothing — when in doubt, favor the user.
+ * - undefined → caller has no heartbeat info (pre-heartbeat path); fall back to
+ *             spawn→now wall clock as before.
  */
-export async function billStoppedJob(job: ActiveJob): Promise<void> {
+export async function billStoppedJob(job: ActiveJob, execStartedTsS?: number | null): Promise<void> {
   if (!(await claimJob(job.id))) return;
-  await deductJobCost(job.userId, job.gpuTier, elapsedMs(job)).catch(reportBillingError(job));
+  let billedMs: number;
+  if (execStartedTsS === null) billedMs = 0;
+  else if (typeof execStartedTsS === "number") billedMs = Math.max(0, Date.now() - execStartedTsS * 1000);
+  else billedMs = elapsedMs(job);
+  if (billedMs <= 0) return;
+  await deductJobCost(job.userId, job.gpuTier, billedMs).catch(reportBillingError(job));
 }

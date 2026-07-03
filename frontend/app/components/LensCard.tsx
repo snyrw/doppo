@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
-import { usePalette } from "../hooks/usePalette";
+import { useSequentialPalette } from "../hooks/usePalette";
 import { interpolateColor, getContrastColor } from "../lib/palette";
 import { TIER_LABELS } from "../lib/tiers";
-import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, useElapsedMs, stageLabel } from "./CardShell";
+import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, useElapsedMs } from "./CardShell";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 import { cn } from "../lib/cn";
+import type { LoadingStage } from "../lib/loading-stage";
 
 const stepperBtnCls = "flex h-4 w-[18px] shrink-0 cursor-pointer items-center justify-center rounded-[3px] border border-card-border bg-surface-border p-0 text-[10px] leading-none text-muted";
 
@@ -35,7 +36,7 @@ export type LensCardData = {
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
-  loadingStage?: string;
+  loadingStage?: LoadingStage;
 };
 
 type LensCardProps = {
@@ -45,8 +46,6 @@ type LensCardProps = {
   onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
-  onSpawnEntropy?: () => void;
-  entropyCardExists?: boolean;
   tutorialMode?: boolean;
 };
 
@@ -96,11 +95,9 @@ function LensCard({
   onDragMove,
   onDragEnd,
   onRemove,
-  onSpawnEntropy,
-  entropyCardExists,
   tutorialMode,
 }: LensCardProps) {
-  const palette = usePalette();
+  const palette = useSequentialPalette();
   const [mode, setMode] = React.useState<DisplayMode>("prob");
   const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const [pinnedCol, setPinnedCol] = React.useState<number | null>(null);
@@ -307,20 +304,6 @@ function LensCard({
               </div>
             )}
 
-            {/* Entropy spawn button — visible whenever entropy data exists */}
-            {!tutorialMode && hasEntropy && onSpawnEntropy && (
-              <button
-                onClick={entropyCardExists ? undefined : onSpawnEntropy}
-                title={entropyCardExists ? "Entropy card already open" : "Spawn entropy sparkline card"}
-                className={cn(
-                  "shrink-0 rounded border border-card-border bg-surface-border px-[5px] py-0.5 text-[9px] leading-[1.4]",
-                  entropyCardExists ? "cursor-default text-surface-border opacity-40" : "cursor-pointer text-muted",
-                )}
-              >
-                ↗
-              </button>
-            )}
-
             <div className="flex-1" />
 
             {/* Active-filter badge — click to reset */}
@@ -402,10 +385,7 @@ function LensCard({
       {card.status === "loading" && (
         <div className="flex min-h-[110px] flex-col gap-2.5 px-3.5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
-          <CardLoadingState
-            stage={stageLabel(card.loadingStage, elapsedMs, STAGE_LABELS)}
-            warmup={!card.loadingStage && elapsedMs > 30_000}
-          />
+          <CardLoadingState stage={card.loadingStage} labels={STAGE_LABELS} />
         </div>
       )}
 

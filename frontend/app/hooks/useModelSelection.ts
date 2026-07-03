@@ -14,6 +14,7 @@ export type CustomValidation = {
   valid: boolean;
   gpu_tier: string | null;
   reason: string;
+  adapter?: { base_id: string; adapter_id: string };
 };
 
 /**

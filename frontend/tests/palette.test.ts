@@ -7,11 +7,11 @@ import {
   getHeadColor,
 } from "../app/lib/palette";
 
-describe("interpolateColor — warm-mono", () => {
-  it("uses prob directly as rgba alpha", () => {
-    expect(interpolateColor("warm-mono", 0)).toBe("rgba(175, 118, 32, 0)");
-    expect(interpolateColor("warm-mono", 1)).toBe("rgba(175, 118, 32, 1)");
-    expect(interpolateColor("warm-mono", 0.5)).toBe("rgba(175, 118, 32, 0.5)");
+describe("interpolateColor — mono", () => {
+  it("uses prob directly as the alpha of the theme-aware --heatmap-rgb var", () => {
+    expect(interpolateColor("mono", 0)).toBe("rgba(var(--heatmap-rgb), 0)");
+    expect(interpolateColor("mono", 1)).toBe("rgba(var(--heatmap-rgb), 1)");
+    expect(interpolateColor("mono", 0.5)).toBe("rgba(var(--heatmap-rgb), 0.5)");
   });
 });
 
@@ -57,6 +57,16 @@ describe("interpolateColor — inferno", () => {
   });
 });
 
+describe("interpolateColor — puor", () => {
+  it("prob=0 returns first stop (dark orange, negative end)", () => {
+    expect(interpolateColor("puor", 0)).toBe("rgb(127,59,8)");
+  });
+
+  it("prob=1 returns last stop (dark purple, positive end)", () => {
+    expect(interpolateColor("puor", 1)).toBe("rgb(45,0,75)");
+  });
+});
+
 describe("interpolateColorDivergent", () => {
   it("absMax=0 returns midpoint (t=0.5)", () => {
     expect(interpolateColorDivergent("rdbu", 0, 0)).toBe(interpolateColor("rdbu", 0.5));
@@ -87,14 +97,14 @@ describe("interpolateColorDivergent", () => {
 });
 
 describe("getContrastColor", () => {
-  it("warm-mono: prob > 0.55 → light text", () => {
-    expect(getContrastColor("warm-mono", 0.6)).toBe("#ecebe4");
-    expect(getContrastColor("warm-mono", 1.0)).toBe("#ecebe4");
+  it("mono: prob > 0.55 → var(--bg) (contrasts against the --heatmap-rgb-colored cell)", () => {
+    expect(getContrastColor("mono", 0.6)).toBe("var(--bg)");
+    expect(getContrastColor("mono", 1.0)).toBe("var(--bg)");
   });
 
-  it("warm-mono: prob <= 0.55 → dark text", () => {
-    expect(getContrastColor("warm-mono", 0.5)).toBe("#1c1c1c");
-    expect(getContrastColor("warm-mono", 0.0)).toBe("#1c1c1c");
+  it("mono: prob <= 0.55 → var(--text)", () => {
+    expect(getContrastColor("mono", 0.5)).toBe("var(--text)");
+    expect(getContrastColor("mono", 0.0)).toBe("var(--text)");
   });
 
   it("inferno prob=0 (near-black background) → light text", () => {
@@ -107,6 +117,10 @@ describe("getContrastColor", () => {
 
   it("rdbu prob=0 (deep blue background) → light text", () => {
     expect(getContrastColor("rdbu", 0)).toBe("#ecebe4");
+  });
+
+  it("puor prob=0 (dark orange background) → light text", () => {
+    expect(getContrastColor("puor", 0)).toBe("#ecebe4");
   });
 });
 

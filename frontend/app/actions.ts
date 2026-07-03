@@ -29,13 +29,7 @@ type SerializedCard = {
   nTokens?: number;
   nPairs?: number;
   extraPairs?: Array<{ clean: string; corrupted: string }>;
-  parentCardId?: string;
   generationPrompt?: string;
-  // entropy cards
-  parentLensId?: string;
-  entropyData?: number[][];
-  xLabels?: string[];
-  yLabels?: string[];
 };
 
 type CanvasState = import("./components/SandboxCanvas").CanvasState;

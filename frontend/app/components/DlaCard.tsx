@@ -1,10 +1,13 @@
 "use client";
 
 import React from "react";
-import { interpolateColorDivergent } from "../lib/palette";
-import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs, stageLabel } from "./CardShell";
+import { interpolateColorDivergent, type DivergingPaletteName } from "../lib/palette";
+import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs } from "./CardShell";
+import { DivergingBar } from "./DivergingBar";
+import { useDivergingPalette } from "../hooks/usePalette";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 import { cn } from "../lib/cn";
+import type { LoadingStage } from "../lib/loading-stage";
 
 // Shared cell classes for the DLA grid views (dimensional widths stay inline
 // because they're derived from the layout constants below).
@@ -37,7 +40,7 @@ export type DlaCardData = {
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
-  loadingStage?: string;
+  loadingStage?: LoadingStage;
   targetPosition: number | "last";
   targetToken: string | null;
   contrastiveToken: string | null;
@@ -78,6 +81,7 @@ function DlaCard({
   const [view, setView] = React.useState<"layer" | "head" | "top">("layer");
   const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const [headerHovered, setHeaderHovered] = React.useState(false);
+  const palette = useDivergingPalette();
 
   const canToggle = card.status === "result" && card.data != null;
 
@@ -210,10 +214,7 @@ function DlaCard({
       {card.status === "loading" && (
         <div className="flex min-h-[110px] flex-col gap-2.5 px-3.5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
-          <CardLoadingState
-            stage={stageLabel(card.loadingStage, elapsedMs, STAGE_LABELS)}
-            warmup={!card.loadingStage && elapsedMs > 30_000}
-          />
+          <CardLoadingState stage={card.loadingStage} labels={STAGE_LABELS} />
         </div>
       )}
 
@@ -224,11 +225,11 @@ function DlaCard({
       {card.status === "result" && card.data && (
         <div className="overflow-y-auto overflow-x-hidden bg-card p-1.5">
           {view === "layer" ? (
-            <LayerView data={card.data} absMax={absMax} />
+            <LayerView data={card.data} absMax={absMax} palette={palette} />
           ) : view === "head" ? (
-            <HeadView data={card.data} absMax={absMax} />
+            <HeadView data={card.data} absMax={absMax} palette={palette} />
           ) : (
-            <TopView data={card.data} absMax={absMax} />
+            <TopView data={card.data} absMax={absMax} palette={palette} />
           )}
         </div>
       )}
@@ -236,43 +237,9 @@ function DlaCard({
   );
 }
 
-function DivergingBar({ val, absMax, width = LAYER_BAR_W, height = LAYER_CELL_H, tooltipContent }: {
-  val: number; absMax: number; width?: number; height?: number; tooltipContent?: React.ReactNode;
-}) {
-  const [hover, setHover] = React.useState<{ x: number; y: number } | null>(null);
-  const color = interpolateColorDivergent("rdbu", val, absMax);
-  const barFrac = Math.abs(val) / absMax;
-  const isPositive = val >= 0;
-  return (
-    <>
-    <div
-      onMouseEnter={(e) => tooltipContent && setHover({ x: e.clientX, y: e.clientY })}
-      onMouseLeave={() => setHover(null)}
-      className="relative flex shrink-0 items-stretch overflow-hidden rounded-sm bg-surface-border"
-      style={{ width, height }}
-    >
-      <div className="absolute bottom-0 left-1/2 top-0 z-[1] w-px bg-card-border" />
-      {isPositive ? (
-        <>
-          <div className="w-1/2" />
-          <div className="rounded-r-sm" style={{ width: `${barFrac * 50}%`, background: color }} />
-        </>
-      ) : (
-        <>
-          <div className="flex-1" />
-          <div className="self-stretch rounded-l-sm" style={{ width: `${barFrac * 50}%`, background: color }} />
-          <div className="w-1/2" />
-        </>
-      )}
-    </div>
-    {hover && tooltipContent && <HoverTooltip x={hover.x} y={hover.y}>{tooltipContent}</HoverTooltip>}
-    </>
-  );
-}
-
 const HALF_BAR_W = Math.floor(LAYER_BAR_W / 2) - 2;
 
-function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
+function LayerView({ data, absMax, palette }: { data: DlaData; absMax: number; palette: DivergingPaletteName }) {
   const hasAttnMlp = data.layer_attn_dla != null && data.layer_mlp_dla != null;
 
   return (
@@ -296,14 +263,14 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
           </div>
           {hasAttnMlp ? (
             <>
-              <DivergingBar val={data.embed_dla} absMax={absMax} width={LAYER_BAR_W + 4} tooltipContent={<><span className="font-semibold">Embed</span>{" "}<span className="font-mono tabular-nums">{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
+              <DivergingBar val={data.embed_dla} absMax={absMax} palette={palette} width={LAYER_BAR_W + 4} tooltipContent={<><span className="font-semibold">Embed</span>{" "}<span className="font-mono tabular-nums">{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
               <span className={valueCls}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
             </>
           ) : (
             <>
-              <DivergingBar val={data.embed_dla} absMax={absMax} tooltipContent={<><span className="font-semibold">Embed</span>{" "}<span className="font-mono tabular-nums">{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
+              <DivergingBar val={data.embed_dla} absMax={absMax} palette={palette} tooltipContent={<><span className="font-semibold">Embed</span>{" "}<span className="font-mono tabular-nums">{data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(3)}</span></>} />
               <span className={valueCls}>
                 {data.embed_dla >= 0 ? "+" : ""}{data.embed_dla.toFixed(2)}
               </span>
@@ -347,12 +314,12 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
 
             {hasAttnMlp ? (
               <>
-                <DivergingBar val={attnVal!} absMax={absMax} width={HALF_BAR_W} tooltipContent={tooltipContent} />
+                <DivergingBar val={attnVal!} absMax={absMax} palette={palette} width={HALF_BAR_W} tooltipContent={tooltipContent} />
                 <div className="w-1 shrink-0" />
-                <DivergingBar val={mlpVal!} absMax={absMax} width={HALF_BAR_W} tooltipContent={tooltipContent} />
+                <DivergingBar val={mlpVal!} absMax={absMax} palette={palette} width={HALF_BAR_W} tooltipContent={tooltipContent} />
               </>
             ) : (
-              <DivergingBar val={combined} absMax={absMax} tooltipContent={tooltipContent} />
+              <DivergingBar val={combined} absMax={absMax} palette={palette} tooltipContent={tooltipContent} />
             )}
 
             <span className={valueCls}>
@@ -365,7 +332,7 @@ function LayerView({ data, absMax }: { data: DlaData; absMax: number }) {
   );
 }
 
-function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
+function HeadView({ data, absMax, palette }: { data: DlaData; absMax: number; palette: DivergingPaletteName }) {
   const [tooltip, setTooltip] = React.useState<TooltipState>(null);
   return (
     <>
@@ -391,7 +358,7 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
             {label}
           </div>
           {data.head_dla[li].map((val, hi) => {
-            const color = interpolateColorDivergent("rdbu", val, absMax);
+            const color = interpolateColorDivergent(palette, val, absMax);
             return (
               <div
                 key={hi}
@@ -413,7 +380,7 @@ function HeadView({ data, absMax }: { data: DlaData; absMax: number }) {
 const TOP_N = 15;
 const TOP_BAR_W = 120;
 
-function TopView({ data, absMax }: { data: DlaData; absMax: number }) {
+function TopView({ data, absMax, palette }: { data: DlaData; absMax: number; palette: DivergingPaletteName }) {
   const ranked = React.useMemo(() => {
     const entries: { label: string; val: number }[] = [];
     data.head_dla.forEach((row, li) => {
@@ -431,7 +398,7 @@ function TopView({ data, absMax }: { data: DlaData; absMax: number }) {
           <div className={yLabelCls} style={{ width: Y_LABEL_W + 14 }}>
             {label}
           </div>
-          <DivergingBar val={val} absMax={absMax} width={TOP_BAR_W} height={LAYER_CELL_H} tooltipContent={<><span className="font-semibold">{label}</span>{" "}<span className="font-mono tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></>} />
+          <DivergingBar val={val} absMax={absMax} palette={palette} width={TOP_BAR_W} height={LAYER_CELL_H} tooltipContent={<><span className="font-semibold">{label}</span>{" "}<span className="font-mono tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></>} />
           <span className={valueCls}>
             {val >= 0 ? "+" : ""}{val.toFixed(2)}
           </span>

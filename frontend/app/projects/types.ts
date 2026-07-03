@@ -5,6 +5,7 @@ import type { ActivationPatchResult } from "../components/ActivationCard";
 import type { SteeringResult } from "../components/SteeringCard";
 import type { AttentionData } from "../components/AttentionCard";
 import type { AnyCard, CanvasState } from "../components/SandboxCanvas";
+import type { LoadingStage } from "../lib/loading-stage";
 
 export type { AnyCard, CanvasState, HeatmapData };
 
@@ -28,7 +29,7 @@ export type AppAction =
   | { type: "ATTRIBUTION_VERIFY_STARTED"; id: string }
   | { type: "ATTRIBUTION_VERIFY_DONE"; id: string }
   | { type: "CARD_ERRORED"; id: string; error: string; showBuyCredits?: boolean; showVerifyCard?: boolean }
-  | { type: "CARD_STAGE"; id: string; stage: string }
+  | { type: "CARD_STAGE"; id: string; stage: LoadingStage }
   | { type: "MOVE_CARD"; id: string; position: { x: number; y: number } }
   | { type: "REMOVE_CARD"; id: string }
   | { type: "SET_CANVAS"; canvas: CanvasState }

@@ -5,8 +5,7 @@ import LensCard, { type LensCardData } from "./LensCard";
 import DlaCard, { type DlaCardData } from "./DlaCard";
 import AttributionCard, { type AttributionCardData } from "./AttributionCard";
 import ActivationCard, { type ActivationCardData } from "./ActivationCard";
-import SteeringCard, { type SteeringCardData, type SteeringComponent } from "./SteeringCard";
-import EntropyCard, { type EntropyCardData } from "./EntropyCard";
+import SteeringCard, { type SteeringCardData } from "./SteeringCard";
 import AttentionCard, { type AttentionCardData } from "./AttentionCard";
 import { useCanvasPan } from "../hooks/useCanvasPan";
 import { useCardDrag } from "../hooks/useCardDrag";
@@ -19,7 +18,7 @@ export type CanvasState = {
   zoom: number;
 };
 
-export type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData | SteeringCardData | EntropyCardData | AttentionCardData;
+export type AnyCard = LensCardData | DlaCardData | AttributionCardData | ActivationCardData | SteeringCardData | AttentionCardData;
 
 type SandboxCanvasProps = {
   cards: AnyCard[];
@@ -28,9 +27,7 @@ type SandboxCanvasProps = {
   onMoveCard: (id: string, pos: { x: number; y: number }) => void;
   onRemoveCard: (id: string) => void;
   onVerifyTopK: (attributionCardId: string, k: number) => void;
-  onSteerComponents: (sourceCardId: string, components: SteeringComponent[]) => void;
   onRerunSteering: (cardId: string, newAlpha: number) => void;
-  onSpawnEntropyCard: (lensCardId: string) => void;
   tutorialMode?: boolean;
 };
 
@@ -41,9 +38,7 @@ export default function SandboxCanvas({
   onMoveCard,
   onRemoveCard,
   onVerifyTopK,
-  onSteerComponents,
   onRerunSteering,
-  onSpawnEntropyCard,
   tutorialMode,
 }: SandboxCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -175,19 +170,15 @@ export default function SandboxCanvas({
       case "dla":
         return <DlaCard key={card.id} {...sharedProps} card={card} />;
       case "attribution":
-        return <AttributionCard key={card.id} {...sharedProps} card={card} onVerifyTopK={onVerifyTopK} onSteerComponents={onSteerComponents} />;
+        return <AttributionCard key={card.id} {...sharedProps} card={card} onVerifyTopK={onVerifyTopK} />;
       case "activation":
-        return <ActivationCard key={card.id} {...sharedProps} card={card} onSteerComponents={onSteerComponents} />;
+        return <ActivationCard key={card.id} {...sharedProps} card={card} />;
       case "steering":
         return <SteeringCard key={card.id} {...sharedProps} card={card} onRerun={onRerunSteering} />;
-      case "entropy":
-        return <EntropyCard key={card.id} {...sharedProps} card={card} />;
       case "attention-pattern":
         return <AttentionCard key={card.id} {...sharedProps} card={card} />;
-      case "logit-lens": {
-        const hasEntropyChild = cards.some(c => c.cardType === "entropy" && c.parentLensId === card.id);
-        return <LensCard key={card.id} {...sharedProps} card={card} onSpawnEntropy={() => onSpawnEntropyCard(card.id)} entropyCardExists={hasEntropyChild} />;
-      }
+      case "logit-lens":
+        return <LensCard key={card.id} {...sharedProps} card={card} />;
     }
   }
 
