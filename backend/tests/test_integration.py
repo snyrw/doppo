@@ -41,3 +41,36 @@ def test_gpu_smoke():
     print(f"✓ GPU smoke test passed")
     print(f"  Layers: {len(result['y_labels'])}, Tokens: {len(result['x_labels'])}")
     print(f"  Top prediction at final position: {result['topk_tokens'][-1][0]}")
+
+
+@app.local_entrypoint()
+def test_adapter_smoke(adapter_id: str):
+    """
+    Smoke test for the LoRA merge path: validate an adapter repo, then run logit
+    lens on the merged model. Run after any change to the adapter branch of
+    load_model — TL's hf_model= path skips device/dtype handling entirely, so
+    breakage there only shows up on a real GPU, never in unit tests.
+
+    Usage: modal run -m backend.tests.test_integration::test_adapter_smoke --adapter-id <repo>
+    """
+    from backend.main import _TIER_TO_CLS
+    from backend.validation import validate_hf_repo
+
+    print(f"Running adapter smoke test: {adapter_id}...")
+    v = validate_hf_repo(adapter_id, hf_token=os.environ.get("HF_TOKEN"))
+    assert v["valid"], f"Validation failed: {v['reason']}"
+    adapter = v.get("adapter")
+    assert adapter, f"'{adapter_id}' validated but did not resolve as an adapter repo"
+
+    cls = _TIER_TO_CLS[v["gpu_tier"]]
+    wrapped = cls(
+        model_id=adapter_id, revision=v["revision"],
+        base_id=adapter["base_id"], base_revision=adapter["base_revision"],
+    ).run_logit_lens_result.remote("The Eiffel Tower is in", 5)
+
+    result = wrapped["data"]
+    assert result.get("heatmap_data"), f"Empty heatmap_data. Keys: {list(result.keys())}"
+
+    print(f"✓ Adapter smoke test passed")
+    print(f"  Base: {adapter['base_id']} · tier: {v['gpu_tier']}")
+    print(f"  Top prediction at final position: {result['topk_tokens'][-1][0]}")

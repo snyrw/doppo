@@ -17,30 +17,45 @@ from .validation import validate_hf_repo
 @app.cls(gpu="L4", **_TL_KWARGS)
 class TransformerLensSmall(_TLBase):
     model_id: str = modal.parameter()
+    revision: str = modal.parameter(default="main")
+    base_id: str = modal.parameter(default="")
+    base_revision: str = modal.parameter(default="main")
     scaledown_window_s = _TL_KWARGS["scaledown_window"]
 
 
 @app.cls(gpu="L40S", **_TL_KWARGS)
 class TransformerLensMedium(_TLBase):
     model_id: str = modal.parameter()
+    revision: str = modal.parameter(default="main")
+    base_id: str = modal.parameter(default="")
+    base_revision: str = modal.parameter(default="main")
     scaledown_window_s = _TL_KWARGS["scaledown_window"]
 
 
 @app.cls(gpu="A100-80GB", **_TL_LARGE_KWARGS)
 class TransformerLensLarge(_TLBase):
     model_id: str = modal.parameter()
+    revision: str = modal.parameter(default="main")
+    base_id: str = modal.parameter(default="")
+    base_revision: str = modal.parameter(default="main")
     scaledown_window_s = _TL_LARGE_KWARGS["scaledown_window"]
 
 
 @app.cls(gpu="H200", **_TL_XLARGE_KWARGS)
 class TransformerLensXLarge(_TLBase):
     model_id: str = modal.parameter()
+    revision: str = modal.parameter(default="main")
+    base_id: str = modal.parameter(default="")
+    base_revision: str = modal.parameter(default="main")
     scaledown_window_s = _TL_XLARGE_KWARGS["scaledown_window"]
 
 
 @app.cls(gpu="B200", **_TL_XXLARGE_KWARGS)
 class TransformerLensXXLarge(_TLBase):
     model_id: str = modal.parameter()
+    revision: str = modal.parameter(default="main")
+    base_id: str = modal.parameter(default="")
+    base_revision: str = modal.parameter(default="main")
     scaledown_window_s = _TL_XXLARGE_KWARGS["scaledown_window"]
 
 
@@ -73,25 +88,33 @@ def _bump_tier(tier: str) -> str:
 
 
 def _resolve_model(model_name: str, bump: bool = False, hf_token: str | None = None):
-    """Resolve a model name to a (ModalClass, hf_model_id) pair.
+    """Resolve a model name to (ModalClass, hf_model_id, revision, base_id, base_revision).
 
     Looks up FEATURED_MODELS first; falls back to validate_hf_repo for arbitrary HF IDs.
-    Raises HTTPException(400) if the model is invalid.
+    Raises HTTPException(400) if the model is invalid. revision/base_id/base_revision pin
+    the exact commit(s) validate_hf_repo checked, so the worker can't load something that
+    was swapped in after validation (TOCTOU) — see validate_hf_repo's docstring.
     """
     from fastapi import HTTPException
     entry = FEATURED_MODELS.get(model_name)
+    base_id, base_revision = "", "main"
     if entry is None:
         validation = validate_hf_repo(model_name, hf_token=hf_token)
         if not validation["valid"]:
             raise HTTPException(status_code=400, detail=validation["reason"])
         tier = validation["gpu_tier"]
         resolved_id = model_name
+        revision = validation["revision"]
+        adapter = validation.get("adapter")
+        if adapter:
+            base_id, base_revision = adapter["base_id"], adapter["base_revision"]
     else:
         tier = entry["gpu_tier"]
         resolved_id = entry["model_id"]
+        revision = "main"  # featured models are curated pins to whatever main currently is
     if bump:
         tier = _bump_tier(tier)
-    return _TIER_TO_CLS[tier], resolved_id
+    return _TIER_TO_CLS[tier], resolved_id, revision, base_id, base_revision
 
 
 # ── FastAPI app ────────────────────────────────────────────────────────────────

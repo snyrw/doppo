@@ -1,6 +1,210 @@
 import modal
 
-from .config import MAX_PROMPT_TOKENS
+from .config import MAX_PROMPT_TOKENS, STAGE_DICT_NAME
+from .errors import UserFacingError
+
+
+class _StageHeartbeat:
+    """Publishes the running job's latest stage to a shared modal.Dict keyed by
+    FunctionCall ID, so poll_job can report liveness to the client.
+
+    A daemon thread rewrites the entry every ~10s even when the stage hasn't
+    changed — long single stages (a 70B forward pass, baseline generation) yield
+    no chunks for minutes, and without the thread a frozen timestamp would be
+    indistinguishable from a hung worker. If writes stop, the job is genuinely
+    stalled or its container is gone.
+
+    Entirely best-effort: Dict failures must never fail or slow the job.
+    """
+
+    _WRITE_INTERVAL_S = 10.0
+
+    def __init__(self, call_id: str | None):
+        import threading
+        import time
+
+        self._key = call_id
+        self._dict = None
+        self._started_ts = time.time()
+        self._stage = "starting"
+        self._stop = threading.Event()
+        if not call_id:
+            return
+        try:
+            self._dict = modal.Dict.from_name(STAGE_DICT_NAME, create_if_missing=True)
+        except Exception:
+            return
+        self._write()
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def _write(self):
+        import time
+        try:
+            self._dict[self._key] = {
+                "stage": self._stage,
+                "ts": time.time(),
+                "started_ts": self._started_ts,
+            }
+        except Exception:
+            pass
+
+    def _run(self):
+        while not self._stop.wait(self._WRITE_INTERVAL_S):
+            if self._stop.is_set():
+                return
+            self._write()
+
+    def beat(self, stage: str):
+        if self._dict is None or not stage or stage == self._stage:
+            return
+        self._stage = stage
+        self._write()
+
+    def clear(self):
+        self._stop.set()
+        if self._dict is None:
+            return
+        try:
+            self._dict.pop(self._key)
+        except Exception:
+            pass
+
+
+def _boot_stage(
+    done: int, prev_done: int, total: int | None, prev_stage: str | None = None
+) -> str:
+    """Classify the boot phase by observing cache-dir growth — the load code
+    itself is not instrumented. With a known total, download is complete at
+    ~99% (index/metadata files make exact equality unreliable). Without one,
+    growth since the previous observation means a download is in flight;
+    prev_done < 0 marks the first observation.
+
+    A first observation already at the total means the weights were cached
+    before this boot — "loading_model_cached", sticky via prev_stage so the
+    label never flips mid-load. Only claimed with a known total: without one,
+    pre-existing bytes could be a partial download from a dead container."""
+    if prev_stage == "loading_model_cached":
+        return "loading_model_cached"
+    if total:
+        if done < total * 0.99:
+            return "downloading_weights"
+        return "loading_model_cached" if prev_done < 0 else "loading_model"
+    if prev_done < 0:
+        return "downloading_weights" if done == 0 else "loading_model"
+    return "downloading_weights" if done > prev_done else "loading_model"
+
+
+def _repo_cache_root(repo_id: str) -> str:
+    import os
+    from huggingface_hub.constants import HF_HUB_CACHE
+
+    return os.path.join(HF_HUB_CACHE, "models--" + repo_id.replace("/", "--"))
+
+
+def _cache_dir_bytes(root: str) -> int:
+    """On-disk bytes under an HF repo cache dir. Skips symlinks — snapshots/
+    symlink into blobs/, and following them would double-count every weight
+    file. In-flight *.incomplete blobs count, which is the point."""
+    import os
+
+    total = 0
+    for dirpath, _, filenames in os.walk(root):
+        for name in filenames:
+            path = os.path.join(dirpath, name)
+            try:
+                if not os.path.islink(path):
+                    total += os.path.getsize(path)
+            except OSError:
+                pass
+    return total
+
+
+def _expected_download_bytes(repos: list[tuple[str, str]]) -> int | None:
+    """Sum of safetensors sizes across repos from Hub metadata (HfApi picks up
+    HF_TOKEN from the env for gated repos). None on any failure — progress
+    then shows bytes-so-far without a total."""
+    try:
+        from huggingface_hub import HfApi
+
+        api = HfApi()
+        total = 0
+        for repo_id, revision in repos:
+            info = api.model_info(repo_id, revision=revision, files_metadata=True)
+            sizes = [
+                s.size for s in info.siblings
+                if s.rfilename.endswith(".safetensors") and s.size
+            ]
+            if not sizes:
+                return None
+            total += sum(sizes)
+        return total
+    except Exception:
+        return None
+
+
+class _BootHeartbeat:
+    """Publishes container boot / model-load progress under a model-scoped Dict
+    key. No FunctionCall exists inside @modal.enter(), so _StageHeartbeat can't
+    cover the boot window; poll_job follows the job's spawn-time pointer entry
+    to this key instead. The Hub metadata call and the cache-dir walks all run
+    on the daemon thread — the boot path is never slowed. Best-effort like
+    _StageHeartbeat: Dict/Hub failures must never fail or slow the boot."""
+
+    _WRITE_INTERVAL_S = 5.0
+
+    def __init__(self, key: str, repos: list[tuple[str, str]]):
+        import threading
+        import time
+
+        self._key = key
+        self._repos = repos
+        self._dict = None
+        self._stop = threading.Event()
+        try:
+            self._dict = modal.Dict.from_name(STAGE_DICT_NAME, create_if_missing=True)
+        except Exception:
+            return
+        # Synchronous beacon: marks "container up, runtime starting" the moment
+        # @modal.enter() runs, before the daemon thread's Hub-metadata call can
+        # delay the first real observation. Ends the client's "queued" phase.
+        try:
+            self._dict[self._key] = {"stage": "starting_runtime", "ts": time.time()}
+        except Exception:
+            pass
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def _run(self):
+        import time
+
+        total = _expected_download_bytes(self._repos)
+        prev_done = -1
+        stage = None
+        while not self._stop.is_set():
+            done = sum(
+                _cache_dir_bytes(_repo_cache_root(repo_id)) for repo_id, _ in self._repos
+            )
+            stage = _boot_stage(done, prev_done, total, stage)
+            entry = {"stage": stage, "ts": time.time()}
+            # A cached boot has no download in flight; a full/full byte counter
+            # would just imply one. Omit progress entirely.
+            if stage != "loading_model_cached":
+                entry["progress"] = {"done_bytes": done, "total_bytes": total}
+            try:
+                self._dict[self._key] = entry
+            except Exception:
+                pass
+            prev_done = done
+            if self._stop.wait(self._WRITE_INTERVAL_S):
+                return
+
+    def clear(self):
+        self._stop.set()
+        if self._dict is None:
+            return
+        try:
+            self._dict.pop(self._key)
+        except Exception:
+            pass
 
 
 def _gather_next_token_probs(probs, next_tokens):
@@ -15,6 +219,17 @@ def _gather_next_token_probs(probs, next_tokens):
 def _resolve_pos(tokens, target_position: int | str) -> int:
     """Resolve target_position ('last' or an int string/int) to an absolute token index."""
     return int(tokens.shape[-1]) - 1 if target_position == "last" else int(target_position)
+
+
+def _check_aligned(clean_tokens, corrupted_tokens) -> None:
+    """Patching requires clean/corrupted to share a position axis — a single
+    target_position resolved on clean_tokens is used to index both runs."""
+    if clean_tokens.shape[1] != corrupted_tokens.shape[1]:
+        raise UserFacingError(
+            f"Clean and corrupted prompts must tokenize to the same length "
+            f"(got {clean_tokens.shape[1]} vs {corrupted_tokens.shape[1]} tokens). "
+            "Patching indexes both runs by the same position."
+        )
 
 
 # ── TransformerBridge inference ───────────────────────────────────────────────
@@ -44,7 +259,15 @@ def _cpu_seconds() -> float:
 
 
 class _TLBase:
-    model_id: str  # declared on each concrete subclass via modal.parameter()
+    # model_id/revision/base_id/base_revision declared on each concrete subclass via
+    # modal.parameter() — see main.py. base_id is set (non-empty) only when model_id
+    # resolved to a LoRA/DoRA adapter; revision/base_revision are the exact commit shas
+    # validate_hf_repo already checked, pinned here so nothing can change between
+    # validation and load.
+    model_id: str
+    revision: str
+    base_id: str
+    base_revision: str
     # Idle seconds Modal keeps (and bills) this container after its last call.
     # Overridden per tier class in main.py to match config.py scaledown_window.
     scaledown_window_s: int = 30
@@ -53,48 +276,28 @@ class _TLBase:
     def load_model(self):
         import time
 
-        import torch
-        from transformer_lens.model_bridge import TransformerBridge
-
         boot_wall_start = time.time()
         boot_cpu_start = _cpu_seconds()
-        torch.set_grad_enabled(False)
 
-        # LoRA/DoRA adapter repos carry only a delta — merge it onto the base (which
-        # the web layer already re-validated through the same gate) before bridging.
-        # Manual PEFT path only: never AutoPeftModel (it honors auto_mapping + forwards
-        # trust_remote_code). The merged in-memory model is handed straight to TL.
-        from huggingface_hub import list_repo_files
-
-        if "adapter_config.json" in set(list_repo_files(self.model_id)):
-            import json
-
-            from huggingface_hub import hf_hub_download
-            from peft import PeftModel
-            from transformers import AutoModelForCausalLM, AutoTokenizer
-
-            with open(hf_hub_download(self.model_id, "adapter_config.json")) as f:
-                base_id = json.load(f)["base_model_name_or_path"]
-            base = AutoModelForCausalLM.from_pretrained(
-                base_id, torch_dtype=torch.bfloat16, trust_remote_code=False
-            )
-            merged = PeftModel.from_pretrained(base, self.model_id).merge_and_unload()
-            tok = AutoTokenizer.from_pretrained(base_id, trust_remote_code=False)
-            self.model = TransformerBridge.boot_transformers(
-                base_id, hf_model=merged, tokenizer=tok, dtype=torch.bfloat16
-            )
-        else:
-            self.model = TransformerBridge.boot_transformers(
-                self.model_id,
-                dtype=torch.bfloat16,
-            )
-        self.model.eval()
-
-        # not sure if this is needed since we don't do snapshots anymore
-        dummy = self.model.to_tokens("the quick brown fox")
-        for _ in range(3):
-            self.model(dummy)
-        torch.cuda.empty_cache()
+        # A raising @modal.enter() is a container-start failure, not a job
+        # failure: Modal re-queues the pending input and boots a replacement
+        # container, which loads and dies the same way — a billed crash loop
+        # bounded only by the sweeper. Catch load errors and flag instead;
+        # _final_result raises the flag as a normal method exception, which is
+        # terminal (not retried) and reaches the poller as a real message.
+        self._load_error: str | None = None
+        repos = (
+            [(self.base_id, self.base_revision), (self.model_id, self.revision)]
+            if self.base_id
+            else [(self.model_id, self.revision)]
+        )
+        boot_hb = _BootHeartbeat(f"boot:{self.model_id}:{self.revision}", repos)
+        try:
+            self._load_model_inner()
+        except Exception as e:
+            self._load_error = f"{type(e).__name__}: {e}"
+        finally:
+            boot_hb.clear()
 
         # Modal bills the container from boot through the post-idle scaledown,
         # not just method execution. Meter boot here and attribute it (plus the
@@ -105,6 +308,53 @@ class _TLBase:
         self._boot_rss_gib = _read_rss_gib()
         self._boot_attributed = False
 
+    def _load_model_inner(self):
+        import torch
+        from transformer_lens.model_bridge import TransformerBridge
+
+        torch.set_grad_enabled(False)
+
+        # LoRA/DoRA adapter repos carry only a delta — merge it onto the base before
+        # bridging. base_id is set only when the web layer's validation resolved this
+        # model_id as an adapter; base_id/base_revision are the exact commit it
+        # re-validated through the same gate (validate_hf_repo) — nothing is re-resolved
+        # here, so nothing about the base can change between validation and load.
+        # Manual PEFT path only: never AutoPeftModel (it honors auto_mapping + forwards
+        # trust_remote_code). The merged in-memory model is handed straight to TL.
+        # device/dtype must be final BEFORE bridging: boot_transformers uses a passed
+        # hf_model as-is (no .to(device), no dtype cast — its dtype= kwarg is ignored on
+        # this path) and derives cfg.device from the model's parameters. Without
+        # device_map="cuda" the merged model stays on CPU, inference runs there, and the
+        # container OOM-kills on host RAM while the GPU sits idle.
+        if self.base_id:
+            from peft import PeftModel
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+
+            base = AutoModelForCausalLM.from_pretrained(
+                self.base_id, revision=self.base_revision,
+                dtype=torch.bfloat16, device_map="cuda", trust_remote_code=False,
+            )
+            merged = PeftModel.from_pretrained(
+                base, self.model_id, revision=self.revision
+            ).merge_and_unload()
+            tok = AutoTokenizer.from_pretrained(
+                self.base_id, revision=self.base_revision, trust_remote_code=False
+            )
+            self.model = TransformerBridge.boot_transformers(
+                self.base_id, hf_model=merged, tokenizer=tok
+            )
+        else:
+            self.model = TransformerBridge.boot_transformers(
+                self.model_id, revision=self.revision, dtype=torch.bfloat16,
+            )
+        self.model.eval()
+
+        # not sure if this is needed since we don't do snapshots anymore
+        dummy = self.model.to_tokens("the quick brown fox")
+        for _ in range(3):
+            self.model(dummy)
+        torch.cuda.empty_cache()
+
     def _final_result(self, gen, name: str) -> dict:
         """Consume a streaming run generator; return its done payload plus the
         Modal-billable resource usage of this call: wall time (GPU-seconds),
@@ -114,16 +364,26 @@ class _TLBase:
         import json
         import time
 
+        # Model never loaded — fail the job immediately with the stored reason
+        # instead of letting the method crash into an opaque AttributeError.
+        if self._load_error is not None:
+            raise UserFacingError(f"Model failed to load: {self._load_error}")
+
         wall_start = time.time()
         cpu_start = _cpu_seconds()
         rss_start = _read_rss_gib()
 
+        heartbeat = _StageHeartbeat(modal.current_function_call_id())
         data = None
-        for chunk_str in gen:
-            chunk = json.loads(chunk_str)
-            if chunk.get("stage") == "done":
-                data = chunk["data"]
-                break
+        try:
+            for chunk_str in gen:
+                chunk = json.loads(chunk_str)
+                heartbeat.beat(chunk.get("stage", ""))
+                if chunk.get("stage") == "done":
+                    data = chunk["data"]
+                    break
+        finally:
+            heartbeat.clear()
         if data is None:
             raise RuntimeError(f"{name} produced no done event")
 
@@ -156,7 +416,7 @@ class _TLBase:
         yield json.dumps({"stage": "tokenizing"})
         tokens = self.model.to_tokens(prompt)
         if tokens.shape[1] > MAX_PROMPT_TOKENS:
-            raise ValueError(
+            raise UserFacingError(
                 f"Prompt too long: {tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
                 "Shorten your prompt."
             )
@@ -270,16 +530,17 @@ class _TLBase:
         yield json.dumps({"stage": "tokenizing"})
         clean_tokens = self.model.to_tokens(clean_prompt)
         if clean_tokens.shape[1] > MAX_PROMPT_TOKENS:
-            raise ValueError(
+            raise UserFacingError(
                 f"Prompt too long: {clean_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
                 "Shorten your prompt."
             )
         corrupted_tokens = self.model.to_tokens(corrupted_prompt)
         if corrupted_tokens.shape[1] > MAX_PROMPT_TOKENS:
-            raise ValueError(
+            raise UserFacingError(
                 f"Corrupted prompt too long: {corrupted_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
                 "Shorten your prompt."
             )
+        _check_aligned(clean_tokens, corrupted_tokens)
         pos = _resolve_pos(clean_tokens, target_position)
 
         n_layers = self.model.cfg.n_layers
@@ -446,16 +707,17 @@ class _TLBase:
         yield json.dumps({"stage": "tokenizing"})
         clean_tokens = self.model.to_tokens(clean_prompt)
         if clean_tokens.shape[1] > MAX_PROMPT_TOKENS:
-            raise ValueError(
+            raise UserFacingError(
                 f"Prompt too long: {clean_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
                 "Shorten your prompt."
             )
         corrupted_tokens = self.model.to_tokens(corrupted_prompt)
         if corrupted_tokens.shape[1] > MAX_PROMPT_TOKENS:
-            raise ValueError(
+            raise UserFacingError(
                 f"Corrupted prompt too long: {corrupted_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
                 "Shorten your prompt."
             )
+        _check_aligned(clean_tokens, corrupted_tokens)
         pos = _resolve_pos(clean_tokens, target_position)
         top_components = components[:k]
 
@@ -464,9 +726,9 @@ class _TLBase:
             layer = comp["layer"]
             head = comp.get("head")
             if not (0 <= layer < self.model.cfg.n_layers):
-                raise ValueError(f"layer {layer} out of range (model has {self.model.cfg.n_layers} layers)")
+                raise UserFacingError(f"layer {layer} out of range (model has {self.model.cfg.n_layers} layers)")
             if head is not None and head >= 0 and not (0 <= head < self.model.cfg.n_heads):
-                raise ValueError(f"head {head} out of range (model has {self.model.cfg.n_heads} heads)")
+                raise UserFacingError(f"head {head} out of range (model has {self.model.cfg.n_heads} heads)")
 
         # Build set of hook names needed for corrupted cache
         hook_names: set[str] = set()
@@ -493,7 +755,7 @@ class _TLBase:
             clean_metric = _metric(self.model(clean_tokens))
             corrupted_metric = _metric(self.model(corrupted_tokens))
         signed_diff = clean_metric - corrupted_metric
-        total_diff = signed_diff if abs(signed_diff) >= 1e-8 else 1e-8
+        total_diff = signed_diff if abs(signed_diff) >= 1e-8 else (1e-8 if signed_diff >= 0 else -1e-8)
 
         # CPU-offload the clean cache so it doesn't compete with the k patching
         # forward passes for the limited headroom above model weights.
@@ -596,7 +858,7 @@ class _TLBase:
                 continue
             _cap_tokens = self.model.to_tokens(_text)
             if _cap_tokens.shape[1] > MAX_PROMPT_TOKENS:
-                raise ValueError(
+                raise UserFacingError(
                     f"{_label} too long: {_cap_tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
                     "Shorten your prompt."
                 )
@@ -629,9 +891,9 @@ class _TLBase:
                 layer = comp["layer"] if comp["layer"] >= 0 else n_layers // 2
                 head = comp.get("head")
                 if not (0 <= layer < self.model.cfg.n_layers):
-                    raise ValueError(f"layer {layer} out of range (model has {self.model.cfg.n_layers} layers)")
+                    raise UserFacingError(f"layer {layer} out of range (model has {self.model.cfg.n_layers} layers)")
                 if head is not None and not (0 <= head < self.model.cfg.n_heads):
-                    raise ValueError(f"head {head} out of range (model has {self.model.cfg.n_heads} heads)")
+                    raise UserFacingError(f"head {head} out of range (model has {self.model.cfg.n_heads} heads)")
 
             # Accumulate unnormalized DIM vectors across all pairs, then average.
             # Each component gets its own accumulator tensor (initialized on first pair).
@@ -822,7 +1084,7 @@ class _TLBase:
         yield json.dumps({"stage": "tokenizing"})
         tokens = self.model.to_tokens(prompt)
         if tokens.shape[1] > MAX_PROMPT_TOKENS:
-            raise ValueError(
+            raise UserFacingError(
                 f"Prompt too long: {tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
                 "Shorten your prompt."
             )
@@ -895,7 +1157,7 @@ class _TLBase:
         TOKEN_CAP = 30
         tokens = self.model.to_tokens(prompt)
         if tokens.shape[1] > MAX_PROMPT_TOKENS:
-            raise ValueError(
+            raise UserFacingError(
                 f"Prompt too long: {tokens.shape[1]} tokens (max {MAX_PROMPT_TOKENS}). "
                 "Shorten your prompt."
             )

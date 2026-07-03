@@ -38,6 +38,11 @@ web_image = modal.Image.debian_slim(python_version="3.12").pip_install(
 
 MAX_PROMPT_TOKENS = 48
 
+# Shared modal.Dict where workers publish per-job stage heartbeats, keyed by
+# FunctionCall ID. Written by _StageHeartbeat (inference.py), read by poll_job
+# and the cancel endpoint (routes/jobs.py).
+STAGE_DICT_NAME = "job-stage-heartbeat"
+
 FEATURED_MODELS: dict[str, dict] = {
     # ── GPT-2 ────────────────────────────────────────────────────────────────
     "gpt2-small": {
@@ -194,15 +199,19 @@ _SHARED_CLS_KWARGS = dict(
 )
 
 # scaledown_window is tiered: expensive tiers cut off idle faster.
+# timeout only bounds method execution (since modal 1.1.4 it excludes container
+# startup); startup_timeout separately bounds boot — @modal.enter() download +
+# load — which is otherwise unbounded billed GPU time if a boot hangs.
 _TL_KWARGS = dict(
     image=tl_image,
     timeout=600,
+    startup_timeout=600,   # < 4B params: download + load in well under 10 min
     scaledown_window=30,   # L4 / L40S — cheap enough to hold warm briefly
     **_SHARED_CLS_KWARGS,
 )
 
 # Large/XL models (10–70B) can take 10–20 min to download on first cold start.
-_TL_LARGE_KWARGS = {**_TL_KWARGS, "timeout": 1200, "scaledown_window": 15}   # A100-80GB
+_TL_LARGE_KWARGS = {**_TL_KWARGS, "timeout": 1200, "startup_timeout": 1800, "scaledown_window": 15}   # A100-80GB
 
 # H200 is the priciest tier; cut idle time aggressively.
 _TL_XLARGE_KWARGS = {**_TL_LARGE_KWARGS, "scaledown_window": 10}             # H200
