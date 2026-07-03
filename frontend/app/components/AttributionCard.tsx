@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
-import { interpolateColorDivergent } from "../lib/palette";
-import type { SteeringComponent } from "./SteeringCard";
-import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs, stageLabel } from "./CardShell";
+import { interpolateColorDivergent, type DivergingPaletteName } from "../lib/palette";
+import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs } from "./CardShell";
+import { DivergingBar } from "./DivergingBar";
+import { useDivergingPalette } from "../hooks/usePalette";
 import { cn } from "../lib/cn";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
+import type { LoadingStage } from "../lib/loading-stage";
 
 export type TopKComponent = {
   layer: number;
@@ -41,7 +43,7 @@ export type AttributionCardData = {
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
-  loadingStage?: string;
+  loadingStage?: LoadingStage;
   targetPosition: number | "last";
   targetToken: string | null;
   contrastiveToken: string | null;
@@ -56,7 +58,6 @@ type AttributionCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   onVerifyTopK: (cardId: string, k: number) => void;
-  onSteerComponents: (cardId: string, components: SteeringComponent[]) => void;
   tutorialMode?: boolean;
 };
 
@@ -82,14 +83,13 @@ function AttributionCard({
   onDragEnd,
   onRemove,
   onVerifyTopK,
-  onSteerComponents,
   tutorialMode,
 }: AttributionCardProps) {
   const [view, setView] = React.useState<"layer" | "head">("head");
   const [selectedK, setSelectedK] = React.useState<5 | 10 | 20>(10);
   const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const [headerHovered, setHeaderHovered] = React.useState(false);
-  const [selectedComponents, setSelectedComponents] = React.useState<SteeringComponent[]>([]);
+  const palette = useDivergingPalette();
 
   const canToggle = card.status === "result" && card.data != null;
 
@@ -106,23 +106,6 @@ function AttributionCard({
     if (view === "layer") return Y_LABEL_W + LAYER_BAR_W + 48 + 12;
     return Y_LABEL_W + (HEAD_CELL_SIZE + COL_GAP) * card.data.x_labels.length + 12;
   }, [card.data, card.status, view]);
-
-  const topLayer = React.useMemo(() => {
-    if (!card.data) return 0;
-    return card.data.layer_attribution.reduce(
-      (best, v, i, arr) => (Math.abs(v) > Math.abs(arr[best]) ? i : best),
-      0
-    );
-  }, [card.data]);
-
-  function toggleComponent(comp: SteeringComponent) {
-    setSelectedComponents(prev => {
-      const exists = prev.some(c => c.layer === comp.layer && c.head === comp.head);
-      return exists
-        ? prev.filter(c => !(c.layer === comp.layer && c.head === comp.head))
-        : [...prev, comp];
-    });
-  }
 
   const isVerifying = card.verifyStatus === "loading";
   const isVerified = card.verifyStatus === "done";
@@ -265,27 +248,6 @@ function AttributionCard({
                 </button>
               </>
             )}
-            {/* Steer buttons */}
-            {!tutorialMode && (
-              <>
-                <button
-                  onPointerDown={e => e.stopPropagation()}
-                  onClick={() => onSteerComponents(card.id, [{ layer: topLayer, head: null, injectionType: "residual" }])}
-                  className="cursor-pointer whitespace-nowrap chamfer [--c:3px] border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg transition-transform active:translate-y-px"
-                >
-                  Steer →
-                </button>
-                {view === "head" && selectedComponents.length > 0 && (
-                  <button
-                    onPointerDown={e => e.stopPropagation()}
-                    onClick={() => { onSteerComponents(card.id, selectedComponents); setSelectedComponents([]); }}
-                    className="cursor-pointer whitespace-nowrap chamfer [--c:3px] border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg transition-transform active:translate-y-px"
-                  >
-                    Steer {selectedComponents.length} →
-                  </button>
-                )}
-              </>
-            )}
           </div>
         )}
       </div>
@@ -294,10 +256,7 @@ function AttributionCard({
       {card.status === "loading" && (
         <div className="flex min-h-[110px] flex-col gap-2.5 px-3.5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
-          <CardLoadingState
-            stage={stageLabel(card.loadingStage, elapsedMs, STAGE_LABELS)}
-            warmup={!card.loadingStage && elapsedMs > 30_000}
-          />
+          <CardLoadingState stage={card.loadingStage} labels={STAGE_LABELS} />
         </div>
       )}
 
@@ -308,9 +267,9 @@ function AttributionCard({
       {card.status === "result" && card.data && (
         <div className="overflow-y-auto overflow-x-hidden bg-card p-1.5">
           {view === "layer" ? (
-            <LayerView data={card.data} absMax={absMax} />
+            <LayerView data={card.data} absMax={absMax} palette={palette} />
           ) : (
-            <HeadView data={card.data} absMax={absMax} selectedComponents={selectedComponents} onToggleComponent={toggleComponent} tutorialMode={tutorialMode} />
+            <HeadView data={card.data} absMax={absMax} palette={palette} />
           )}
         </div>
       )}
@@ -318,42 +277,25 @@ function AttributionCard({
   );
 }
 
-function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) {
-  const [tooltip, setTooltip] = React.useState<TooltipState>(null);
+function LayerView({ data, absMax, palette }: { data: AttributionData; absMax: number; palette: DivergingPaletteName }) {
   return (
-    <>
     <div className="inline-flex flex-col" style={{ gap: COL_GAP }}>
       {data.y_labels.map((label, i) => {
         const val = data.layer_attribution[i];
-        const color = interpolateColorDivergent("rdbu", val, absMax);
-        const barFrac = Math.abs(val) / absMax;
-        const isPositive = val >= 0;
 
         return (
           <div key={label} className="flex items-center" style={{ gap: COL_GAP }}>
             <div className="shrink-0 pr-1 text-right font-mono text-[9px] text-muted" style={{ width: Y_LABEL_W }}>
               {label}
             </div>
-            <div
-              onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span className="font-semibold">{label}</span>{" "}<span className="font-mono tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
-              onMouseLeave={() => setTooltip(null)}
-              className="relative flex shrink-0 items-stretch overflow-hidden rounded-sm bg-surface-border"
-              style={{ width: LAYER_BAR_W, height: LAYER_CELL_H }}
-            >
-              <div className="absolute bottom-0 left-1/2 top-0 z-[1] w-px bg-card-border" />
-              {isPositive ? (
-                <>
-                  <div className="w-1/2" />
-                  <div className="rounded-r-sm" style={{ width: `${barFrac * 50}%`, background: color }} />
-                </>
-              ) : (
-                <>
-                  <div className="flex-1" />
-                  <div className="self-stretch rounded-l-sm" style={{ width: `${barFrac * 50}%`, background: color }} />
-                  <div className="w-1/2" />
-                </>
-              )}
-            </div>
+            <DivergingBar
+              val={val}
+              absMax={absMax}
+              palette={palette}
+              width={LAYER_BAR_W}
+              height={LAYER_CELL_H}
+              tooltipContent={<><span className="font-semibold">{label}</span>{" "}<span className="font-mono tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></>}
+            />
             <span className="w-11 shrink-0 text-right font-mono text-[9px] tabular-nums text-muted">
               {val >= 0 ? "+" : ""}{val.toFixed(2)}
             </span>
@@ -361,19 +303,15 @@ function LayerView({ data, absMax }: { data: AttributionData; absMax: number }) 
         );
       })}
     </div>
-    {tooltip && <HoverTooltip x={tooltip.x} y={tooltip.y}>{tooltip.content}</HoverTooltip>}
-    </>
   );
 }
 
 function HeadView({
-  data, absMax, selectedComponents, onToggleComponent, tutorialMode,
+  data, absMax, palette,
 }: {
   data: AttributionData;
   absMax: number;
-  selectedComponents: SteeringComponent[];
-  onToggleComponent: (comp: SteeringComponent) => void;
-  tutorialMode?: boolean;
+  palette: DivergingPaletteName;
 }) {
   const [tooltip, setTooltip] = React.useState<TooltipState>(null);
   return (
@@ -397,22 +335,17 @@ function HeadView({
             {label}
           </div>
           {data.head_attribution[li].map((val, hi) => {
-            const color = interpolateColorDivergent("rdbu", val, absMax);
-            const isSelected = selectedComponents.some(c => c.layer === li && c.head === hi);
+            const color = interpolateColorDivergent(palette, val, absMax);
             return (
               <div
                 key={hi}
                 onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: <><span className="font-semibold">{label}</span>{" H"}{hi}<br /><span className="font-mono tabular-nums">{val >= 0 ? "+" : ""}{val.toFixed(3)}</span></> })}
                 onMouseLeave={() => setTooltip(null)}
-                onPointerDown={e => e.stopPropagation()}
-                onClick={tutorialMode ? undefined : () => onToggleComponent({ layer: li, head: hi, injectionType: "attn_head" })}
-                className="box-border shrink-0 cursor-pointer rounded-sm"
+                className="box-border shrink-0 rounded-sm"
                 style={{
                   width: HEAD_CELL_SIZE, height: HEAD_CELL_SIZE,
                   backgroundColor: color,
-                  border: isSelected ? "1.5px solid var(--text)" : "0.5px solid var(--surface-border)",
-                  outline: isSelected ? "1px solid var(--accent)" : "none",
-                  outlineOffset: 1,
+                  border: "0.5px solid var(--surface-border)",
                 }}
               />
             );

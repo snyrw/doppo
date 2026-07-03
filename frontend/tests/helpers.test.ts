@@ -150,25 +150,6 @@ describe("serializeCard", () => {
     expect((result as Record<string, unknown>).extraPairs).toHaveLength(1);
   });
 
-  it("entropy card preserves entropyData and parentLensId", () => {
-    const card = {
-      id: "c4",
-      cardType: "entropy" as const,
-      modelName: "gpt2-small",
-      prompt: "entropy prompt",
-      position: { x: 40, y: 40 },
-      parentLensId: "parent-1",
-      entropyData: [0.1, 0.2],
-      xLabels: ["t1", "t2"],
-      yLabels: ["L0", "L1"],
-      status: "result" as const,
-    };
-    const result = serializeCard(card as unknown as AnyCard);
-    expect(result.cardType).toBe("entropy");
-    expect((result as Record<string, unknown>).parentLensId).toBe("parent-1");
-    expect((result as Record<string, unknown>).entropyData).toEqual([0.1, 0.2]);
-  });
-
   it("attention-pattern card serializes correctly", () => {
     const card = {
       id: "c5",

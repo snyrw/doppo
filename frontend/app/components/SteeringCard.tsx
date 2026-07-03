@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
-import { CardDragHandle, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs } from "./CardShell";
+import { CardDragHandle, CardErrorState, CardLoadingHeader, CardLoadingState, TierBadge, useElapsedMs } from "./CardShell";
 import { cn } from "../lib/cn";
+import type { LoadingStage } from "../lib/loading-stage";
 
 export type SteeringComponent = {
   layer: number;
@@ -35,7 +36,6 @@ export type SteeringCardData = {
   nTokens: number;
   nPairs: number;
   extraPairs?: Array<{ clean: string; corrupted: string }>;
-  parentCardId: string;
   data: SteeringResult | null;
   error: string | null;
   showBuyCredits?: boolean;
@@ -43,7 +43,7 @@ export type SteeringCardData = {
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
-  loadingStage?: string;
+  loadingStage?: LoadingStage;
 };
 
 type SteeringCardProps = {
@@ -62,6 +62,11 @@ function componentLabel(c: SteeringComponent): string {
   if (c.injectionType === "mlp") return `L${c.layer}·MLP`;
   return `L${c.layer}·residual`;
 }
+
+const STAGE_LABELS: Record<string, string> = {
+  computing: "Computing DIM vectors…",
+  token: "Generating steered text…",
+};
 
 function SteeringCard({
   card,
@@ -198,12 +203,7 @@ function SteeringCard({
       {card.status === "loading" && (
         <div className="flex flex-col gap-2 px-3 py-2.5">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 shrink-0 animate-spinner rounded-full border-2 border-surface-border border-t-accent" />
-            <p className="m-0 text-[11px] text-muted">
-              {card.loadingStage === "computing" ? "Computing DIM vectors…" : "Generating…"}
-            </p>
-          </div>
+          <CardLoadingState stage={card.loadingStage} labels={STAGE_LABELS} />
         </div>
       )}
 

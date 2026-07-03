@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { interpolateColorDivergent } from "../lib/palette";
-import type { SteeringComponent } from "./SteeringCard";
 import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs } from "./CardShell";
-import { cn } from "../lib/cn";
+import { DivergingBar } from "./DivergingBar";
+import { useDivergingPalette } from "../hooks/usePalette";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
+import type { LoadingStage } from "../lib/loading-stage";
 
 export type VerifiedComponent = {
   layer: number;
@@ -35,7 +35,7 @@ export type ActivationCardData = {
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
-  loadingStage?: string;
+  loadingStage?: LoadingStage;
 };
 
 type ActivationCardProps = {
@@ -45,44 +45,28 @@ type ActivationCardProps = {
   onDragMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
-  onSteerComponents: (cardId: string, components: SteeringComponent[]) => void;
   tutorialMode?: boolean;
 };
 
-function getStageLabel(stage: string | undefined, elapsedMs: number): string {
-  if (!stage) return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
-  if (stage.startsWith("patching_")) {
-    const match = stage.match(/patching_(\d+)_of_(\d+)/);
-    if (match) return `Verifying component ${match[1]} of ${match[2]}`;
+const STAGE_LABELS: Record<string, string> = {
+  preparing: "Caching clean activations…",
+  computing_effects: "Normalizing effects…",
+  patching: "Verifying component {i} of {n}…",
+};
+
+function componentLabel(comp: VerifiedComponent): string {
+  return comp.component_type === "attn_head" ? `L${comp.layer}·H${comp.head}` : `L${comp.layer}·MLP`;
+}
+
+/** Components where predicted (attribution_score) and verified (actual_effect) agree
+ * on sign — the only agreement claim that holds up at k≈10 with possible near-zero
+ * ties; a correlation coefficient over this few points is not a meaningful statistic. */
+function signAgreement(components: VerifiedComponent[]): { agree: number; total: number } {
+  let agree = 0;
+  for (const c of components) {
+    if (Math.sign(c.attribution_score) === Math.sign(c.actual_effect)) agree++;
   }
-  const labels: Record<string, string> = {
-    tokenizing: "Tokenizing…",
-    preparing: "Caching clean activations",
-    computing_effects: "Normalizing effects",
-  };
-  return labels[stage] ?? "Processing…";
-}
-
-function matchLabel(effect: number): { text: string; color: string; bg: string; border: string } {
-  if (effect < 0) return { text: "Counter", color: "#9333ea", bg: "rgba(147,51,234,0.08)", border: "rgba(147,51,234,0.25)" };
-  if (effect > 0.7) return { text: "High", color: "#16a34a", bg: "rgba(22,163,74,0.08)", border: "rgba(22,163,74,0.25)" };
-  if (effect > 0.3) return { text: "Mid", color: "#d97706", bg: "rgba(217,119,6,0.08)", border: "rgba(217,119,6,0.25)" };
-  return { text: "Low", color: "#dc2626", bg: "rgba(220,38,38,0.08)", border: "rgba(220,38,38,0.25)" };
-}
-
-function spearmanCorrelation(xs: number[], ys: number[]): number {
-  if (xs.length < 2) return 0;
-  const rank = (arr: number[]) => {
-    const sorted = [...arr].map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v);
-    const ranks = new Array(arr.length);
-    sorted.forEach(({ i }, r) => { ranks[i] = r + 1; });
-    return ranks;
-  };
-  const rx = rank(xs);
-  const ry = rank(ys);
-  const n = xs.length;
-  const d2 = rx.reduce((s, r, i) => s + (r - ry[i]) ** 2, 0);
-  return 1 - (6 * d2) / (n * (n * n - 1));
+  return { agree, total: components.length };
 }
 
 function ActivationCard({
@@ -92,27 +76,26 @@ function ActivationCard({
   onDragMove,
   onDragEnd,
   onRemove,
-  onSteerComponents,
   tutorialMode,
 }: ActivationCardProps) {
   const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const [headerHovered, setHeaderHovered] = React.useState(false);
-  const [selectedComponents, setSelectedComponents] = React.useState<SteeringComponent[]>([]);
   const [tooltip, setTooltip] = React.useState<TooltipState>(null);
+  const palette = useDivergingPalette();
 
-  const spearman = React.useMemo(() => {
-    if (!card.data) return null;
-    const { components } = card.data;
-    if (components.length < 2) return null;
-    return spearmanCorrelation(
-      components.map(c => c.attribution_score),
-      components.map(c => c.actual_effect)
-    );
+  const agreement = React.useMemo(() => {
+    if (!card.data || card.data.components.length === 0) return null;
+    return signAgreement(card.data.components);
   }, [card.data]);
 
   const attrAbsMax = React.useMemo(() => {
     if (!card.data) return 1;
     return Math.max(1e-9, ...card.data.components.map(c => Math.abs(c.attribution_score)));
+  }, [card.data]);
+
+  const effectAbsMax = React.useMemo(() => {
+    if (!card.data) return 1;
+    return Math.max(1e-9, ...card.data.components.map(c => Math.abs(c.actual_effect)));
   }, [card.data]);
 
   return (
@@ -172,7 +155,7 @@ function ActivationCard({
       {card.status === "loading" && (
         <div className="flex min-h-[110px] flex-col gap-2.5 px-3.5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
-          <CardLoadingState stage={getStageLabel(card.loadingStage, elapsedMs)} />
+          <CardLoadingState stage={card.loadingStage} labels={STAGE_LABELS} />
         </div>
       )}
 
@@ -188,20 +171,12 @@ function ActivationCard({
             <span className="w-16 shrink-0 overflow-hidden whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">Component</span>
             <span className="flex-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">Attribution</span>
             <span className="flex-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">Effect</span>
-            <span className="w-[52px] shrink-0 text-right text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">Match</span>
           </div>
 
           {/* Rows */}
           <div className="overflow-y-auto overflow-x-hidden bg-card">
             {card.data.components.map((comp, i) => {
-              const match = matchLabel(comp.actual_effect);
-              const attrColor = interpolateColorDivergent("rdbu", comp.attribution_score, attrAbsMax);
-              const attrFrac = Math.abs(comp.attribution_score) / attrAbsMax;
-              const effectFrac = Math.min(1, Math.abs(comp.actual_effect));
-              const effectColor = comp.actual_effect < 0 ? "#9333ea" : "#16a34a";
-              const label = comp.component_type === "attn_head"
-                ? `L${comp.layer}·H${comp.head}`
-                : `L${comp.layer}·MLP`;
+              const label = componentLabel(comp);
               const tooltipContent = (
                 <>
                   <div className="mb-[3px] font-semibold">{label}</div>
@@ -218,30 +193,12 @@ function ActivationCard({
                 </>
               );
 
-              const steeringComp: SteeringComponent = {
-                layer: comp.layer,
-                head: comp.component_type === "attn_head" ? comp.head : null,
-                injectionType: comp.component_type === "attn_head" ? "attn_head" : "mlp",
-              };
-              const isSelected = selectedComponents.some(
-                c => c.layer === steeringComp.layer && c.head === steeringComp.head && c.injectionType === steeringComp.injectionType
-              );
-
               return (
                 <div
                   key={i}
                   onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: tooltipContent })}
                   onMouseLeave={() => setTooltip(null)}
-                  onPointerDown={e => e.stopPropagation()}
-                  onClick={tutorialMode ? undefined : () => setSelectedComponents(prev =>
-                    isSelected
-                      ? prev.filter(c => !(c.layer === steeringComp.layer && c.head === steeringComp.head && c.injectionType === steeringComp.injectionType))
-                      : [...prev, steeringComp]
-                  )}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-1.5 border-b border-l-[3px] border-surface-border px-2.5 py-[5px] transition-colors",
-                    isSelected ? "border-l-accent" : "border-l-transparent",
-                  )}
+                  className="flex items-center gap-1.5 border-b border-l-[3px] border-surface-border border-l-transparent px-2.5 py-[5px]"
                 >
                   {/* Component label */}
                   <span className="w-16 shrink-0 truncate font-mono text-[9px] font-semibold text-foreground">
@@ -249,42 +206,30 @@ function ActivationCard({
                   </span>
 
                   {/* Attribution bar */}
-                  <div className="h-2 flex-1 overflow-hidden rounded-sm bg-surface-border">
-                    <div className="h-full rounded-sm" style={{ width: `${attrFrac * 100}%`, background: attrColor }} />
+                  <div className="min-w-0 flex-1">
+                    <DivergingBar val={comp.attribution_score} absMax={attrAbsMax} palette={palette} width="100%" height={8} />
                   </div>
 
-                  {/* Effect bar */}
-                  <div className="h-2 flex-1 overflow-hidden rounded-sm bg-surface-border">
-                    <div className="h-full rounded-sm" style={{ width: `${effectFrac * 100}%`, background: effectColor, opacity: 0.7 + effectFrac * 0.3 }} />
+                  {/* Effect: bar + signed number */}
+                  <div className="flex min-w-0 flex-1 items-center gap-1">
+                    <div className="min-w-0 flex-1">
+                      <DivergingBar val={comp.actual_effect} absMax={effectAbsMax} palette={palette} width="100%" height={8} />
+                    </div>
+                    <span className="w-11 shrink-0 text-right font-mono text-[9px] tabular-nums text-foreground">
+                      {comp.actual_effect >= 0 ? "+" : "−"}{(Math.abs(comp.actual_effect) * 100).toFixed(1)}%
+                    </span>
                   </div>
-
-                  {/* Match badge */}
-                  <span
-                    className="w-[52px] shrink-0 rounded-[3px] border px-1 py-px text-center text-[8px] font-bold tracking-[0.04em]"
-                    style={{ color: match.color, background: match.bg, borderColor: match.border }}
-                  >
-                    {match.text}
-                  </span>
                 </div>
               );
             })}
           </div>
 
-          {/* Footer: Spearman correlation + Steer button */}
-          {(spearman !== null || selectedComponents.length > 0) && (
-            <div className="flex items-center justify-between gap-1.5 border-t border-surface-border px-2.5 py-[7px]">
-              <span className="flex-1 text-[9px] text-muted">
-                {spearman !== null ? `Spearman ρ ${spearman >= 0 ? "+" : ""}${spearman.toFixed(2)}` : ""}
+          {/* Footer: sign agreement between predicted attribution and verified effect */}
+          {agreement !== null && (
+            <div className="border-t border-surface-border px-2.5 py-[7px]">
+              <span className="text-[9px] text-muted">
+                sign agreement: {agreement.agree}/{agreement.total} components
               </span>
-              {selectedComponents.length > 0 && !tutorialMode && (
-                <button
-                  onPointerDown={e => e.stopPropagation()}
-                  onClick={() => { onSteerComponents(card.id, selectedComponents); setSelectedComponents([]); }}
-                  className="cursor-pointer whitespace-nowrap rounded border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg"
-                >
-                  Steer {selectedComponents.length} →
-                </button>
-              )}
             </div>
           )}
         </>

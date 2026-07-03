@@ -8,7 +8,6 @@ import type { LensCardData } from "@/app/components/LensCard";
 import type { DlaCardData, DlaData } from "@/app/components/DlaCard";
 import type { AttributionCardData, AttributionData } from "@/app/components/AttributionCard";
 import type { ActivationCardData, ActivationPatchResult } from "@/app/components/ActivationCard";
-import type { EntropyCardData } from "@/app/components/EntropyCard";
 import type { AttentionCardData, AttentionData } from "@/app/components/AttentionCard";
 
 type Deps = {
@@ -136,24 +135,6 @@ export function useJobHandlers({ dispatch, stateRef, ensureProject }: Deps) {
     });
   }, [dispatch, persist, stateRef]);
 
-  const spawnEntropyCard = useCallback((lensCardId: string) => {
-    const lensCard = stateRef.current.lensCards.find(c => c.id === lensCardId) as LensCardData | undefined;
-    if (!lensCard?.data?.entropy_data) return;
-    const alreadyExists = stateRef.current.lensCards.some(c => c.cardType === "entropy" && (c as EntropyCardData).parentLensId === lensCardId);
-    if (alreadyExists) return;
-    const entropyCard: EntropyCardData = {
-      id: crypto.randomUUID(), cardType: "entropy", status: "result",
-      modelName: lensCard.modelName, prompt: lensCard.prompt,
-      position: { x: lensCard.position.x + 320, y: lensCard.position.y - 140 },
-      parentLensId: lensCardId,
-      entropyData: lensCard.data.entropy_data,
-      yLabels: lensCard.data.y_labels,
-      xLabels: lensCard.data.x_labels,
-    };
-    dispatch({ type: "ADD_CARD", card: entropyCard });
-    persist(entropyCard.id, serializeCard(entropyCard));
-  }, [dispatch, persist, stateRef]);
-
   const addAttn = useCallback(({ modelName, prompt, gpuTier }: {
     modelName: string; prompt: string; gpuTier?: string;
   }) => {
@@ -178,5 +159,5 @@ export function useJobHandlers({ dispatch, stateRef, ensureProject }: Deps) {
     });
   }, [dispatch, persist, stateRef]);
 
-  return { addLens, addDla, addAttribution, verifyTopK, spawnEntropyCard, addAttn };
+  return { addLens, addDla, addAttribution, verifyTopK, addAttn };
 }

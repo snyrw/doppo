@@ -16,7 +16,6 @@ import type { DlaCardData } from "../components/DlaCard";
 import type { AttributionCardData } from "../components/AttributionCard";
 import type { ActivationCardData } from "../components/ActivationCard";
 import type { SteeringCardData, SteeringComponent } from "../components/SteeringCard";
-import type { EntropyCardData } from "../components/EntropyCard";
 import type { AttentionCardData, AttentionData } from "../components/AttentionCard";
 import { useSession } from "../lib/auth-client";
 import { cn } from "../lib/cn";
@@ -30,6 +29,7 @@ import {
   setProjectShare,
 } from "../actions";
 import { useJobHandlers } from "./hooks/useJobHandlers";
+import { cancelCardJob } from "./hooks/job-runner";
 import { useSteeringHandlers } from "./hooks/useSteeringHandlers";
 import type { AppAction, AppState, AnyCard } from "./types";
 import { serializeCard, getCardPrompt } from "./helpers";
@@ -75,7 +75,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
-          c.id === action.id && c.cardType !== "entropy" ? { ...c, status: "error" as const, error: action.error, showBuyCredits: action.showBuyCredits, showVerifyCard: action.showVerifyCard } : c
+          c.id === action.id ? { ...c, status: "error" as const, error: action.error, showBuyCredits: action.showBuyCredits, showVerifyCard: action.showVerifyCard } : c
         ),
       };
     case "MOVE_CARD":
@@ -258,7 +258,7 @@ function Projects() {
     try {
       const result = await loadProject(id);
       if (!result) { router.replace("/projects"); return; }
-      const lensCards: AnyCard[] = result.cards.map(c => {
+      const lensCards: AnyCard[] = result.cards.filter(c => c.cardType !== "entropy").map(c => {
         if (c.cardType === "dla") {
           return { ...c, cardType: "dla" as const, status: "result" as const, error: null, contrastiveToken: c.contrastiveToken ?? null } as DlaCardData;
         }
@@ -287,19 +287,7 @@ function Projects() {
             components: (c.components ?? []) as SteeringComponent[],
             alpha: c.alpha ?? 1.0, temperature: c.temperature ?? 1.0, repetitionPenalty: c.repetitionPenalty ?? 1.3, nTokens: c.nTokens ?? 50, nPairs: c.nPairs ?? 1,
             extraPairs: c.extraPairs ?? [],
-            parentCardId: c.parentCardId ?? "",
           } as unknown as SteeringCardData;
-        }
-        if (c.cardType === "entropy") {
-          return {
-            ...c,
-            cardType: "entropy" as const,
-            status: "result" as const,
-            parentLensId: c.parentLensId ?? "",
-            entropyData: (c.entropyData ?? []) as number[][],
-            xLabels: (c.xLabels ?? []) as string[],
-            yLabels: (c.yLabels ?? []) as string[],
-          } as EntropyCardData;
         }
         if (c.cardType === "attention-pattern") {
           return {
@@ -707,11 +695,9 @@ function Projects() {
           canvasState={state.canvas}
           onCanvasChange={canvas => dispatch({ type: "SET_CANVAS", canvas })}
           onMoveCard={(id, position) => dispatch({ type: "MOVE_CARD", id, position })}
-          onRemoveCard={id => dispatch({ type: "REMOVE_CARD", id })}
+          onRemoveCard={id => { cancelCardJob(id); dispatch({ type: "REMOVE_CARD", id }); }}
           onVerifyTopK={jobHandlers.verifyTopK}
-          onSteerComponents={steeringHandlers.steerComponents}
           onRerunSteering={steeringHandlers.rerunSteering}
-          onSpawnEntropyCard={jobHandlers.spawnEntropyCard}
         />
 
       </div>
