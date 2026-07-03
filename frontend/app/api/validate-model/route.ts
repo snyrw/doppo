@@ -1,7 +1,6 @@
 // frontend/app/api/validate-model/route.ts
 import { NextRequest } from "next/server";
-import { requireAuth } from "@/app/lib/api-helpers";
-import { validateHfRepo } from "@/app/lib/validate-model";
+import { requireAuth, validateModelUpstream } from "@/app/lib/api-helpers";
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
@@ -16,7 +15,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const result = await validateHfRepo(body.repo_id);
+  const result = await validateModelUpstream(body.repo_id);
   if (!result.valid) {
     return new Response(JSON.stringify({ detail: result.reason }), {
       status: 400,

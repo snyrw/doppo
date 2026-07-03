@@ -1,7 +1,6 @@
 import { auth } from "./auth";
 import { headers } from "next/headers";
 import { FEATURED_MODELS } from "./featured-models";
-import { validateHfRepo } from "./validate-model";
 
 /**
  * Headers for any request to the Modal GPU backend. Attaches the shared bearer
@@ -33,11 +32,35 @@ export function validateGpuTier(tier: unknown): tier is GpuTier {
   );
 }
 
+export type ValidationResult = {
+  valid: boolean;
+  gpu_tier: GpuTier | null;
+  reason: string;
+  adapter?: { base_id: string; adapter_id: string };
+};
+
+/**
+ * The single call site for HF repo validation — proxies to the backend's
+ * validate_hf_repo (the authoritative validator; there is no frontend copy of
+ * this logic). Used by both /api/validate-model and resolveModelTier so they
+ * can't drift.
+ */
+export async function validateModelUpstream(repoId: string): Promise<ValidationResult> {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/validate-model`, {
+    method: "POST",
+    headers: backendHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ repo_id: repoId }),
+  });
+  if (res.ok) return (await res.json()) as ValidationResult;
+  const err = (await res.json().catch(() => ({}))) as { detail?: string };
+  return { valid: false, gpu_tier: null, reason: err.detail ?? `Validation failed: HTTP ${res.status}` };
+}
+
 export async function resolveModelTier(modelName: string): Promise<GpuTier | null> {
   const featured = FEATURED_MODELS[modelName];
   if (featured) return featured.gpu_tier;
 
-  const result = await validateHfRepo(modelName);
+  const result = await validateModelUpstream(modelName);
   return result.valid && result.gpu_tier ? result.gpu_tier : null;
 }
 

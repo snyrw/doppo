@@ -177,36 +177,3 @@ export const FEATURED_MODELS: Record<string, FeaturedModel> = {
     gpu_tier: "tl_xxlarge",
   },
 };
-
-/**
- * Estimate GPU tier from a model's config.json fields.
- * Returns null when the model exceeds the single-GPU ~100B limit on B200.
- * Matches the logic in backend/main.py _detect_gpu_tier.
- */
-export function detectGpuTier(config: Record<string, unknown>): GpuTier | null {
-  // Multimodal configs (Gemma3ForConditionalGeneration, LLaVA, Qwen-VL) nest the
-  // language-model dims under text_config; read those so VLM text towers size correctly.
-  const tc = config.text_config;
-  const source = (tc && typeof tc === "object" ? tc : config) as Record<string, unknown>;
-  const numParams = source.num_parameters;
-  if (typeof numParams === "number") {
-    if (numParams < 4e9)   return "tl_small";
-    if (numParams < 10e9)  return "tl_medium";
-    if (numParams < 25e9)  return "tl_large";
-    if (numParams < 70e9)  return "tl_xlarge";
-    if (numParams < 100e9) return "tl_xxlarge";
-    return null;
-  }
-  const layers = typeof source.num_hidden_layers === "number" ? source.num_hidden_layers : 0;
-  const hidden = typeof source.hidden_size === "number" ? source.hidden_size : 0;
-  const proxy = layers * hidden;
-  if (proxy > 0) {
-    if (proxy < 90_000)  return "tl_small";
-    if (proxy < 165_000) return "tl_medium";
-    if (proxy < 300_000) return "tl_large";
-    if (proxy < 660_000) return "tl_xlarge";
-    if (proxy < 900_000) return "tl_xxlarge";
-    return null;
-  }
-  return "tl_large"; // unknown shape — conservative fallback
-}

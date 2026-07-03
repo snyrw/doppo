@@ -63,7 +63,7 @@ def create_router(hf_token):
         if entry is None:
             # Non-featured IDs are arbitrary user input — run the same safety gate
             # used by /api/validate-model before loading the tokenizer (blocks
-            # trust_remote_code / custom auto_map / pickle-only repos).
+            # pickle-only repos and custom-code-only architectures).
             check = _validate_repo_cached(request.model_name)
             if not check["valid"]:
                 raise HTTPException(status_code=400, detail=check["reason"])

@@ -22,6 +22,7 @@ tl_image = (
     .pip_install(
         "torch==2.11.0",
         "transformer-lens==3.5.0",  # 3.5 bridges VLM text towers (Gemma3/4, LLaVA, Qwen3.5); 3.4 crashed on the Siglip vision path and hard-pinned torchvision (which exact-pinned torch down to 2.7.x)
+        "transformers>=5.3.0",  # security floor: <5.3 has CVE-2026-4372 (config.json injection → RCE even with trust_remote_code=False); TL 3.5.0 already resolves >=5.4, this guards future TL pin changes
         "peft>=0.13",  # merge user-supplied LoRA/DoRA adapters onto a re-validated base at load time
         "einops==0.8.1",
         "fancy-einsum==0.0.3",

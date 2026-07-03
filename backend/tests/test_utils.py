@@ -8,89 +8,41 @@ from backend.inference import _resolve_pos
 
 # ── _detect_gpu_tier ──────────────────────────────────────────────────────────
 
-class TestDetectGpuTierByNumParameters:
-    def test_small(self):
-        assert _detect_gpu_tier({"num_parameters": 1e9}) == "tl_small"
+class TestDetectGpuTierByParamCount:
+    # Exact param count from Hub safetensors metadata:
+    # ≤ 4B → tl_small; ≤ 10B → tl_medium; ≤ 25B → tl_large
+    # ≤ 70B → tl_xlarge; ≤ 100B → tl_xxlarge; > 100B → None
 
-    def test_small_boundary(self):
-        # 4B exactly is NOT small (< 4B required)
-        assert _detect_gpu_tier({"num_parameters": 3.9e9}) == "tl_small"
-        assert _detect_gpu_tier({"num_parameters": 4e9}) == "tl_medium"
+    def test_small(self):
+        assert _detect_gpu_tier(137_022_720) == "tl_small"  # GPT-2
 
     def test_medium(self):
-        assert _detect_gpu_tier({"num_parameters": 7e9}) == "tl_medium"
-
-    def test_medium_boundary(self):
-        assert _detect_gpu_tier({"num_parameters": 9.9e9}) == "tl_medium"
-        assert _detect_gpu_tier({"num_parameters": 10e9}) == "tl_large"
+        assert _detect_gpu_tier(8_030_261_248) == "tl_medium"  # Llama-3.1-8B
 
     def test_large(self):
-        assert _detect_gpu_tier({"num_parameters": 20e9}) == "tl_large"
-
-    def test_large_boundary(self):
-        assert _detect_gpu_tier({"num_parameters": 24.9e9}) == "tl_large"
-        assert _detect_gpu_tier({"num_parameters": 25e9}) == "tl_xlarge"
+        assert _detect_gpu_tier(14_800_000_000) == "tl_large"  # Qwen3-14B
 
     def test_xlarge(self):
-        assert _detect_gpu_tier({"num_parameters": 50e9}) == "tl_xlarge"
+        assert _detect_gpu_tier(46_702_792_704) == "tl_xlarge"  # Mixtral-8x7B
 
-    def test_xlarge_boundary(self):
-        assert _detect_gpu_tier({"num_parameters": 69.9e9}) == "tl_xlarge"
-        assert _detect_gpu_tier({"num_parameters": 70e9}) == "tl_xxlarge"
+    def test_moe_sized_by_total_params(self):
+        # Regression: Mixtral-8x7B has the layers×hidden shape of a 7B model —
+        # the old proxy put it on tl_medium (48 GB) where 46.7B params OOM.
+        assert _detect_gpu_tier(46_702_792_704) != "tl_medium"
 
     def test_xxlarge(self):
-        assert _detect_gpu_tier({"num_parameters": 85e9}) == "tl_xxlarge"
+        assert _detect_gpu_tier(70_553_706_496) == "tl_xxlarge"  # Llama-3.3-70B
 
     def test_over_limit_returns_none(self):
-        assert _detect_gpu_tier({"num_parameters": 100e9}) is None
-        assert _detect_gpu_tier({"num_parameters": 200e9}) is None
-
-
-class TestDetectGpuTierByProxy:
-    # proxy = num_hidden_layers * hidden_size
-    # < 90K → tl_small; < 165K → tl_medium; < 300K → tl_large
-    # < 660K → tl_xlarge; < 900K → tl_xxlarge; >= 900K → None
-
-    def test_small_proxy(self):
-        # 12 * 768 = 9216 < 90K
-        assert _detect_gpu_tier({"num_hidden_layers": 12, "hidden_size": 768}) == "tl_small"
-
-    def test_medium_proxy(self):
-        # 32 * 4096 = 131072, 90K < 131072 < 165K
-        assert _detect_gpu_tier({"num_hidden_layers": 32, "hidden_size": 4096}) == "tl_medium"
-
-    def test_large_proxy(self):
-        # 40 * 5120 = 204800, 165K < 204800 < 300K
-        assert _detect_gpu_tier({"num_hidden_layers": 40, "hidden_size": 5120}) == "tl_large"
-
-    def test_xlarge_proxy(self):
-        # 60 * 6144 = 368640, 300K < 368640 < 660K
-        assert _detect_gpu_tier({"num_hidden_layers": 60, "hidden_size": 6144}) == "tl_xlarge"
-
-    def test_xxlarge_proxy(self):
-        # 84 * 8192 = 688128, 660K < 688128 < 900K
-        assert _detect_gpu_tier({"num_hidden_layers": 84, "hidden_size": 8192}) == "tl_xxlarge"
-
-    def test_over_limit_proxy_returns_none(self):
-        # 96 * 12288 = 1179648 >= 900K
-        assert _detect_gpu_tier({"num_hidden_layers": 96, "hidden_size": 12288}) is None
-
-    def test_zero_proxy_falls_through_to_fallback(self):
-        # layers or hidden = 0 → proxy = 0, treated as falsy, falls through to tl_large fallback
-        assert _detect_gpu_tier({"num_hidden_layers": 0, "hidden_size": 4096}) == "tl_large"
+        assert _detect_gpu_tier(140_000_000_000) is None
 
 
 class TestDetectGpuTierFallback:
-    def test_empty_config(self):
-        assert _detect_gpu_tier({}) == "tl_large"
+    def test_none_param_count(self):
+        assert _detect_gpu_tier(None) == "tl_large"
 
-    def test_unrelated_keys_only(self):
-        assert _detect_gpu_tier({"model_type": "llama", "vocab_size": 32000}) == "tl_large"
-
-    def test_num_parameters_takes_priority_over_proxy(self):
-        # num_parameters present → use it, not the proxy
-        config = {"num_parameters": 1e9, "num_hidden_layers": 80, "hidden_size": 8192}
-        assert _detect_gpu_tier(config) == "tl_small"
+    def test_zero_param_count(self):
+        assert _detect_gpu_tier(0) == "tl_large"
 
 
 # ── _bump_tier ────────────────────────────────────────────────────────────────
