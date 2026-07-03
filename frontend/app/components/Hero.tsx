@@ -123,7 +123,7 @@ export default function Hero() {
       />
       {/* 73° ≈ 90 − 18°: runs parallel to the figure's lattice axis (HeroFigure is rotated −18°). */}
       <span
-        className={cn("pointer-events-none absolute left-[39%] top-[51%] hidden origin-left font-mono text-[clamp(11px,1.1vw,15px)] text-muted md:block", entering && "animate-hero-row")}
+        className={cn("pointer-events-none absolute left-[37%] top-[40%] hidden origin-left font-mono text-[clamp(11px,1.1vw,15px)] text-muted md:block", entering && "animate-hero-row")}
         style={{ transform: "rotate(72deg)", animationDelay: `${CAPTION_DELAY}ms` }}
       >
         hero fig., abstract viridis logit lens

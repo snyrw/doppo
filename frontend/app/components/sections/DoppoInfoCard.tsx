@@ -41,26 +41,28 @@ export default function DoppoInfoCard({
       </header>
       <div className="flex flex-col gap-[0.7em] px-[clamp(16px,1.6vw,28px)] py-[clamp(14px,1.4vw,22px)] text-[clamp(12px,1vw,15px)] leading-[1.5] text-foreground">
         <p className="m-0">
-          Doppo is a <span className={LINK}>mechanistic interpretability</span> tool that aims to
+          Doppo is a mechanistic interpretability tool that aims to
           deliver basic techniques the field has developed in an easy and organized no-code
           environment. That is, we currently handle all compute, code set-up, and visualization,
           which allows for quick work.
         </p>
         <p className="m-0">
-          Users are allotted $1/month priced against our service provider{" "}
-          <a href="https://modal.com" target="_blank" rel="noopener noreferrer" className={LINK}>Modal</a> to
-          use for free. Additional credit packs available for purchase with no further markup beyond
-          the Stripe fee.
+          Under the hood, we use TransformerLens, which was chosen for its wide-ranging support
+          of thousands of transformer models. Some aspects of this library are being actively
+          developed, so we cannot ensure that every model you&apos;ll try with Doppo will work perfectly.
         </p>
         <p className="m-0">
-          We also allow self-hosting in the case that you want more control and don&apos;t really
-          want to pay that Stripe fee.
+          As part of a goal to make interpretability broadly accessible, we also provide services at a price that mirrors 
+          general inference costs with the eventual goal of decreasing what users pay. Users currently are allotted a free $1/month 
+          priced against our service provider{" "} <a href="https://modal.com" target="_blank" rel="noopener 
+          noreferrer" className={LINK}>Modal</a> to use on smaller tasks. Additional credits are available for 
+          purchase with no further markup beyond a Stripe fee for sustainability.
         </p>
         <p className="m-0">
-          More about that can be found{" "}
+          More about our technical specifics can be found{" "}
           <button
             type="button"
-            onClick={goSelfHosting}
+            onClick={goSelfHosting} // needs to change to a static page here
             className={cn(LINK, "cursor-pointer bg-transparent p-0 text-inherit")}
           >
             here
