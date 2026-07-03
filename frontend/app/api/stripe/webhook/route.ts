@@ -2,37 +2,26 @@ export const runtime = "nodejs";
 
 import Stripe from "stripe";
 import { db } from "@/app/db";
-import { userCredits, creditLedger } from "@/app/schema";
 import { sql } from "drizzle-orm";
 import { getStripe } from "@/app/lib/stripe";
 import { markPaymentVerified } from "@/app/lib/credits";
 
-async function creditUser(
-  sessionId: string,
-  userId: string,
-  creditMicros: number,
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0]
-) {
-  const inserted = await tx
-    .insert(creditLedger)
-    .values({
-      userId,
-      type: "purchase",
-      amountMicros: creditMicros,
-      stripeCheckoutSessionId: sessionId,
-    })
-    .onConflictDoNothing()
-    .returning({ id: creditLedger.id });
-
-  if (inserted.length === 0) return;
-
-  await tx
-    .insert(userCredits)
-    .values({ userId, balanceMicros: creditMicros })
-    .onConflictDoUpdate({
-      target: userCredits.userId,
-      set: { balanceMicros: sql`${userCredits.balanceMicros} + ${creditMicros}` },
-    });
+// neon-http has no interactive transactions, so ledger insert + balance upsert
+// run as one atomic statement: the CTE inserts the ledger row (no-op on a
+// replayed session id), and the balance is only bumped when that insert landed.
+async function creditUser(sessionId: string, userId: string, creditMicros: number) {
+  await db.execute(sql`
+    with ins as (
+      insert into credit_ledger (id, user_id, type, amount_micros, stripe_checkout_session_id)
+      values (${crypto.randomUUID()}, ${userId}, 'purchase', ${creditMicros}, ${sessionId})
+      on conflict (stripe_checkout_session_id) do nothing
+      returning id
+    )
+    insert into user_credits (user_id, balance_micros)
+    select ${userId}, ${creditMicros} from ins
+    on conflict (user_id) do update
+      set balance_micros = user_credits.balance_micros + excluded.balance_micros
+  `);
 }
 
 /** Credit a paid purchase session and mark the buyer's card verified. */
@@ -43,7 +32,7 @@ async function handlePurchase(session: Stripe.Checkout.Session): Promise<Respons
     return new Response("Invalid metadata", { status: 400 });
   }
   const creditMicros = Number(creditMicrosRaw);
-  await db.transaction((tx) => creditUser(session.id, userId, creditMicros, tx));
+  await creditUser(session.id, userId, creditMicros);
   // Buyers have a real card on file → they satisfy the gate too (short-circuit).
   await markPaymentVerified(userId);
   return new Response("OK");
