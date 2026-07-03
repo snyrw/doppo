@@ -25,10 +25,21 @@ export async function GET(
   });
   if (!pollRes.ok) return Response.json({ status: "error", error: `Poll failed (${pollRes.status})` });
 
-  const result = await pollRes.json() as { status: string; data?: unknown; error?: string };
+  const result = await pollRes.json() as {
+    status: string; data?: unknown; error?: string;
+    stage?: string | null; stage_age_s?: number | null;
+    progress?: { done_bytes: number; total_bytes: number | null } | null;
+  };
 
   if (result.status === "running") {
-    return Response.json({ status: "running" });
+    return Response.json({
+      status: "running",
+      stage: result.stage ?? null,
+      stageAgeS: result.stage_age_s ?? null,
+      progress: result.progress
+        ? { doneBytes: result.progress.done_bytes, totalBytes: result.progress.total_bytes ?? null }
+        : null,
+    });
   }
 
   // No row means the job was already settled (sweeper or a concurrent poll) —

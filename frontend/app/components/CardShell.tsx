@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { cn } from "../lib/cn";
+import { formatGb, phaseOf, stageText, type LoadingPhase, type LoadingStage } from "../lib/loading-stage";
 import { TIER_LABELS } from "../lib/tiers";
 import { ControlButton } from "./ui/ControlButton";
 
@@ -15,12 +17,6 @@ export function useElapsedMs(status: "loading" | "result" | "error", startedAt: 
     return () => clearInterval(id);
   }, [status, startedAt]);
   return elapsedMs;
-}
-
-/** Maps a backend loadingStage to display text, with the shared cold-start fallback. */
-export function stageLabel(stage: string | undefined, elapsedMs: number, labels: Record<string, string>): string {
-  if (stage !== undefined && labels[stage]) return labels[stage];
-  return elapsedMs > 30_000 ? "GPU container is starting…" : "Connecting to GPU…";
 }
 
 /** Small GPU-tier pill (e.g. "L4"); renders nothing without a tier. */
@@ -65,35 +61,72 @@ export function CardDragHandle() {
   );
 }
 
+const PHASE_TITLES = ["GPU requested", "Loading model", "Computing"] as const;
+
+const EMPTY_STAGE: LoadingStage = { stage: null, stageAgeS: null, progress: null };
+
 /**
- * Standard card loading state: spinner + stage text.
+ * Standard card loading state: three-phase timeline (GPU requested → Loading
+ * model → Computing), driven by the raw backend stage key.
  *
- * - `stage`  — human-readable loading stage string to display
- * - `warmup` — when true, show the "First run warms the GPU container…" hint
+ * - `stage`  — the card's LoadingStage from CARD_STAGE polling
+ * - `labels` — per-card copy overrides by raw stage key (see stageText)
  *
  * The GPU tier badge and elapsed-time counter are intentionally NOT included —
- * they appear above the spinner row and differ in position/context per card.
+ * they appear above the timeline and differ in position/context per card.
  */
 export function CardLoadingState({
   stage,
-  warmup,
+  labels,
 }: {
-  stage: string | undefined;
-  warmup?: boolean;
+  stage: LoadingStage | undefined;
+  labels?: Record<string, string>;
 }) {
+  const ls = stage ?? EMPTY_STAGE;
+  const phase = phaseOf(ls.stage);
   return (
     <>
-      <div className="flex flex-1 flex-col items-center justify-center gap-2">
-        <div className="h-5 w-5 animate-spinner rounded-full border-2 border-surface-border border-t-accent" />
-        <p className="m-0 text-[11px] text-muted">
-          {stage ?? "Connecting to GPU…"}
-        </p>
+      <div className="flex flex-1 flex-col justify-center gap-1.5 px-4 py-2">
+        {PHASE_TITLES.map((title, i) => {
+          const n = (i + 1) as LoadingPhase;
+          const state = n < phase ? "done" : n === phase ? "active" : "pending";
+          return (
+            <div key={title} className="flex flex-col gap-0.5">
+              <div
+                className={cn(
+                  "flex items-center gap-2 text-[11px]",
+                  state === "active" ? "text-foreground" : "text-muted",
+                  state === "pending" && "opacity-40"
+                )}
+              >
+                {state === "done" ? (
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
+                    <path d="M3 7.5L6 10.5L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : state === "active" ? (
+                  <div className="h-3.5 w-3.5 shrink-0 animate-spinner rounded-full border-2 border-surface-border border-t-accent" />
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
+                    <circle cx="7" cy="7" r="2.5" fill="currentColor" opacity="0.35" />
+                  </svg>
+                )}
+                <span>{title}</span>
+                {state === "active" && n === 2 && ls.progress && (
+                  <span className="ml-auto font-mono text-[10px] tabular-nums text-muted">
+                    {formatGb(ls.progress.doneBytes)}
+                    {ls.progress.totalBytes !== null && ` / ${formatGb(ls.progress.totalBytes)}`} GB
+                  </span>
+                )}
+              </div>
+              {state === "active" && (
+                <p className="m-0 pl-[22px] text-[10px] leading-normal text-muted">
+                  {stageText(ls, labels)}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
-      {warmup && (
-        <p className="m-0 text-center text-[10px] leading-normal text-muted">
-          First run warms the GPU container — large models can take up to 2 min.
-        </p>
-      )}
     </>
   );
 }

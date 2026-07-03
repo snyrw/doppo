@@ -4,6 +4,7 @@ import React from "react";
 import { getHeadColor } from "../lib/palette";
 import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs } from "./CardShell";
 import { cn } from "../lib/cn";
+import type { LoadingStage } from "../lib/loading-stage";
 
 export type AttentionData = {
   tokens: string[];
@@ -26,7 +27,7 @@ export type AttentionCardData = {
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
-  loadingStage?: string;
+  loadingStage?: LoadingStage;
 };
 
 type AttentionCardProps = {
@@ -334,7 +335,10 @@ function AttentionCard({
       {card.status === "loading" && (
         <div className="flex min-h-[110px] flex-col gap-2.5 px-3.5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
-          <CardLoadingState stage="Computing attention patterns…" warmup={elapsedMs > 30_000} />
+          <CardLoadingState
+            stage={card.loadingStage}
+            labels={{ computing: "Computing attention patterns…" }}
+          />
         </div>
       )}
 
