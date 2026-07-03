@@ -57,10 +57,21 @@ export async function DELETE(
   if (rows.length > 0 && rows[0].userId !== userId)
     return Response.json({ error: "Unauthorized" }, { status: 403 });
 
-  await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${jobId}`, { method: "DELETE", headers: backendHeaders() }).catch(console.error);
+  // The backend reads the job's heartbeat before killing it: exec_started_ts is
+  // when execution actually began (null = never started, or heartbeat missing).
+  let execStartedTs: number | null | undefined = undefined;
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${jobId}`, { method: "DELETE", headers: backendHeaders() });
+    if (res.ok) {
+      const body = await res.json() as { exec_started_ts?: number | null };
+      if ("exec_started_ts" in body) execStartedTs = body.exec_started_ts;
+    }
+  } catch (err) {
+    console.error(err);
+  }
 
-  // The GPU ran until the cancel landed — bill the elapsed time.
-  if (rows.length > 0) await billStoppedJob(rows[0]);
+  // Bill only GPU execution time, not queue/boot wait before the job started.
+  if (rows.length > 0) await billStoppedJob(rows[0], execStartedTs);
 
   return Response.json({ cancelled: true });
 }
