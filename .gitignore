@@ -18,8 +18,8 @@ __pycache__/
 skills-lock.json
 .claude/
 
-# Planning docs
-docs/
+# Planning docs (repo root only — frontend/app/docs is a real route)
+/docs/
 
 # Local type-study scratch (not for general audience)
 frontend/font-specimen.html
