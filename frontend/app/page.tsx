@@ -24,6 +24,7 @@ export default function Home() {
           .
         </span>
         <nav className="flex items-center gap-4">
+          <Link href="/docs" className="no-underline hover:text-foreground">Docs</Link>
           <Link href="/privacy" className="no-underline hover:text-foreground">Privacy</Link>
           <Link href="/terms" className="no-underline hover:text-foreground">Terms</Link>
         </nav>
