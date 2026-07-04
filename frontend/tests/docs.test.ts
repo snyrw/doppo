@@ -37,3 +37,18 @@ describe("loadDocSections", () => {
     expect(sections[0].body).not.toContain("title:");
   });
 });
+
+describe("real docs content", () => {
+  it("loads with unique anchors and expected sections", () => {
+    const sections = loadDocSections(resolve(__dirname, "../app/docs/content"));
+    expect(sections.map(s => s.slug)).toEqual([
+      "overview",
+      "techniques",
+      "models-and-gpu-tiers",
+      "credits-and-pricing",
+      "caching-and-sharing",
+      "limits",
+      "contact",
+    ]);
+  });
+});
