@@ -6,6 +6,7 @@ import { useSession } from "../lib/auth-client";
 import { cn } from "../lib/cn";
 import { TactileButton } from "./ui/TactileButton";
 import HeroFigure from "./HeroFigure";
+import { HF_UNIT, STAGE_LEFT_CSS, STAGE_W_U, HAIRLINE_LEFT_U, CAPTION_LEFT_U, CAPTION_TOP_U, u } from "./hero-geometry";
 import EyebrowNav from "./EyebrowNav";
 import { useSectionEntrance } from "./deck/DeckContext";
 
@@ -103,31 +104,37 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* ── Right: hero figure (desktop only) ──
-          Absolutely positioned against <main> with a single left-% knob, rather than
-          living in the 1.6fr grid column. The column's overflow:hidden pinned the
-          lattice's left edge at the column boundary; positioning it here lets the
-          whole grid slide left past that line, clipped only by the viewport. Tweak
-          left-[33%] to slide the lattice horizontally. */}
-      <div className="absolute inset-y-0 left-[35%] right-0 hidden overflow-hidden md:block">
-        <HeroFigure />
-      </div>
-
-      {/* Hairline divider + caption in the cream gutter just left of the lattice,
-          positioned against <main> in viewport-% and kept ~the same distance left of
-          left-[33%] above. Both run parallel to the lattice columns. */}
+      {/* ── Right: hero figure stage (desktop only) ──
+          One fixed-geometry stage. Every length inside is in --hf-u = 1svh
+          (see hero-geometry.ts), so the figure scales with viewport height and
+          never shrinks with width; at 16:9 this equals the legacy vw sizing
+          exactly. The left edge is right-anchored until that would cross the
+          legacy 35% line, then pins there — on ultrawide the extra width
+          becomes gutter, on narrow landscape the figure stays at the hairline
+          and clips off the right edge. Lattice, hairline, and caption are all
+          children in the same unit, so they can never shear apart. The stage
+          stays overflow-visible (the hairline sits left of its edge); the
+          section root's overflow-hidden does the clipping. */}
       <div
         aria-hidden="true"
-        className={cn("pointer-events-none absolute left-[33%] top-0 hidden h-[140%] w-px bg-surface-border md:block", entering && "animate-hero-row")}
-        style={{ transformOrigin: "top left", transform: "rotate(-18deg)", animationDelay: `${CAPTION_DELAY}ms` }}
-      />
-      {/* 73° ≈ 90 − 18°: runs parallel to the figure's lattice axis (HeroFigure is rotated −18°). */}
-      <span
-        className={cn("pointer-events-none absolute left-[37%] top-[40%] hidden origin-left font-mono text-[clamp(11px,1.1vw,15px)] text-muted md:block", entering && "animate-hero-row")}
-        style={{ transform: "rotate(72deg)", animationDelay: `${CAPTION_DELAY}ms` }}
+        className="pointer-events-none absolute inset-y-0 hidden md:block"
+        style={{ "--hf-u": HF_UNIT, left: STAGE_LEFT_CSS, width: u(STAGE_W_U) } as CSSProperties}
       >
-        hero fig., abstract viridis logit lens
-      </span>
+        <HeroFigure />
+        {/* Hairline in the cream gutter just left of the lattice, parallel to
+            its columns (both rotated −18°). */}
+        <div
+          className={cn("absolute top-0 h-[140%] w-px bg-surface-border", entering && "animate-hero-row")}
+          style={{ left: u(HAIRLINE_LEFT_U), transformOrigin: "top left", transform: "rotate(-18deg)", animationDelay: `${CAPTION_DELAY}ms` }}
+        />
+        {/* 72° ≈ 90 − 18°: runs parallel to the figure's lattice axis. */}
+        <span
+          className={cn("absolute origin-left font-mono text-[clamp(11px,1.1vw,15px)] text-muted", entering && "animate-hero-row")}
+          style={{ left: u(CAPTION_LEFT_U), top: u(CAPTION_TOP_U), transform: "rotate(72deg)", animationDelay: `${CAPTION_DELAY}ms` }}
+        >
+          hero fig., abstract viridis logit lens
+        </span>
+      </div>
     </div>
   );
 }

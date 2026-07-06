@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <div
       style={{
-        height: "100vh",
+        height: "100svh",
         display: "flex",
         flexDirection: "column",
         background: "var(--bg)",
