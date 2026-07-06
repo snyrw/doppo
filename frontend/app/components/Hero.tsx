@@ -6,7 +6,7 @@ import { useSession } from "../lib/auth-client";
 import { cn } from "../lib/cn";
 import { TactileButton } from "./ui/TactileButton";
 import HeroFigure from "./HeroFigure";
-import { HF_UNIT, STAGE_LEFT_CSS, STAGE_W_U, HAIRLINE_LEFT_U, CAPTION_LEFT_U, CAPTION_TOP_U, u } from "./hero-geometry";
+import { HF_UNIT, STAGE_LEFT_CSS, STAGE_W_U, HAIRLINE_LEFT_U, CAPTION_LEFT_U, CAPTION_TOP_U, u } from "./figure-geometry";
 import EyebrowNav from "./EyebrowNav";
 import { useSectionEntrance } from "./deck/DeckContext";
 
@@ -106,7 +106,7 @@ export default function Hero() {
 
       {/* ── Right: hero figure stage (desktop only) ──
           One fixed-geometry stage. Every length inside is in --hf-u = 1svh
-          (see hero-geometry.ts), so the figure scales with viewport height and
+          (see figure-geometry.ts), so the figure scales with viewport height and
           never shrinks with width; at 16:9 this equals the legacy vw sizing
           exactly. The left edge is right-anchored until that would cross the
           legacy 35% line, then pins there — on ultrawide the extra width

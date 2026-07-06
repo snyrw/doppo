@@ -1,9 +1,10 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, type CSSProperties } from "react";
 import { cn } from "../../lib/cn";
 import EyebrowNav from "../EyebrowNav";
 import { useSectionEntrance } from "../deck/DeckContext";
+import { CARD_LEFT_U, CARD_W_U, FIELD_LEFT_CSS, FRAME_W_U, HF_UNIT, u } from "../figure-geometry";
 import SphereField from "./SphereField";
 import DoppoInfoCard from "./DoppoInfoCard";
 
@@ -73,11 +74,23 @@ export default function WhatDoppoIs() {
         />
       </div>
 
-      {/* ── Right: card ── */}
-      <div className="relative z-10 flex items-center justify-center px-[clamp(28px,4vw,72px)] pb-[clamp(24px,4vw,40px)] md:pb-0">
+      {/* ── Right: card (desktop) — stage-positioned in the same --hf-u frame as
+          the sphere field so card and field stay rigid at every aspect ratio. ── */}
+      <div
+        className="pointer-events-none absolute inset-y-0 z-10 hidden md:block"
+        style={{ "--hf-u": HF_UNIT, left: FIELD_LEFT_CSS, width: u(FRAME_W_U) } as CSSProperties}
+      >
+        <DoppoInfoCard
+          className={cn("pointer-events-auto absolute top-1/2 -translate-y-1/2", entering && "animate-hero-row")}
+          style={{ left: u(CARD_LEFT_U), width: u(CARD_W_U), animationDelay: `${CARD_DELAY}ms` }}
+        />
+      </div>
+
+      {/* ── Right: card (mobile flow fallback) ── */}
+      <div className="relative z-10 flex items-center justify-center px-[clamp(28px,4vw,72px)] pb-[clamp(24px,4vw,40px)] md:hidden">
         <DoppoInfoCard
           className={cn("w-[clamp(320px,32vw,620px)]", entering && "animate-hero-row")}
-          style={{ animationDelay: `${CARD_DELAY}ms`, transform: "translateX(-60px)" }}
+          style={{ animationDelay: `${CARD_DELAY}ms` }}
         />
       </div>
     </div>

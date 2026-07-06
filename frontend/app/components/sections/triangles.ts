@@ -8,6 +8,10 @@
 // width. The triangle analog of the WhatDoppoIs sphere field (see spheres.ts). `fill`
 // resolves to theme-flipping CSS vars at render time.
 //
+// Lengths are emitted in --hf-u units (see figure-geometry.ts) against the
+// 1920×1080 design frame, so the field scales rigidly with its stage and never
+// shrinks with width.
+//
 // COORDS DERIVED FROM THE NODE METADATA (not Figma's per-node code export, which drops the
 // polygons' 90° rotation and exports up-pointing SVGs at 2× the size — wrong). Each visible
 // triangle is a `regular-polygon` face node plus a shadow twin offset (+18, +33); its
@@ -17,12 +21,9 @@
 // origin for each FACE (= face_node.x − 85, face_node.y + 69); the `node` id is the face
 // node, kept only for provenance.
 
-export const DESIGN_W = 1920;
+import { pxToU } from "../figure-geometry";
 
-/** Design px (in the 1920px frame) → vw, rounded to 3 decimals. */
-export function pxToVw(px: number): number {
-  return Math.round((px / DESIGN_W) * 100_000) / 1000;
-}
+export const DESIGN_W = 1920;
 
 // Left-pointing equilateral triangle filling its bounding box: apex at left-middle,
 // vertical base on the right.
@@ -87,10 +88,10 @@ export type TriangleFill = "face" | "shadow";
 
 export interface TrianglePart {
   key: string;
-  leftVw: number;
-  topVw: number;
-  wVw: number;
-  hVw: number;
+  leftU: number;
+  topU: number;
+  wU: number;
+  hU: number;
   fill: TriangleFill;
   delayMs: number;
 }
@@ -99,10 +100,10 @@ function part(t: TriangleSource, i: number, fill: TriangleFill): TrianglePart {
   const shadow = fill === "shadow";
   return {
     key: `${t.node}-${fill}`,
-    leftVw: pxToVw(t.x + (shadow ? SHADOW_DX : 0) + FIELD_NUDGE_X),
-    topVw: pxToVw(t.y + (shadow ? SHADOW_DY : 0) + FIELD_NUDGE_Y),
-    wVw: pxToVw(TRI_W),
-    hVw: pxToVw(TRI_H),
+    leftU: pxToU(t.x + (shadow ? SHADOW_DX : 0) + FIELD_NUDGE_X),
+    topU: pxToU(t.y + (shadow ? SHADOW_DY : 0) + FIELD_NUDGE_Y),
+    wU: pxToU(TRI_W),
+    hU: pxToU(TRI_H),
     fill,
     delayMs: TRIANGLE_BASE_DELAY_MS + i * TRIANGLE_STAGGER_MS,
   };

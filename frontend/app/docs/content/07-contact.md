@@ -2,6 +2,6 @@
 title: Contact
 ---
 
-Doppo is in open beta. Things will occasionally break, and pricing or limits may shift as we learn what people actually run.
+Doppo is in open beta, which means that things will probably break if we see usage.
 
-For bugs, feedback, limit raises, or anything else: [help@doppo.tools](mailto:help@doppo.tools). If a result looks scientifically wrong, that is the most useful kind of report we can get; include the share link.
+For bugs, feedback, limit discussion, or anything else: [help@doppo.tools](mailto:help@doppo.tools). If a result looks scientifically wrong, please send a share link of your project! 

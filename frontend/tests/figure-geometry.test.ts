@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
-  uPx, stageLeftPx, CELL_W_U, CELL_H_U, GAP_U, SHADOW_X_U, SHADOW_Y_U,
+  uPx, pxToU, stageLeftPx, fieldLeftPx, CELL_W_U, CELL_H_U, GAP_U, SHADOW_X_U, SHADOW_Y_U,
   STAGE_W_U, LATTICE_LEFT_U, LATTICE_TOP_U,
   HAIRLINE_LEFT_U, CAPTION_LEFT_U, CAPTION_TOP_U,
-} from "../app/components/hero-geometry";
+  FRAME_W_U, SPHERE_HAIRLINE_LEFT_U, TECH_HAIRLINE_LEFT_U, LM_HAIRLINE_LEFT_U,
+  TECH_STACK_LEFT_U, TECH_STACK_W_U, TECH_CARD_NUDGE_U, CARD_LEFT_U, CARD_W_U,
+} from "../app/components/figure-geometry";
 
 // 1u at 1080p viewport height.
 const U = uPx(1080);
@@ -61,5 +63,30 @@ describe("stage-relative positions reproduce the legacy layout at 1920×1080", (
   it("vertical anchors match old %-of-main (998px main at 1080p)", () => {
     expect(LATTICE_TOP_U * U).toBeCloseTo(0.2 * 998, 6); // 199.6
     expect(CAPTION_TOP_U * U).toBeCloseTo(0.4 * 998, 6); // 399.2
+  });
+});
+
+describe("section field stages (full 1920 design frame)", () => {
+  it("stage left edge is exactly 0 at 16:9 (pixel parity)", () => {
+    expect(fieldLeftPx(1920, 1080)).toBeCloseTo(0, 6);
+    expect(fieldLeftPx(2560, 1440)).toBeCloseTo(0, 6);
+  });
+  it("right-anchors on ultrawide, pins at 0 below 16:9 (clips, never shrinks)", () => {
+    expect(fieldLeftPx(3440, 1440)).toBeCloseTo(3440 - FRAME_W_U * 14.4, 6); // 880
+    expect(fieldLeftPx(1024, 768)).toBe(0);
+    expect(FRAME_W_U * uPx(768)).toBeGreaterThan(1024); // genuinely overflows
+  });
+  it("pxToU round-trips design px at 1080p (3-decimal rounding)", () => {
+    expect(pxToU(845.64) * 10.8).toBeCloseTo(845.64, 1);
+  });
+  it("hairline/stack/card constants reproduce legacy px at 1920×1080", () => {
+    expect(SPHERE_HAIRLINE_LEFT_U * U).toBeCloseTo(0.3 * 1920, 1);        // left-[30%]
+    expect(TECH_HAIRLINE_LEFT_U * U).toBeCloseTo(0.41 * 1920 + 100, 1);   // left-[calc(41%+100px)]
+    expect(LM_HAIRLINE_LEFT_U * U).toBeCloseTo(0.5 * 1920, 1);            // left-[calc(44%+6vw)]
+    expect(TECH_STACK_LEFT_U * U).toBeCloseTo(0.417 * 1920 + 45, 1);      // left-[calc(41.7vw+45px)]
+    expect(TECH_STACK_W_U * U).toBeCloseTo(0.55 * 1920, 1);               // w-[55vw]
+    expect(TECH_CARD_NUDGE_U * U).toBeCloseTo(75, 1);                     // -translate-x-[75px]
+    expect(CARD_W_U * U).toBeCloseTo(0.32 * 1920, 6);                     // 32vw card
+    expect(CARD_LEFT_U * U).toBeCloseTo(1440 - 60 - (0.32 * 1920) / 2, 1); // centered −60px nudge
   });
 });

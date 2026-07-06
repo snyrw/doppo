@@ -1,9 +1,13 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, type CSSProperties } from "react";
 import { cn } from "../../lib/cn";
 import EyebrowNav from "../EyebrowNav";
 import { useSectionEntrance } from "../deck/DeckContext";
+import {
+  FIELD_LEFT_CSS, FRAME_W_U, HF_UNIT,
+  TECH_HAIRLINE_LEFT_U, TECH_STACK_LEFT_U, TECH_STACK_W_U, u,
+} from "../figure-geometry";
 import TechniqueStack from "./TechniqueStack";
 import TechniqueCardModal from "./TechniqueCardModal";
 
@@ -23,25 +27,31 @@ export default function Techniques() {
   const [selected, setSelected] = useState<number | null>(null);
   return (
     <div className="relative h-full overflow-hidden">
-      {/* Diagonal gutter hairline — self-clipping so it never adds scroll.
-          Positive rotation about the top-left origin sends the bottom down-LEFT,
-          matching the mock's lean. Fades in late, like Hero's caption rule. */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 hidden overflow-hidden md:block">
-        <div
-          className={cn("absolute left-[calc(41%+100px)] top-0 h-[150%] w-px bg-surface-border", entering && "animate-hero-row")}
-          style={{ transformOrigin: "top left", transform: "rotate(15deg)", animationDelay: "1080ms" }}
-        />
-      </div>
-
-      {/* ── Technique stack (desktop only) ──
-          Positioned against the section (not inside a grid column) with a single
-          left-vw knob, like Hero's figure — so it bleeds across the centerline and
-          just past the right edge exactly as in the mock. Driving the width in vw
-          lands the bars on the mock's coordinates (left edge 49.3vw) at any width;
-          the wrapper's overflow-hidden clips the off-screen-right bleed. */}
+      {/* ── Figure stage: gutter hairline + technique stack (desktop only) ──
+          One full-frame stage in --hf-u units (see figure-geometry.ts):
+          right-anchored on ultrawide, pinned left and clipped off the right
+          below 16:9, never shrinking or shearing. The hairline's positive
+          rotation about the top-left origin sends the bottom down-LEFT,
+          matching the mock's lean; it fades in late, like Hero's caption rule.
+          The stack bleeds across the centerline and just past the right edge
+          exactly as in the mock; the wrapper's overflow-hidden clips the
+          off-screen-right bleed. */}
       <div className="absolute inset-0 hidden overflow-hidden md:block">
-        <div className="absolute left-[calc(41.7vw+45px)] top-1/2 w-[55vw] -translate-y-1/2">
-          <TechniqueStack onSelect={setSelected} />
+        <div
+          className="absolute inset-y-0"
+          style={{ "--hf-u": HF_UNIT, left: FIELD_LEFT_CSS, width: u(FRAME_W_U) } as CSSProperties}
+        >
+          <div
+            aria-hidden
+            className={cn("pointer-events-none absolute top-0 h-[150%] w-px bg-surface-border", entering && "animate-hero-row")}
+            style={{ left: u(TECH_HAIRLINE_LEFT_U), transformOrigin: "top left", transform: "rotate(15deg)", animationDelay: "1080ms" }}
+          />
+          <div
+            className="absolute top-1/2 -translate-y-1/2"
+            style={{ left: u(TECH_STACK_LEFT_U), width: u(TECH_STACK_W_U) }}
+          >
+            <TechniqueStack onSelect={setSelected} />
+          </div>
         </div>
       </div>
 

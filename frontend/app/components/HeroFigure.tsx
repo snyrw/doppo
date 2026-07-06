@@ -3,7 +3,7 @@ import { useSectionEntrance } from "./deck/DeckContext";
 import {
   CELL_W_U, CELL_H_U, GAP_U, SHADOW_X_U, SHADOW_Y_U,
   LATTICE_LEFT_U, LATTICE_TOP_U, u,
-} from "./hero-geometry";
+} from "./figure-geometry";
 
 // Decorative logit-lens lattice — an exact transcription of the Figma hero figure
 // (node 8:389). A grid of tiles, rotated and bled off the panel edges, where each
@@ -13,7 +13,7 @@ import {
 // globals.css (--hero-l{0..3}-{face,back}): light = the verbatim Figma pastels;
 // dark = a deeper viridis band so the tiles recede against ink instead of glowing.
 //
-// All lengths come from hero-geometry.ts in --hf-u units, defined by the stage
+// All lengths come from figure-geometry.ts in --hf-u units, defined by the stage
 // wrapper in Hero.tsx that positions this lattice alongside its hairline and
 // caption — the whole group scales rigidly with the unit.
 

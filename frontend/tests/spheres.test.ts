@@ -1,17 +1,17 @@
 // frontend/tests/spheres.test.ts
 import { describe, it, expect } from "vitest";
 import {
-  pxToVw,
   SPHERES,
   SPHERE_BASE_DELAY_MS,
   SPHERE_GROUP_STAGGER_MS,
 } from "../app/components/sections/spheres";
+import { pxToU } from "../app/components/figure-geometry";
 
-describe("pxToVw", () => {
-  it("converts design px to vw against the 1920px frame", () => {
-    expect(pxToVw(1920)).toBe(100);
-    expect(pxToVw(960)).toBe(50);
-    expect(pxToVw(800)).toBe(41.667); // rounded to 3 decimals
+describe("pxToU", () => {
+  it("converts design px to --hf-u units against the 1920×1080 frame", () => {
+    expect(pxToU(1080)).toBe(100);
+    expect(pxToU(540)).toBe(50);
+    expect(pxToU(800)).toBe(74.074); // rounded to 3 decimals
   });
 });
 
@@ -25,20 +25,20 @@ describe("SPHERES", () => {
     expect(SPHERES.filter((s) => s.fill === "twin")).toHaveLength(4);
   });
 
-  it("places the large solo sphere (80:4) at the exact Figma-derived vw", () => {
+  it("places the large solo sphere (80:4) at the exact Figma-derived units", () => {
     const solo = SPHERES.find((s) => s.node === "80:4")!;
-    expect(solo.rightVw).toBe(12.552);
-    expect(solo.topVw).toBe(39.583);
-    expect(solo.sizeVw).toBe(41.667);
+    expect(solo.rightU).toBe(pxToU(1920 - (879 + 800))); // 241 design px
+    expect(solo.topU).toBe(pxToU(760));
+    expect(solo.sizeU).toBe(pxToU(800));
     expect(solo.delayMs).toBe(SPHERE_BASE_DELAY_MS); // largest fades first
   });
 
   it("offsets each twin down-right of its face, same diameter", () => {
     const face = SPHERES.find((s) => s.node === "80:5")!;  // 394 face
     const twin = SPHERES.find((s) => s.node === "80:24")!; // 394 twin
-    expect(twin.rightVw).toBeLessThan(face.rightVw); // further toward/past right edge
-    expect(twin.topVw).toBeGreaterThan(face.topVw);  // lower
-    expect(twin.sizeVw).toBe(face.sizeVw);
+    expect(twin.rightU).toBeLessThan(face.rightU); // further toward/past right edge
+    expect(twin.topU).toBeGreaterThan(face.topU);  // lower
+    expect(twin.sizeU).toBe(face.sizeU);
   });
 
   it("offsets every twin down-right of its face, same diameter", () => {
@@ -51,9 +51,9 @@ describe("SPHERES", () => {
     for (const [twinNode, faceNode] of pairs) {
       const twin = SPHERES.find((s) => s.node === twinNode)!;
       const face = SPHERES.find((s) => s.node === faceNode)!;
-      expect(twin.topVw).toBeGreaterThan(face.topVw);
-      expect(twin.rightVw).toBeLessThan(face.rightVw);
-      expect(twin.sizeVw).toBe(face.sizeVw);
+      expect(twin.topU).toBeGreaterThan(face.topU);
+      expect(twin.rightU).toBeLessThan(face.rightU);
+      expect(twin.sizeU).toBe(face.sizeU);
     }
   });
 

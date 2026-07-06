@@ -3,6 +3,7 @@
 import { type CSSProperties } from "react";
 import { cn } from "../../lib/cn";
 import { useSectionEntrance } from "../deck/DeckContext";
+import { BAR_FONT_CSS, TECH_CARD_NUDGE_U, u } from "../figure-geometry";
 import { TECHNIQUES } from "./techniqueBars";
 
 // Right-side figure of the "techniques" section (Figma node 15:483): five level,
@@ -55,8 +56,9 @@ export default function TechniqueStack({
 
   return (
     <div className={cn("relative", className)} style={{ aspectRatio: STAGE_ASPECT }}>
-      {/* ── Tilted blank-card stack (decorative, behind the bars) ── */}
-      <div aria-hidden className="absolute inset-0 z-0 -translate-x-[75px]">
+      {/* ── Tilted blank-card stack (decorative, behind the bars) ──
+          Nudged left in --hf-u so it scales rigidly with the stage. */}
+      <div aria-hidden className="absolute inset-0 z-0" style={{ transform: `translateX(${u(-TECH_CARD_NUDGE_U)})` }}>
         <BlankCard fill="var(--sphere-back)" shadow entering={entering} />
         <BlankCard fill="var(--sphere-face)" entering={entering} />
       </div>
@@ -95,7 +97,7 @@ export default function TechniqueStack({
             >
               <span
                 className="font-sans font-normal leading-none text-white"
-                style={{ fontSize: "clamp(13px, 1.7vw, 32px)" }}
+                style={{ fontSize: BAR_FONT_CSS }}
               >
                 {t.name}
               </span>

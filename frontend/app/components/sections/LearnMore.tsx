@@ -1,9 +1,10 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, type CSSProperties } from "react";
 import { cn } from "../../lib/cn";
 import EyebrowNav from "../EyebrowNav";
 import { useSectionEntrance } from "../deck/DeckContext";
+import { CARD_LEFT_U, CARD_W_U, FIELD_LEFT_CSS, FRAME_W_U, HF_UNIT, u } from "../figure-geometry";
 import TriangleField from "./TriangleField";
 import LearnMoreCard from "./LearnMoreCard";
 
@@ -24,19 +25,10 @@ export default function LearnMore() {
   const entering = useSectionEntrance();
   return (
     <div className="relative grid h-full grid-cols-1 overflow-hidden md:grid-cols-[1fr_1fr]">
-      {/* Background triangle field — desktop only (self-clips via TriangleField). */}
+      {/* Background triangle field + gutter hairline — desktop only (self-clips
+          via TriangleField's stage). */}
       <div className="absolute inset-0 hidden md:block">
         <TriangleField />
-      </div>
-
-      {/* Diagonal gutter hairline — self-clipping so it never adds scroll. Positive
-          rotation about the top-left origin sends the bottom down-LEFT, matching the
-          mock's lean (top ≈44% → bottom-left). Same shade as every other hairline. */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 hidden overflow-hidden md:block">
-        <div
-          className={cn("absolute left-[calc(44%+6vw)] top-0 h-[150%] w-px bg-surface-border", entering && "animate-hero-row")}
-          style={{ transformOrigin: "top left", transform: "rotate(23deg)", animationDelay: "1080ms" }}
-        />
       </div>
 
       {/* ── Left: copy ── */}
@@ -86,11 +78,25 @@ export default function LearnMore() {
         />
       </div>
 
-      {/* ── Right: card ── */}
-      <div className="relative z-10 flex items-center justify-center px-[clamp(28px,4vw,72px)] pb-[clamp(24px,4vw,40px)] md:pb-0">
+      {/* ── Right: card (desktop) — stage-positioned in the same --hf-u frame as
+          the triangle field, so the field's behind-the-card tuck stays rigid at
+          every aspect ratio (the old %-centered + px-capped card sheared against
+          the vw-scaled field on tall viewports). ── */}
+      <div
+        className="pointer-events-none absolute inset-y-0 z-10 hidden md:block"
+        style={{ "--hf-u": HF_UNIT, left: FIELD_LEFT_CSS, width: u(FRAME_W_U) } as CSSProperties}
+      >
+        <LearnMoreCard
+          className={cn("pointer-events-auto absolute top-1/2 -translate-y-1/2", entering && "animate-hero-row")}
+          style={{ left: u(CARD_LEFT_U), width: u(CARD_W_U), animationDelay: `${CARD_DELAY}ms` }}
+        />
+      </div>
+
+      {/* ── Right: card (mobile flow fallback) ── */}
+      <div className="relative z-10 flex items-center justify-center px-[clamp(28px,4vw,72px)] pb-[clamp(24px,4vw,40px)] md:hidden">
         <LearnMoreCard
           className={cn("w-[clamp(320px,32vw,620px)]", entering && "animate-hero-row")}
-          style={{ animationDelay: `${CARD_DELAY}ms`, transform: "translateX(-60px)" }}
+          style={{ animationDelay: `${CARD_DELAY}ms` }}
         />
       </div>
     </div>
