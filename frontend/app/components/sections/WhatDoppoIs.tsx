@@ -30,7 +30,7 @@ export default function WhatDoppoIs() {
 
       {/* ── Left: copy ── */}
       <div className="relative z-10 flex flex-col justify-center px-[clamp(28px,6vw,96px)]">
-        <div className={cn("mb-[clamp(30px,4.5vw,58px)]", entering && "animate-hero-row")}>
+        <div className={cn("mb-[clamp(30px,min(4.5vw,8svh),58px)]", entering && "animate-hero-row")}>
           <EyebrowNav />
         </div>
 
@@ -38,11 +38,11 @@ export default function WhatDoppoIs() {
           <span
             aria-hidden
             className={cn(
-              "pointer-events-none absolute -left-[26px] -top-6 h-[clamp(56px,7vw,96px)] w-[clamp(56px,7vw,96px)] border-l border-t border-muted",
+              "pointer-events-none absolute -left-[26px] -top-6 h-[clamp(56px,min(7vw,12.444svh),96px)] w-[clamp(56px,min(7vw,12.444svh),96px)] border-l border-t border-muted",
               entering && "animate-hero-row",
             )}
           />
-          <h2 className="m-0 font-display text-[clamp(34px,5vw,58px)] font-normal leading-[1.08] tracking-[-0.01em] text-accent">
+          <h2 className="m-0 font-display text-[clamp(34px,min(5vw,8.889svh),58px)] font-normal leading-[1.08] tracking-[-0.01em] text-accent">
             {HEADING.split(" ").map((word, i) => (
               <Fragment key={i}>
                 <span
@@ -58,7 +58,7 @@ export default function WhatDoppoIs() {
 
         <p
           className={cn(
-            "mt-[clamp(16px,2vw,28px)] max-w-[34ch] text-[clamp(15px,1.8vw,24px)] leading-[1.4] text-muted",
+            "mt-[clamp(16px,min(2vw,3.556svh),28px)] max-w-[34ch] text-[clamp(15px,min(1.8vw,3.2svh),24px)] leading-[1.4] text-muted",
             entering && "animate-hero-row",
           )}
           style={{ animationDelay: `${CONTROLS_DELAY - 60}ms` }}
@@ -68,7 +68,7 @@ export default function WhatDoppoIs() {
 
         <hr
           className={cn(
-            "mt-[clamp(24px,3vw,34px)] w-[calc(100%-160px)] border-0 border-t border-muted",
+            "mt-[clamp(24px,min(3vw,5.333svh),34px)] w-[calc(100%-160px)] border-0 border-t border-muted",
           )}
           style={{ animationDelay: `${CONTROLS_DELAY}ms` }}
         />

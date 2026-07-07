@@ -13,10 +13,10 @@ import { useSectionEntrance } from "./deck/DeckContext";
 // Keep the two CTAs dimensionally identical (shared face padding via the tactile vars).
 const HERO_BTN_PAD = {
   "--pad-x": "clamp(14px,1.2vw,24px)",
-  "--pad-y": "clamp(9px,0.7vw,13px)",
+  "--pad-y": "clamp(9px,min(0.7vw,1.244svh),13px)",
 } as CSSProperties;
 
-const HERO_BTN_FACE = "font-sans font-normal text-[clamp(13px,1vw,18px)] tracking-[0.01em] justify-start text-muted";
+const HERO_BTN_FACE = "font-sans font-normal text-[clamp(13px,min(1vw,1.778svh),18px)] tracking-[0.01em] justify-start text-muted";
 
 // Entrance choreography (ms). Headline words rise+fade in quick succession, then
 // the left-column controls settle, then HeroFigure paints row-by-row (timed in
@@ -38,7 +38,7 @@ export default function Hero() {
         {/* Eyebrow section nav (dummy — clicking lights a section locally; not yet
             wired to routes). Fades in with the headline; reduced-motion shows it
             at full opacity via the .animate-hero-row media query. */}
-        <div className={cn("mb-[clamp(30px,4.5vw,58px)]", entering && "animate-hero-row")}>
+        <div className={cn("mb-[clamp(30px,min(4.5vw,8svh),58px)]", entering && "animate-hero-row")}>
           <EyebrowNav />
         </div>
 
@@ -50,9 +50,9 @@ export default function Hero() {
         <div className="relative">
           <span
             aria-hidden
-            className={cn("pointer-events-none absolute -left-[26px] -top-6 h-[clamp(56px,7vw,96px)] w-[clamp(56px,7vw,96px)] border-l border-t border-muted", entering && "animate-hero-row")}
+            className={cn("pointer-events-none absolute -left-[26px] -top-6 h-[clamp(56px,min(7vw,12.444svh),96px)] w-[clamp(56px,min(7vw,12.444svh),96px)] border-l border-t border-muted", entering && "animate-hero-row")}
           />
-          <h1 className="m-0 font-display text-[clamp(34px,5vw,58px)] font-normal leading-[1.08] tracking-[-0.01em] text-accent">
+          <h1 className="m-0 font-display text-[clamp(34px,min(5vw,8.889svh),58px)] font-normal leading-[1.08] tracking-[-0.01em] text-accent">
             {HEADLINE.split(" ").map((word, i) => (
               <Fragment key={i}>
                 <span
@@ -67,12 +67,12 @@ export default function Hero() {
         </div>
 
         <hr
-          className={cn("my-[clamp(24px,3vw,44px)] w-full border-0 border-t border-muted", entering && "animate-hero-row")}
+          className={cn("my-[clamp(24px,min(3vw,5.333svh),44px)] w-full border-0 border-t border-muted", entering && "animate-hero-row")}
           style={{ animationDelay: `${CONTROLS_DELAY}ms` }}
         />
 
         <div
-          className={cn("flex w-[clamp(170px,15vw,240px)] flex-col gap-[clamp(12px,1vw,18px)]", entering && "animate-hero-row")}
+          className={cn("flex w-[clamp(170px,15vw,240px)] flex-col gap-[clamp(12px,min(1vw,1.778svh),18px)]", entering && "animate-hero-row")}
           style={{ animationDelay: `${CONTROLS_DELAY}ms` }}
         >
           <TactileButton
@@ -129,7 +129,7 @@ export default function Hero() {
         />
         {/* 72° ≈ 90 − 18°: runs parallel to the figure's lattice axis. */}
         <span
-          className={cn("absolute origin-left font-mono text-[clamp(11px,1.1vw,15px)] text-muted", entering && "animate-hero-row")}
+          className={cn("absolute origin-left font-mono text-[clamp(11px,min(1.1vw,1.956svh),15px)] text-muted", entering && "animate-hero-row")}
           style={{ left: u(CAPTION_LEFT_U), top: u(CAPTION_TOP_U), transform: "rotate(72deg)", animationDelay: `${CAPTION_DELAY}ms` }}
         >
           hero fig., abstract viridis logit lens

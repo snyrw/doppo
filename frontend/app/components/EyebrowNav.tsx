@@ -12,7 +12,7 @@ export default function EyebrowNav() {
   return (
     <nav
       aria-label="Sections"
-      className="flex items-stretch font-mono font-light text-[clamp(8px,0.95vw,12px)] leading-none"
+      className="flex items-stretch font-mono font-light text-[clamp(8px,min(0.95vw,1.689svh),12px)] leading-none"
     >
       {sections.map((section, i) => (
         <Fragment key={section.id}>
