@@ -10,6 +10,7 @@ import {
 } from "../figure-geometry";
 import TechniqueStack from "./TechniqueStack";
 import TechniqueCardModal from "./TechniqueCardModal";
+import { TECHNIQUES } from "./techniqueBars";
 
 // "Techniques" deck section (Figma node 15:483). Left column mirrors the sibling
 // "What Doppo is" section — eyebrow nav, registration corner + heading, subtitle,
@@ -36,7 +37,7 @@ export default function Techniques() {
           The stack bleeds across the centerline and just past the right edge
           exactly as in the mock; the wrapper's overflow-hidden clips the
           off-screen-right bleed. */}
-      <div className="absolute inset-0 hidden overflow-hidden md:block">
+      <div className="deck-only absolute inset-0 overflow-hidden">
         <div
           className="absolute inset-y-0"
           style={{ "--hf-u": HF_UNIT, left: FIELD_LEFT_CSS, width: u(FRAME_W_U) } as CSSProperties}
@@ -56,8 +57,8 @@ export default function Techniques() {
       </div>
 
       {/* ── Left: copy ── */}
-      <div className="relative z-10 flex h-full max-w-[46vw] flex-col justify-center px-[clamp(28px,6vw,96px)]">
-        <div className={cn("mb-[clamp(30px,min(4.5vw,8svh),58px)]", entering && "animate-hero-row")}>
+      <div className="deck-col-narrow deck-col-pad relative z-10 flex h-full flex-col justify-center">
+        <div className={cn("deck-only mb-[clamp(30px,min(4.5vw,8svh),58px)]", entering && "animate-hero-row")}>
           <EyebrowNav />
         </div>
 
@@ -65,7 +66,7 @@ export default function Techniques() {
           <span
             aria-hidden
             className={cn(
-              "pointer-events-none absolute -left-[26px] -top-6 h-[clamp(56px,min(7vw,12.444svh),96px)] w-[clamp(56px,min(7vw,12.444svh),96px)] border-l border-t border-muted",
+              "deck-only pointer-events-none absolute -left-[26px] -top-6 h-[clamp(56px,min(7vw,12.444svh),96px)] w-[clamp(56px,min(7vw,12.444svh),96px)] border-l border-t border-muted",
               entering && "animate-hero-row",
             )}
           />
@@ -95,11 +96,35 @@ export default function Techniques() {
 
         <hr
           className={cn(
-            "mt-[clamp(24px,min(3vw,5.333svh),34px)] w-[calc(100%-160px)] border-0 border-t border-muted",
+            "deck-hr-inset mt-[clamp(24px,min(3vw,5.333svh),34px)] w-full border-0 border-t border-muted",
             entering && "animate-hero-row",
           )}
           style={{ animationDelay: `${CONTROLS_DELAY}ms` }}
         />
+
+        {/* ── Flow-only: the technique bars as a plain, non-interactive list.
+            The deck shows them in the tilted stack figure; flow just needs the
+            content, so these reuse the tactile bar look via `tactile--static`
+            (no cursor / hover-lift / press-sink) and don't open the modal. ── */}
+        <ul className="flow-only mt-[clamp(28px,7vw,44px)] flex list-none flex-col gap-[10px] p-0">
+          {TECHNIQUES.map((t) => (
+            <li
+              key={t.name}
+              className="tactile tactile--static mb-0 flex w-full"
+              style={{ "--tactile-side": t.shadow } as CSSProperties}
+            >
+              <span className="tactile__base rounded-[6px]" aria-hidden="true" />
+              <span
+                className="tactile__face h-11 w-full justify-start rounded-[6px] pl-4"
+                style={{ background: t.face }}
+              >
+                <span className="font-sans text-[15px] font-normal leading-none text-white">
+                  {t.name}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {selected !== null && (
