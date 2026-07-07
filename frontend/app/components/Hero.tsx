@@ -1,10 +1,8 @@
 "use client";
 
 import { Fragment, type CSSProperties } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "../lib/auth-client";
 import { cn } from "../lib/cn";
-import { TactileButton } from "./ui/TactileButton";
+import { HERO_HEADLINE, HeroCtas } from "./hero/hero-shared";
 import HeroFigure from "./HeroFigure";
 import { HF_UNIT, STAGE_LEFT_CSS, STAGE_W_U, HAIRLINE_LEFT_U, CAPTION_LEFT_U, CAPTION_TOP_U, u } from "./figure-geometry";
 import EyebrowNav from "./EyebrowNav";
@@ -21,15 +19,12 @@ const HERO_BTN_FACE = "font-sans font-normal text-[clamp(13px,min(1vw,1.778svh),
 // Entrance choreography (ms). Headline words rise+fade in quick succession, then
 // the left-column controls settle, then HeroFigure paints row-by-row (timed in
 // HeroFigure itself), and finally the figure's annotations fade up underneath it.
-const HEADLINE = "Doppo, a mechanistic interpretability workbench.";
 const WORD_STAGGER = 60;
 const CONTROLS_DELAY = 380;
 const CAPTION_DELAY = 1080;
 
 export default function Hero() {
   const entering = useSectionEntrance();
-  const router = useRouter();
-  const { data: session } = useSession();
 
   return (
     <div className="relative grid h-full grid-cols-1 overflow-hidden md:grid-cols-[1fr_1.6fr]">
@@ -53,7 +48,7 @@ export default function Hero() {
             className={cn("pointer-events-none absolute -left-[26px] -top-6 h-[clamp(56px,min(7vw,12.444svh),96px)] w-[clamp(56px,min(7vw,12.444svh),96px)] border-l border-t border-muted", entering && "animate-hero-row")}
           />
           <h1 className="m-0 font-display text-[clamp(34px,min(5vw,8.889svh),58px)] font-normal leading-[1.08] tracking-[-0.01em] text-accent">
-            {HEADLINE.split(" ").map((word, i) => (
+            {HERO_HEADLINE.split(" ").map((word, i) => (
               <Fragment key={i}>
                 <span
                   className={cn("inline-block", entering && "animate-hero-word")}
@@ -75,32 +70,7 @@ export default function Hero() {
           className={cn("flex w-[clamp(170px,15vw,240px)] flex-col gap-[clamp(12px,min(1vw,1.778svh),18px)]", entering && "animate-hero-row")}
           style={{ animationDelay: `${CONTROLS_DELAY}ms` }}
         >
-          <TactileButton
-            variant="ghost"
-            block
-            style={HERO_BTN_PAD}
-            faceClassName={HERO_BTN_FACE}
-            onClick={() => {
-              if (session?.user) {
-                router.push("/projects");
-              } else {
-                window.dispatchEvent(
-                  new CustomEvent("doppo:open-auth", { detail: { mode: "signup" } }),
-                );
-              }
-            }}
-          >
-            Projects
-          </TactileButton>
-          <TactileButton
-            variant="ghost"
-            href="/tutorial"
-            block
-            style={HERO_BTN_PAD}
-            faceClassName={HERO_BTN_FACE}
-          >
-            Tutorial
-          </TactileButton>
+          <HeroCtas style={HERO_BTN_PAD} faceClassName={HERO_BTN_FACE} />
         </div>
       </div>
 
@@ -117,7 +87,7 @@ export default function Hero() {
           section root's overflow-hidden does the clipping. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 hidden md:block"
+        className="deck-only pointer-events-none absolute inset-y-0"
         style={{ "--hf-u": HF_UNIT, left: STAGE_LEFT_CSS, width: u(STAGE_W_U) } as CSSProperties}
       >
         <HeroFigure />

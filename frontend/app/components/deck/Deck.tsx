@@ -5,10 +5,17 @@ import { DeckContext, type DeckContextValue, type Phase } from "./DeckContext";
 import { SECTIONS } from "./sections";
 import SectionShell from "./SectionShell";
 import {
-  ENTER_LOCK_MS, TOUCH_MIN_DELTA, clampIndex, idToIndex, intentToIndex,
-  isTypingTarget, keyToIntent, nextIndex, prefersReducedMotion,
-  shouldStepFromScroll, wheelDecision, type StepDir, type WheelState,
+  DECK_QUERY, ENTER_LOCK_MS, TOUCH_MIN_DELTA, clampIndex, deckModeActive,
+  idToIndex, intentToIndex, isTypingTarget, keyToIntent, nextIndex,
+  prefersReducedMotion, shouldStepFromScroll, wheelDecision,
+  type StepDir, type WheelState,
 } from "./deck-logic";
+
+// The deck is CSS-hidden (`.deck-only`) in flow mode but stays mounted, so its
+// window-level side effects (keydown, hash sync, focus steal) must be gated —
+// otherwise arrow keys hijack flow scrolling and focus jumps into display:none.
+const inDeckMode = () =>
+  typeof window !== "undefined" && deckModeActive(window.matchMedia?.(DECK_QUERY));
 
 export default function Deck() {
   const [active, setActive] = useState(0);
@@ -29,6 +36,7 @@ export default function Deck() {
   // Announce + move focus + sync hash on every settled change (skip first mount).
   useEffect(() => {
     if (!didInit.current) { didInit.current = true; return; }
+    if (!inDeckMode()) return;
     // Announces the settled section to screen readers; there is no non-effect trigger for this.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLiveMsg(`${SECTIONS[active].label}, section ${active + 1} of ${SECTIONS.length}`);
@@ -67,11 +75,14 @@ export default function Deck() {
 
   // Initial hash → section (after hydration; the server can't see the hash).
   useEffect(() => {
-    const idx = idToIndex(window.location.hash, SECTIONS);
-    // Reads the location hash after hydration; the server can't see it during SSR.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (idx > 0) { activeRef.current = idx; setActive(idx); }
+    if (inDeckMode()) {
+      const idx = idToIndex(window.location.hash, SECTIONS);
+      // Reads the location hash after hydration; the server can't see it during SSR.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (idx > 0) { activeRef.current = idx; setActive(idx); }
+    }
     const onPop = () => {
+      if (!inDeckMode()) return; // flow uses native anchor scrolling
       const i = idToIndex(window.location.hash, SECTIONS);
       go(i < 0 ? 0 : i);
     };
@@ -89,6 +100,7 @@ export default function Deck() {
     const activeSection = () => root.querySelector<HTMLElement>(".deck-section:not([hidden])");
 
     const onWheel = (e: WheelEvent) => {
+      if (!inDeckMode()) return;
       if (phaseRef.current !== "idle") { e.preventDefault(); return; }
       const dir: StepDir = e.deltaY > 0 ? 1 : -1;
       const el = activeSection();
@@ -103,6 +115,7 @@ export default function Deck() {
       touchStartY.current = e.touches[0]?.clientY ?? null;
     };
     const onTouchMove = (e: TouchEvent) => {
+      if (!inDeckMode()) return;
       if (phaseRef.current !== "idle") { e.preventDefault(); return; }
       const startY = touchStartY.current;
       const y = e.touches[0]?.clientY;
@@ -118,6 +131,7 @@ export default function Deck() {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      if (!inDeckMode()) return; // never hijack keys while flow is scrolling
       if (isTypingTarget(document.activeElement as { tagName?: string; isContentEditable?: boolean } | null)) return;
       const intent = keyToIntent(e.key);
       if (!intent) return;
