@@ -9,6 +9,11 @@
 - A [Cloudflare R2](https://developers.cloudflare.com/r2/) bucket
 - At least one OAuth app (Google or GitHub)
 
+Optional, only needed for specific features:
+- [Stripe](https://stripe.com) secret key + webhook secret — credits billing (without these, the buy-credits flow is disabled)
+- [Resend](https://resend.com) API key — transactional email (password reset, etc.)
+- [Anthropic API key](https://console.anthropic.com) — LLM-assisted steering pair generation
+
 ---
 
 ## Backend setup
@@ -19,19 +24,22 @@ python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 modal setup                     # opens browser to authenticate
+cd ..                           # -m backend.main needs to run from the repo root
 ```
 
 To run in dev mode (hot-reload, temporary URL):
 ```bash
-modal serve main.py
+modal serve -m backend.main
 ```
 
 To deploy to production:
 ```bash
-modal deploy main.py
+modal deploy -m backend.main
 ```
 
 Both commands print the endpoint URL you need for `NEXT_PUBLIC_API_URL` in the frontend.
+In production this deploy runs automatically via GitHub Actions on push to `main`
+(only when files under `backend/` change).
 
 **HuggingFace secret (for gated models):** If you want to run gated models (Llama, Gemma, etc.) create a Modal secret named `huggingface-secret` with key `HF_TOKEN`:
 ```bash
@@ -84,7 +92,7 @@ Existing migration SQL lives in `frontend/migrations/`.
 
 ### Cloudflare R2
 
-Create a bucket and an API token with Object Read & Write permissions. R2 stores serialized heatmap blobs so repeated inference runs are served from cache instead of hitting Modal.
+Create a bucket and an API token with Object Read & Write permissions. R2 stores serialized inference results, scoped per user, so repeated runs are served from cache instead of hitting Modal.
 
 ---
 
@@ -92,19 +100,29 @@ Create a bucket and an API token with Object Read & Write permissions. R2 stores
 
 ```
 backend/
-  main.py           All Modal endpoints (lens, DLA, attribution, activation patch)
+  main.py           GPU-tier Modal classes, _TIER_TO_CLS routing, FastAPI app factory
+  inference.py      Inference generators shared across analysis types + _result wrappers
+  config.py         Modal app/image/secrets, featured model list, per-tier kwargs
+  schemas.py        Pydantic request models
+  validation.py     HF repo validation, GPU tier detection
+  auth.py           Shared bearer-secret guard
+  routes/           jobs.py (spawn/poll/cancel), utils.py (models/tokenize/validate)
   requirements.txt
 
 frontend/
   app/
     api/            Next.js route handlers — thin proxies to Modal
-    components/     Canvas, card types (LensCard, DlaCard, AttributionCard, ActivationCard), config panes
+    components/     Canvas, card types (LensCard, DlaCard, AttributionCard,
+                     ActivationCard, SteeringCard, AttentionCard), config panes
     hooks/          useCanvasPan, useCardDrag, usePalette
-    lib/            auth.ts, auth-client.ts, db.ts, r2.ts, palette.ts, tiers.ts
+    lib/            auth.ts, auth-client.ts, db.ts, r2.ts, palette.ts, tiers.ts,
+                     spawn-route.ts (createSpawnHandler factory)
     schema.ts       Drizzle table definitions
     actions.ts      Server actions ("use server")
     page.tsx        Landing page (server component)
-    projects/       Canvas page with useReducer state
+    projects/       Canvas page with useReducer state; hooks/job-runner.ts (runJob)
+    tutorial/       No-auth guided walkthrough with pre-computed data
+    docs/           Reference documentation pages
     share/[shareId] Read-only public canvas
   migrations/       SQL migration files
   .env.example      All required environment variables
@@ -114,15 +132,21 @@ frontend/
 
 ## Making changes
 
-**Adding a new analysis type** requires changes in both halves:
-1. `backend/main.py` — new Modal function + endpoint
-2. `frontend/app/api/` — new route handler proxying to Modal
-3. `frontend/app/components/` — new card component + config pane
-4. `frontend/app/projects/page.tsx` — wire into the canvas reducer and `renderCard` switch
+**Adding a new analysis type** requires changes across the spawn+poll job lifecycle:
+1. `backend/inference.py` — new inference generator + `_result` wrapper on `_TLBase`
+2. `backend/routes/jobs.py` — new `POST /api/job/spawn-*` endpoint
+3. `frontend/app/lib/spawn-route.ts` — new spawn route via the `createSpawnHandler()` factory (don't hand-roll a route)
+4. `frontend/app/projects/hooks/job-runner.ts` — `runJob()` already handles spawn → poll → resolve; wire the new job type's config in
+5. `frontend/app/components/` — new card component + config pane
+6. `frontend/app/components/SandboxCanvas.tsx` — add to the `AnyCard` union and `renderCard()` switch
+7. `frontend/app/projects/helpers.ts` — add a branch to `serializeCard()`
+8. `frontend/app/projects/types.ts` and `app/actions.ts` — add a `CardResolvedAction` variant and `SerializedCard` fields
 
-**GPU tiers** are defined in `frontend/app/lib/tiers.ts`. Import `TIER_LABELS` from there — do not redefine inline.
+See the "New card type checklist" in the root `CLAUDE.md` and `.claude/rules/frontend.md` for the full list, including DB restore call sites and tutorial-mode handling.
 
-**TransformerLens 3.0 notes** — see `frontend/CLAUDE.md` for API differences from TL 2.x (hook naming, `TransformerBridge`, removed helpers).
+**GPU tiers** are defined in `frontend/app/lib/tiers.ts`. Import `TIER_LABELS` / `TIER_PAIR_CAPS` from there — do not redefine inline.
+
+**TransformerLens 3.5 notes** — see the root [CLAUDE.md](CLAUDE.md) for API differences from TL 2.x (hook naming, `TransformerBridge`, removed helpers).
 
 ---
 
