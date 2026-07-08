@@ -4,6 +4,7 @@ import {
   SPHERES,
   SPHERE_BASE_DELAY_MS,
   SPHERE_GROUP_STAGGER_MS,
+  SPHERE_X_NUDGE,
 } from "../app/components/sections/spheres";
 import { pxToU } from "../app/components/figure-geometry";
 
@@ -27,7 +28,7 @@ describe("SPHERES", () => {
 
   it("places the large solo sphere (80:4) at the exact Figma-derived units", () => {
     const solo = SPHERES.find((s) => s.node === "80:4")!;
-    expect(solo.rightU).toBe(pxToU(1920 - (879 + 800))); // 241 design px
+    expect(solo.rightU).toBe(pxToU(1920 - (879 + 800 + SPHERE_X_NUDGE))); // 241 design px, nudged right
     expect(solo.topU).toBe(pxToU(760));
     expect(solo.sizeU).toBe(pxToU(800));
     expect(solo.delayMs).toBe(SPHERE_BASE_DELAY_MS); // largest fades first
