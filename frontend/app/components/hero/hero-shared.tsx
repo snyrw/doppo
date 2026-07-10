@@ -7,7 +7,7 @@ import { TactileButton } from "../ui/TactileButton";
 
 // Copy + CTA behavior shared between the deck hero (Hero.tsx) and the flow
 // hero (flow/FlowHero.tsx), so the session-gated Projects action exists once.
-export const HERO_HEADLINE = "Doppo, a mechanistic interpretability workbench.";
+export const HERO_HEADLINE = "Doppo, a mechanistic interpretability sandbox.";
 
 // Signed-in users go straight to /projects; signed-out users get the auth
 // modal in signup mode (Navbar listens for the doppo:open-auth event).
