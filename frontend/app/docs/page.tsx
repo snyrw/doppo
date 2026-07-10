@@ -10,7 +10,7 @@ import { loadDocSections, slugify, type DocSection } from "../lib/docs";
 
 export const metadata: Metadata = {
   title: "Docs",
-  description: "Reference for Doppo: the techniques, model support, pricing, caching, and limits.",
+  description: "Reference for Doppo: techniques, model support, pricing, caching, and limits.",
 };
 
 function textOf(node: ReactNode): string {
@@ -67,8 +67,7 @@ export default function DocsPage() {
             Docs
           </h1>
           <p className="m-0 text-sm text-muted">
-            The interim reference while Doppo is in beta. Sections are linkable; send someone
-            exactly the part they asked about.
+            Makeshift docs. Some writing might be a bit iffy until it gets a better rewrite.
           </p>
           <div className="mt-6 rounded-md border border-surface-border p-4 lg:hidden">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">On this page</p>
