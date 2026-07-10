@@ -168,7 +168,7 @@ def main():
         "repetition_penalty": 1.3,
         "n_tokens": 40,
         "target_position": "last",
-        "components": [{"layer": 14, "head": None, "injection_type": "residual"}],
+        "components": [{"layer": 14}],
     }
     base_card = {
         "cardType": "steering",
@@ -181,7 +181,7 @@ def main():
         "repetitionPenalty": 1.3,
         "nTokens": 40,
         "nPairs": len(clean_prompts),
-        "components": [{"layer": 14, "head": None, "injectionType": "residual"}],
+        "components": [{"layer": 14}],
     }
 
     print(f"\nStep 6 — layer 14, prompt 1 ({len(clean_prompts)} pairs)...")

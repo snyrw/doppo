@@ -8,7 +8,7 @@ type Params = {
   corruptedPrompt: string;
   generationPrompt: string | null;
   targetPosition: number | "last";
-  components: Array<{ layer: number; head: number | null; injectionType: string }>;
+  components: Array<{ layer: number }>;
   alpha: number;
   nTokens: number;
   extraPairs: Array<{ clean: string; corrupted: string }> | null;
@@ -36,7 +36,9 @@ export const POST = createSpawnHandler<Params>({
         corruptedPrompt: body.corruptedPrompt,
         generationPrompt: (body.generationPrompt as string | undefined) ?? null,
         targetPosition: body.targetPosition as number | "last",
-        components: body.components as Params["components"],
+        // Strip legacy head/injectionType fields old cards may still carry so
+        // the cache key sees one canonical shape.
+        components: (body.components as Array<{ layer: number }>).map((c) => ({ layer: c.layer })),
         alpha: body.alpha as number,
         nTokens,
         extraPairs: extraPairs ?? null,
@@ -47,10 +49,12 @@ export const POST = createSpawnHandler<Params>({
   },
   // Generation with temperature > 0 is non-deterministic sampling — serving a cached
   // result would silently pin one sample forever. Only cache deterministic (argmax) runs.
+  // generationPrompt and extraPairs change the output (probe prompt and DIM
+  // vector respectively), so they must be in the key.
   cacheKey: (userId, p) =>
     p.temperature <= 0
       ? sha256(
-          `${userId}:${p.modelName}:${p.cleanPrompt}:${p.corruptedPrompt}:${p.alpha}:${p.nTokens}:${p.temperature}:${p.repetitionPenalty}:${JSON.stringify(p.components)}`
+          `${userId}:${p.modelName}:${p.cleanPrompt}:${p.corruptedPrompt}:${p.generationPrompt ?? ""}:${p.alpha}:${p.nTokens}:${p.temperature}:${p.repetitionPenalty}:${JSON.stringify(p.components)}:${JSON.stringify(p.extraPairs ?? [])}`
         )
       : null,
   upstreamBody: (p) => ({
@@ -59,7 +63,7 @@ export const POST = createSpawnHandler<Params>({
     corrupted_prompt: p.corruptedPrompt,
     generation_prompt: p.generationPrompt,
     target_position: p.targetPosition,
-    components: p.components.map((c) => ({ layer: c.layer, head: c.head, injection_type: c.injectionType })),
+    components: p.components.map((c) => ({ layer: c.layer })),
     alpha: p.alpha,
     n_tokens: p.nTokens,
     extra_pairs: p.extraPairs,

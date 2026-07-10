@@ -7,8 +7,16 @@ import type { LoadingStage } from "../lib/loading-stage";
 
 export type SteeringComponent = {
   layer: number;
-  head: number | null;
-  injectionType: "attn_head" | "mlp" | "residual";
+  // Legacy fields on old DB rows — ignored; all steering is now residual-stream.
+  head?: number | null;
+  injectionType?: string;
+};
+
+export type SteeringStats = {
+  layer: number;
+  vector_norm: number;
+  resid_norm: number;
+  pair_cos: number[] | null;
 };
 
 export type SteeringResult = {
@@ -17,6 +25,7 @@ export type SteeringResult = {
   top_k_steered: Array<{ token: string; prob: number }>;
   top_k_baseline: Array<{ token: string; prob: number }>;
   logit_diff: number;
+  steering_stats?: SteeringStats[];  // absent on results computed before it existed
 };
 
 export type SteeringCardData = {
@@ -58,8 +67,6 @@ type SteeringCardProps = {
 };
 
 function componentLabel(c: SteeringComponent): string {
-  if (c.injectionType === "attn_head" && c.head !== null) return `L${c.layer}·H${c.head}`;
-  if (c.injectionType === "mlp") return `L${c.layer}·MLP`;
   return `L${c.layer}·residual`;
 }
 
@@ -296,6 +303,41 @@ function SteeringCard({
               </div>
             </div>
           </div>
+
+          {/* Vector diagnostics: injection strength relative to the stream's own
+              norm at that layer, and per-pair directional coherence. */}
+          {card.data.steering_stats && card.data.steering_stats.length > 0 && (
+            <>
+              <div className="border-t border-surface-border" />
+              <div className="px-2.5 py-2">
+                <p className="m-0 mb-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
+                  Vector
+                </p>
+                {card.data.steering_stats.map((s, i) => {
+                  const relStrength = s.resid_norm > 0 ? (Math.abs(card.alpha) * s.vector_norm) / s.resid_norm : 0;
+                  const cos = s.pair_cos;
+                  const meanCos = cos && cos.length > 0 ? cos.reduce((a, b) => a + b, 0) / cos.length : null;
+                  const minCos = cos && cos.length > 0 ? Math.min(...cos) : null;
+                  const nOpposed = cos ? cos.filter(c => c < 0).length : 0;
+                  return (
+                    <div key={i} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-mono text-[9px] text-muted">
+                      <span>L{s.layer}</span>
+                      <span title="‖αv‖ relative to the residual stream’s mean norm at this layer">
+                        ‖αv‖/‖resid‖ <span className="text-foreground">{relStrength.toFixed(2)}</span>
+                      </span>
+                      {meanCos !== null && minCos !== null && (
+                        <span title="Cosine of each pair’s difference vector against the mean — low or negative pairs pull against the direction">
+                          pair coherence <span className="text-foreground">{meanCos.toFixed(2)}</span> mean
+                          {" · "}<span className={cn(minCos < 0 && "text-red-600")}>{minCos.toFixed(2)}</span> min
+                          {nOpposed > 0 && <span className="text-red-600"> · {nOpposed} opposed</span>}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

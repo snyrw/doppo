@@ -10,9 +10,11 @@ from pydantic import BaseModel, Field
 # this char cap plus MAX_EXTRA_PAIRS below.
 MAX_PROMPT_CHARS = 2000
 
-# Largest per-tier steering pair cap (tl_small=40) — see TIER_CAPS in
-# frontend/app/api/generate-pairs/route.ts. Bounds GPU work per steering request.
-MAX_EXTRA_PAIRS = 40
+# Steering pair cap is 100 total (seed + 99 extras) on every tier — see
+# TIER_PAIR_CAPS in frontend/app/lib/tiers.ts. ~100 pairs is where DIM vectors
+# stabilize (cos-sim > 0.9 between resamples); extraction passes are cheap
+# relative to the generation loop. Bounds GPU work per steering request.
+MAX_EXTRA_PAIRS = 99
 
 PromptStr = Annotated[str, Field(max_length=MAX_PROMPT_CHARS)]
 ModelNameStr = Annotated[str, Field(max_length=200)]
@@ -72,9 +74,9 @@ class ActivationPatchRequest(BaseModel):
 
 
 class SteeringComponentRequest(BaseModel):
+    # Residual-stream (resid_pre) layer the DIM vector is read from and injected
+    # at. Old clients may still send head/injection_type; they are ignored.
     layer: int = Field(..., ge=0)
-    head: int | None = Field(default=None, ge=0)
-    injection_type: Literal["attn_head", "mlp", "residual"] = "residual"
 
 
 class SteeringPair(BaseModel):
@@ -91,10 +93,9 @@ class SteeringRequest(BaseModel):
     components: list[SteeringComponentRequest]
     alpha: float = Field(default=1.0, ge=-100.0, le=100.0)
     n_tokens: int = Field(default=50, ge=1, le=500)
-    extra_pairs: list[SteeringPair] | None = Field(default=None, max_length=MAX_EXTRA_PAIRS)  # for CAA-mode averaging
+    extra_pairs: list[SteeringPair] | None = Field(default=None, max_length=MAX_EXTRA_PAIRS)  # averaged into the DIM vector with the seed pair
     temperature: float = Field(default=1.0, ge=0.0, le=5.0)
     repetition_penalty: float = Field(default=1.3, ge=0.5, le=5.0)
-    method: Literal["caa", "actadd"] = "caa"  # "caa" (hook_out, anchored injection) | "actadd" (hook_in, all-position injection)
 
 
 class AttentionRequest(BaseModel):

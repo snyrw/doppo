@@ -59,7 +59,7 @@ export function useSteeringHandlers({ dispatch, stateRef, ensureProject }: Deps)
     extraPairs?: Array<{ clean: string; corrupted: string }>;
     temperature: number; repetitionPenalty: number;
   }) => {
-    const components: SteeringComponent[] = [{ layer: injectionLayer, head: null, injectionType: "residual" }];
+    const components: SteeringComponent[] = [{ layer: injectionLayer }];
     const card: SteeringCardData = {
       id: crypto.randomUUID(), cardType: "steering", status: "loading", modelName,
       cleanPrompt, corruptedPrompt, generationPrompt, targetPosition, targetToken: null,

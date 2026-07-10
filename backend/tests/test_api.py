@@ -205,7 +205,7 @@ class TestSpawnSteering:
             "clean_prompt": "clean",
             "corrupted_prompt": "corrupted",
             "components": [{"layer": 5}],
-            "extra_pairs": [{"clean": "a", "corrupted": "b"}] * 41,  # cap is 40
+            "extra_pairs": [{"clean": "a", "corrupted": "b"}] * 100,  # cap is 99
         })
         assert response.status_code == 422
 
