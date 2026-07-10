@@ -95,7 +95,7 @@ export default function ModelPicker({
 
       {/* Any HuggingFace model */}
       <div className="mb-5">
-        <label className={labelCls}>Any HuggingFace Model</label>
+        <label className={labelCls}>Custom</label>
         <div className="flex gap-1.5">
           <input
             type="text"

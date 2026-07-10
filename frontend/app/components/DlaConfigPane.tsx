@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
-import ConfigPaneShell from "./ConfigPaneShell";
+import ConfigLedger, { type LedgerSection } from "./configledger/ConfigLedger";
+import { FieldLabel, TargetSection } from "./configledger/fields";
+import { modelSummary, promptSummary, targetSummary } from "./configledger/summaries";
 import ModelPicker from "./ModelPicker";
 import TokenPreview from "./TokenPreview";
-import { cn } from "../lib/cn";
 
 type DlaConfigPaneProps = {
   isOpen: boolean;
@@ -51,6 +52,7 @@ export default function DlaConfigPane({
   const [tokenMode, setTokenMode] = useState<"auto" | "custom">("auto");
   const [customToken, setCustomToken] = useState("");
   const [contrastiveToken, setContrastiveToken] = useState("");
+  const [activeSection, setActiveSection] = useState("model");
 
   useEffect(() => {
     if (tutorialMode && tutorialConfig) {
@@ -83,6 +85,7 @@ export default function DlaConfigPane({
     setTokenMode("auto");
     setCustomToken("");
     setContrastiveToken("");
+    setActiveSection("model");
   };
 
   const handleClose = () => {
@@ -109,32 +112,26 @@ export default function DlaConfigPane({
 
   if (!isOpen) return null;
 
-  const radioCls = "flex cursor-pointer items-center gap-1.5 text-xs text-foreground";
-  const radioInputCls = "h-[13px] w-[13px] shrink-0 cursor-pointer accent-[var(--accent)]";
-  const smallInputCls = "rounded-[5px] bg-background text-[11px] text-foreground outline-none transition-colors";
+  const displayName = picker.modelName || null;
+  const targetSum = targetSummary({ positionMode, customPosition, tokenMode, customToken, contrastiveToken });
 
-  return (
-    <ConfigPaneShell
-      title="New DLA"
-      canRun={canRun}
-      runLabel="Run DLA →"
-      onRun={handleRun}
-      onClose={handleClose}
-    >
-        {/* Featured models / model selection */}
-        <ModelPicker
-          picker={picker}
-          models={availableModels}
-          modelsLoading={modelsLoading}
-          tutorialMode={tutorialMode}
-          tutorialModelName={tutorialConfig?.modelName}
-        />
-
-        {/* Prompt */}
-        <div className="mb-5">
-          <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
-            Prompt
-          </label>
+  const sections: LedgerSection[] = [
+    {
+      id: "model",
+      label: "Model",
+      summary: modelSummary(displayName),
+      body: (
+        <ModelPicker picker={picker} models={availableModels} modelsLoading={modelsLoading}
+          tutorialMode={tutorialMode} tutorialModelName={tutorialConfig?.modelName} />
+      ),
+    },
+    {
+      id: "prompt",
+      label: "Prompt",
+      summary: promptSummary(prompt),
+      body: (
+        <div>
+          <FieldLabel>Prompt</FieldLabel>
           <textarea
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
@@ -144,139 +141,41 @@ export default function DlaConfigPane({
           />
           <TokenPreview tokens={tokenPreview.tokens} loading={tokenPreview.loading} />
         </div>
+      ),
+    },
+    {
+      id: "target",
+      label: "Target",
+      summary: targetSum,
+      body: (
+        <TargetSection
+          name="dla"
+          positionMode={positionMode} customPosition={customPosition}
+          onPositionMode={setPositionMode} onCustomPosition={setCustomPosition}
+          tokenMode={tokenMode} customToken={customToken}
+          onTokenMode={setTokenMode} onCustomToken={setCustomToken}
+          targetTokenPreview={targetTokenPreview}
+          contrastiveToken={contrastiveToken} onContrastiveToken={setContrastiveToken}
+          contrastivePreview={contrastivePreview}
+          contrastivePlaceholder={`e.g. " Berlin"`}
+          contrastiveHelp="When set, uses logit difference (target − contrastive) as the attribution direction."
+          disabled={tutorialMode}
+        />
+      ),
+    },
+  ];
 
-        {/* Analysis target section */}
-        <div className="mb-1 border-t border-surface-border pt-4">
-          <label className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
-            Analysis Target
-          </label>
-
-          {/* Position */}
-          <div className="mb-3.5">
-            <span className="mb-2 block text-[11px] font-medium text-foreground">
-              Position
-            </span>
-            <div className="flex flex-col gap-[7px]">
-              <label className={radioCls}>
-                <input
-                  type="radio"
-                  name="dla-position"
-                  checked={positionMode === "last"}
-                  onChange={() => setPositionMode("last")}
-                  disabled={tutorialMode}
-                  className={radioInputCls}
-                />
-                Last token
-                <span className="ml-0.5 text-[10px] text-muted">
-                  — next-token prediction (most common)
-                </span>
-              </label>
-              <label className={cn(radioCls, "items-start")}>
-                <input
-                  type="radio"
-                  name="dla-position"
-                  checked={positionMode === "custom"}
-                  onChange={() => setPositionMode("custom")}
-                  disabled={tutorialMode}
-                  className={cn(radioInputCls, "mt-0.5")}
-                />
-                <span>Token index</span>
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="e.g. 3"
-                  value={customPosition}
-                  onFocus={() => setPositionMode("custom")}
-                  onChange={e => { setPositionMode("custom"); setCustomPosition(e.target.value); }}
-                  disabled={tutorialMode}
-                  className={cn(smallInputCls, "ml-1.5 w-[72px] border px-1.5 py-[3px]", positionMode === "custom" ? "border-accent" : "border-card-border")}
-                />
-              </label>
-            </div>
-          </div>
-
-          {/* Target token */}
-          <div className="mb-3.5">
-            <span className="mb-2 block text-[11px] font-medium text-foreground">
-              Target token
-            </span>
-            <div className="flex flex-col gap-[7px]">
-              <label className={radioCls}>
-                <input
-                  type="radio"
-                  name="dla-token"
-                  checked={tokenMode === "auto"}
-                  onChange={() => setTokenMode("auto")}
-                  disabled={tutorialMode}
-                  className={radioInputCls}
-                />
-                Top prediction
-                <span className="ml-0.5 text-[10px] text-muted">
-                  — attribute the model&apos;s most likely next token
-                </span>
-              </label>
-              <label className={cn(radioCls, "items-start")}>
-                <input
-                  type="radio"
-                  name="dla-token"
-                  checked={tokenMode === "custom"}
-                  onChange={() => setTokenMode("custom")}
-                  disabled={tutorialMode}
-                  className={cn(radioInputCls, "mt-0.5")}
-                />
-                <span className="shrink-0">Specify</span>
-                <input
-                  type="text"
-                  placeholder={`e.g. " Paris"`}
-                  value={customToken}
-                  onFocus={() => setTokenMode("custom")}
-                  onChange={e => { setTokenMode("custom"); setCustomToken(e.target.value); }}
-                  disabled={tutorialMode}
-                  className={cn(smallInputCls, "ml-1.5 flex-1 border px-1.5 py-[3px]", tokenMode === "custom" ? "border-accent" : "border-card-border")}
-                />
-              </label>
-            </div>
-            {tokenMode === "custom" && (targetTokenPreview.tokens || targetTokenPreview.loading) && (
-              <div className="ml-[22px] mt-0.5">
-                <TokenPreview tokens={targetTokenPreview.tokens} loading={targetTokenPreview.loading} />
-                {targetTokenPreview.tokens && targetTokenPreview.tokens.length > 1 && (
-                  <p className="m-0 mt-[3px] text-[10px] text-amber-600">
-                    ⚠ Multi-token — only the first will be used. Try adding a leading space (e.g. &ldquo;{" " + customToken.trim()}&rdquo;).
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Contrastive token (optional) */}
-          <div>
-            <span className="mb-1 block text-[11px] font-medium text-foreground">
-              Contrastive token
-              <span className="ml-1.5 text-[10px] font-normal text-muted">optional</span>
-            </span>
-            <input
-              type="text"
-              placeholder={`e.g. " Berlin" — enables logit difference`}
-              value={contrastiveToken}
-              onChange={e => setContrastiveToken(e.target.value)}
-              disabled={tutorialMode}
-              className={cn(smallInputCls, "box-border w-full border px-2 py-1", contrastiveToken.trim() ? "border-accent" : "border-card-border")}
-            />
-            {(contrastivePreview.tokens || contrastivePreview.loading) && (
-              <div className="mt-0.5">
-                <TokenPreview tokens={contrastivePreview.tokens} loading={contrastivePreview.loading} />
-                {contrastivePreview.tokens && contrastivePreview.tokens.length > 1 && (
-                  <p className="m-0 mt-[3px] text-[10px] text-amber-600">
-                    ⚠ Multi-token — only the first will be used. Try adding a leading space (e.g. &ldquo;{" " + contrastiveToken.trim()}&rdquo;).
-                  </p>
-                )}
-              </div>
-            )}
-            <p className="m-0 mt-[5px] text-[10px] leading-normal text-muted">
-              When set, uses logit difference (target − contrastive) as the attribution direction — the standard metric for contrastive tasks like IOI.
-            </p>
-          </div>
-        </div>
-    </ConfigPaneShell>
+  return (
+    <ConfigLedger
+      title="DLA — new card"
+      sections={sections}
+      activeSection={activeSection}
+      onSectionChange={setActiveSection}
+      footerSummary={`${modelSummary(displayName)} · ${promptSummary(prompt, 16)} · ${targetSum}`}
+      canRun={canRun}
+      runLabel="Run DLA"
+      onRun={handleRun}
+      onClose={handleClose}
+    />
   );
 }

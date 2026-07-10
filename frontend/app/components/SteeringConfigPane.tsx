@@ -5,9 +5,10 @@ import { useSession } from "@/app/lib/auth-client";
 import { TIER_PAIR_CAPS, DEFAULT_PAIR_CAP } from "../lib/tiers";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
-import ConfigPaneShell from "./ConfigPaneShell";
+import ConfigLedger, { type LedgerSection } from "./configledger/ConfigLedger";
+import { FieldLabel, PromptField } from "./configledger/fields";
+import { modelSummary, injectionSummary, generationSummary } from "./configledger/summaries";
 import ModelPicker from "./ModelPicker";
-import TokenPreview from "./TokenPreview";
 import { cn } from "../lib/cn";
 
 export type ExtraPair = { clean: string; corrupted: string };
@@ -72,6 +73,7 @@ export default function SteeringConfigPane({
   const [extraPairs, setExtraPairs] = useState<ExtraPair[]>([]);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState("model");
 
   useEffect(() => {
     if (tutorialMode && tutorialConfig) {
@@ -101,6 +103,7 @@ export default function SteeringConfigPane({
     setTemperature(1.0);
     setRepetitionPenalty(1.3);
     setGenerationPrompt("");
+    setActiveSection("model");
   };
 
   const handleClose = () => {
@@ -174,255 +177,224 @@ export default function SteeringConfigPane({
   const radioCls = "flex cursor-pointer items-center gap-1.5 text-xs text-foreground";
   const radioInputCls = "h-[13px] w-[13px] shrink-0 cursor-pointer accent-[var(--accent)]";
   const smallInputCls = "rounded-[5px] bg-background text-[11px] text-foreground outline-none transition-colors";
-  const sectionLabelCls = "mb-3 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted";
-  const promptLabelCls = "text-[10px] font-semibold uppercase tracking-[0.08em] text-muted";
-  const wordCountCls = "text-[9px] text-muted";
-  const promptCls = "box-border w-full resize-y rounded-md border border-card-border bg-background px-2.5 py-2 font-[inherit] text-xs leading-normal text-foreground outline-none disabled:cursor-default disabled:opacity-70";
   const helpTextCls = "m-0 mt-[5px] text-[10px] leading-normal text-muted";
   const sliderCls = "w-full cursor-pointer accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-45";
 
-  return (
-    <ConfigPaneShell
-      title="New Steering"
-      width={400}
-      canRun={canRun}
-      runLabel={mode === "research" && extraPairs.length > 0 ? `Run Steering  (${totalPairs} pairs) →` : "Run Steering →"}
-      onRun={handleRun}
-      onClose={handleClose}
-    >
+  const displayName = picker.modelName || null;
+  const pairSummary = mode === "research" && extraPairs.length > 0
+    ? `${totalPairs} pairs`
+    : "1 pair";
+  const injectionSum = `${injectionSummary(injectionLayer)} · ${positionMode === "custom" && customPosition.trim() ? "pos " + customPosition.trim() : "last"}`;
+  const genSum = generationSummary(temperature, repetitionPenalty);
 
-
-        {/* Featured models / model selection */}
-        <ModelPicker
-          picker={picker}
-          models={availableModels}
-          modelsLoading={modelsLoading}
-          gridMaxHeight={200}
-          tutorialMode={tutorialMode}
-          tutorialVariant="input"
-        />
-
-        {/* Mode toggle */}
-        <div className="mb-4">
-          <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
-            Mode
-          </label>
-          <div className="flex overflow-hidden rounded-md border border-card-border">
-            {(["quick", "research"] as const).map((m, i) => (
-              <button
-                key={m}
-                onClick={() => { if (tutorialMode) return; setMode(m); if (m === "quick") { setExtraPairs([]); setGenerateError(null); } }}
-                disabled={tutorialMode}
-                className={cn(
-                  "flex-1 cursor-pointer border-none py-1.5 text-[11px] transition-colors disabled:cursor-default",
-                  i === 0 && "border-r border-card-border",
-                  mode === m
-                    ? "bg-surface-border font-semibold text-foreground"
-                    : cn("bg-transparent font-normal text-muted", tutorialMode && "opacity-45"),
-                )}
-              >
-                {m === "quick" ? "Quick  (1 pair)" : `Research  (up to ${pairCap} pairs)`}
-              </button>
-            ))}
-          </div>
-          <p className={helpTextCls}>
-            {mode === "quick"
-              ? "Single pair — fast iteration, higher noise. Good for exploring whether a concept steers at all."
-              : "Averages DIM vectors across multiple LLM-generated pairs — lower noise, more reliable. CAA-style."}
-          </p>
+  const sections: LedgerSection[] = [
+    {
+      id: "model",
+      label: "Model",
+      summary: modelSummary(displayName),
+      body: (
+        <div className="flex flex-col gap-4">
+          <ModelPicker
+            picker={picker}
+            models={availableModels}
+            modelsLoading={modelsLoading}
+            gridMaxHeight={200}
+            tutorialMode={tutorialMode}
+            tutorialVariant="input"
+          />
         </div>
-
-        {/* Seed pair (research) / prompt pair (quick) */}
-        <div className={cn(mode === "research" ? "mb-4 border-l-2 border-dashed border-accent pl-3" : "mb-5")}>
-          {mode === "research" && (
-            <div className="mb-1.5 flex items-baseline justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
-                Seed Pair
-              </span>
-              <span className="text-[9px] leading-[1.4] text-muted">
-                pair 1 of {totalPairs > 1 ? totalPairs : pairCap}
-              </span>
-            </div>
-          )}
-          {mode === "research" && (
-            <p className="m-0 mb-2.5 text-[10px] leading-normal text-muted">
-              Shown to Claude as a format and register reference for generation. Also averaged as the first pair in the dataset.
-            </p>
-          )}
-
-          <div className="mb-3">
-            <div className="mb-1.5 flex items-baseline justify-between">
-              <label className={promptLabelCls}>
-                {mode === "research" ? "Seed · Clean" : "Reference Prompt"}
-              </label>
-              <span className={wordCountCls}>
-                {cleanPrompt.trim() ? cleanPrompt.trim().split(/\s+/).length : 0}w
-              </span>
-            </div>
-            <textarea
-              value={cleanPrompt}
-              onChange={e => setCleanPrompt(e.target.value)}
-              disabled={tutorialMode}
-              rows={3}
-              placeholder="Where the behavior you want to steer occurs"
-              className={promptCls}
-            />
-            <TokenPreview tokens={cleanPreview.tokens} loading={cleanPreview.loading} />
-          </div>
-
+      ),
+    },
+    {
+      id: "pair",
+      label: "Contrast pair",
+      summary: pairSummary,
+      body: (
+        <div className="flex flex-col gap-4">
+          {/* Mode toggle */}
           <div>
-            <div className="mb-1.5 flex items-baseline justify-between">
-              <label className={promptLabelCls}>
-                {mode === "research" ? "Seed · Corrupted" : "Counterfactual Prompt"}
-              </label>
-              <span className={wordCountCls}>
-                {corruptedPrompt.trim() ? corruptedPrompt.trim().split(/\s+/).length : 0}w
-              </span>
-            </div>
-            <textarea
-              value={corruptedPrompt}
-              onChange={e => setCorruptedPrompt(e.target.value)}
-              disabled={tutorialMode}
-              rows={3}
-              placeholder="A variation that represents the direction to steer toward"
-              className={promptCls}
-            />
-            <TokenPreview tokens={corruptedPreview.tokens} loading={corruptedPreview.loading} />
-            {(() => {
-              const cleanToks = cleanPreview.tokens?.length;
-              const corruptedToks = corruptedPreview.tokens?.length;
-              if (cleanToks != null && corruptedToks != null && cleanToks !== corruptedToks) {
-                return (
-                  <p className="m-0 mt-1.5 text-[10px] leading-normal text-amber-600">
-                    ⚠ Token counts differ ({cleanToks} vs {corruptedToks}). For best results use a minimal substitution.
-                  </p>
-                );
-              }
-              const cw = cleanPrompt.trim().split(/\s+/).length;
-              const rw = corruptedPrompt.trim().split(/\s+/).length;
-              return cleanToks == null && cleanPrompt.trim() && corruptedPrompt.trim() && cw !== rw ? (
-                <p className="m-0 mt-1.5 text-[10px] leading-normal text-amber-600">
-                  ⚠ Word counts differ ({cw} vs {rw}). For best results use a minimal substitution.
-                </p>
-              ) : null;
-            })()}
-          </div>
-        </div>
-
-        {/* Research mode: LLM pair generation */}
-        {mode === "research" && (
-          <div className="mb-5 border-t border-surface-border pt-4">
             <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
-              Generate Dataset Pairs with Claude
+              Mode
             </label>
-            {!tutorialMode && !session && (
-              <p className="m-0 mb-2 text-[10px] leading-normal text-amber-600">
-                Sign in to generate pairs.
-              </p>
-            )}
-            <textarea
-              value={tutorialMode ? "English → French (LLM-style questions)" : conceptDescription}
-              onChange={e => setConceptDescription(e.target.value)}
-              rows={2}
-              placeholder={`Describe the steering concept — e.g. "the model mentions Paris" or "confident vs. hesitant tone"`}
-              disabled={tutorialMode || !session}
-              className={cn(
-                "box-border w-full resize-y rounded-md border px-2.5 py-2 font-[inherit] text-[11px] leading-normal text-foreground outline-none",
-                !tutorialMode && conceptDescription.trim() && session ? "border-accent" : "border-card-border",
-                tutorialMode || !session ? "bg-surface-border" : "bg-background",
-                tutorialMode ? "cursor-default opacity-70" : session ? "opacity-100" : "opacity-60",
-              )}
-            />
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <span className="text-[10px] text-muted">
-                {tutorialMode
-                  ? `${tutorialConfig?.nPairs ?? 40} pairs total`
-                  : extraPairs.length > 0
-                    ? `${totalPairs} pairs total (seed + ${extraPairs.length} generated)`
-                    : `Will generate ${pairCap - 1} pairs (${pairCap} total with seed)`}
-              </span>
-              <button
-                onClick={handleGenerate}
-                disabled={tutorialMode || !canGenerate}
-                className={cn(
-                  "shrink-0 whitespace-nowrap rounded-md border-none px-3 py-[5px] text-[11px] font-medium transition-colors",
-                  !tutorialMode && canGenerate
-                    ? "cursor-pointer bg-accent text-accent-fg"
-                    : "cursor-not-allowed bg-surface-border text-muted",
-                  tutorialMode && "opacity-70",
-                )}
-              >
-                {tutorialMode
-                  ? `${tutorialConfig?.nPairs ?? 40} pairs generated`
-                  : generating ? "Generating…"
-                  : extraPairs.length > 0 ? "Regenerate" : "Generate pairs"}
-              </button>
-            </div>
-            {!tutorialMode && generateError && (
-              <p className="m-0 mt-1.5 text-[10px] leading-normal text-red-600">
-                ✗ {generateError}
-              </p>
-            )}
-
-            {/* Generated pair list */}
-            {extraPairs.length > 0 && (
-              <div className="mt-2.5">
-                <div className="mb-[5px] flex items-center justify-between">
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
-                    Generated pairs ({extraPairs.length})
-                  </span>
-                  {!tutorialMode && (
-                    <button
-                      onClick={() => setExtraPairs([])}
-                      className="cursor-pointer border-none bg-transparent px-0.5 text-[9px] text-muted"
-                    >
-                      Clear all
-                    </button>
+            <div className="flex overflow-hidden rounded-md border border-card-border">
+              {(["quick", "research"] as const).map((m, i) => (
+                <button
+                  key={m}
+                  onClick={() => { if (tutorialMode) return; setMode(m); if (m === "quick") { setExtraPairs([]); setGenerateError(null); } }}
+                  disabled={tutorialMode}
+                  className={cn(
+                    "flex-1 cursor-pointer border-none py-1.5 text-[11px] transition-colors disabled:cursor-default",
+                    i === 0 && "border-r border-card-border",
+                    mode === m
+                      ? "bg-surface-border font-semibold text-foreground"
+                      : cn("bg-transparent font-normal text-muted", tutorialMode && "opacity-45"),
                   )}
-                </div>
-                <div className="flex max-h-[180px] flex-col gap-[3px] overflow-y-auto">
-                  {extraPairs.map((pair, i) => (
-                    <div
-                      key={i}
-                      className="flex items-start gap-1.5 rounded-[5px] border border-surface-border bg-background px-[7px] py-[5px]"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="line-clamp-1 overflow-hidden text-[9px] leading-[1.4] text-foreground">
-                          {pair.clean}
-                        </div>
-                        <div className="mt-px line-clamp-1 overflow-hidden text-[9px] leading-[1.4] text-muted">
-                          {pair.corrupted}
-                        </div>
-                      </div>
-                      {!tutorialMode && (
-                        <button
-                          onClick={() => removePair(i)}
-                          className="mt-px shrink-0 cursor-pointer border-none bg-transparent px-px text-[11px] leading-none text-muted"
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                >
+                  {m === "quick" ? "Quick  (1 pair)" : `Research  (up to ${pairCap} pairs)`}
+                </button>
+              ))}
+            </div>
+            <p className={helpTextCls}>
+              {mode === "quick"
+                ? "Single pair. Faster and noisier."
+                : "Averages the difference-in-means vector over LLM-generated pairs. Around 100 pairs gives a stable vector."}
+            </p>
+          </div>
+
+          {/* Seed pair (research) / prompt pair (quick) */}
+          <div className={cn(mode === "research" && "border-l-2 border-dashed border-accent pl-3")}>
+            {mode === "research" && (
+              <div className="mb-1.5 flex items-baseline justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
+                  Seed Pair
+                </span>
+                <span className="text-[9px] leading-[1.4] text-muted">
+                  pair 1 of {totalPairs > 1 ? totalPairs : pairCap}
+                </span>
               </div>
             )}
+            {mode === "research" && (
+              <p className="m-0 mb-2.5 text-[10px] leading-normal text-muted">
+                A format reference for generation, and the first pair in the dataset.
+              </p>
+            )}
+
+            <div className="mb-3">
+              <PromptField
+                label={mode === "research" ? "Seed · Clean" : "Reference Prompt"}
+                value={cleanPrompt}
+                onChange={setCleanPrompt}
+                preview={cleanPreview}
+                placeholder="Where the behavior you want to steer occurs"
+                disabled={tutorialMode}
+              />
+            </div>
+
+            <PromptField
+              label={mode === "research" ? "Seed · Corrupted" : "Counterfactual Prompt"}
+              value={corruptedPrompt}
+              onChange={setCorruptedPrompt}
+              preview={corruptedPreview}
+              placeholder="A variation that represents the direction to steer toward"
+              disabled={tutorialMode}
+            />
           </div>
-        )}
 
-        {/* Injection options */}
-        <div className="mb-1 border-t border-surface-border pt-4">
-          <label className={sectionLabelCls}>
-            Injection Options
-          </label>
+          {/* Research mode: LLM pair generation */}
+          {mode === "research" && (
+            <div className="border-t border-surface-border pt-4">
+              <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+                Generate Dataset Pairs with Claude
+              </label>
+              {!tutorialMode && !session && (
+                <p className="m-0 mb-2 text-[10px] leading-normal text-amber-600">
+                  Sign in to generate pairs.
+                </p>
+              )}
+              <textarea
+                value={tutorialMode ? "English → French (LLM-style questions)" : conceptDescription}
+                onChange={e => setConceptDescription(e.target.value)}
+                rows={2}
+                placeholder={`Describe the steering concept, e.g. "the model mentions Paris" or "confident vs. hesitant tone"`}
+                disabled={tutorialMode || !session}
+                className={cn(
+                  "box-border w-full resize-y rounded-md border px-2.5 py-2 font-[inherit] text-[11px] leading-normal text-foreground outline-none",
+                  !tutorialMode && conceptDescription.trim() && session ? "border-accent" : "border-card-border",
+                  tutorialMode || !session ? "bg-surface-border" : "bg-background",
+                  tutorialMode ? "cursor-default opacity-70" : session ? "opacity-100" : "opacity-60",
+                )}
+              />
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <span className="text-[10px] text-muted">
+                  {tutorialMode
+                    ? `${tutorialConfig?.nPairs ?? 40} pairs total`
+                    : extraPairs.length > 0
+                      ? `${totalPairs} pairs total (seed + ${extraPairs.length} generated)`
+                      : `Will generate ${pairCap - 1} pairs (${pairCap} total with seed)`}
+                </span>
+                <button
+                  onClick={handleGenerate}
+                  disabled={tutorialMode || !canGenerate}
+                  className={cn(
+                    "shrink-0 whitespace-nowrap rounded-md border-none px-3 py-[5px] text-[11px] font-medium transition-colors",
+                    !tutorialMode && canGenerate
+                      ? "cursor-pointer bg-accent text-accent-fg"
+                      : "cursor-not-allowed bg-surface-border text-muted",
+                    tutorialMode && "opacity-70",
+                  )}
+                >
+                  {tutorialMode
+                    ? `${tutorialConfig?.nPairs ?? 40} pairs generated`
+                    : generating ? "Generating…"
+                    : extraPairs.length > 0 ? "Regenerate" : "Generate pairs"}
+                </button>
+              </div>
+              {!tutorialMode && generateError && (
+                <p className="m-0 mt-1.5 text-[10px] leading-normal text-red-600">
+                  ✗ {generateError}
+                </p>
+              )}
 
-          <div className="mb-3.5">
+              {/* Generated pair list */}
+              {extraPairs.length > 0 && (
+                <div className="mt-2.5">
+                  <div className="mb-[5px] flex items-center justify-between">
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
+                      Generated pairs ({extraPairs.length})
+                    </span>
+                    {!tutorialMode && (
+                      <button
+                        onClick={() => setExtraPairs([])}
+                        className="cursor-pointer border-none bg-transparent px-0.5 text-[9px] text-muted"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex max-h-[180px] flex-col gap-[3px] overflow-y-auto">
+                    {extraPairs.map((pair, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start gap-1.5 rounded-[5px] border border-surface-border bg-background px-[7px] py-[5px]"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="line-clamp-1 overflow-hidden text-[9px] leading-[1.4] text-foreground">
+                            {pair.clean}
+                          </div>
+                          <div className="mt-px line-clamp-1 overflow-hidden text-[9px] leading-[1.4] text-muted">
+                            {pair.corrupted}
+                          </div>
+                        </div>
+                        {!tutorialMode && (
+                          <button
+                            onClick={() => removePair(i)}
+                            className="mt-px shrink-0 cursor-pointer border-none bg-transparent px-px text-[11px] leading-none text-muted"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "injection",
+      label: "Injection",
+      summary: injectionSum,
+      body: (
+        <div className="flex flex-col gap-4">
+          <div>
             <span className="mb-2 block text-[11px] font-medium text-foreground">Position (DIM vector source)</span>
             <div className="flex flex-col gap-[7px]">
               <label className={radioCls}>
                 <input type="radio" name="steer-position" checked={positionMode === "last"} onChange={() => setPositionMode("last")} disabled={tutorialMode} className={radioInputCls} />
                 Last token
-                <span className="ml-0.5 text-[10px] text-muted">— most common</span>
               </label>
               <label className={cn(radioCls, "items-start")}>
                 <input type="radio" name="steer-position" checked={positionMode === "custom"} onChange={() => setPositionMode("custom")} disabled={tutorialMode} className={cn(radioInputCls, "mt-0.5")} />
@@ -442,7 +414,7 @@ export default function SteeringConfigPane({
           <div>
             <span className="mb-1 block text-[11px] font-medium text-foreground">
               Injection layer
-              <span className="ml-1.5 text-[10px] font-normal text-muted">optional — defaults to middle layer</span>
+              <span className="ml-1.5 text-[10px] font-normal text-muted">optional, defaults to middle layer</span>
             </span>
             <input
               type="number" min={0}
@@ -453,26 +425,22 @@ export default function SteeringConfigPane({
               className={cn(smallInputCls, "w-[100px] border px-2 py-1", injectionLayer.trim() ? "border-accent" : "border-card-border")}
             />
             <p className={helpTextCls}>
-              Computes a difference-in-means vector from the residual stream at this layer and applies it during generation. Use Attribution first to identify the most causally relevant layer.
+              Defaults to the middle layer, a reasonable starting point. Use Attribution to find the most causally relevant layer.
             </p>
           </div>
         </div>
-
-        {/* Generation options */}
-        <div className="mb-1 border-t border-surface-border pt-4">
-          <label className={sectionLabelCls}>
-            Generation
-          </label>
-
-          <div className="mb-4">
-            <div className="mb-1.5 flex items-baseline justify-between">
-              <label className={promptLabelCls}>
-                Generation Prompt
-              </label>
-              <span className={wordCountCls}>
-                {generationPrompt.trim() ? generationPrompt.trim().split(/\s+/).length + "w" : "optional"}
-              </span>
-            </div>
+      ),
+    },
+    {
+      id: "generation",
+      label: "Generation",
+      summary: genSum,
+      body: (
+        <div className="flex flex-col gap-4">
+          <div>
+            <FieldLabel meta={generationPrompt.trim() ? generationPrompt.trim().split(/\s+/).length + "w" : "optional"}>
+              Generation Prompt
+            </FieldLabel>
             <textarea
               value={generationPrompt}
               onChange={e => setGenerationPrompt(e.target.value)}
@@ -485,11 +453,11 @@ export default function SteeringConfigPane({
               )}
             />
             <p className={helpTextCls}>
-              The DIM vector is always extracted from the clean/corrupted pair above. This prompt is only used for the baseline and steered generation — keep it separate for cleaner results.
+              The vector is extracted from the pair above; this prompt is only used for generation.
             </p>
           </div>
 
-          <div className="mb-3">
+          <div>
             <div className="mb-[5px] flex items-center justify-between">
               <span className="text-[11px] font-medium text-foreground">Temperature</span>
               <span className="min-w-[28px] text-right text-[10px] text-muted">
@@ -504,7 +472,7 @@ export default function SteeringConfigPane({
               className={sliderCls}
             />
             <p className="m-0 mt-1 text-[10px] leading-normal text-muted">
-              Lower = more deterministic. 1.0 = standard sampling. Prevents repetition loops from heavy steering.
+              Lower is more deterministic. 1.0 is standard sampling.
             </p>
           </div>
 
@@ -523,10 +491,27 @@ export default function SteeringConfigPane({
               className={sliderCls}
             />
             <p className="m-0 mt-1 text-[10px] leading-normal text-muted">
-              Divides logits for already-generated tokens. 1.0 = no penalty; 1.3 = moderate (default).
+              Divides logits for already-generated tokens. 1.0 is no penalty; 1.3 is the default.
             </p>
           </div>
         </div>
-    </ConfigPaneShell>
+      ),
+    },
+  ];
+
+  const runLabel = mode === "research" && extraPairs.length > 0 ? `Run steering (${totalPairs})` : "Run steering";
+
+  return (
+    <ConfigLedger
+      title="Steering — new card"
+      sections={sections}
+      activeSection={activeSection}
+      onSectionChange={setActiveSection}
+      footerSummary={`${modelSummary(displayName)} · ${pairSummary} · ${injectionSum} · ${genSum}`}
+      canRun={canRun}
+      runLabel={runLabel}
+      onRun={handleRun}
+      onClose={handleClose}
+    />
   );
 }
