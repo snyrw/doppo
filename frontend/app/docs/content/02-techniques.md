@@ -2,9 +2,11 @@
 title: Techniques
 ---
 
-Six techniques are available. Each section describes the computation as implemented, with references to the canonical version and notes on any departures from it, so results can be checked against the original papers and notebooks.
-
-It should be said that we took minimal liberties with what's been implemented so far. Establishing a clean initial base was the goal when thinking of techniques and putting the cart ahead of the horse with spin-offs was deferred for the time being (but not ignored).
+So far, we have 6 techniques that can be used on Doppo. Here are a few notes as to how you should interpret these:
+- This mostly acts as a reference to show what we've done and where we've diverged in technical detail from baseline
+- The purpose for that was to add a quick verification on what exactly you were spending your time on rather than just guessing or reading through the code base
+- That means that this might be overly wordy or dense, probably not the best for learning currently (though the tutorial handles this somewhat well)
+- Changes have been considered to boil things down a bit more with simple sections that cover nuance being in the works, and it's suggested that you should reference the canonical sources discussed if curious
 
 ## Logit lens
 

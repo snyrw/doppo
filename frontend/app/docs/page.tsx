@@ -67,7 +67,7 @@ export default function DocsPage() {
             Docs
           </h1>
           <p className="m-0 text-sm text-muted">
-            Makeshift docs. Some writing might be a bit iffy until it gets a better rewrite.
+            Makeshift docs. Some writing might be a bit iffy until it gets a better rewrite!
           </p>
           <div className="mt-6 rounded-md border border-surface-border p-4 lg:hidden">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">On this page</p>
