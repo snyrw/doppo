@@ -119,10 +119,10 @@ type PaneId = "add" | "lens" | "dla" | "attribution" | "steering" | "attention";
 
 const ADD_MENU_ITEMS: Array<{ pane: PaneId; label: string; description: string }> = [
   { pane: "lens",        label: "Logit Lens",  description: "Layer-by-layer predictions" },
+  { pane: "attention",   label: "Attention",   description: "Per-head attention weight matrices" },
   { pane: "dla",         label: "DLA",         description: "Direct attribution per component" },
   { pane: "attribution", label: "Attribution", description: "Map behavioral difference → verify causally" },
   { pane: "steering",    label: "Steer",       description: "DIM vector injection from contrastive pair" },
-  { pane: "attention",   label: "Attention",   description: "Per-head attention weight matrices" },
 ];
 
 /** One row of the Projects dropdown: shared style + hover/disabled handling. */
