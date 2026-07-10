@@ -1,4 +1,19 @@
 export type StepDir = -1 | 1;
+
+// ── deck vs flow mode ──
+// Deck mode = desktop-landscape viewports that can hold the full-frame slide
+// compositions. Everything else (phones, landscape phones under 600px tall,
+// portrait tablets, high zoom) gets the scrolling flow layout. The CSS twin of
+// this query lives in globals.css (`.deck-only` / `.flow-only` / `.landing-root`)
+// — keep the two in sync.
+export const DECK_MIN_WIDTH = 768;
+export const DECK_MIN_HEIGHT = 600;
+export const DECK_QUERY =
+  `(min-width: ${DECK_MIN_WIDTH}px) and (min-height: ${DECK_MIN_HEIGHT}px) and (orientation: landscape)`;
+
+export function deckModeActive(mql: { matches: boolean } | null | undefined): boolean {
+  return mql?.matches === true;
+}
 export type NavIntent = "next" | "prev" | "first" | "last";
 
 export function clampIndex(i: number, count: number): number {

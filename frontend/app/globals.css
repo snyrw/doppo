@@ -156,6 +156,12 @@ body {
 .tactile:hover:not(:disabled) .tactile__face  { transform: translateY(-1px); }
 .tactile:active:not(:disabled) .tactile__face { transform: translateY(var(--depth)); }  /* full sink */
 .tactile:disabled { cursor: default; }
+/* Decorative, non-interactive tactile (flow-mode technique bars): keep the
+   layered look but drop the cursor + hover-lift + press-sink so it doesn't
+   read as clickable. */
+.tactile--static { cursor: default; }
+.tactile--static:hover .tactile__face,
+.tactile--static:active .tactile__face { transform: none; }
 
 /* primary — filled accent */
 .tactile--primary { --tactile-side: var(--accent-side); }
@@ -265,6 +271,28 @@ body {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* === Landing deck/flow mode gates ===
+   CSS twin of DECK_QUERY in components/deck/deck-logic.ts — keep in sync.
+   Both landing subtrees are SSR-rendered; these gates pick one per viewport.
+   Second block is the De Morgan expansion of `not (deck query)` (Turbopack has
+   a history of silently mis-compiling exotic media syntax here). */
+@media (min-width: 768px) and (min-height: 600px) and (orientation: landscape) {
+  .flow-only { display: none !important; }
+  .landing-root { height: 100svh; overflow: hidden; }
+  /* deck-* helpers: deck-mode-only values for elements shared with flow. In
+     flow these classes have no rule, so the element keeps its flow-friendly
+     base utilities (full-width column, no negative insets). */
+  .deck-two-col    { grid-template-columns: 1fr 1fr; }
+  .deck-col-pad    { padding-inline: clamp(28px, 6vw, 96px); }
+  .deck-col-narrow { max-width: 46vw; }
+  .deck-hr-inset   { width: calc(100% - 160px); }
+}
+@media (max-width: 767.98px), (max-height: 599.98px), (orientation: portrait) {
+  .deck-only { display: none !important; }
+}
+/* Flow v1 hides the deck's section nav (it drives deck navigation). */
+.flow-only nav[aria-label="Sections"] { display: none; }
 
 /* === Section deck === */
 .deck-section {

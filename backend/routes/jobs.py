@@ -161,7 +161,6 @@ def create_router(resolve_model, hf_token):
             dump_list(request.components), request.alpha,
             request.n_tokens, dump_list(request.extra_pairs), request.temperature,
             request.repetition_penalty, request.generation_prompt,
-            request.method,
         )
         await _write_boot_pointer(fc.object_id, model_id, revision)
         return {"job_id": fc.object_id}

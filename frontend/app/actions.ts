@@ -21,8 +21,8 @@ type SerializedCard = {
   contrastiveToken?: string | null;
   corruptedPrompt?: string;       // attribution cards
   parentAttributionId?: string;   // activation cards
-  // steering cards
-  components?: Array<{ layer: number; head: number | null; injectionType: string }>;
+  // steering cards (head/injectionType are legacy fields still present on old rows)
+  components?: Array<{ layer: number; head?: number | null; injectionType?: string }>;
   alpha?: number;
   temperature?: number;
   repetitionPenalty?: number;

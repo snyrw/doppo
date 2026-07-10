@@ -1,10 +1,25 @@
 import { describe, it, expect } from "vitest";
 import {
-  clampIndex, nextIndex, intentToIndex, indexToId, idToIndex,
-  keyToIntent, isTypingTarget,
+  DECK_MIN_HEIGHT, DECK_MIN_WIDTH, DECK_QUERY, clampIndex, deckModeActive,
+  idToIndex, indexToId, intentToIndex, isTypingTarget, keyToIntent, nextIndex,
 } from "../app/components/deck/deck-logic";
 
 const S = [{ id: "intro" }, { id: "what-doppo-is" }, { id: "pricing" }, { id: "self-hosting" }];
+
+describe("DECK_QUERY / deckModeActive", () => {
+  it("requires width, height, and landscape orientation", () => {
+    expect(DECK_QUERY).toContain(`(min-width: ${DECK_MIN_WIDTH}px)`);
+    expect(DECK_QUERY).toContain(`(min-height: ${DECK_MIN_HEIGHT}px)`);
+    expect(DECK_QUERY).toContain("(orientation: landscape)");
+  });
+
+  it("is deck mode only for a matching media query list", () => {
+    expect(deckModeActive({ matches: true })).toBe(true);
+    expect(deckModeActive({ matches: false })).toBe(false);
+    expect(deckModeActive(null)).toBe(false);      // no matchMedia (old browser)
+    expect(deckModeActive(undefined)).toBe(false); // window.matchMedia missing
+  });
+});
 
 describe("clampIndex", () => {
   it("clamps below 0 and above count-1", () => {

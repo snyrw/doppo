@@ -47,10 +47,10 @@ export default function LearnMoreCard({
           can aid in understanding what we do.
         </p>
         <p className="m-0">
-          Things like deeper specifics on exactly how we price, steps for self-hosting, how we implement
-          our techniques, and so on may eventually live in dedicated docs, but we have a static page
-          where you can access most related information in the meantime.
-          {/* TODO: link "static page" to the interim static docs route once it exists. */}
+          Things like deeper specifics on exactly how we price, how we implement our techniques, and
+          so on may eventually live in dedicated docs, but we have a{" "}
+          <Link href="/docs" className={LINK}>static page</Link> where you can access most related
+          information in the meantime.
         </p>
         <p className="m-0">
           We hope you enjoy Doppo! If you have issues with this site or just don&apos;t like what we do,

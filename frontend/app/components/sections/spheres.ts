@@ -1,17 +1,14 @@
 // Pure geometry for the WhatDoppoIs background sphere field. Figma node 20:579
 // places 9 flat-fill circles in a 1920px-wide frame: four face/twin pairs (light
-// face + darker twin offset down-right) plus one large solo sphere. We anchor the
-// field to the section's top-right and express every circle in vw against the
-// 1920px design width, so the cluster pins to the right edge — bleeding off right
-// and bottom exactly as drawn — and scales with viewport width. `fill` resolves to
-// theme-flipping CSS vars at render time (see SphereField).
+// face + darker twin offset down-right) plus one large solo sphere. Every circle
+// is expressed in --hf-u units (see figure-geometry.ts) against the 1920×1080
+// design frame, so the cluster scales rigidly with the field stage — bleeding
+// off right and bottom exactly as drawn — and never shrinks with width. `fill`
+// resolves to theme-flipping CSS vars at render time (see SphereField).
+
+import { pxToU } from "../figure-geometry";
 
 export const DESIGN_W = 1920;
-
-/** Design px (in the 1920px frame) → vw, rounded to 3 decimals. */
-export function pxToVw(px: number): number {
-  return Math.round((px / DESIGN_W) * 100_000) / 1000;
-}
 
 export type SphereFill = "face" | "twin";
 
@@ -45,19 +42,22 @@ export const SPHERE_GROUP_STAGGER_MS = 130;
 
 export interface Sphere {
   node: string;
-  rightVw: number; // offset from the field's right edge
-  topVw: number;
-  sizeVw: number;
+  rightU: number; // offset from the stage's right edge, in --hf-u units
+  topU: number;
+  sizeU: number;
   fill: SphereFill;
   delayMs: number;
 }
 
-// Note: rightVw is negative for faces whose right edge bleeds past the 1920px frame (left+size > 1920); valid CSS, clipped by SphereField's overflow-hidden.
+// Whole-cluster horizontal nudge, design px (positive = right of the Figma positions).
+export const SPHERE_X_NUDGE = 20;
+
+// Note: rightU is negative for faces whose right edge bleeds past the 1920px frame (left+size > 1920); valid CSS, clipped by the field's overflow-hidden wrapper.
 export const SPHERES: readonly Sphere[] = SOURCE.map((s) => ({
   node: s.node,
-  rightVw: pxToVw(DESIGN_W - (s.left + s.size)),
-  topVw: pxToVw(s.top),
-  sizeVw: pxToVw(s.size),
+  rightU: pxToU(DESIGN_W - (s.left + s.size + SPHERE_X_NUDGE)),
+  topU: pxToU(s.top),
+  sizeU: pxToU(s.size),
   fill: s.fill,
   delayMs: SPHERE_BASE_DELAY_MS + (s.group - 1) * SPHERE_GROUP_STAGGER_MS,
 }));

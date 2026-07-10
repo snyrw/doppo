@@ -3,7 +3,7 @@ import TutorialClient from "./TutorialClient";
 import { loadSteps } from "./load-steps";
 
 export const metadata: Metadata = {
-  title: "Tutorial — Doppo",
+  title: "Tutorial",
   description: "A guided walkthrough of six mechanistic interpretability tools on the canonical IOI circuit.",
 };
 

@@ -6,16 +6,18 @@ export const TIER_LABELS: Record<string, string> = {
   tl_xxlarge: "B200",
 };
 
-// Max steering pairs (seed + generated) per GPU tier — bigger models cost more
-// per DIM-extraction forward pass, so the cap shrinks as the tier grows.
+// Max steering pairs (seed + generated), same on every tier. ~100 pairs is
+// where DIM vectors stabilize across resamples; below ~30 they are noticeably
+// noisy. Extraction is two short forward passes per pair — cheap next to the
+// per-token generation loop — so the cap is not tiered by GPU cost.
 export const TIER_PAIR_CAPS: Record<string, number> = {
-  tl_small:   40,
-  tl_medium:  25,
-  tl_large:   15,
-  tl_xlarge:  10,
-  tl_xxlarge: 10,
+  tl_small:   100,
+  tl_medium:  100,
+  tl_large:   100,
+  tl_xlarge:  100,
+  tl_xxlarge: 100,
 };
-export const DEFAULT_PAIR_CAP = 20;
+export const DEFAULT_PAIR_CAP = 100;
 
 // GPU tiers requiring a verified payment method before a run (anti-abuse on
 // expensive GPUs). "Large and above": A100-80GB / H200 / B200.

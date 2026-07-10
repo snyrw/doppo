@@ -111,7 +111,8 @@ Generate ${n} diverse contrastive pairs for the target concept. Output one JSON 
   try {
     const msg = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 4096,
+      // 99 pairs of JSON lines run well past 4096 tokens; leave headroom.
+      max_tokens: 8192,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userMessage }],
     });
@@ -128,7 +129,7 @@ Generate ${n} diverse contrastive pairs for the target concept. Output one JSON 
     if (!trimmed) continue;
     try {
       const obj = JSON.parse(trimmed) as Record<string, unknown>;
-      if (typeof obj.clean === "string" && typeof obj.corrupted === "string") {
+      if (typeof obj.clean === "string" && typeof obj.corrupted === "string" && pairs.length < n) {
         pairs.push({ clean: obj.clean, corrupted: obj.corrupted });
       }
     } catch {

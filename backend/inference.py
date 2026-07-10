@@ -836,7 +836,6 @@ class _TLBase:
         temperature: float = 1.0,
         repetition_penalty: float = 1.3,
         generation_prompt: str | None = None,
-        method: str = "caa",
     ):
         import json
         import torch
@@ -881,28 +880,27 @@ class _TLBase:
             gen_tokens = self.model.to_tokens(_fmt(gen_prompt_resolved))
             n_layers = self.model.cfg.n_layers
 
-            # Full pair list: primary pair + any extra CAA-mode pairs.
+            # Full pair list: primary (seed) pair + any extra pairs.
             all_pairs = [{"clean": clean_prompt, "corrupted": corrupted_prompt}]
             if extra_pairs:
                 all_pairs.extend(extra_pairs)
 
-            # Validate component layer/head indices against model architecture.
+            # Validate component layer indices against model architecture.
             for comp in components:
                 layer = comp["layer"] if comp["layer"] >= 0 else n_layers // 2
-                head = comp.get("head")
                 if not (0 <= layer < self.model.cfg.n_layers):
                     raise UserFacingError(f"layer {layer} out of range (model has {self.model.cfg.n_layers} layers)")
-                if head is not None and not (0 <= head < self.model.cfg.n_heads):
-                    raise UserFacingError(f"head {head} out of range (model has {self.model.cfg.n_heads} heads)")
 
-            # Accumulate unnormalized DIM vectors across all pairs, then average.
-            # Each component gets its own accumulator tensor (initialized on first pair).
-            comp_accumulators: list[torch.Tensor | None] = [None] * len(components)
+            # Read and inject at the same site: the residual stream entering block L
+            # (resid_pre). Matching the read and write hook makes alpha=1 mean "one
+            # unit of the concept's mean displacement" (Arditi et al., 2024).
+            def _hook_name(L: int) -> str:
+                return f"blocks.{L}.hook_in"
 
-            # "caa"    → hook_out (resid_post, after the full block — captures what the layer contributes).
-            # "actadd" → hook_in  (resid_pre, before the block — captures the incoming residual stream).
-            def _resid_hook_name(L: int) -> str:
-                return f"blocks.{L}.hook_out" if method == "caa" else f"blocks.{L}.hook_in"
+            # Keep every pair's raw difference vector (not a running sum) so the
+            # per-pair coherence diagnostic below can compare each pair against the
+            # mean. 100 pairs x d_model floats is a few MB at most.
+            comp_pair_vecs: list[list[torch.Tensor]] = [[] for _ in components]
 
             # Pre-compute the set of hook names needed so run_with_cache only stores
             # the activations we actually read. Drops each forward pass's cache from
@@ -910,13 +908,7 @@ class _TLBase:
             _hook_set: set[str] = set()
             for _comp in components:
                 _L = _comp["layer"] if _comp["layer"] >= 0 else n_layers // 2
-                _inj = _comp.get("injection_type", "residual")
-                if _inj == "attn_head" and _comp.get("head") is not None:
-                    _hook_set.add(f"blocks.{_L}.attn.hook_z")
-                elif _inj == "mlp":
-                    _hook_set.add(f"blocks.{_L}.mlp.hook_out")
-                else:
-                    _hook_set.add(_resid_hook_name(_L))
+                _hook_set.add(_hook_name(_L))
             needed_hooks: list[str] = list(_hook_set)
 
             for pair in all_pairs:
@@ -938,74 +930,51 @@ class _TLBase:
 
                 for ci, comp in enumerate(components):
                     L = comp["layer"] if comp["layer"] >= 0 else n_layers // 2
-                    H = comp.get("head")
-                    inj = comp.get("injection_type", "residual")
-                    if inj == "attn_head" and H is not None:
-                        v = (
-                            cache_clean[f"blocks.{L}.attn.hook_z"][0, cp_pos, H, :].float()
-                            - cache_corrupted[f"blocks.{L}.attn.hook_z"][0, rp_pos, H, :].float()
-                        )
-                    elif inj == "mlp":
-                        v = (
-                            cache_clean[f"blocks.{L}.mlp.hook_out"][0, cp_pos, :].float()
-                            - cache_corrupted[f"blocks.{L}.mlp.hook_out"][0, rp_pos, :].float()
-                        )
-                    else:
-                        v = (
-                            cache_clean[_resid_hook_name(L)][0, cp_pos, :].float()
-                            - cache_corrupted[_resid_hook_name(L)][0, rp_pos, :].float()
-                        )
-                    comp_accumulators[ci] = v if comp_accumulators[ci] is None else comp_accumulators[ci] + v
+                    v = (
+                        cache_clean[_hook_name(L)][0, cp_pos, :].float()
+                        - cache_corrupted[_hook_name(L)][0, rp_pos, :].float()
+                    )
+                    comp_pair_vecs[ci].append(v)
 
                 del cache_clean, cache_corrupted
 
             torch.cuda.empty_cache()
 
-            # Average accumulated difference vectors; alpha scales them directly (no unit normalization).
+            # Average per-pair difference vectors into the DIM vector; alpha scales
+            # it directly (no unit normalization — Arditi et al.'s activation
+            # addition uses the raw mean difference).
             pos = _resolve_pos(gen_tokens, target_position)
             n_pairs = len(all_pairs)
             dim_vectors = []
+            pair_cos_per_comp: list[list[float] | None] = []
             for ci, comp in enumerate(components):
                 L = comp["layer"] if comp["layer"] >= 0 else n_layers // 2
-                H = comp.get("head")
-                inj = comp.get("injection_type", "residual")
-                avg_v = comp_accumulators[ci] / n_pairs
-                dim_vectors.append((L, H, inj, avg_v))
+                avg_v = torch.stack(comp_pair_vecs[ci]).mean(dim=0)
+                dim_vectors.append((L, avg_v))
+                # Per-pair directional coherence: cosine of each pair's difference
+                # vector against the mean. Low/negative values flag pairs pulling
+                # against the direction (Braun et al., 2025) — a steering-quality
+                # signal, only meaningful with more than one pair.
+                if n_pairs > 1:
+                    pair_cos_per_comp.append([
+                        float(torch.nn.functional.cosine_similarity(pv, avg_v, dim=0))
+                        for pv in comp_pair_vecs[ci]
+                    ])
+                else:
+                    pair_cos_per_comp.append(None)
 
             # Build hooks with factory functions to avoid Python late-binding closure bug.
             # Cast dv to value.dtype inside each hook — DIM vectors are float32 but model
             # activations are bfloat16 (loaded with dtype=torch.bfloat16).
-            # CAA: inject from the last prompt token onward, leaving earlier context unsteered.
-            # ActAdd: inject at all positions (standard algebraic value editing).
-            anchor = gen_tokens.shape[1] - 1
+            # Inject alpha*v into resid_pre at every position (Arditi et al.'s
+            # activation addition).
             fwd_hooks = []
-            for L, H, inj, dim_vec in dim_vectors:
-                if inj == "attn_head" and H is not None:
-                    def make_attn_hook(dv, h, a):
-                        def _fn(value, hook):
-                            value[:, :, h, :] = value[:, :, h, :] + a * dv.to(value.dtype)
-                            return value
-                        return _fn
-                    fwd_hooks.append((f"blocks.{L}.attn.hook_z", make_attn_hook(dim_vec, H, alpha)))
-                elif inj == "mlp":
-                    def make_mlp_hook(dv, a):
-                        def _fn(value, hook):
-                            return value + a * dv.to(value.dtype)
-                        return _fn
-                    fwd_hooks.append((f"blocks.{L}.mlp.hook_out", make_mlp_hook(dim_vec, alpha)))
-                elif method == "caa":
-                    def make_caa_hook(dv, a, anch):
-                        def _fn(value, hook):
-                            value[:, anch:, :] = value[:, anch:, :] + a * dv.to(value.dtype)
-                            return value
-                        return _fn
-                    fwd_hooks.append((_resid_hook_name(L), make_caa_hook(dim_vec, alpha, anchor)))
-                else:
-                    def make_actadd_hook(dv, a):
-                        def _fn(value, hook):
-                            return value + a * dv.to(value.dtype)
-                        return _fn
-                    fwd_hooks.append((_resid_hook_name(L), make_actadd_hook(dim_vec, alpha)))
+            for L, dim_vec in dim_vectors:
+                def make_hook(dv, a):
+                    def _fn(value, hook):
+                        return value + a * dv.to(value.dtype)
+                    return _fn
+                fwd_hooks.append((_hook_name(L), make_hook(dim_vec, alpha)))
 
             # Closure: apply repetition penalty to already-generated tokens, then sample.
             # Penalizes only the generated portion to avoid interfering with deliberate
@@ -1033,7 +1002,16 @@ class _TLBase:
                     [baseline_ids, torch.tensor([[next_id]], device=baseline_ids.device)], dim=1
                 )
             baseline_text = self.model.tokenizer.decode(baseline_ids[0, gen_tokens.shape[1]:].tolist())
-            baseline_logits = self.model(gen_tokens)
+            # Cache resid_pre at the injection layers on this pass to report the
+            # stream's typical norm there — raw alpha is meaningless without it.
+            baseline_logits, gen_cache = self.model.run_with_cache(
+                gen_tokens, names_filter=needed_hooks
+            )
+            resid_norms = {
+                name: float(gen_cache[name][0].float().norm(dim=-1).mean())
+                for name in needed_hooks
+            }
+            del gen_cache
             vals_b, ids_b = torch.topk(baseline_logits[0, pos].softmax(dim=-1), 5)
             top_k_baseline = [
                 {"token": self.model.tokenizer.decode([int(t)]), "prob": float(p)}
@@ -1065,6 +1043,18 @@ class _TLBase:
             target_id = int(baseline_logits[0, pos].argmax())
             logit_diff = float(steered_logits[0, pos, target_id] - baseline_logits[0, pos, target_id])
 
+            # Per-component vector diagnostics: the DIM vector's norm, the residual
+            # stream's mean norm at the injection site (so the frontend can show
+            # ||alpha*v|| relative to it), and per-pair coherence cosines.
+            steering_stats = []
+            for ci, (L, dim_vec) in enumerate(dim_vectors):
+                steering_stats.append({
+                    "layer": L,
+                    "vector_norm": float(dim_vec.norm()),
+                    "resid_norm": resid_norms[_hook_name(L)],
+                    "pair_cos": pair_cos_per_comp[ci],
+                })
+
         yield json.dumps({
             "stage": "done",
             "data": {
@@ -1073,6 +1063,7 @@ class _TLBase:
                 "top_k_steered": top_k_steered,
                 "top_k_baseline": top_k_baseline,
                 "logit_diff": logit_diff,
+                "steering_stats": steering_stats,
             },
         })
 
@@ -1259,13 +1250,11 @@ class _TLBase:
         temperature: float = 1.0,
         repetition_penalty: float = 1.3,
         generation_prompt: str | None = None,
-        method: str = "caa",
     ) -> dict:
         return self._final_result(
             self.run_steering.local(
                 clean_prompt, corrupted_prompt, target_position, components or [], alpha,
                 n_tokens, extra_pairs, temperature, repetition_penalty, generation_prompt,
-                method,
             ),
             "run_steering",
         )

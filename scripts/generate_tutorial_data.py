@@ -291,26 +291,26 @@ def main():
     print("  Spawning layer 14...")
     data_14 = spawn_and_poll(
         f"{API_URL}/api/job/spawn-steering",
-        {**base_payload, "components": [{"layer": 14, "head": None, "injection_type": "residual"}]},
+        {**base_payload, "components": [{"layer": 14}]},
         "steering (layer 14)",
     )
     print("  Spawning layer 16...")
     data_16 = spawn_and_poll(
         f"{API_URL}/api/job/spawn-steering",
-        {**base_payload, "components": [{"layer": 16, "head": None, "injection_type": "residual"}]},
+        {**base_payload, "components": [{"layer": 16}]},
         "steering (layer 16)",
     )
     steps["5"] = {
         **base_card,
         "extraPairs": extra_pairs_list,
-        "components": [{"layer": 14, "head": None, "injectionType": "residual"}],
+        "components": [{"layer": 14}],
         "position": {"x": 1320, "y": 560},
         "data": data_14,
     }
     steps["5b"] = {
         **base_card,
         "extraPairs": [],
-        "components": [{"layer": 16, "head": None, "injectionType": "residual"}],
+        "components": [{"layer": 16}],
         "position": {"x": 1800, "y": 560},
         "data": data_16,
     }
