@@ -6,7 +6,7 @@ So far, we have 6 techniques that can be used on Doppo. Here are a few notes as 
 - This mostly acts as a reference to show what we've done and where we've diverged in technical detail from baseline
 - The purpose for that was to add a quick verification on what exactly you were spending your time on rather than just guessing or reading through the code base
 - That means that this might be overly wordy or dense, probably not the best for learning currently (though the tutorial handles this somewhat well)
-- Changes have been considered to boil things down a bit more with simple sections that cover nuance being in the works, and it's suggested that you should reference the canonical sources discussed if curious
+- Changes have been considered to boil things down a bit more with simple sections that cover nuance behind the works; reading the papers/works linked is another good start as well
 
 ## Logit lens
 
