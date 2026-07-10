@@ -9,7 +9,7 @@ import { PROSE_CLASSES } from "../components/prose";
 import { loadDocSections, slugify, type DocSection } from "../lib/docs";
 
 export const metadata: Metadata = {
-  title: "Docs — Doppo",
+  title: "Docs",
   description: "Reference for Doppo: the techniques, model support, pricing, caching, and limits.",
 };
 

@@ -51,4 +51,17 @@ describe("real docs content", () => {
       "contact",
     ]);
   });
+
+  it("techniques section has the six technique headings", () => {
+    const sections = loadDocSections(resolve(__dirname, "../app/docs/content"));
+    const techniques = sections.find(s => s.slug === "techniques")!;
+    expect(techniques.headings.map(h => h.text)).toEqual([
+      "Logit lens",
+      "Attention patterns",
+      "Direct logit attribution",
+      "Attribution patching",
+      "Activation patching",
+      "Steering",
+    ]);
+  });
 });
