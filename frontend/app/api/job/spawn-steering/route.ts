@@ -47,8 +47,8 @@ export const POST = createSpawnHandler<Params>({
       },
     };
   },
-  // Generation with temperature > 0 is non-deterministic sampling — serving a cached
-  // result would silently pin one sample forever. Only cache deterministic (argmax) runs.
+  // Generation with temperature > 0 is non-deterministic sampling. 
+  // Only cache deterministic (argmax) runs.
   // generationPrompt and extraPairs change the output (probe prompt and DIM
   // vector respectively), so they must be in the key.
   cacheKey: (userId, p) =>

@@ -135,11 +135,3 @@ export function CreditsButton() {
     </Suspense>
   );
 }
-
-export function CreditsDisplay() {
-  return (
-    <Suspense fallback={null}>
-      <CreditsButtonInner />
-    </Suspense>
-  );
-}

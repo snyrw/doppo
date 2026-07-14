@@ -9,7 +9,7 @@ import { cn } from "../lib/cn";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 import type { LoadingStage } from "../lib/loading-stage";
 
-export type TopKComponent = {
+type TopKComponent = {
   layer: number;
   head: number;
   component_type: "attn_head" | "mlp";

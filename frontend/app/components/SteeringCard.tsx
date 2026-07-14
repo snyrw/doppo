@@ -12,7 +12,7 @@ export type SteeringComponent = {
   injectionType?: string;
 };
 
-export type SteeringStats = {
+type SteeringStats = {
   layer: number;
   vector_norm: number;
   resid_norm: number;

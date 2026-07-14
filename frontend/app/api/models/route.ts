@@ -6,7 +6,6 @@ export async function GET() {
     id: m.id,
     display_name: m.display_name,
     description: m.description,
-    requires_hf_token: m.requires_hf_token,
     gpu_tier: m.gpu_tier,
   }));
   return Response.json(models);

@@ -51,7 +51,7 @@ const LENS_LEVEL: Record<LensCell["level"], { face: string; lip: string }> = {
   3: { face: "#c26868", lip: "#a04747" },
 };
 
-export function LensFigure() {
+function LensFigure() {
   return (
     <FigureBox>
       <div
@@ -104,7 +104,7 @@ const ATTN_FACE: Record<"weak" | "strong", { face: string; lip: string }> = {
 };
 const ATTN_EMPTY_LIP = "#c4c3bc";
 
-export function AttentionFigure() {
+function AttentionFigure() {
   return (
     <FigureBox className="flex-col items-stretch">
       {/* "darker = more attention" legend */}
@@ -170,7 +170,7 @@ function Bar({ len, face, lip }: { len: number; face: string; lip: string }) {
 const DLA_FACE = { pos: "#739157", neg: "#a2ba8b" } as const;
 const DLA_LIP = { pos: "#446327", neg: "#699440" } as const;
 
-export function DlaFigure() {
+function DlaFigure() {
   return (
     <FigureBox>
       <div className="flex w-[clamp(210px,26vw,320px)] flex-col gap-[clamp(9px,1.1vw,18px)]">
@@ -206,7 +206,7 @@ export function DlaFigure() {
 const PATCH_FACE = { predict: "#7399a6", actual: "#9dc1cd" } as const;
 const PATCH_LIP = { predict: "#487c8d", actual: "#6f9aa9" } as const;
 
-export function PatchingFigure() {
+function PatchingFigure() {
   return (
     <FigureBox>
       <div className="flex w-[clamp(210px,26vw,320px)] flex-col gap-[clamp(11px,1.4vw,22px)]">
@@ -226,7 +226,7 @@ export function PatchingFigure() {
 // ── 4. Steering — single example, cycling library → Gollum → Seattle ──────────
 const STEER_INTERVAL_MS = 3400;
 
-export function SteeringFigure() {
+function SteeringFigure() {
   const [i, setI] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setI((n) => (n + 1) % STEERING_EXAMPLES.length), STEER_INTERVAL_MS);

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "knip": "knip",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
@@ -42,6 +43,7 @@
     "esbuild": "^0.28.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
+    "knip": "^6.26.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.8"

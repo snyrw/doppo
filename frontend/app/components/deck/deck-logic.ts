@@ -69,10 +69,10 @@ export function isTypingTarget(
 // ── timing + gesture constants (CSS deckFadeOut must match EXIT_MS) ──
 export const EXIT_MS = 250;
 export const ENTER_LOCK_MS = 350;
-export const WHEEL_THRESHOLD = 20;
-export const WHEEL_QUIET_DELTA = 8;
-export const WHEEL_QUIET_MS = 220;
-export const SCROLL_EDGE_EPSILON = 2;
+const WHEEL_THRESHOLD = 20;
+const WHEEL_QUIET_DELTA = 8;
+const WHEEL_QUIET_MS = 220;
+const SCROLL_EDGE_EPSILON = 2;
 export const TOUCH_MIN_DELTA = 40;
 
 export type WheelState = { lastNonQuietAt: number };

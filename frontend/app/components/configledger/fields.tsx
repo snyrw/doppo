@@ -55,7 +55,7 @@ export function PromptField({
   );
 }
 
-export function PositionField({
+function PositionField({
   name, mode, custom, onModeChange, onCustomChange, disabled,
 }: {
   name: string;
@@ -90,7 +90,7 @@ export function PositionField({
   );
 }
 
-export function TargetTokenField({
+function TargetTokenField({
   name, mode, custom, onModeChange, onCustomChange, preview, disabled,
 }: {
   name: string;
@@ -136,7 +136,7 @@ export function TargetTokenField({
   );
 }
 
-export function ContrastiveTokenField({
+function ContrastiveTokenField({
   value, onChange, preview, placeholder, help, disabled,
 }: {
   value: string;

@@ -7,7 +7,7 @@ import type { AttentionData } from "../components/AttentionCard";
 import type { AnyCard, CanvasState } from "../components/SandboxCanvas";
 import type { LoadingStage } from "../lib/loading-stage";
 
-export type { AnyCard, CanvasState, HeatmapData };
+export type { AnyCard, HeatmapData };
 
 export type AppState = {
   lensCards: AnyCard[];
@@ -15,7 +15,7 @@ export type AppState = {
 };
 
 // One resolved action for every job-backed card type, discriminated on cardType.
-export type CardResolvedAction =
+type CardResolvedAction =
   | { type: "CARD_RESOLVED"; id: string; cardType: "logit-lens"; data: HeatmapData }
   | { type: "CARD_RESOLVED"; id: string; cardType: "dla"; data: DlaData }
   | { type: "CARD_RESOLVED"; id: string; cardType: "attribution"; data: AttributionData }

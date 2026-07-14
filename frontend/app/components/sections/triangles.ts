@@ -23,8 +23,6 @@
 
 import { pxToU } from "../figure-geometry";
 
-export const DESIGN_W = 1920;
-
 // Left-pointing equilateral triangle filling its bounding box: apex at left-middle,
 // vertical base on the right.
 export const LEFT_CLIP = "polygon(0 50%, 100% 0, 100% 100%)";
@@ -81,10 +79,10 @@ const SOURCE: readonly TriangleSource[] = [
 // Entrance fade — mirrors SphereField (fade in, stepped) so the field cascades
 // left → right and settles (last starts ~1060ms) just before the card lands (~1200ms).
 // 40ms × 19 steps keeps the settle point matched to the card delay even at 20 triangles.
-export const TRIANGLE_BASE_DELAY_MS = 300;
-export const TRIANGLE_STAGGER_MS = 40;
+const TRIANGLE_BASE_DELAY_MS = 300;
+const TRIANGLE_STAGGER_MS = 40;
 
-export type TriangleFill = "face" | "shadow";
+type TriangleFill = "face" | "shadow";
 
 export interface TrianglePart {
   key: string;

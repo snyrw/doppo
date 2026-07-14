@@ -15,7 +15,7 @@
 export const HF_UNIT = "1svh";
 
 // 1u in design px: the Figma frames are 1920×1080, where 1svh = 10.8px.
-export const PX_PER_U = 10.8;
+const PX_PER_U = 10.8;
 
 /** Design px (in the 1920×1080 frame) → u, rounded to 3 decimals. */
 export const pxToU = (px: number) => Math.round((px / PX_PER_U) * 1000) / 1000;
@@ -46,7 +46,7 @@ export const STAGE_W_U = 65 * VW;
 
 // Stage left edge: right-anchored until that would push it left of the legacy
 // 35% line, then pinned there (surplus width clips off the right).
-export const STAGE_MIN_LEFT_PCT = 35;
+const STAGE_MIN_LEFT_PCT = 35;
 export const STAGE_LEFT_CSS = `max(${STAGE_MIN_LEFT_PCT}%, calc(100% - ${u(STAGE_W_U)}))`;
 
 /** px value of the hero stage's left edge at a given viewport — for tests. */

@@ -187,7 +187,7 @@ def validate_hf_repo(repo_id: str, hf_token: str | None) -> dict:
             "or the model's owner has not granted this service access."
         )
     except RepositoryNotFoundError:
-        return _invalid(f"Repository '{repo_id}' not found or is private (check your HF token).")
+        return _invalid(f"Repository '{repo_id}' not found or is private.")
     except Exception as e:
         return _invalid(f"Could not look up repository: {e}")
 

@@ -11,7 +11,7 @@ export const HERO_HEADLINE = "Doppo, a mechanistic interpretability sandbox.";
 
 // Signed-in users go straight to /projects; signed-out users get the auth
 // modal in signup mode (Navbar listens for the doppo:open-auth event).
-export function useProjectsCta(): () => void {
+function useProjectsCta(): () => void {
   const router = useRouter();
   const { data: session } = useSession();
   return () => {

@@ -4,7 +4,7 @@ import WhatDoppoIs from "../sections/WhatDoppoIs";
 import Techniques from "../sections/Techniques";
 import LearnMore from "../sections/LearnMore";
 
-export interface SectionProps {
+interface SectionProps {
   label: string;
 }
 

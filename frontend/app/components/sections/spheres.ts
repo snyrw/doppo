@@ -8,9 +8,9 @@
 
 import { pxToU } from "../figure-geometry";
 
-export const DESIGN_W = 1920;
+const DESIGN_W = 1920;
 
-export type SphereFill = "face" | "twin";
+type SphereFill = "face" | "twin";
 
 interface SphereSource {
   node: string; // Figma node id (provenance)

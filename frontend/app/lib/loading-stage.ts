@@ -6,7 +6,7 @@
  * so worker stages never rendered. Don't reintroduce a second mapping layer.)
  */
 
-export type LoadingProgress = { doneBytes: number; totalBytes: number | null };
+type LoadingProgress = { doneBytes: number; totalBytes: number | null };
 
 export type LoadingStage = {
   /** Raw backend stage key; null while the poll has no signal yet. */

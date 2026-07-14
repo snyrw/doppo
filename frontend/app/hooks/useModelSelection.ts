@@ -6,7 +6,6 @@ export type ModelInfo = {
   id: string;
   display_name: string;
   description: string;
-  requires_hf_token: boolean;
   gpu_tier: string;
 };
 

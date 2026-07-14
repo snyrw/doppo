@@ -7,7 +7,7 @@ import { useDivergingPalette } from "../hooks/usePalette";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 import type { LoadingStage } from "../lib/loading-stage";
 
-export type VerifiedComponent = {
+type VerifiedComponent = {
   layer: number;
   head: number;
   component_type: string;
