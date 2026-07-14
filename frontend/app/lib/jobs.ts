@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
-import { count, eq } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import { db } from "@/app/db";
 import {
   activeJobs, heatmapCache, attnCache, dlaCache,
@@ -26,6 +26,44 @@ export async function countActiveJobs(userId: string): Promise<number> {
     .from(activeJobs)
     .where(eq(activeJobs.userId, userId));
   return row?.c ?? 0;
+}
+
+export type NewActiveJob = {
+  id: string;
+  userId: string;
+  gpuTier: string;
+  jobType: string;
+  modelName: string;
+  cacheKey: string | null;
+  cachePayload: string;
+};
+
+/**
+ * Insert an active-job row only while the user is still under
+ * MAX_ACTIVE_JOBS_PER_USER — atomically. Returns true if the slot was claimed,
+ * false if the user was already at the cap (caller must then not run the job).
+ *
+ * Why the advisory lock instead of a bare `insert ... where (count) < cap`:
+ * neon-http runs every statement as its own READ COMMITTED autocommit
+ * transaction, so two concurrent spawns each read `count = cap - 1` against their
+ * own snapshot and both insert — the cap leaks under deliberate concurrency
+ * (fire N spawns at once). A per-user `pg_advisory_xact_lock`, held for the
+ * duration of this one statement, serializes the count-and-insert so the check is
+ * truly atomic. `insert ... select from reservation` forces the lock CTE to be
+ * evaluated (lock acquired) before the count subquery in the WHERE runs.
+ */
+export async function insertActiveJobIfUnderCap(job: NewActiveJob): Promise<boolean> {
+  const res = await db.execute(sql`
+    with reservation as (
+      select pg_advisory_xact_lock(hashtext(${job.userId}))
+    )
+    insert into active_jobs (id, user_id, gpu_tier, job_type, model_name, cache_key, cache_payload, started_at)
+    select ${job.id}, ${job.userId}, ${job.gpuTier}, ${job.jobType}, ${job.modelName}, ${job.cacheKey}, ${job.cachePayload}, now()
+    from reservation
+    where (select count(*) from active_jobs where user_id = ${job.userId}) < ${MAX_ACTIVE_JOBS_PER_USER}
+    returning id
+  `);
+  return res.rows.length > 0;
 }
 
 /**

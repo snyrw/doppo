@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { lt } from "drizzle-orm";
 import { db } from "@/app/db";
 import { activeJobs } from "@/app/schema";
-import { backendHeaders } from "@/app/lib/api-helpers";
+import { backendFetch } from "@/app/lib/api-helpers";
 import { settleJob, billStoppedJob, JOB_HARD_TIMEOUT_MS, type ActiveJob } from "@/app/lib/jobs";
 
 /**
@@ -33,9 +33,7 @@ async function sweepOne(job: ActiveJob): Promise<"settled" | "timed_out" | "skip
 
   let result: { status: string; data?: unknown } | null = null;
   try {
-    const pollRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${job.id}`, {
-      headers: backendHeaders(),
-    });
+    const pollRes = await backendFetch(`/api/job/${job.id}`, { retry: true });
     if (pollRes.ok) result = await pollRes.json() as { status: string; data?: unknown };
   } catch (err) {
     console.error(`Sweep poll failed for job ${job.id}:`, err);
@@ -51,10 +49,7 @@ async function sweepOne(job: ActiveJob): Promise<"settled" | "timed_out" | "skip
   if (ageMs > JOB_HARD_TIMEOUT_MS) {
     let execStartedTs: number | null | undefined = undefined;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${job.id}`, {
-        method: "DELETE",
-        headers: backendHeaders(),
-      });
+      const res = await backendFetch(`/api/job/${job.id}`, { method: "DELETE", retry: true });
       if (res.ok) {
         const body = await res.json() as { exec_started_ts?: number | null };
         if ("exec_started_ts" in body) execStartedTs = body.exec_started_ts;

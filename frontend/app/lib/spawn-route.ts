@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/app/db";
 import {
-  activeJobs,
   heatmapCache,
   dlaCache,
   attributionCache,
@@ -16,12 +15,13 @@ import {
   requireAuth,
   resolveModelTier,
   validateGpuTier,
-  backendHeaders,
+  backendFetch,
+  BackendFetchError,
   MAX_PROMPT_CHARS,
 } from "./api-helpers";
 import { checkBalance, isPaymentVerified } from "./credits";
 import { isGatedTier } from "./tiers";
-import { countActiveJobs, MAX_ACTIVE_JOBS_PER_USER } from "./jobs";
+import { countActiveJobs, insertActiveJobIfUnderCap, MAX_ACTIVE_JOBS_PER_USER } from "./jobs";
 
 type CacheTable =
   | typeof heatmapCache
@@ -31,7 +31,7 @@ type CacheTable =
   | typeof activationPatchCache
   | typeof attnCache;
 
-export type ParseResult<P> = { ok: true; params: P } | { ok: false; error: string };
+type ParseResult<P> = { ok: true; params: P } | { ok: false; error: string };
 
 export function isValidPrompt(v: unknown): v is string {
   return typeof v === "string" && v.length >= 1 && v.length <= MAX_PROMPT_CHARS;
@@ -103,23 +103,38 @@ export function createSpawnHandler<P extends { modelName: string }>(cfg: SpawnCo
       );
     }
 
-    const spawnRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/spawn-${cfg.jobType}`, {
-      method: "POST",
-      headers: backendHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(cfg.upstreamBody(params)),
-    });
+    // No retry: a spawn creates a billable Modal job, so a retry on an ambiguous
+    // network failure could double-spawn. Fail fast with a clean 502 instead.
+    let spawnRes: Response;
+    try {
+      spawnRes = await backendFetch(`/api/job/spawn-${cfg.jobType}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cfg.upstreamBody(params)),
+      });
+    } catch (err) {
+      if (!(err instanceof BackendFetchError)) throw err;
+      return Response.json({ error: "Inference backend unavailable. Please try again." }, { status: 502 });
+    }
     if (!spawnRes.ok) {
       const err = await spawnRes.json().catch(() => ({})) as { detail?: string };
       return Response.json({ error: err.detail ?? "Failed to spawn job" }, { status: 500 });
     }
     const { job_id } = await spawnRes.json() as { job_id: string };
 
-    await db.insert(activeJobs).values({
+    // Atomic cap claim. The early countActiveJobs check above is a cheap fast
+    // path; this is the authoritative gate. If we lose the race (another spawn
+    // filled the last slot between spawn and here), cancel the just-spawned Modal
+    // job so it doesn't run untracked — and therefore unbilled — to completion.
+    const claimed = await insertActiveJobIfUnderCap({
       id: job_id, userId, gpuTier: resolvedTier, jobType: cfg.jobType, modelName,
       cacheKey,
       cachePayload: JSON.stringify(cfg.cachePayload(params)),
-      startedAt: new Date(),
     });
+    if (!claimed) {
+      backendFetch(`/api/job/${job_id}`, { method: "DELETE", retry: true }).catch(() => {});
+      return Response.json({ error: "Too many jobs in flight. Wait for one to finish." }, { status: 429 });
+    }
 
     return Response.json({ jobId: job_id });
   };

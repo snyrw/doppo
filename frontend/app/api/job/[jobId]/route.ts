@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/app/db";
 import { activeJobs } from "@/app/schema";
-import { requireAuth, backendHeaders } from "@/app/lib/api-helpers";
+import { requireAuth, backendFetch } from "@/app/lib/api-helpers";
 import { settleJob, billStoppedJob } from "@/app/lib/jobs";
 
 export async function GET(
@@ -20,9 +20,15 @@ export async function GET(
     return Response.json({ error: "Unauthorized" }, { status: 403 });
   const job = rows[0];
 
-  const pollRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${jobId}`, {
-    headers: backendHeaders(),
-  });
+  let pollRes: Response;
+  try {
+    // Idempotent read → retry once on a dropped socket. If it still fails, tell
+    // the client we're still running so its poll loop keeps going rather than
+    // killing a job that's very likely alive on the backend.
+    pollRes = await backendFetch(`/api/job/${jobId}`, { retry: true });
+  } catch {
+    return Response.json({ status: "running", stage: null, stageAgeS: null, progress: null });
+  }
   if (!pollRes.ok) return Response.json({ status: "error", error: `Poll failed (${pollRes.status})` });
 
   const result = await pollRes.json() as {
@@ -72,7 +78,7 @@ export async function DELETE(
   // when execution actually began (null = never started, or heartbeat missing).
   let execStartedTs: number | null | undefined = undefined;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/job/${jobId}`, { method: "DELETE", headers: backendHeaders() });
+    const res = await backendFetch(`/api/job/${jobId}`, { method: "DELETE", retry: true });
     if (res.ok) {
       const body = await res.json() as { exec_started_ts?: number | null };
       if ("exec_started_ts" in body) execStartedTs = body.exec_started_ts;

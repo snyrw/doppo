@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { requireAuth, backendHeaders, MAX_PROMPT_CHARS } from "../../lib/api-helpers";
+import { requireAuth, backendFetch, MAX_PROMPT_CHARS } from "../../lib/api-helpers";
 
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth();
@@ -23,15 +23,17 @@ export async function POST(request: NextRequest) {
 
   let upstream: Response;
   try {
-    upstream = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tokenize`, {
+    // Idempotent read-only tokenization → safe to retry on a dropped socket.
+    upstream = await backendFetch("/api/tokenize", {
       method: "POST",
-      headers: backendHeaders({ "Content-Type": "application/json" }),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model_name: body.model_name, text: body.text ?? "" }),
+      retry: true,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return new Response(JSON.stringify({ error: `Could not reach inference backend: ${msg}` }), {
-      status: 500,
+      status: 502,
       headers: { "Content-Type": "application/json" },
     });
   }
