@@ -11,6 +11,7 @@ vi.mock("../app/lib/r2", () => ({ deleteHeatmaps: (keys: string[]) => deleteHeat
 // db mock: first select returns stripeCustomerId; subsequent selects return cache row ids.
 // delete records call order so we can assert R2-before-row-delete per cache table.
 let selectCallCount = 0;
+const insertValues = vi.fn();
 vi.mock("../app/db", () => {
   const select = () => ({
     from: () => ({
@@ -20,13 +21,16 @@ vi.mock("../app/db", () => {
           // First call: userCredits.stripeCustomerId lookup
           return Promise.resolve([{ c: "cus_123" }]);
         }
-        // Subsequent calls: cache table id lookups — one key each
+        // Final call: userCredits.balanceMicros lookup for the tombstone row.
+        if (selectCallCount === 8) return Promise.resolve([{ b: -1234 }]);
+        // Cache table id lookups (calls 2–7) — one key each
         return Promise.resolve([{ id: `key_${selectCallCount}` }]);
       },
     }),
   });
   const del = () => { calls.push("dbDelete"); return { where: () => Promise.resolve() }; };
-  return { db: { select, delete: del } };
+  const insert = () => ({ values: (v: unknown) => { insertValues(v); return Promise.resolve(); } });
+  return { db: { select, delete: del, insert } };
 });
 
 describe("deleteUserData", () => {
@@ -35,6 +39,7 @@ describe("deleteUserData", () => {
     selectCallCount = 0;
     customersDel.mockClear();
     deleteHeatmaps.mockClear();
+    insertValues.mockClear();
   });
 
   it("deletes the stripe customer before purging rows", async () => {
@@ -59,5 +64,15 @@ describe("deleteUserData", () => {
     }
     // Last entry should be "dbDelete" (activeJobs)
     expect(calls[calls.length - 1]).toBe("dbDelete");
+  });
+
+  it("writes an account_closed tombstone row snapshotting the closing balance", async () => {
+    const { deleteUserData } = await import("../app/lib/account");
+    await deleteUserData("user_1");
+    expect(insertValues).toHaveBeenCalledWith({
+      userId: "user_1",
+      type: "account_closed",
+      amountMicros: -1234,
+    });
   });
 });

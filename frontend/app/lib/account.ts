@@ -3,7 +3,7 @@ import { db } from "@/app/db";
 import { getStripe } from "@/app/lib/stripe";
 import { deleteHeatmaps } from "@/app/lib/r2";
 import {
-  userCredits, activeJobs,
+  userCredits, creditLedger, activeJobs,
   heatmapCache, dlaCache, attributionCache, steeringCache, activationPatchCache, attnCache,
 } from "@/app/schema";
 
@@ -32,4 +32,19 @@ export async function deleteUserData(userId: string): Promise<void> {
   }
 
   await db.delete(activeJobs).where(eq(activeJobs.userId, userId));
+
+  // Tombstone: snapshot the closing balance into the ledger. credit_ledger no
+  // longer cascades on user delete, so this row plus the usage history survive
+  // the account — preserving the audit trail (and any negative balance) that a
+  // re-registering abuser would otherwise erase. userCredits itself still
+  // cascades away with the user; the ledger is the durable record.
+  const [bal] = await db
+    .select({ b: userCredits.balanceMicros })
+    .from(userCredits)
+    .where(eq(userCredits.userId, userId));
+  await db.insert(creditLedger).values({
+    userId,
+    type: "account_closed",
+    amountMicros: bal?.b ?? 0,
+  });
 }

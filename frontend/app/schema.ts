@@ -181,10 +181,12 @@ export const userCredits = pgTable("user_credits", {
 
 export const creditLedger = pgTable("credit_ledger", {
   id: text("id").notNull().primaryKey().$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  type: text("type").notNull(), // "free_grant" | "purchase" | "usage"
+  // Deliberately NOT a cascading FK: the ledger is an immutable audit log that
+  // must outlive the user row. If it cascaded, deleting an account would erase a
+  // negative balance and the whole usage history — letting an abuser wipe the
+  // evidence by re-registering. userId stays a plain text reference.
+  userId: text("user_id").notNull(),
+  type: text("type").notNull(), // "free_grant" | "purchase" | "usage" | "account_closed"
   amountMicros: bigint("amount_micros", { mode: "number" }).notNull(),
   jobTier: text("job_tier"),
   jobDurationMs: integer("job_duration_ms"),
