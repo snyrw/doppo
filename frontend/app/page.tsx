@@ -20,7 +20,7 @@ export default function Home() {
       </div>
       <footer className="flex min-h-8 shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-surface-border bg-background px-5 py-1 text-[11px] text-muted">
         <span>
-          © {new Date().getFullYear()} Doppo
+          Doppo
           <span className="mx-2 text-surface-border">|</span>
           We&apos;re in open beta. Have issues or want to give feedback? Email{" "}
           <a href="mailto:help@doppo.tools" className="no-underline hover:text-foreground">help@doppo.tools</a>
