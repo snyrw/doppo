@@ -2,11 +2,7 @@
 title: Techniques
 ---
 
-So far, we have 6 techniques that can be used on Doppo. Here are a few notes as to how you should interpret these:
-- This mostly acts as a reference to show what we've done and where we've diverged in technical detail from baseline
-- The purpose for that was to add a quick verification on what exactly you were spending your time on rather than just guessing or reading through the code base
-- That means that this might be overly wordy or dense, probably not the best for learning currently (though the tutorial handles this somewhat well)
-- Changes have been considered to boil things down a bit more with simple sections that cover nuance behind the works; reading the papers/works linked is another good start as well
+So far, we have 6 techniques that can be used on Doppo. This mostly acts as a reference to show what we've done and where we've diverged in technical detail from baseline. The purpose for that was to add a quick verification on what exactly you were spending your time on rather than just guessing or reading through the code base. That means that this might be overly wordy or dense, and thhus probably is not the best as an introductory learning tool.Changes are being considered to boil things down a bit more with simple sections that cover nuance behind the works; reading the papers/works linked is another good start as well.
 
 ## Logit lens
 
@@ -42,12 +38,12 @@ Each component costs one forward pass, so this runs on the top-k components carr
 
 ## Steering
 
-Difference-in-means activation addition, following Arditi et al., "Refusal in Language Models Is Mediated by a Single Direction" (2024). Earlier work (Turner et al.'s ActAdd, 2023; Rimsky et al.'s CAA, 2023) established adding a fixed vector to the residual stream; Arditi et al.'s formulation of the vector and injection is the one implemented here.
+Difference-in-means activation addition, following Arditi et al., "Refusal in Language Models Is Mediated by a Single Direction" (2024).
 
 The vector is the mean, over all contrast pairs, of the residual stream entering block L at the clean prompt's last token minus the same read at the corrupted prompt's last token. Each prompt is read at its own last token, so pairs need not tokenize to the same length. When the model has a chat template it is applied before extraction, landing the read on the final post-instruction template token. The vector is not unit-normalized. Alpha times the vector is added at the same hook at every position, during both the prompt pass and each generated token, so alpha = 1 adds exactly one unit of the concept's mean displacement where it was measured.
 
-Departures from the paper, so results can be compared: the source layer is chosen by the user rather than by the paper's validated sweep, since there is no task metric for an arbitrary concept, and the vector comes from paired free-form prompts rather than two unpaired instruction sets (for equal-size sets the mean of differences equals the difference of group means, so the construction is the same). Directional ablation, the paper's second intervention, is not implemented.
+The source layer is chosen by the user rather than by the paper's validated sweep, since there is no task metric for an arbitrary concept, and the vector comes from paired free-form prompts rather than two unpaired instruction sets (for equal-size sets the mean of differences equals the difference of group means, so the construction is the same).
 
-Reliability caveats from the literature apply directly. Vectors built from a handful of pairs are unstable across resamples and stabilize around 100 pairs, which is where we've capped it for the sake of straddling between the border of usability and affordability.
+Reliability caveats from the literature apply directly. Vectors built from a handful of pairs are unstable across resamples and stabilize past a several dozen pairs, which is where we've capped it in an effort to balance usability of this feature without being redundant.
 
 Generation applies the model's chat template when one exists. Sampling uses temperature with a repetition penalty on already-generated tokens (HF convention); a temperature of 0 or below gives greedy decoding.
