@@ -461,7 +461,7 @@ function Projects() {
 
       {creditsToast && (
         <div className="fixed bottom-6 left-1/2 z-[300] -translate-x-1/2 whitespace-nowrap rounded-lg border border-card-border bg-card px-[18px] py-2.5 text-xs text-foreground shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
-          Credits added successfully
+          Balance added successfully
         </div>
       )}
 

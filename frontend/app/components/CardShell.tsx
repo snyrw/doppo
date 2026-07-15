@@ -151,7 +151,7 @@ export function CardErrorState({
           onClick={() => window.dispatchEvent(new CustomEvent("open-buy-credits"))}
           className="self-start rounded-md bg-background px-2.5 py-1 text-[11px] text-foreground"
         >
-          Add credits →
+          Add balance →
         </ControlButton>
       )}
       {showVerifyCard && (

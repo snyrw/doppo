@@ -9,7 +9,7 @@ type Row = Awaited<ReturnType<typeof getCreditLedger>>[number];
 function fmt(micros: number) { return `$${(micros / 1_000_000).toFixed(2)}`; }
 function label(r: Row) {
   if (r.type === "usage") return `Usage — ${r.jobTier ? TIER_LABELS[r.jobTier] ?? r.jobTier : "job"}`;
-  if (r.type === "purchase") return "Credit purchase";
+  if (r.type === "purchase") return "Balance added";
   if (r.type === "free_grant") return "Monthly free grant";
   return r.type;
 }
@@ -46,7 +46,7 @@ export default function BillingSection() {
         </div>
         <button className="btn-accent cursor-pointer rounded-md px-3 py-1.5 text-[13px] font-semibold"
           onClick={() => window.dispatchEvent(new CustomEvent("open-buy-credits"))}>
-          Buy credits
+          Add balance
         </button>
       </div>
 

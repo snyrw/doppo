@@ -92,7 +92,7 @@ export default function PrivacyPage() {
       <p>
         <strong>Payment data.</strong> If you choose to make purchases, your payment is processed by
         Stripe. We do not receive or store your full card number; all payment card data is handled and
-        stored by Stripe. We retain a record of the credits you purchase and your credit balance. You
+        stored by Stripe. We retain a record of the usage balance you purchase and your current balance. You
         may review Stripe’s privacy notice at{" "}
         <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">https://stripe.com/privacy</a>.
       </p>
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>To deliver and facilitate delivery of services.</strong> To run the model analyses
-          you request and to process payments and track credit balances.
+          you request and to process payments and track usage balances.
         </li>
         <li>
           <strong>To protect our Services.</strong> As part of our efforts to keep our Services safe

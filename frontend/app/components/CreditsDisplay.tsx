@@ -85,8 +85,8 @@ function CreditsButtonInner() {
     <div ref={ref} className="relative">
       <IconTile
         onClick={() => setOpen(o => !o)}
-        aria-label="Credits"
-        title="Credits"
+        aria-label="Usage balance"
+        title="Usage balance"
         innerClassName={cn("text-[13px] font-bold", glyphColorCls)}
       >
         $
@@ -95,7 +95,7 @@ function CreditsButtonInner() {
       {open && (
         <div className="absolute right-0 top-[calc(100%+8px)] z-[100] w-[220px] overflow-hidden rounded-lg border border-card-border bg-card shadow-[0_4px_20px_rgba(0,0,0,0.12)]">
           <div className="border-b border-surface-border px-3 pb-[7px] pt-2 text-[9px] uppercase tracking-[0.08em] text-muted">
-            Credits
+            Usage
           </div>
 
           {balanceMicros !== null && (
@@ -114,7 +114,7 @@ function CreditsButtonInner() {
               onClick={() => { setBuyOpen(true); setOpen(false); }}
               className="w-full cursor-pointer rounded-md border border-card-border bg-background px-2.5 py-[7px] text-left text-[11px] text-foreground"
             >
-              Add credits →
+              Add balance →
             </button>
             <span className="pl-0.5 text-[10px] text-muted opacity-70">
               Free tier: $1.00/month included

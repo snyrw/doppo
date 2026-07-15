@@ -32,7 +32,7 @@ function handleSpawnError(
   status: number,
   err: { error?: string; code?: string }
 ): { error: string; showBuyCredits?: boolean; showVerifyCard?: boolean } {
-  if (status === 402) return { error: err.error ?? "Insufficient credits", showBuyCredits: true };
+  if (status === 402) return { error: err.error ?? "Insufficient usage balance", showBuyCredits: true };
   if (status === 403 && err.code === "verification_required")
     return { error: err.error ?? "Add a card to run this GPU tier.", showVerifyCard: true };
   if (status === 401) return { error: err.error ?? "Sign in to run inference" };

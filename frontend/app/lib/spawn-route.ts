@@ -91,7 +91,7 @@ export function createSpawnHandler<P extends { modelName: string }>(cfg: SpawnCo
       return Response.json({ error: "Too many jobs in flight. Wait for one to finish." }, { status: 429 });
 
     const { allowed } = await checkBalance(userId, resolvedTier);
-    if (!allowed) return Response.json({ error: "Insufficient credits. Add credits to continue." }, { status: 402 });
+    if (!allowed) return Response.json({ error: "Insufficient usage balance. Add balance to continue." }, { status: 402 });
 
     if (isGatedTier(resolvedTier) && !(await isPaymentVerified(userId))) {
       return Response.json(

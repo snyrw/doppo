@@ -96,15 +96,15 @@ export default function TermsPage() {
         details.
       </p>
       <p>
-        <strong>Compute credits.</strong> Access to GPU-based analyses is paid for using prepaid compute
-        credits purchased through Stripe. Credits are consumed based on the GPU time your analyses use.
+        <strong>Compute usage balance.</strong> Access to GPU-based analyses is paid for using a prepaid usage
+        balance purchased through Stripe. Balance is consumed based on the GPU time your analyses use.
         Listed prices include the Stripe payment-processing fee (2.9% + $0.30), passed through at cost.
         <strong>
-          {" "}Except where a refund is required by applicable law, all credit purchases are final and
-          non-refundable, and credits are non-transferable and have no cash value.
+          {" "}Except where a refund is required by applicable law, all balance purchases are final and
+          non-refundable, and balance is non-transferable and has no cash value.
         </strong>{" "}
-        We may change prices or credit rates at any time; changes apply only prospectively and do not
-        affect credits already purchased.
+        We may change prices or usage rates at any time; changes apply only prospectively and do not
+        affect balance already purchased.
       </p>
       <p>
         You agree to provide current, complete, and accurate purchase and account information for all

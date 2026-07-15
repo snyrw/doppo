@@ -55,7 +55,7 @@ export default function DoppoInfoCard({
           As part of a goal to make interpretability broadly accessible, we also provide services at a price that mirrors 
           general inference costs with the eventual goal of decreasing what users pay. Users currently are allotted a free $1/month 
           priced against our service provider{" "} <a href="https://modal.com" target="_blank" rel="noopener 
-          noreferrer" className={LINK}>Modal</a> to use on smaller tasks. Additional credits are available for 
+          noreferrer" className={LINK}>Modal</a> to use on smaller tasks. Additional usage balance is available for
           purchase with no further markup beyond a Stripe fee for sustainability.
         </p>
         <p className="m-0">

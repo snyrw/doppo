@@ -25,7 +25,7 @@ export async function POST(req: Request) {
           currency: "usd",
           unit_amount: pack.chargeCents,
           product_data: {
-            name: `${pack.label} compute credit`,
+            name: `${pack.label} compute usage balance`,
             description:
               "Prices include Stripe payment processing fees (2.9% + $0.30) passed through at cost.",
           },

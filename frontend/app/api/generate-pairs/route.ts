@@ -85,11 +85,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Credit check — deduct after successful generation.
+  // Balance check — deduct after successful generation.
   const balanceMicros = await ensureGrantAndGetBalance(session.user.id);
   if (balanceMicros < PAIRS_GEN_COST_MICROS) {
     return NextResponse.json(
-      { error: "Insufficient credits. Add credits to continue." },
+      { error: "Insufficient usage balance. Add balance to continue." },
       { status: 402 }
     );
   }

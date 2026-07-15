@@ -35,7 +35,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
     <Modal onClose={onClose} className="w-[340px] max-w-[90vw]">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="m-0 text-sm text-foreground">
-            Add credits
+            Add usage balance
           </h2>
           <button
             onClick={onClose}
@@ -46,7 +46,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <p className="mb-4 text-[11px] leading-normal text-muted">
-          Credits are charged at Modal serverless cost with Stripe fees included.
+          Usage is billed at Modal serverless cost with Stripe fees included.
           Free tier: $1.00/month.
         </p>
 
@@ -64,7 +64,7 @@ export function BuyCreditsModal({ onClose }: { onClose: () => void }) {
             >
               <div className="text-left">
                 <div className="text-[13px] font-semibold text-foreground">
-                  {pack.label} credit
+                  {pack.label} balance
                 </div>
                 <div className="text-[10px] text-muted">
                   ${(pack.chargeCents / 100).toFixed(2)} charged to card
