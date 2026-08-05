@@ -57,12 +57,12 @@ export const TUTORIAL_CONFIGS = {
     k: 10,
   },
   steering: {
-    modelName: "Qwen/Qwen2.5-1.5B-Instruct",
+    modelName: "meta-llama/Meta-Llama-3.1-8B-Instruct",
     cleanPrompt: "What is the best way to learn a new language?",
     corruptedPrompt: "Quelle est la meilleure façon d'apprendre une nouvelle langue?",
     generationPrompt: "What do you think about climate change?",
     nPairs: 40,
-    gpuTier: "tl_small",
-    layer: 14,
+    gpuTier: "tl_medium",
+    layer: 16,
   },
 } as const;
