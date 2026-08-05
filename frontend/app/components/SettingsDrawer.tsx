@@ -74,7 +74,7 @@ export default function SettingsDrawer() {
             </button>
           ))}
         </nav>
-        <div className="flex-1 overflow-auto p-5 bg-card">
+        <div className="flex-1 overflow-auto p-5 bg-panel">
           {/* Sections wired in later tasks */}
           {section === "appearance" && <AppearanceSection />}
           {section === "account" && <AccountSection />}

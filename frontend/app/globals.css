@@ -192,14 +192,14 @@ body {
 }
 
 /* icon tile — square, modest chamfer, cut border */
-.icon-tile { --c: 6px; --tactile-side: var(--card-border); }
+.icon-tile { --c: 5px; --tactile-side: var(--card-border); }
 .icon-tile .tactile__face { background: var(--card-border); padding: var(--bw); }
 .icon-tile .tactile__inner {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   background: var(--bg);
   color: var(--text-muted);
   transition: color 140ms ease;

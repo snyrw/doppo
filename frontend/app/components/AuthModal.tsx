@@ -10,7 +10,10 @@ type Mode = "signin" | "signup" | "verify" | "forgot" | "forgot-sent";
 
 // Compact face padding so the navbar auth buttons land at the same ~34px face
 // height as the icon tiles next to them (text-xs line box 16px + 2*9px).
-const NAV_BTN_PAD = { "--pad-x": "14px", "--pad-y": "9px" } as CSSProperties;
+// pad-y 7.5 puts the ghost face at 28px inner / 31px face — dimensionally
+// identical to the navbar IconTiles, so the whole right-hand cluster shares
+// one height. Changing it desyncs the two; change .icon-tile's inner to match.
+const NAV_BTN_PAD = { "--pad-x": "14px", "--pad-y": "7.5px" } as CSSProperties;
 
 export default function AuthButtons() {
   const { data: session } = useSession();
@@ -94,8 +97,9 @@ export default function AuthButtons() {
   if (session?.user) {
     return (
       <div className="flex items-center gap-3">
-        {/* mb matches the tactile depth reserve so the email baseline lines up with the button faces */}
-        <span className="nav-btn-ghost mb-[5px] cursor-default">
+        {/* No depth-reserve mb here: the email is centred in the header itself, not
+            against the button faces (which sit 2.5px high from their 5px lip). */}
+        <span className="nav-btn-ghost cursor-default">
           {session.user.email}
         </span>
         <TactileButton
