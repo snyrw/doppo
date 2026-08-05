@@ -188,7 +188,7 @@ function SteeringCard({
           </span>
           <input
             type="range"
-            min={-50} max={50} step={1}
+            min={-8} max={8} step={0.25}
             value={localAlpha}
             disabled={tutorialMode}
             onChange={e => setLocalAlpha(parseFloat(e.target.value))}
