@@ -10,8 +10,17 @@ import { FieldLabel, PromptField } from "./configledger/fields";
 import { modelSummary, injectionSummary, generationSummary } from "./configledger/summaries";
 import ModelPicker from "./ModelPicker";
 import { cn } from "../lib/cn";
+import {
+  saveSteeringPairSet,
+  listSteeringPairSetSummaries,
+  loadSteeringPairSet,
+  deleteSteeringPairSet,
+} from "../actions";
 
 export type ExtraPair = { clean: string; corrupted: string };
+
+type SavedSetSummary = { id: string; name: string; pairCount: number; createdAt: Date };
+type SavedSetDetail = { cleanPrompt: string; corruptedPrompt: string; extraPairs: ExtraPair[] };
 
 type SteeringConfigPaneProps = {
   isOpen: boolean;
@@ -30,6 +39,7 @@ type SteeringConfigPaneProps = {
     repetitionPenalty: number;
   }) => void;
   onClose: () => void;
+  onPairsSaved?: (summary: { id: string; name: string; pairCount: number; createdAt: Date }) => void;
   tutorialMode?: boolean;
   tutorialConfig?: {
     modelName: string;
@@ -52,6 +62,7 @@ export default function SteeringConfigPane({
   modelsLoading,
   onSubmit,
   onClose,
+  onPairsSaved,
   tutorialMode,
   tutorialConfig,
 }: SteeringConfigPaneProps) {
@@ -67,12 +78,21 @@ export default function SteeringConfigPane({
   const [repetitionPenalty, setRepetitionPenalty] = useState(1.3);
   const [generationPrompt, setGenerationPrompt] = useState("");
 
-  // Research mode state
-  const [mode, setMode] = useState<"quick" | "research">("quick");
+  // Full mode state
+  const [mode, setMode] = useState<"quick" | "full" | "saved">("quick");
   const [conceptDescription, setConceptDescription] = useState("");
   const [extraPairs, setExtraPairs] = useState<ExtraPair[]>([]);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
+  const [savedSets, setSavedSets] = useState<SavedSetSummary[]>([]);
+  const [savedSetsLoading, setSavedSetsLoading] = useState(false);
+  const [savedSetsError, setSavedSetsError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [detailCache, setDetailCache] = useState<Record<string, SavedSetDetail>>({});
+  const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState("model");
 
   useEffect(() => {
@@ -81,12 +101,24 @@ export default function SteeringConfigPane({
       setCorruptedPrompt(tutorialConfig.corruptedPrompt);
       picker.forceCustomModel(tutorialConfig.modelName, tutorialConfig.gpuTier);
       setInjectionLayer(String(tutorialConfig.layer));
-      setMode("research");
+      setMode("full");
       if (tutorialConfig.generationPrompt) setGenerationPrompt(tutorialConfig.generationPrompt);
       if (tutorialConfig.extraPairs) setExtraPairs(tutorialConfig.extraPairs);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorialMode, tutorialConfig]);
+
+  useEffect(() => {
+    if (mode !== "saved" || tutorialMode) return;
+    let cancelled = false;
+    setSavedSetsLoading(true);
+    setSavedSetsError(null);
+    listSteeringPairSetSummaries()
+      .then((rows) => { if (!cancelled) setSavedSets(rows); })
+      .catch((err) => { if (!cancelled) setSavedSetsError(err instanceof Error ? err.message : "Failed to load saved sets."); })
+      .finally(() => { if (!cancelled) setSavedSetsLoading(false); });
+    return () => { cancelled = true; };
+  }, [mode, tutorialMode]);
 
   const doReset = () => {
     picker.reset();
@@ -100,6 +132,9 @@ export default function SteeringConfigPane({
     setExtraPairs([]);
     setGenerating(false);
     setGenerateError(null);
+    setSaving(false);
+    setSaveError(null);
+    setJustSaved(false);
     setTemperature(1.0);
     setRepetitionPenalty(1.3);
     setGenerationPrompt("");
@@ -143,6 +178,74 @@ export default function SteeringConfigPane({
     setExtraPairs(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleSavePairs = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const name = conceptDescription.trim() || `Untitled set — ${new Date().toLocaleDateString()}`;
+      const { id } = await saveSteeringPairSet(name, cleanPrompt, corruptedPrompt, extraPairs);
+      setJustSaved(true);
+      setSavedSets((prev) => [
+        { id, name, pairCount: 1 + extraPairs.length, createdAt: new Date() },
+        ...prev,
+      ]);
+      onPairsSaved?.({ id, name, pairCount: 1 + extraPairs.length, createdAt: new Date() });
+      setTimeout(() => setJustSaved(false), 1500);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const ensureDetail = async (id: string): Promise<SavedSetDetail> => {
+    if (detailCache[id]) return detailCache[id];
+    setDetailLoadingId(id);
+    try {
+      const detail = await loadSteeringPairSet(id);
+      setDetailCache((prev) => ({ ...prev, [id]: detail }));
+      return detail;
+    } finally {
+      setDetailLoadingId(null);
+    }
+  };
+
+  const handleToggleExpand = async (id: string) => {
+    if (expandedId === id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(id);
+    try {
+      await ensureDetail(id);
+    } catch {
+      setExpandedId(null);
+    }
+  };
+
+  const handleLoadSavedSet = async (id: string) => {
+    try {
+      const detail = await ensureDetail(id);
+      setCleanPrompt(detail.cleanPrompt);
+      setCorruptedPrompt(detail.corruptedPrompt);
+      setExtraPairs(detail.extraPairs);
+      setMode("full");
+    } catch {
+      // ensureDetail already surfaced via detailLoadingId clearing; leave the
+      // Saved tab open so the user can retry.
+    }
+  };
+
+  const handleDeleteSavedSet = async (id: string) => {
+    await deleteSteeringPairSet(id);
+    setSavedSets((prev) => prev.filter((s) => s.id !== id));
+    setDetailCache((prev) => {
+      const { [id]: _removed, ...rest } = prev;
+      return rest;
+    });
+    if (expandedId === id) setExpandedId(null);
+  };
+
   const cleanPreview = useTokenPreview(isOpen ? picker.activeModelId : "", cleanPrompt);
   const corruptedPreview = useTokenPreview(isOpen ? picker.activeModelId : "", corruptedPrompt);
   const positionOk = positionMode === "last" || (customPosition.trim() !== "" && !isNaN(parseInt(customPosition)));
@@ -150,7 +253,7 @@ export default function SteeringConfigPane({
 
   const pairCap = picker.selectedGpuTier ? (TIER_PAIR_CAPS[picker.selectedGpuTier] ?? DEFAULT_PAIR_CAP) : DEFAULT_PAIR_CAP;
   const totalPairs = 1 + extraPairs.length;
-  const canGenerate = mode === "research" && conceptDescription.trim() !== "" && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "" && !generating && !!session;
+  const canGenerate = mode === "full" && conceptDescription.trim() !== "" && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "" && !generating && !!session;
 
   const handleRun = () => {
     if (!canRun) return;
@@ -165,7 +268,7 @@ export default function SteeringConfigPane({
       gpuTier,
       targetPosition,
       injectionLayer: layer,
-      extraPairs: mode === "research" && extraPairs.length > 0 ? extraPairs : undefined,
+      extraPairs: mode === "full" && extraPairs.length > 0 ? extraPairs : undefined,
       temperature,
       repetitionPenalty,
     });
@@ -181,7 +284,7 @@ export default function SteeringConfigPane({
   const sliderCls = "w-full cursor-pointer accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-45";
 
   const displayName = picker.modelName || null;
-  const pairSummary = mode === "research" && extraPairs.length > 0
+  const pairSummary = mode === "full" && extraPairs.length > 0
     ? `${totalPairs} pairs`
     : "1 pair";
   const injectionSum = `${injectionSummary(injectionLayer)} · ${positionMode === "custom" && customPosition.trim() ? "pos " + customPosition.trim() : "last"}`;
@@ -217,33 +320,35 @@ export default function SteeringConfigPane({
               Mode
             </label>
             <div className="flex overflow-hidden rounded-md border border-card-border">
-              {(["quick", "research"] as const).map((m, i) => (
+              {(["quick", "full", "saved"] as const).map((m, i) => (
                 <button
                   key={m}
                   onClick={() => { if (tutorialMode) return; setMode(m); if (m === "quick") { setExtraPairs([]); setGenerateError(null); } }}
                   disabled={tutorialMode}
                   className={cn(
-                    "flex-1 cursor-pointer border-none py-1.5 text-[11px] transition-colors disabled:cursor-default",
-                    i === 0 && "border-r border-card-border",
+                    "flex-1 cursor-pointer border-none py-1 text-[10px] transition-colors disabled:cursor-default",
+                    i < 2 && "border-r border-card-border",
                     mode === m
                       ? "bg-surface-border font-semibold text-foreground"
                       : cn("bg-transparent font-normal text-muted", tutorialMode && "opacity-45"),
                   )}
                 >
-                  {m === "quick" ? "Quick  (1 pair)" : `Research  (up to ${pairCap} pairs)`}
+                  {m === "quick" ? "Quick (1 pair)" : m === "full" ? `Full (up to ${pairCap} pairs)` : "Saved"}
                 </button>
               ))}
             </div>
             <p className={helpTextCls}>
               {mode === "quick"
                 ? "Single pair. Faster and noisier."
-                : "Averages the difference-in-means vector over LLM-generated pairs. Around 100 pairs gives a stable vector."}
+                : mode === "full"
+                  ? "Averages the difference-in-means vector over LLM-generated pairs. Around 100 pairs gives a stable vector."
+                  : "Reuse a set of pairs you generated and saved earlier."}
             </p>
           </div>
 
-          {/* Seed pair (research) / prompt pair (quick) */}
-          <div className={cn(mode === "research" && "border-l-2 border-dashed border-accent pl-3")}>
-            {mode === "research" && (
+          {/* Seed pair (full) / prompt pair (quick) */}
+          <div className={cn(mode === "full" && "border-l-2 border-dashed border-accent pl-3")}>
+            {mode === "full" && (
               <div className="mb-1.5 flex items-baseline justify-between">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
                   Seed Pair
@@ -253,7 +358,7 @@ export default function SteeringConfigPane({
                 </span>
               </div>
             )}
-            {mode === "research" && (
+            {mode === "full" && (
               <p className="m-0 mb-2.5 text-[10px] leading-normal text-muted">
                 A format reference for generation, and the first pair in the dataset.
               </p>
@@ -261,7 +366,7 @@ export default function SteeringConfigPane({
 
             <div className="mb-3">
               <PromptField
-                label={mode === "research" ? "Seed · Clean" : "Reference Prompt"}
+                label={mode === "full" ? "Seed · Clean" : "Reference Prompt"}
                 value={cleanPrompt}
                 onChange={setCleanPrompt}
                 preview={cleanPreview}
@@ -271,7 +376,7 @@ export default function SteeringConfigPane({
             </div>
 
             <PromptField
-              label={mode === "research" ? "Seed · Corrupted" : "Counterfactual Prompt"}
+              label={mode === "full" ? "Seed · Corrupted" : "Counterfactual Prompt"}
               value={corruptedPrompt}
               onChange={setCorruptedPrompt}
               preview={corruptedPreview}
@@ -280,8 +385,8 @@ export default function SteeringConfigPane({
             />
           </div>
 
-          {/* Research mode: LLM pair generation */}
-          {mode === "research" && (
+          {/* Full mode: LLM pair generation */}
+          {mode === "full" && (
             <div className="border-t border-surface-border pt-4">
               <label className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
                 Generate Dataset Pairs with Claude
@@ -312,26 +417,47 @@ export default function SteeringConfigPane({
                       ? `${totalPairs} pairs total (seed + ${extraPairs.length} generated)`
                       : `Will generate ${pairCap - 1} pairs (${pairCap} total with seed)`}
                 </span>
-                <button
-                  onClick={handleGenerate}
-                  disabled={tutorialMode || !canGenerate}
-                  className={cn(
-                    "shrink-0 whitespace-nowrap rounded-md border-none px-3 py-[5px] text-[11px] font-medium transition-colors",
-                    !tutorialMode && canGenerate
-                      ? "cursor-pointer bg-accent text-accent-fg"
-                      : "cursor-not-allowed bg-surface-border text-muted",
-                    tutorialMode && "opacity-70",
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    onClick={handleGenerate}
+                    disabled={tutorialMode || !canGenerate}
+                    className={cn(
+                      "whitespace-nowrap rounded-md border-none px-2.5 py-[5px] text-[10px] font-medium transition-colors",
+                      !tutorialMode && canGenerate
+                        ? "cursor-pointer bg-accent text-accent-fg"
+                        : "cursor-not-allowed bg-surface-border text-muted",
+                      tutorialMode && "opacity-70",
+                    )}
+                  >
+                    {tutorialMode
+                      ? `${tutorialConfig?.nPairs ?? 40} pairs generated`
+                      : generating ? "Generating…"
+                      : extraPairs.length > 0 ? "Regenerate" : "Generate pairs"}
+                  </button>
+                  {!tutorialMode && (
+                    <button
+                      onClick={handleSavePairs}
+                      disabled={extraPairs.length === 0 || saving}
+                      className={cn(
+                        "whitespace-nowrap rounded-md border-none px-2.5 py-[5px] text-[10px] font-medium transition-colors",
+                        extraPairs.length > 0 && !saving
+                          ? "cursor-pointer bg-accent text-accent-fg"
+                          : "cursor-not-allowed bg-surface-border text-muted",
+                      )}
+                    >
+                      {saving ? "Saving…" : justSaved ? "Saved ✓" : "Save Pairs"}
+                    </button>
                   )}
-                >
-                  {tutorialMode
-                    ? `${tutorialConfig?.nPairs ?? 40} pairs generated`
-                    : generating ? "Generating…"
-                    : extraPairs.length > 0 ? "Regenerate" : "Generate pairs"}
-                </button>
+                </div>
               </div>
               {!tutorialMode && generateError && (
                 <p className="m-0 mt-1.5 text-[10px] leading-normal text-red-600">
                   ✗ {generateError}
+                </p>
+              )}
+              {!tutorialMode && saveError && (
+                <p className="m-0 mt-1.5 text-[10px] leading-normal text-red-600">
+                  ✗ {saveError}
                 </p>
               )}
 
@@ -376,6 +502,79 @@ export default function SteeringConfigPane({
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {mode === "saved" && (
+            <div className="border-t border-surface-border pt-4">
+              {savedSetsLoading && (
+                <p className="m-0 text-[10px] leading-normal text-muted">Loading saved sets…</p>
+              )}
+              {!savedSetsLoading && savedSetsError && (
+                <p className="m-0 text-[10px] leading-normal text-red-600">✗ {savedSetsError}</p>
+              )}
+              {!savedSetsLoading && !savedSetsError && savedSets.length === 0 && (
+                <p className="m-0 text-[10px] leading-normal text-muted">
+                  No saved sets yet. Generate pairs in Full mode, then Save Pairs.
+                </p>
+              )}
+              {!savedSetsLoading && savedSets.length > 0 && (
+                <div className="flex max-h-[260px] flex-col gap-[3px] overflow-y-auto">
+                  {savedSets.map((s) => (
+                    <div
+                      key={s.id}
+                      className="rounded-[5px] border border-surface-border bg-background px-[7px] py-[5px]"
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleToggleExpand(s.id)}
+                          className="min-w-0 flex-1 cursor-pointer border-none bg-transparent p-0 text-left"
+                        >
+                          <div className="line-clamp-1 overflow-hidden text-[10px] leading-[1.4] text-foreground">
+                            {s.name}
+                          </div>
+                          <div className="mt-px text-[9px] leading-[1.4] text-muted">
+                            {s.pairCount} pairs · {new Date(s.createdAt).toLocaleDateString()}
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => handleLoadSavedSet(s.id)}
+                          disabled={detailLoadingId === s.id}
+                          className="shrink-0 cursor-pointer whitespace-nowrap rounded-md border-none bg-accent px-2 py-[3px] text-[9px] font-medium text-accent-fg disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Load
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSavedSet(s.id)}
+                          className="shrink-0 cursor-pointer border-none bg-transparent px-px text-[11px] leading-none text-muted"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {expandedId === s.id && (
+                        <div className="mt-2 flex flex-col gap-[3px] border-t border-surface-border pt-2">
+                          {detailLoadingId === s.id && (
+                            <p className="m-0 text-[9px] leading-normal text-muted">Loading pairs…</p>
+                          )}
+                          {detailCache[s.id]?.extraPairs.map((pair, i) => (
+                            <div
+                              key={i}
+                              className="rounded-[5px] border border-surface-border bg-background px-[7px] py-[5px]"
+                            >
+                              <div className="line-clamp-1 overflow-hidden text-[9px] leading-[1.4] text-foreground">
+                                {pair.clean}
+                              </div>
+                              <div className="mt-px line-clamp-1 overflow-hidden text-[9px] leading-[1.4] text-muted">
+                                {pair.corrupted}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -499,7 +698,7 @@ export default function SteeringConfigPane({
     },
   ];
 
-  const runLabel = mode === "research" && extraPairs.length > 0 ? `Run steering (${totalPairs})` : "Run steering";
+  const runLabel = mode === "full" && extraPairs.length > 0 ? `Run steering (${totalPairs})` : "Run steering";
 
   return (
     <ConfigLedger

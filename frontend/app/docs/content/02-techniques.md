@@ -46,4 +46,6 @@ The source layer is chosen by the user rather than by the paper's validated swee
 
 Reliability caveats from the literature apply directly. Vectors built from a handful of pairs are unstable across resamples and stabilize past a several dozen pairs, which is where we've capped it in an effort to balance usability of this feature without being redundant.
 
+A pair set can be saved to your account and reloaded into a later steering card, so a set you spent generation time on does not have to be rebuilt. Saved sets store the prompts only, not results, and are capped at 20 per account.
+
 Generation applies the model's chat template when one exists. Sampling uses temperature with a repetition penalty on already-generated tokens (HF convention); a temperature of 0 or below gives greedy decoding.

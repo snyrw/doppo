@@ -168,6 +168,22 @@ export const project = pgTable("project", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const steeringPairSets = pgTable(
+  "steering_pair_sets",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    cleanPrompt: text("clean_prompt").notNull(),
+    corruptedPrompt: text("corrupted_prompt").notNull(),
+    extraPairs: jsonb("extra_pairs").notNull().default([]),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("steering_pair_sets_user_idx").on(table.userId),
+  ]
+);
+
 export const userCredits = pgTable("user_credits", {
   userId: text("user_id")
     .notNull()

@@ -7,6 +7,15 @@ import { project, creditLedger, user as userTable, attnCache } from "./schema";
 import { auth } from "./lib/auth";
 import { buildDataExport, type DataExport } from "./lib/data-export";
 import { getHeatmap } from "./lib/r2";
+import {
+  saveSteeringPairSetForUser,
+  listSteeringPairSetSummariesForUser,
+  loadSteeringPairSetForUser,
+  deleteSteeringPairSetForUser,
+  type ExtraPair,
+  type SteeringPairSetSummary,
+  type SteeringPairSetDetail,
+} from "./lib/steering-presets";
 
 type SerializedCard = {
   id: string;
@@ -258,4 +267,29 @@ export async function exportMyData(): Promise<DataExport> {
   const ledger = await getCreditLedger();
 
   return buildDataExport(u, projects as DataExport["projects"], ledger);
+}
+
+export async function saveSteeringPairSet(
+  name: string,
+  cleanPrompt: string,
+  corruptedPrompt: string,
+  extraPairs: ExtraPair[]
+): Promise<{ id: string }> {
+  const userId = await getAuthedUserId();
+  return saveSteeringPairSetForUser(userId, name, cleanPrompt, corruptedPrompt, extraPairs);
+}
+
+export async function listSteeringPairSetSummaries(): Promise<SteeringPairSetSummary[]> {
+  const userId = await getAuthedUserId();
+  return listSteeringPairSetSummariesForUser(userId);
+}
+
+export async function loadSteeringPairSet(id: string): Promise<SteeringPairSetDetail> {
+  const userId = await getAuthedUserId();
+  return loadSteeringPairSetForUser(userId, id);
+}
+
+export async function deleteSteeringPairSet(id: string): Promise<void> {
+  const userId = await getAuthedUserId();
+  return deleteSteeringPairSetForUser(userId, id);
 }
