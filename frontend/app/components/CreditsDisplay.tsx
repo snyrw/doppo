@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, Suspense } from "react";
 import { LOW_BALANCE_THRESHOLD_MICROS } from "@/app/lib/rates";
 import { cn } from "../lib/cn";
@@ -89,7 +90,7 @@ function CreditsButtonInner() {
         title="Usage balance"
         innerClassName={cn("text-[13px] font-bold", glyphColorCls)}
       >
-        $
+        U
       </IconTile>
 
       {open && (
@@ -119,6 +120,13 @@ function CreditsButtonInner() {
             <span className="pl-0.5 text-[10px] text-muted opacity-70">
               Free tier: $1.00/month included
             </span>
+            <Link
+              href="/docs#usage-and-pricing"
+              onClick={() => setOpen(false)}
+              className="pl-0.5 text-[10px] text-muted underline decoration-surface-border underline-offset-2 hover:text-foreground"
+            >
+              What we charge, and why
+            </Link>
           </div>
         </div>
       )}
