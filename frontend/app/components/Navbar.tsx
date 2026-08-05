@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import AuthButtons from "./AuthModal";
 import Link from "next/link";
 import Image from "next/image";
@@ -61,11 +61,20 @@ export default function Navbar({ actions }: { actions?: React.ReactNode }) {
   const mounted = useMounted();
   const { data: session } = useSession();
 
+  // Settings drawer's Appearance section changes data-theme independently of this
+  // component's own toggle button, so listen for its "themechange" event too.
+  useEffect(() => {
+    const handler = () => setIsDark(document.documentElement.getAttribute("data-theme") === "dark");
+    window.addEventListener("themechange", handler);
+    return () => window.removeEventListener("themechange", handler);
+  }, []);
+
   const toggleTheme = () => {
     const next = !isDark;
     setIsDark(next);
     document.documentElement.setAttribute("data-theme", next ? "dark" : "light");
     try { localStorage.setItem("theme", next ? "dark" : "light"); } catch {}
+    window.dispatchEvent(new CustomEvent("themechange"));
   };
 
   return (

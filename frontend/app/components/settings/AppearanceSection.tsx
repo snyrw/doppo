@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PALETTE_META, SEQUENTIAL_PALETTE_ORDER, DIVERGING_PALETTE_ORDER } from "../../lib/palette";
 import { useSequentialPalette, useDivergingPalette } from "../../hooks/usePalette";
 import { cn } from "../../lib/cn";
@@ -12,10 +12,17 @@ export default function AppearanceSection() {
     () => typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "dark"
   );
 
+  useEffect(() => {
+    const handler = () => setIsDark(document.documentElement.getAttribute("data-theme") === "dark");
+    window.addEventListener("themechange", handler);
+    return () => window.removeEventListener("themechange", handler);
+  }, []);
+
   const setTheme = (dark: boolean) => {
     setIsDark(dark);
     document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
     try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch {}
+    window.dispatchEvent(new CustomEvent("themechange"));
   };
 
   const setPalette = (key: string, value: string) => {
