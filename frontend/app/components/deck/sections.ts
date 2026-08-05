@@ -18,5 +18,5 @@ export const SECTIONS: readonly SectionDef[] = [
   { id: "intro", label: "intro", Component: Hero },
   { id: "what-doppo-is", label: "what doppo is", Component: WhatDoppoIs },
   { id: "techniques", label: "techniques", Component: Techniques },
-  { id: "self-hosting", label: "learn more", Component: LearnMore },
+  { id: "learnmore", label: "learn more", Component: LearnMore },
 ] as const;

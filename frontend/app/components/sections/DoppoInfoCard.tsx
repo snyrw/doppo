@@ -21,8 +21,8 @@ export default function DoppoInfoCard({
   style?: CSSProperties;
 }) {
   const { go, sections } = useDeck();
-  const goSelfHosting = () => {
-    const i = sections.findIndex((s) => s.id === "self-hosting");
+  const goLearnMore = () => {
+    const i = sections.findIndex((s) => s.id === "learnmore");
     if (i >= 0) go(i);
   };
 
@@ -62,7 +62,7 @@ export default function DoppoInfoCard({
           More about our technical specifics can be found{" "}
           <button
             type="button"
-            onClick={goSelfHosting} // needs to change to a static page here
+            onClick={goLearnMore} // needs to change to a static page here
             className={cn(LINK, "cursor-pointer bg-transparent p-0 text-inherit")}
           >
             here
