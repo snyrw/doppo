@@ -7,8 +7,28 @@ on:
       - "backend/**"
 
 jobs:
+  # Deploy is gated on the backend suite passing. The Tests workflow also runs
+  # on push to main, but workflows can't depend on each other's jobs, so the
+  # deploy path runs the backend tests itself — a red suite must block deploy.
+  test:
+    name: Backend unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements-dev.txt
+
+      - name: Run tests
+        run: pytest backend/tests/
+
   deploy:
     runs-on: ubuntu-latest
+    needs: test
 
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +36,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Install Modal
         run: pip install modal

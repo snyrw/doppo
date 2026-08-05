@@ -3,3 +3,4 @@ httpx
 fastapi
 pydantic
 modal
+transformers

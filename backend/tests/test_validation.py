@@ -167,8 +167,10 @@ def test_pickle_only_repo_rejected():
 def test_gated_repo_reported_as_gated_not_missing():
     # GatedRepoError subclasses RepositoryNotFoundError — if caught in the wrong
     # order, gated repos misreport as "not found".
+    import httpx
     from huggingface_hub.utils import GatedRepoError
-    with patch("huggingface_hub.HfApi.model_info", side_effect=GatedRepoError("403")):
+    resp = httpx.Response(403, request=httpx.Request("GET", "https://huggingface.co"))
+    with patch("huggingface_hub.HfApi.model_info", side_effect=GatedRepoError("403", response=resp)):
         res = validate_hf_repo("meta-llama/gated", hf_token=None)
     assert res["valid"] is False
     assert "gated" in res["reason"]

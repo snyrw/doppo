@@ -3,36 +3,30 @@ name: Tests
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
     branches: ["**"]
-  pull_request_target:
-    types: [opened, synchronize, labeled]
 
 jobs:
   unit:
     name: Backend unit tests
     runs-on: ubuntu-latest
-    # Only run on push and pull_request — pull_request_target checks out base branch,
-    # not the PR head, which would make these tests useless for catching PR regressions.
-    if: github.event_name != 'pull_request_target'
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Install dependencies
         run: pip install -r backend/requirements-dev.txt
 
       - name: Run tests
-        run: pytest backend/tests/test_utils.py backend/tests/test_api.py -v
+        run: pytest backend/tests/ -v
 
   frontend:
     name: Frontend tests
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request_target'
     steps:
       - uses: actions/checkout@v4
 
@@ -50,20 +44,17 @@ jobs:
 
   gpu-integration:
     name: GPU integration test
+    # Push-to-main only: on PRs this used to run under pull_request_target,
+    # which checks out the base branch — it smoke-tested main's code, not the
+    # PR's, so it produced no PR signal while exposing secrets to the event.
     runs-on: ubuntu-latest
-    # Runs on: push to main, OR PR with gpu-tests label, OR PR by repo owner
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'pull_request_target' && (
-        github.actor == github.repository_owner ||
-        contains(github.event.pull_request.labels.*.name, 'gpu-tests')
-      ))
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Install Modal
         run: pip install modal
