@@ -7,7 +7,7 @@ import { validateGpuTier } from "@/app/lib/api-helpers";
 import { ensureGrantAndGetBalance, deductFixedCost } from "@/app/lib/credits";
 import { TIER_PAIR_CAPS, DEFAULT_PAIR_CAP } from "@/app/lib/tiers";
 
-const PAIRS_GEN_COST_MICROS = 5_000; // $0.005 per call; ~200 free calls/month on the monthly grant
+const PAIRS_GEN_COST_MICROS = 30_000; // $0.03 per call — tracks actual Haiku cost at ~99 pairs (~$0.02–0.04); ~33 free calls/month on the monthly grant
 
 const SYSTEM_PROMPT = `You are generating a dataset of contrastive prompt pairs for mechanistic interpretability research. These pairs will be used to compute a "steering vector" — a direction in a language model's activation space that represents a specific concept or behavior.
 
@@ -107,34 +107,54 @@ Generate ${n} diverse contrastive pairs for the target concept. Output one JSON 
 
   const client = new Anthropic({ apiKey });
 
-  let raw: string;
+  // Parse one JSON object per line, skip blank lines and malformed entries.
+  const parsePairs = (raw: string, remaining: number) => {
+    const found: Array<{ clean: string; corrupted: string }> = [];
+    for (const line of raw.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        const obj = JSON.parse(trimmed) as Record<string, unknown>;
+        if (typeof obj.clean === "string" && typeof obj.corrupted === "string" && found.length < remaining) {
+          found.push({ clean: obj.clean, corrupted: obj.corrupted });
+        }
+      } catch {
+        // skip unparseable lines (model sometimes adds preamble)
+      }
+    }
+    return found;
+  };
+
+  // Haiku often undershoots a large explicit count in one shot, so top off
+  // with follow-up turns instead of trusting a single call to hit `n`.
+  const MAX_ATTEMPTS = 3;
+  const messages: Anthropic.MessageParam[] = [{ role: "user", content: userMessage }];
+  const pairs: Array<{ clean: string; corrupted: string }> = [];
+
   try {
-    const msg = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      // 99 pairs of JSON lines run well past 4096 tokens; leave headroom.
-      max_tokens: 8192,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userMessage }],
-    });
-    raw = msg.content[0].type === "text" ? msg.content[0].text : "";
+    for (let attempt = 0; attempt < MAX_ATTEMPTS && pairs.length < n; attempt++) {
+      const msg = await client.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        // 99 pairs of JSON lines run well past 4096 tokens; leave headroom.
+        max_tokens: 16000,
+        system: SYSTEM_PROMPT,
+        messages,
+      });
+      const raw = msg.content[0].type === "text" ? msg.content[0].text : "";
+      const newPairs = parsePairs(raw, n - pairs.length);
+      pairs.push(...newPairs);
+
+      if (pairs.length >= n || newPairs.length === 0) break;
+
+      messages.push({ role: "assistant", content: raw });
+      messages.push({
+        role: "user",
+        content: `You've produced ${pairs.length} valid pairs so far, but ${n} were requested. Continue with ${n - pairs.length} more diverse contrastive pairs for the same target concept — do not repeat any pair already generated. Output ONLY the new pairs, one JSON object per line, no other text.`,
+      });
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: `Anthropic API error: ${msg}` }, { status: 502 });
-  }
-
-  // Parse one JSON object per line, skip blank lines and malformed entries.
-  const pairs: Array<{ clean: string; corrupted: string }> = [];
-  for (const line of raw.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    try {
-      const obj = JSON.parse(trimmed) as Record<string, unknown>;
-      if (typeof obj.clean === "string" && typeof obj.corrupted === "string" && pairs.length < n) {
-        pairs.push({ clean: obj.clean, corrupted: obj.corrupted });
-      }
-    } catch {
-      // skip unparseable lines (model sometimes adds preamble)
-    }
   }
 
   if (pairs.length === 0) {
