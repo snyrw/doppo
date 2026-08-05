@@ -28,6 +28,7 @@ export type AttentionCardData = {
   gpuTier?: string;
   startedAt?: number;
   loadingStage?: LoadingStage;
+  cacheKey?: string | null;  // reference into attnCache; project saves store this instead of `data`
 };
 
 type AttentionCardProps = {

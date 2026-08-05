@@ -57,7 +57,7 @@ export async function GET(
     return Response.json({ status: "error", error: result.error ?? "Unknown error" });
   }
 
-  return Response.json({ status: "done", data: result.data });
+  return Response.json({ status: "done", data: result.data, cacheKey: job?.cacheKey ?? null });
 }
 
 export async function DELETE(

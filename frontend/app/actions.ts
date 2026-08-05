@@ -1,11 +1,12 @@
 "use server";
 
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db } from "./db";
-import { project, creditLedger, user as userTable } from "./schema";
+import { project, creditLedger, user as userTable, attnCache } from "./schema";
 import { auth } from "./lib/auth";
 import { buildDataExport, type DataExport } from "./lib/data-export";
+import { getHeatmap } from "./lib/r2";
 
 type SerializedCard = {
   id: string;
@@ -30,6 +31,7 @@ type SerializedCard = {
   nPairs?: number;
   extraPairs?: Array<{ clean: string; corrupted: string }>;
   generationPrompt?: string;
+  cacheKey?: string | null;       // attention-pattern cards: reference into attnCache, data omitted
 };
 
 type CanvasState = import("./components/SandboxCanvas").CanvasState;
@@ -86,6 +88,29 @@ export async function loadProject(
   };
 }
 
+/** Rehydrates an attention card's pattern data from its cache reference. Owner-only. */
+export async function getAttnCacheData(cacheKey: string): Promise<unknown | null> {
+  const userId = await getAuthedUserId();
+  const rows = await db
+    .select({ r2Key: attnCache.r2Key, userId: attnCache.userId })
+    .from(attnCache)
+    .where(eq(attnCache.id, cacheKey))
+    .limit(1);
+  if (rows.length === 0 || rows[0].userId !== userId || !rows[0].r2Key) return null;
+  return getHeatmap(rows[0].r2Key);
+}
+
+/** Same as `getAttnCacheData` but for public share views — no session, no ownership check. */
+export async function getPublicAttnCacheData(cacheKey: string): Promise<unknown | null> {
+  const rows = await db
+    .select({ r2Key: attnCache.r2Key })
+    .from(attnCache)
+    .where(eq(attnCache.id, cacheKey))
+    .limit(1);
+  if (rows.length === 0 || !rows[0].r2Key) return null;
+  return getHeatmap(rows[0].r2Key);
+}
+
 export async function setProjectShare(projectId: string): Promise<{ shareId: string }> {
   const userId = await getAuthedUserId();
   const rows = await db
@@ -117,6 +142,38 @@ export async function loadPublicProject(
     cards: rows[0].cards as SerializedCard[],
     canvas: rows[0].canvas as CanvasState,
   };
+}
+
+/**
+ * Upserts a single card into a project's `cards` array by id, atomically.
+ * Unlike `updateProject`, this doesn't overwrite the whole array from a
+ * client-held snapshot: it's a single UPDATE whose SET expression reads and
+ * rewrites `cards` in one statement, so concurrent calls (e.g. two cards
+ * resolving close together) serialize on Postgres's row lock instead of
+ * racing to overwrite each other's client snapshot.
+ */
+export async function upsertProjectCard(
+  projectId: string,
+  card: SerializedCard,
+  canvas: CanvasState
+): Promise<void> {
+  const userId = await getAuthedUserId();
+  const cardJson = JSON.stringify(card);
+  await db.execute(sql`
+    update project
+    set
+      cards = case
+        when exists (select 1 from jsonb_array_elements(cards) e where e->>'id' = ${card.id})
+        then (
+          select jsonb_agg(case when e->>'id' = ${card.id} then ${cardJson}::jsonb else e end)
+          from jsonb_array_elements(cards) e
+        )
+        else cards || jsonb_build_array(${cardJson}::jsonb)
+      end,
+      canvas = ${JSON.stringify(canvas)}::jsonb,
+      updated_at = now()
+    where id = ${projectId} and user_id = ${userId}
+  `);
 }
 
 export async function updateProject(

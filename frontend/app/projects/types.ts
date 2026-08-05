@@ -20,7 +20,7 @@ type CardResolvedAction =
   | { type: "CARD_RESOLVED"; id: string; cardType: "dla"; data: DlaData }
   | { type: "CARD_RESOLVED"; id: string; cardType: "attribution"; data: AttributionData }
   | { type: "CARD_RESOLVED"; id: string; cardType: "activation"; data: ActivationPatchResult; parentAttributionId: string }
-  | { type: "CARD_RESOLVED"; id: string; cardType: "attention-pattern"; data: AttentionData }
+  | { type: "CARD_RESOLVED"; id: string; cardType: "attention-pattern"; data: AttentionData; cacheKey?: string | null }
   | { type: "CARD_RESOLVED"; id: string; cardType: "steering"; data: SteeringResult };
 
 export type AppAction =

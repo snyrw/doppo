@@ -83,7 +83,7 @@ export function createSpawnHandler<P extends { modelName: string }>(cfg: SpawnCo
       if (cached.length > 0 && cached[0].r2Key) {
         const data = await getHeatmap(cached[0].r2Key);
         db.update(table).set({ lastAccessedAt: new Date() }).where(eq(table.id, cacheKey)).catch(console.error);
-        return Response.json({ status: "cached", data });
+        return Response.json({ status: "cached", data, cacheKey });
       }
     }
 

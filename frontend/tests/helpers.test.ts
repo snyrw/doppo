@@ -165,4 +165,22 @@ describe("serializeCard", () => {
     expect(result.cardType).toBe("attention-pattern");
     expect(result.prompt).toBe("attn prompt");
   });
+
+  it("attention-pattern card with a cacheKey stores a reference, not the full data blob", () => {
+    const card = {
+      id: "c6",
+      cardType: "attention-pattern" as const,
+      modelName: "gpt2-small",
+      prompt: "attn prompt",
+      data: { tokens: ["a"], patterns: [[[[0.5]]]], n_layers: 1, n_heads: 1, truncated: false },
+      position: { x: 40, y: 40 },
+      gpuTier: "tl_small",
+      status: "result" as const,
+      cacheKey: "cache-abc",
+    };
+    const result = serializeCard(card as unknown as AnyCard);
+    expect(result.cardType).toBe("attention-pattern");
+    expect((result as { cacheKey?: string }).cacheKey).toBe("cache-abc");
+    expect(result.data).toEqual({});
+  });
 });

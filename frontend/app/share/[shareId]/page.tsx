@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { loadPublicProject } from "../../actions";
+import { loadPublicProject, getPublicAttnCacheData } from "../../actions";
 import Navbar from "../../components/Navbar";
 import ShareCanvas from "./ShareCanvas";
 import type { LensCardData } from "../../components/LensCard";
@@ -19,7 +19,7 @@ export default async function SharePage({
   const project = await loadPublicProject(shareId);
   if (!project) notFound();
 
-  const cards: AnyCard[] = project.cards.filter(c => c.cardType !== "entropy").map(c => {
+  const cards: AnyCard[] = await Promise.all(project.cards.filter(c => c.cardType !== "entropy").map(async c => {
     if (c.cardType === "dla") {
       return { ...c, cardType: "dla" as const, status: "result" as const, error: null } as DlaCardData;
     }
@@ -48,16 +48,21 @@ export default async function SharePage({
       } as unknown as SteeringCardData;
     }
     if (c.cardType === "attention-pattern") {
+      const data = c.data && Object.keys(c.data).length > 0
+        ? (c.data as AttentionData)
+        : c.cacheKey
+          ? await getPublicAttnCacheData(c.cacheKey).catch(() => null) as AttentionData | null
+          : null;
       return {
         ...c,
         cardType: "attention-pattern" as const,
         status: "result" as const,
         error: null,
-        data: (c.data ?? null) as AttentionData | null,
+        data,
       } as AttentionCardData;
     }
     return { ...c, cardType: "logit-lens" as const, status: "result" as const, error: null } as LensCardData;
-  });
+  }));
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>

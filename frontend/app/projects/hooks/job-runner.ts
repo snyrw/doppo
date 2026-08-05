@@ -52,7 +52,7 @@ export async function runJob({ endpoint, body, cardId, startedAt, dispatch, onRe
   cardId: string;
   startedAt: number;
   dispatch: Dispatch<AppAction>;
-  onResolve: (data: unknown) => void;
+  onResolve: (data: unknown, cacheKey?: string | null) => void;
   onError?: () => void;
 }): Promise<void> {
   const ctrl: JobCtrl = { jobId: null, cancelled: false };
@@ -81,9 +81,9 @@ export async function runJob({ endpoint, body, cardId, startedAt, dispatch, onRe
       return;
     }
 
-    const spawnBody = await spawnRes.json() as { status?: string; jobId?: string; data?: unknown };
+    const spawnBody = await spawnRes.json() as { status?: string; jobId?: string; data?: unknown; cacheKey?: string | null };
     if (spawnBody.status === "cached" && spawnBody.data) {
-      if (!ctrl.cancelled) onResolve(spawnBody.data);
+      if (!ctrl.cancelled) onResolve(spawnBody.data, spawnBody.cacheKey);
       return;
     }
     if (!spawnBody.jobId) {
@@ -126,7 +126,7 @@ export async function runJob({ endpoint, body, cardId, startedAt, dispatch, onRe
       }
 
       const result = await pollRes.json() as {
-        status: string; data?: unknown; error?: string;
+        status: string; data?: unknown; error?: string; cacheKey?: string | null;
         stage?: string | null; stageAgeS?: number | null;
         progress?: { doneBytes: number; totalBytes: number | null } | null;
       };
@@ -144,7 +144,7 @@ export async function runJob({ endpoint, body, cardId, startedAt, dispatch, onRe
             return;
           }
         }
-        onResolve(result.data);
+        onResolve(result.data, result.cacheKey);
         return;
       }
       if (result.status === "error") {

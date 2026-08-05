@@ -44,7 +44,13 @@ export function serializeCard(c: AnyCard) {
     return { id: c.id, cardType: "steering" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, generationPrompt: c.generationPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, components: c.components, alpha: c.alpha, temperature: c.temperature, repetitionPenalty: c.repetitionPenalty, nTokens: c.nTokens, nPairs: c.nPairs, extraPairs: c.extraPairs ?? [] };
   }
   if (c.cardType === "attention-pattern") {
-    return { id: c.id, cardType: "attention-pattern" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier };
+    // Pattern data is already cached separately (attnCache/R2) and is large
+    // enough to blow project-save size limits on bigger models, so store the
+    // reference and omit the blob when we have one. Falls back to the full
+    // inline data if no cacheKey came back, so the card still saves either way.
+    return c.cacheKey
+      ? { id: c.id, cardType: "attention-pattern" as const, modelName: c.modelName, prompt: c.prompt, data: {} as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, cacheKey: c.cacheKey }
+      : { id: c.id, cardType: "attention-pattern" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier };
   }
   return { id: c.id, cardType: "logit-lens" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, topK: c.topK };
 }

@@ -53,7 +53,7 @@ describe("runJob done sweep", () => {
     await run;
 
     expect(dispatchedStages(dispatch)).toEqual(["loading_model", "computing", "done"]);
-    expect(onResolve).toHaveBeenCalledWith({ x: 1 });
+    expect(onResolve).toHaveBeenCalledWith({ x: 1 }, undefined);
   });
 
   it("sweeps only the unseen phases when compute stages were observed", async () => {
@@ -79,7 +79,7 @@ describe("runJob done sweep", () => {
     await run;
 
     expect(dispatchedStages(dispatch)).toEqual(["computing", "done"]);
-    expect(onResolve).toHaveBeenCalledWith({ x: 2 });
+    expect(onResolve).toHaveBeenCalledWith({ x: 2 }, undefined);
   });
 
   it("resolves cached spawns immediately with no sweep", async () => {
@@ -100,6 +100,50 @@ describe("runJob done sweep", () => {
     });
 
     expect(dispatchedStages(dispatch)).toEqual([]);
-    expect(onResolve).toHaveBeenCalledWith({ x: 3 });
+    expect(onResolve).toHaveBeenCalledWith({ x: 3 }, undefined);
+  });
+
+  it("passes the cacheKey from a done poll through to onResolve", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ jobId: "j1" }))
+      .mockResolvedValueOnce(jsonResponse({ status: "done", data: { x: 4 }, cacheKey: "abc123" }));
+    vi.stubGlobal("fetch", fetch);
+
+    const dispatch = vi.fn();
+    const onResolve = vi.fn();
+    const run = runJob({
+      endpoint: "/api/job/spawn-attn",
+      body: {},
+      cardId: "c1",
+      startedAt: Date.now(),
+      dispatch,
+      onResolve,
+    });
+
+    await vi.advanceTimersByTimeAsync(3000); // first poll returns done + sweep steps elapse
+    await run;
+
+    expect(onResolve).toHaveBeenCalledWith({ x: 4 }, "abc123");
+  });
+
+  it("passes the cacheKey from a cached spawn through to onResolve", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "cached", data: { x: 5 }, cacheKey: "def456" }));
+    vi.stubGlobal("fetch", fetch);
+
+    const dispatch = vi.fn();
+    const onResolve = vi.fn();
+    await runJob({
+      endpoint: "/api/job/spawn-attn",
+      body: {},
+      cardId: "c1",
+      startedAt: Date.now(),
+      dispatch,
+      onResolve,
+    });
+
+    expect(onResolve).toHaveBeenCalledWith({ x: 5 }, "def456");
   });
 });

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { Dispatch, RefObject } from "react";
-import { updateProject } from "@/app/actions";
+import { upsertProjectCard } from "@/app/actions";
 import { findSpawnPos, serializeCard } from "../helpers";
 import { runJob } from "./job-runner";
 import type { AppAction, AppState } from "../types";
@@ -10,6 +10,7 @@ type Deps = {
   dispatch: Dispatch<AppAction>;
   stateRef: RefObject<AppState>;
   ensureProject: () => Promise<string>;
+  onSaveError: (message: string) => void;
 };
 
 /** Maps a steering card's fields to the spawn-steering request body. */
@@ -23,16 +24,19 @@ function spawnBody(card: SteeringCardData, alpha: number) {
   };
 }
 
-export function useSteeringHandlers({ dispatch, stateRef, ensureProject }: Deps) {
-  // stateRef lags the dispatch that created/re-ran the card, so the resolved
-  // card is substituted explicitly instead of relying on the snapshot. ensureProject
-  // lazily materializes the draft row on this first save (awaited so the row
-  // exists before the UPDATE writes the card).
-  const persist = useCallback(async (cardId: string, serialized: ReturnType<typeof serializeCard>) => {
+export function useSteeringHandlers({ dispatch, stateRef, ensureProject, onSaveError }: Deps) {
+  // upsertProjectCard merges this one card into the DB row atomically, so a
+  // rerun resolving around the same time as another card can't overwrite it
+  // via a stale stateRef snapshot the way a full-list save would.
+  // ensureProject lazily materializes the draft row on this first save
+  // (awaited so the row exists before the upsert runs).
+  const persist = useCallback(async (serialized: ReturnType<typeof serializeCard>) => {
     const pid = await ensureProject();
-    const others = stateRef.current.lensCards.filter(c => c.status === "result" && c.id !== cardId).map(serializeCard);
-    updateProject(pid, [...others, serialized], stateRef.current.canvas).catch(console.error);
-  }, [ensureProject, stateRef]);
+    upsertProjectCard(pid, serialized, stateRef.current.canvas).catch(err => {
+      console.error(err);
+      onSaveError(`Couldn't save "${serialized.prompt.slice(0, 40)}" — try again or it may be lost on refresh.`);
+    });
+  }, [ensureProject, stateRef, onSaveError]);
 
   const runSteeringJob = useCallback((card: SteeringCardData, alpha: number) => {
     void runJob({
@@ -41,7 +45,7 @@ export function useSteeringHandlers({ dispatch, stateRef, ensureProject }: Deps)
       cardId: card.id, startedAt: card.startedAt ?? Date.now(), dispatch,
       onResolve: (data) => {
         dispatch({ type: "CARD_RESOLVED", id: card.id, cardType: "steering", data: data as SteeringResult });
-        persist(card.id, serializeCard({ ...card, status: "result", alpha, data: data as SteeringResult, error: null }));
+        persist(serializeCard({ ...card, status: "result", alpha, data: data as SteeringResult, error: null }));
       },
     });
   }, [dispatch, persist]);

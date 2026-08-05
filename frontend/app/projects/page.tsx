@@ -27,6 +27,7 @@ import {
   loadProject,
   updateProject,
   setProjectShare,
+  getAttnCacheData,
 } from "../actions";
 import { useJobHandlers } from "./hooks/useJobHandlers";
 import { cancelCardJob } from "./hooks/job-runner";
@@ -48,7 +49,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         lensCards: state.lensCards.map(c => {
           if (c.id === action.id && c.cardType === action.cardType) {
-            return { ...c, status: "result" as const, data: action.data } as AnyCard;
+            const cacheKey = action.cardType === "attention-pattern" ? action.cacheKey : undefined;
+            return { ...c, status: "result" as const, data: action.data, ...(cacheKey !== undefined ? { cacheKey } : {}) } as AnyCard;
           }
           // Resolving an activation card also completes its parent attribution's verify flow
           if (action.cardType === "activation" && c.id === action.parentAttributionId && c.cardType === "attribution")
@@ -170,6 +172,7 @@ function Projects() {
   const [exportOpen, setExportOpen] = useState(false);
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [creditsToast, setCreditsToast] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const addRef = useRef<HTMLDivElement>(null);
   const projectsRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -199,8 +202,13 @@ function Projects() {
     return creatingRef.current;
   }, [router]);
 
-  const jobHandlers = useJobHandlers({ dispatch, stateRef, ensureProject });
-  const steeringHandlers = useSteeringHandlers({ dispatch, stateRef, ensureProject });
+  const onSaveError = useCallback((message: string) => {
+    setSaveError(message);
+    setTimeout(() => setSaveError(null), 6000);
+  }, []);
+
+  const jobHandlers = useJobHandlers({ dispatch, stateRef, ensureProject, onSaveError });
+  const steeringHandlers = useSteeringHandlers({ dispatch, stateRef, ensureProject, onSaveError });
 
   useEffect(() => {
     if (!sessionPending && !session?.user) {
@@ -300,6 +308,13 @@ function Projects() {
         }
         return { ...c, cardType: "logit-lens" as const, status: "result" as const, error: null, topK: c.topK ?? 5 } as LensCardData;
       });
+      // Attention cards saved by reference need their pattern data fetched
+      // back from the cache before they can render.
+      await Promise.all(lensCards.map(async c => {
+        if (c.cardType !== "attention-pattern" || !c.cacheKey) return;
+        if (c.data && Object.keys(c.data).length > 0) return;
+        c.data = await getAttnCacheData(c.cacheKey).catch(() => null) as AttentionData | null;
+      }));
       setProjectName(result.name);
       setShareId(result.shareId);
       dispatch({ type: "LOAD_PROJECT", cards: lensCards, canvas: result.canvas });
@@ -462,6 +477,12 @@ function Projects() {
       {creditsToast && (
         <div className="fixed bottom-6 left-1/2 z-[300] -translate-x-1/2 whitespace-nowrap rounded-lg border border-card-border bg-card px-[18px] py-2.5 text-xs text-foreground shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
           Balance added successfully
+        </div>
+      )}
+
+      {saveError && (
+        <div className="fixed bottom-6 left-1/2 z-[300] -translate-x-1/2 whitespace-nowrap rounded-lg border border-red-500/40 bg-card px-[18px] py-2.5 text-xs text-foreground shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+          {saveError}
         </div>
       )}
 

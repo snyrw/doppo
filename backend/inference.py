@@ -1175,8 +1175,11 @@ class _TLBase:
         n_layers = self.model.cfg.n_layers
         patterns = []
         for layer in range(n_layers):
-            layer_pats = cache[f"blocks.{layer}.attn.hook_pattern"][0].cpu().tolist()
-            patterns.append(layer_pats)
+            # Round before serializing: full float64 precision on an
+            # [n_heads, seq, seq] tensor bloats the JSON payload for no
+            # visual benefit (rendered as a heatmap).
+            pattern = torch.round(cache[f"blocks.{layer}.attn.hook_pattern"][0] * 10000) / 10000
+            patterns.append(pattern.cpu().tolist())
 
         token_strs = self.model.tokenizer.convert_ids_to_tokens(tokens[0].tolist())
 
