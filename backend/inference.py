@@ -1092,10 +1092,17 @@ class _TLBase:
         layer_logits = self.model.unembed(scaled_resid)
         layer_probs = layer_logits.softmax(dim=-1)
 
-        pred_probs = layer_probs[:, :-1, :]
+        pred_probs = layer_probs
+
+        # "Prob" heatmap: probability of the actual next token, teacher-forced against the
+        # prompt. The true final position has no next token to check against (the prompt
+        # ends there),filled in with the top-1 fallback below, once topk is computed.
         next_tokens = tokens[0, 1:]
-        gathered_probs = _gather_next_token_probs(pred_probs, next_tokens)
-        token_strings = self.model.to_str_tokens(tokens)[1:]
+        gathered_probs = _gather_next_token_probs(pred_probs[:, :-1, :], next_tokens)
+
+        # Label columns by the token just read (standard logit-lens convention), not the
+        # token being predicted.
+        token_strings = self.model.to_str_tokens(tokens)
 
         topk_vals, topk_ids = torch.topk(pred_probs, k=top_k, dim=-1)
         n_layers, n_pos, k = topk_ids.shape
@@ -1105,6 +1112,10 @@ class _TLBase:
             [[flat_strs[li * n_pos * k + p * k + j] for j in range(k)] for p in range(n_pos)]
             for li in range(n_layers)
         ]
+
+        # Fill in the final column with the top-1 probability. There's no next token
+        # to grade against there, so this is the model's confidence in its own guess.
+        gathered_probs = torch.cat([gathered_probs, topk_vals[:, -1:, 0]], dim=1)
 
         # Per-layer metrics in a single pass: KL divergence from final layer,
         # rank of the final layer's top-1 token, and Shannon entropy.
