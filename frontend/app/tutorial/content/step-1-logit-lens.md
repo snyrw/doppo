@@ -6,9 +6,9 @@ cardType: logit-lens
 configType: lens
 heading: Logit Lens
 links:
-  - label: "nostalgebraist 2020 — interpreting GPT: the logit lens"
+  - label: "nostalgebraist 2020, interpreting GPT: the logit lens"
     url: "https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens"
-  - label: "Belrose et al. 2023 — Eliciting Latent Predictions from Transformers with the Tuned Lens"
+  - label: "Belrose et al. 2023, Eliciting Latent Predictions from Transformers with the Tuned Lens"
     url: "https://arxiv.org/abs/2303.08112"
 ---
 

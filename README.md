@@ -1,9 +1,9 @@
 # Doppo
 
-A browser-based mechanistic interpretability tool — run logit lens, attention pattern
-inspection, direct logit attribution (DLA), attribution patching, activation patching,
-and difference-in-means activation steering on any HuggingFace model without writing
-code.
+A browser-based mechanistic interpretability tool for running logit lens, attention
+pattern inspection, direct logit attribution (DLA), attribution patching, activation
+patching, and difference-in-means activation steering on any HuggingFace model without
+writing code.
 
 Hosted at [doppo.tools](https://doppo.tools). Try it without an account via the
 [interactive tutorial](https://doppo.tools/tutorial), which walks through an IOI
@@ -13,19 +13,19 @@ results. Reference docs for each analysis type are at
 
 ## Analysis types
 
-- **Logit lens** — per-layer residual stream projections to vocabulary space
-- **Attention patterns** — per-head attention weights at every layer and position
-- **Direct logit attribution (DLA)** — per-layer and per-head contribution to a target token
-- **Attribution patching** — a linear approximation of which components causally matter for a prediction
-- **Activation patching** — the actual (non-approximated) effect of patching specific components
-- **Activation steering** — difference-in-means (DIM) vectors extracted from clean/corrupted prompt pairs, injected at inference time; pairs can be generated automatically from a single example
+- **Logit lens**: per-layer residual stream projections to vocabulary space
+- **Attention patterns**: per-head attention weights at every layer and position
+- **Direct logit attribution (DLA)**: per-layer and per-head contribution to a target token
+- **Attribution patching**: a linear approximation of which components causally matter for a prediction
+- **Activation patching**: the actual (non-approximated) effect of patching specific components
+- **Activation steering**: difference-in-means (DIM) vectors extracted from clean/corrupted prompt pairs, injected at inference time. Pairs can be generated automatically from a single example, and saved to your account for reuse across runs.
 
 ## Model support
 
 Any model [TransformerLens 3.5](https://github.com/TransformerLensOrg/TransformerLens)
-can load via `TransformerBridge` — around 9,000+ HuggingFace repos. GPU tier is
-auto-detected from parameter count. Gated models (Llama, Gemma, etc.) work with an
-HF token. LoRA and DoRA adapters are supported — they're merged into the base model
+can load via `TransformerBridge`, which covers around 9,000+ HuggingFace repos. GPU
+tier is auto-detected from parameter count. Gated models (Llama, Gemma, etc.) work with
+an HF token. LoRA and DoRA adapters are supported, and are merged into the base model
 at load time. Models above 100B params or requiring multiple GPUs are rejected.
 
 ## How it works
@@ -51,7 +51,7 @@ completion. Results are cached per-user in Cloudflare R2, so re-running an ident
 prompt/model/config is instant.
 
 **Data layer:** Neon Postgres (projects, cache metadata) + Cloudflare R2 (result blobs)
-**Auth:** BetterAuth with Google, GitHub, and email/password
+**Auth:** BetterAuth with GitHub and email/password
 
 ## GPU tiers
 
@@ -83,18 +83,19 @@ Any project can be published to a stable, read-only public URL at `/share/[share
 | [Neon](https://neon.tech) | Postgres | Yes |
 | [Cloudflare R2](https://developers.cloudflare.com/r2/) | Result cache | Yes (10 GB) |
 | A Next.js host (e.g. [Railway](https://railway.app)) | Frontend hosting | Varies |
-| Google or GitHub OAuth app | Auth | Yes |
+| A GitHub OAuth app | Auth | Yes |
 
 **Backend**
 
 ```bash
-cd backend
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 modal setup
-modal deploy -m backend.main
+modal deploy -m backend.main      # run from the repo root, not from backend/
 ```
 
-Set `NEXT_PUBLIC_API_URL` in the frontend to the URL this prints. In production,
+The deploy needs two Modal secrets to exist first (`backend-auth-secret` and
+`huggingface-secret`). See [CONTRIBUTING.md](CONTRIBUTING.md) for the exact commands.
+Set `NEXT_PUBLIC_API_URL` in the frontend to the URL the deploy prints. In production,
 `modal deploy -m backend.main` runs automatically via GitHub Actions on push to `main`.
 
 **Frontend**
@@ -102,14 +103,20 @@ Set `NEXT_PUBLIC_API_URL` in the frontend to the URL this prints. In production,
 ```bash
 cd frontend
 cp .env.example .env.local
-# fill in .env.local — see comments in that file
+# fill in .env.local (the comments in that file explain each variable)
 npm install
 npm run dev            # http://localhost:3000
 ```
+
+**Job sweeper (required):** point a cron at `/api/jobs/sweep` (GET or POST) every few minutes
+with `Authorization: Bearer $CRON_SECRET`. It settles billing for jobs whose owner
+stopped polling. Without it, abandoned `active_jobs` rows are never cleared and users
+get stuck at the concurrent-job cap. `.github/workflows/sweep-jobs.yml` does this on a
+5-minute schedule for the hosted deployment.
 
 For full setup instructions including database migrations and OAuth app
 configuration, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

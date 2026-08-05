@@ -2,11 +2,11 @@
 title: Techniques
 ---
 
-So far, we have 6 techniques that can be used on Doppo. This mostly acts as a reference to show what we've done and where we've diverged in technical detail from baseline. The purpose for that was to add a quick verification on what exactly you were spending your time on rather than just guessing or reading through the code base. That means that this might be overly wordy or dense, and thhus probably is not the best as an introductory learning tool.Changes are being considered to boil things down a bit more with simple sections that cover nuance behind the works; reading the papers/works linked is another good start as well.
+So far, we have 6 techniques that can be used on Doppo. This mostly acts as a reference to show what we've done and where we've diverged in technical detail from baseline. The purpose for that was to add a quick verification on what exactly you were spending your time on rather than just guessing or reading through the code base. That means that this might be overly wordy or dense, and thus probably is not the best as an introductory learning tool. Changes are being considered to boil things down a bit more with simple sections that cover nuance behind the works; reading the papers/works linked is another good start as well.
 
 ## Logit lens
 
-Follows nostalgebraist's logit lens (2020). The residual stream entering each block (plus the final residual) is passed through the model's own final layer norm and unembedding matrix, giving the next-token distribution the model would produce if the remaining layers were skipped. Reusing the trained final layer norm, rather than projecting the raw residual, which matches the original post.
+Follows nostalgebraist's logit lens (2020). The residual stream entering each block (plus the final residual) is passed through the model's own final layer norm and unembedding matrix, giving the next-token distribution the model would produce if the remaining layers were skipped. This reuses the trained final layer norm rather than projecting the raw residual, which matches the original post.
 
 The default heatmap colors each cell by the probability that layer assigns to the token that actually comes next in the prompt, and each cell lists the layer's top-5 predicted tokens. Alternate views in the card header: per-layer KL divergence from the final layer's distribution, the rank each layer assigns to the final layer's top-1 token, and the entropy of each layer's distribution.
 
@@ -44,7 +44,7 @@ The vector is the mean, over all contrast pairs, of the residual stream entering
 
 The source layer is chosen by the user rather than by the paper's validated sweep, since there is no task metric for an arbitrary concept, and the vector comes from paired free-form prompts rather than two unpaired instruction sets (for equal-size sets the mean of differences equals the difference of group means, so the construction is the same).
 
-Reliability caveats from the literature apply directly. Vectors built from a handful of pairs are unstable across resamples and stabilize past a several dozen pairs, which is where we've capped it in an effort to balance usability of this feature without being redundant.
+Reliability caveats from the literature apply directly. Vectors built from a handful of pairs are unstable across resamples and are noticeably noisy below roughly 30 pairs. They settle down around 100, which is where we've capped it in an effort to balance usability of this feature without being redundant.
 
 A pair set can be saved to your account and reloaded into a later steering card, so a set you spent generation time on does not have to be rebuilt. Saved sets store the prompts only, not results, and are capped at 20 per account.
 

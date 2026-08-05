@@ -6,11 +6,11 @@ cardType: attention-pattern
 configType: attention
 heading: Attention Patterns
 links:
-  - label: "Olsson et al. 2022 — In-context learning and induction heads"
+  - label: "Olsson et al. 2022, In-context learning and induction heads"
     url: "https://arxiv.org/abs/2209.11895"
-  - label: "Jain & Wallace 2019 — Attention is not Explanation"
+  - label: "Jain & Wallace 2019, Attention is not Explanation"
     url: "https://arxiv.org/abs/1902.10186"
-  - label: "Sharkey et al. 2025 — Open Problems in Mechanistic Interpretability"
+  - label: "Sharkey et al. 2025, Open Problems in Mechanistic Interpretability"
     url: "https://arxiv.org/abs/2501.16496"
 ---
 

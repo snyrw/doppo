@@ -6,15 +6,15 @@ cardType: activation
 configType: activation
 heading: Activation Patching
 links:
-  - label: "Tigges et al. 2024 — IOI circuit consistent across training and scale"
+  - label: "Tigges et al. 2024, IOI circuit consistent across training and scale"
     url: "https://arxiv.org/abs/2407.10827"
-  - label: "Meng et al. 2022 — Locating and Editing Factual Associations in GPT (ROME)"
+  - label: "Meng et al. 2022, Locating and Editing Factual Associations in GPT (ROME)"
     url: "https://arxiv.org/abs/2202.05262"
-  - label: "Zhang & Nanda 2024 — Towards Best Practices of Activation Patching"
+  - label: "Zhang & Nanda 2024, Towards Best Practices of Activation Patching"
     url: "https://openreview.net/forum?id=Hf17y6u9BC"
-  - label: "Goldowsky-Dill et al. 2023 — Localizing Model Behavior with Path Patching"
+  - label: "Goldowsky-Dill et al. 2023, Localizing Model Behavior with Path Patching"
     url: "https://arxiv.org/abs/2304.05969"
-  - label: "Heimersheim & Nanda 2024 — How to use and interpret activation patching"
+  - label: "Heimersheim & Nanda 2024, How to use and interpret activation patching"
     url: "https://arxiv.org/abs/2404.15255"
 ---
 

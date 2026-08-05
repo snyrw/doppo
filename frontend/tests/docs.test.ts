@@ -45,7 +45,7 @@ describe("real docs content", () => {
       "overview",
       "techniques",
       "models-and-gpu-tiers",
-      "credits-and-pricing",
+      "usage-and-pricing",
       "caching-and-sharing",
       "limits",
       "contact",

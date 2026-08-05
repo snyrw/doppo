@@ -3,13 +3,13 @@ index: 0
 label: Introduction
 heading: Replicating Key Works
 links:
-  - label: "Wang et al. 2022 — IOI circuit paper"
+  - label: "Wang et al. 2022, IOI circuit paper"
     url: "https://arxiv.org/abs/2211.00593"
-  - label: "Turner et al. 2023 — Activation Addition"
+  - label: "Turner et al. 2023, Activation Addition"
     url: "https://arxiv.org/abs/2308.10248"
-  - label: "Panickssery et al. 2023 — Contrastive Activation Addition (CAA)"
+  - label: "Panickssery et al. 2023, Contrastive Activation Addition (CAA)"
     url: "https://arxiv.org/abs/2312.06681"
-  - label: "Arditi et al. 2024 — Refusal in Language Models Is Mediated by a Single Direction"
+  - label: "Arditi et al. 2024, Refusal in Language Models Is Mediated by a Single Direction"
     url: "https://arxiv.org/abs/2406.11717"
 ---
 

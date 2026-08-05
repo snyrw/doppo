@@ -6,11 +6,11 @@ cardType: attribution
 configType: attribution
 heading: Attribution Patching
 links:
-  - label: "Nanda — Attribution Patching: Activation Patching At Industrial Scale"
+  - label: "Nanda, Attribution Patching: Activation Patching At Industrial Scale"
     url: "https://www.neelnanda.io/mechanistic-interpretability/attribution-patching"
-  - label: "Kramár et al. 2024 — AtP*: An efficient and scalable method for localizing LLM behaviour"
+  - label: "Kramár et al. 2024, AtP*: An efficient and scalable method for localizing LLM behaviour"
     url: "https://arxiv.org/abs/2403.00745"
-  - label: "Rezaei Jafari et al. 2025 — RelP: Faithful and Efficient Circuit Discovery via Relevance Patching"
+  - label: "Rezaei Jafari et al. 2025, RelP: Faithful and Efficient Circuit Discovery via Relevance Patching"
     url: "https://arxiv.org/abs/2508.21258"
 ---
 

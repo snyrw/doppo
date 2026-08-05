@@ -2,7 +2,7 @@
 title: Models and GPU tiers
 ---
 
-You can run a good amount of HuggingFace transformers that TransformerLens can load, up to just about 100B parameters. We have a featured list in the model picker is curated to show some well-known models, but just below that, you can paste a HF repo ID into the text field to validate it. Validation checks that the repo exists and is secure enough to run on a hosted web tool.
+You can run a good amount of HuggingFace transformers that TransformerLens can load, up to just about 100B parameters. The featured list in the model picker is curated to show some well-known models, but just below that, you can paste a HF repo ID into the text field to validate it. Validation checks that the repo exists and is secure enough to run on a hosted web tool. LoRA and DoRA adapter repos work too; the adapter is merged onto its base model at load time, and the base is validated the same way.
 
 | Parameters | GPU | VRAM |
 | --- | --- | --- |

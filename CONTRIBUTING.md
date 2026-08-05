@@ -3,16 +3,17 @@
 ## Prerequisites
 
 - Node.js 20+
-- Python 3.12+
+- Python 3.12+ (CI runs 3.13)
 - A [Modal](https://modal.com) account and the `modal` CLI (`pip install modal`)
 - A [Neon](https://neon.tech) Postgres project
 - A [Cloudflare R2](https://developers.cloudflare.com/r2/) bucket
-- At least one OAuth app (Google or GitHub)
+- A GitHub OAuth app (the only social provider; email/password also works)
 
 Optional, only needed for specific features:
-- [Stripe](https://stripe.com) secret key + webhook secret — credits billing (without these, the buy-credits flow is disabled)
-- [Resend](https://resend.com) API key — transactional email (password reset, etc.)
-- [Anthropic API key](https://console.anthropic.com) — LLM-assisted steering pair generation
+- [Stripe](https://stripe.com) secret key + webhook secret for usage billing. Without these, the buy-usage flow returns 503 and the purchase UI appears inert.
+- [Resend](https://resend.com) API key for transactional email (verification, password reset, email change). Without it, links print to the console in dev.
+- [Anthropic API key](https://console.anthropic.com) for LLM-assisted steering pair generation.
+- [Sentry](https://sentry.io) DSN for error monitoring. Leave blank to disable.
 
 ---
 
@@ -41,10 +42,21 @@ Both commands print the endpoint URL you need for `NEXT_PUBLIC_API_URL` in the f
 In production this deploy runs automatically via GitHub Actions on push to `main`
 (only when files under `backend/` change).
 
-**HuggingFace secret (for gated models):** If you want to run gated models (Llama, Gemma, etc.) create a Modal secret named `huggingface-secret` with key `HF_TOKEN`:
+### Modal secrets
+
+The backend references two Modal secrets by name at import time, so **both must exist in your Modal workspace before `modal deploy` will succeed**, even if you never touch a gated model.
+
 ```bash
+# Shared bearer secret gating every backend route. Must match BACKEND_API_SECRET
+# in the frontend's .env.local, or all inference calls fail with 401.
+modal secret create backend-auth-secret BACKEND_API_SECRET=$(openssl rand -base64 32)
+
+# HuggingFace token. Required for gated models (Llama, Gemma, etc.); the secret
+# still has to exist for other models, so create it either way.
 modal secret create huggingface-secret HF_TOKEN=hf_yourtoken
 ```
+
+If `BACKEND_API_SECRET` is missing on the worker, the backend fails closed and every route returns 503.
 
 ---
 
@@ -55,7 +67,7 @@ cd frontend
 cp .env.example .env.local
 ```
 
-Fill in every variable in `.env.local` — the comments in that file explain each one. Then:
+Fill in every variable in `.env.local`. The comments in that file explain each one. Then:
 
 ```bash
 npm install
@@ -86,13 +98,33 @@ Existing migration SQL lives in `frontend/migrations/`.
 
 ### OAuth setup
 
-**Google:** Go to [Google Cloud Console](https://console.developers.google.com) → Credentials → Create OAuth 2.0 Client ID. Add `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI for local dev.
+**GitHub** is the only configured social provider. Go to [GitHub Developer Settings](https://github.com/settings/developers) → OAuth Apps → New. Set callback URL to `http://localhost:3000/api/auth/callback/github` for local dev, then put the client ID and secret in `.env.local`.
 
-**GitHub:** Go to [GitHub Developer Settings](https://github.com/settings/developers) → OAuth Apps → New. Set callback URL to `http://localhost:3000/api/auth/callback/github` for local dev.
+Email/password sign-in works without any OAuth app. In development, verification and reset links print to the console instead of being emailed.
 
 ### Cloudflare R2
 
 Create a bucket and an API token with Object Read & Write permissions. R2 stores serialized inference results, scoped per user, so repeated runs are served from cache instead of hitting Modal.
+
+---
+
+## Running tests
+
+Both suites run on every pull request via `.github/workflows/test.yml`, and the backend suite also gates the Modal deploy. Run them locally before opening a PR.
+
+```bash
+# Frontend (vitest, frontend/tests/)
+cd frontend && npm test
+cd frontend && npm run lint
+
+# Backend (pytest, backend/tests/)
+pip install -r backend/requirements-dev.txt
+pytest backend/tests/
+```
+
+Run pytest from the repo root so the `backend` package resolves. The suite is CPU-only and needs no GPU or Modal credentials: TransformerLens is never imported locally, since it only runs on the Modal worker.
+
+`backend/tests/test_integration.py` is the exception. It is a real GPU smoke test invoked as `modal run backend/tests/test_integration.py`, requires Modal credentials, and in CI runs only on push to `main`.
 
 ---
 
@@ -104,19 +136,25 @@ backend/
   inference.py      Inference generators shared across analysis types + _result wrappers
   config.py         Modal app/image/secrets, featured model list, per-tier kwargs
   schemas.py        Pydantic request models
-  validation.py     HF repo validation, GPU tier detection
+  validation.py     HF repo validation, GPU tier detection, revision pinning
+  errors.py         UserFacingError (worker messages safe to relay verbatim)
   auth.py           Shared bearer-secret guard
   routes/           jobs.py (spawn/poll/cancel), utils.py (models/tokenize/validate)
-  requirements.txt
+  tests/            pytest suite
+  requirements.txt      Runtime deps (a single line: modal)
+  requirements-dev.txt  Test deps (pytest, httpx, fastapi, pydantic, modal, transformers)
 
 frontend/
   app/
-    api/            Next.js route handlers — thin proxies to Modal
+    api/            Next.js route handlers (thin proxies to Modal)
     components/     Canvas, card types (LensCard, DlaCard, AttributionCard,
                      ActivationCard, SteeringCard, AttentionCard), config panes
-    hooks/          useCanvasPan, useCardDrag, usePalette
+    hooks/          useCanvasPan, useCardDrag, usePalette, useModelSelection,
+                     useTokenPreview
     lib/            auth.ts, auth-client.ts, db.ts, r2.ts, palette.ts, tiers.ts,
-                     spawn-route.ts (createSpawnHandler factory)
+                     spawn-route.ts (createSpawnHandler factory), jobs.ts
+                     (settlement), credits.ts + rates.ts (billing),
+                     steering-presets.ts (saved pair sets)
     schema.ts       Drizzle table definitions
     actions.ts      Server actions ("use server")
     page.tsx        Landing page (server component)
@@ -125,6 +163,7 @@ frontend/
     docs/           Reference documentation pages
     share/[shareId] Read-only public canvas
   migrations/       SQL migration files
+  tests/            vitest suite
   .env.example      All required environment variables
 ```
 
@@ -133,20 +172,22 @@ frontend/
 ## Making changes
 
 **Adding a new analysis type** requires changes across the spawn+poll job lifecycle:
-1. `backend/inference.py` — new inference generator + `_result` wrapper on `_TLBase`
-2. `backend/routes/jobs.py` — new `POST /api/job/spawn-*` endpoint
-3. `frontend/app/lib/spawn-route.ts` — new spawn route via the `createSpawnHandler()` factory (don't hand-roll a route)
-4. `frontend/app/projects/hooks/job-runner.ts` — `runJob()` already handles spawn → poll → resolve; wire the new job type's config in
-5. `frontend/app/components/` — new card component + config pane
-6. `frontend/app/components/SandboxCanvas.tsx` — add to the `AnyCard` union and `renderCard()` switch
-7. `frontend/app/projects/helpers.ts` — add a branch to `serializeCard()`
-8. `frontend/app/projects/types.ts` and `app/actions.ts` — add a `CardResolvedAction` variant and `SerializedCard` fields
+1. `backend/inference.py`: new inference generator + `_result` wrapper on `_TLBase`
+2. `backend/routes/jobs.py`: new `POST /api/job/spawn-*` endpoint
+3. `frontend/app/lib/spawn-route.ts`: new spawn route via the `createSpawnHandler()` factory (don't hand-roll a route)
+4. `frontend/app/projects/hooks/job-runner.ts`: `runJob()` already handles spawn → poll → resolve, so wire the new job type's config in
+5. `frontend/app/components/`: new card component + config pane
+6. `frontend/app/components/SandboxCanvas.tsx`: add to the `AnyCard` union and `renderCard()` switch
+7. `frontend/app/projects/helpers.ts`: add a branch to `serializeCard()`
+8. `frontend/app/projects/types.ts` and `app/actions.ts`: add a `CardResolvedAction` variant and `SerializedCard` fields
 
 See the "New card type checklist" in the root `CLAUDE.md` and `.claude/rules/frontend.md` for the full list, including DB restore call sites and tutorial-mode handling.
 
-**GPU tiers** are defined in `frontend/app/lib/tiers.ts`. Import `TIER_LABELS` / `TIER_PAIR_CAPS` from there — do not redefine inline.
+**GPU tiers** are defined in `frontend/app/lib/tiers.ts`. Import `TIER_LABELS` / `TIER_PAIR_CAPS` from there rather than redefining them inline.
 
-**TransformerLens 3.5 notes** — see the root [CLAUDE.md](CLAUDE.md) for API differences from TL 2.x (hook naming, `TransformerBridge`, removed helpers).
+**Billing rates** live in `frontend/app/lib/rates.ts` and are a straight pass-through of Modal's list prices. If you change them, update the rate table in `frontend/app/docs/content/04-pricing.md` to match.
+
+**TransformerLens 3.5 notes:** see the root [CLAUDE.md](CLAUDE.md) for API differences from TL 2.x (hook naming, `TransformerBridge`, removed helpers).
 
 ---
 

@@ -6,9 +6,9 @@ cardType: dla
 configType: dla
 heading: Direct Logit Attribution
 links:
-  - label: "Elhage et al. 2021 — A Mathematical Framework for Transformer Circuits"
+  - label: "Elhage et al. 2021, A Mathematical Framework for Transformer Circuits"
     url: "https://transformer-circuits.pub/2021/framework/index.html"
-  - label: "2023 — An Adversarial Example for Direct Logit Attribution"
+  - label: "2023, An Adversarial Example for Direct Logit Attribution"
     url: "https://arxiv.org/abs/2310.07325"
 ---
 
