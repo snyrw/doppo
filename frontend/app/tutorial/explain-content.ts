@@ -22,6 +22,8 @@ export function explainSectionsByCardType(
   steps: TutorialStep[],
 ): Partial<Record<AnyCard["cardType"], InfoSection[]>> {
   const map: Partial<Record<AnyCard["cardType"], InfoSection[]>> = {};
-  for (const step of steps) map[step.cardType] = explainSectionsFor(step);
+  for (const step of steps) {
+    if (step.cardType) map[step.cardType] = explainSectionsFor(step);
+  }
   return map;
 }

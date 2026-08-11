@@ -3,6 +3,8 @@ import { explainSectionsFor, explainSectionsByCardType } from "../app/tutorial/e
 import type { TutorialStep } from "../app/tutorial/steps";
 
 const step: TutorialStep = {
+  index: 1,
+  label: "Logit Lens",
   cardType: "logit-lens",
   heading: "Logit Lens",
   paragraphs: ["First paragraph.", "Second paragraph."],
@@ -58,5 +60,12 @@ describe("explainSectionsByCardType", () => {
     const map = explainSectionsByCardType([step, attention]);
     expect(map["logit-lens"]).toEqual(explainSectionsFor(step));
     expect(map["attention-pattern"]).toEqual(explainSectionsFor(attention));
+  });
+
+  it("skips steps without a cardType", () => {
+    const noCardType: TutorialStep = { ...step, cardType: undefined };
+    const withCardType: TutorialStep = { ...step, cardType: "logit-lens" };
+    const map = explainSectionsByCardType([noCardType, withCardType]);
+    expect(Object.keys(map)).toEqual(["logit-lens"]);
   });
 });
