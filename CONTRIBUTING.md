@@ -1,5 +1,7 @@
 # Contributing
 
+Contributions on Doppo are currently welcome! If you're curious about adding/fixing/removing/doing anything, follow the instructions below to get started.
+
 ## Prerequisites
 
 - Node.js 20+
@@ -169,28 +171,6 @@ frontend/
 
 ---
 
-## Making changes
-
-**Adding a new analysis type** requires changes across the spawn+poll job lifecycle:
-1. `backend/inference.py`: new inference generator + `_result` wrapper on `_TLBase`
-2. `backend/routes/jobs.py`: new `POST /api/job/spawn-*` endpoint
-3. `frontend/app/lib/spawn-route.ts`: new spawn route via the `createSpawnHandler()` factory (don't hand-roll a route)
-4. `frontend/app/projects/hooks/job-runner.ts`: `runJob()` already handles spawn → poll → resolve, so wire the new job type's config in
-5. `frontend/app/components/`: new card component + config pane
-6. `frontend/app/components/SandboxCanvas.tsx`: add to the `AnyCard` union and `renderCard()` switch
-7. `frontend/app/projects/helpers.ts`: add a branch to `serializeCard()`
-8. `frontend/app/projects/types.ts` and `app/actions.ts`: add a `CardResolvedAction` variant and `SerializedCard` fields
-
-See the "New card type checklist" in the root `CLAUDE.md` and `.claude/rules/frontend.md` for the full list, including DB restore call sites and tutorial-mode handling.
-
-**GPU tiers** are defined in `frontend/app/lib/tiers.ts`. Import `TIER_LABELS` / `TIER_PAIR_CAPS` from there rather than redefining them inline.
-
-**Billing rates** live in `frontend/app/lib/rates.ts` and are a straight pass-through of Modal's list prices. If you change them, update the rate table in `frontend/app/docs/content/04-pricing.md` to match.
-
-**TransformerLens 3.5 notes:** see the root [CLAUDE.md](CLAUDE.md) for API differences from TL 2.x (hook naming, `TransformerBridge`, removed helpers).
-
----
-
 ## Issues and PRs
 
-Open an issue before starting significant work so we can discuss scope. PRs should include a description of what changed and why.
+

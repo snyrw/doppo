@@ -1,32 +1,29 @@
 # Doppo
 
-A browser-based mechanistic interpretability tool for running logit lens, attention
-pattern inspection, direct logit attribution (DLA), attribution patching, activation
-patching, and difference-in-means activation steering on any HuggingFace model without
-writing code.
+A browser-based mechanistic interpretability tool aiming to bring easy and quick
+access to some of the field's well-known techniques. Currently, we host the logit
+lens, attention pattern analysis, direct logit attribution, patching, and difference-
+in-means steering. These load in as "cards" in a sandbox that one can compare with
+others.
 
-Hosted at [doppo.tools](https://doppo.tools). Try it without an account via the
-[interactive tutorial](https://doppo.tools/tutorial), which walks through an IOI
-circuit on GPT-2 Small and DIM steering on Qwen2.5-1.5B-Instruct using pre-computed
-results. Reference docs for each analysis type are at
-[doppo.tools/docs](https://doppo.tools/docs).
+Hosted at [doppo.tools](https://doppo.tools). Try [our demo](https://doppo.tools/tutorial) first without an account to see how the sandbox works. 
 
 ## Analysis types
 
 - **Logit lens**: per-layer residual stream projections to vocabulary space
-- **Attention patterns**: per-head attention weights at every layer and position
+- **Attention patterns**: per-head attention weights at every layer and position, CircuitsVis-style
 - **Direct logit attribution (DLA)**: per-layer and per-head contribution to a target token
 - **Attribution patching**: a linear approximation of which components causally matter for a prediction
 - **Activation patching**: the actual (non-approximated) effect of patching specific components
-- **Activation steering**: difference-in-means (DIM) vectors extracted from clean/corrupted prompt pairs, injected at inference time. Pairs can be generated automatically from a single example, and saved to your account for reuse across runs.
+- **Activation steering**: difference-in-means vectors extracted from clean/corrupted prompt pairs, injected at inference time. Pairs can be generated automatically from a single example, and saved to your account for reuse across runs.
 
 ## Model support
 
-Any model [TransformerLens 3.5](https://github.com/TransformerLensOrg/TransformerLens)
-can load via `TransformerBridge`, which covers around 9,000+ HuggingFace repos. GPU
-tier is auto-detected from parameter count. Gated models (Llama, Gemma, etc.) work with
-an HF token. LoRA and DoRA adapters are supported, and are merged into the base model
-at load time. Models above 100B params or requiring multiple GPUs are rejected.
+Under the hood, we use [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens)'s `TransformerBridge` to load in many different models from HuggingFace. This covers a very wide range of models, which TransformerLens themselves have verified [here](). Doppo itself can do the following:
+- Load in popular "featured" models (Llamas, Gemmas, Qwens, etc) from a set of around 20 or so via a model picker
+- Load in custom models and LoRA adapters (merged onto base at runtime) directly from HuggingFace via a HF ID; these are ran through a verification process checking for config details and security
+
+In theory, this should allow many of TransformerLens models to be usable on Doppo. However, due to our verification process and other issues that may arise, we cannot ensure that every single model you'll try to use with us will work.
 
 ## How it works
 
