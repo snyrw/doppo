@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ellipsize, promptSummary, positionSummary, targetTokenSummary,
-  targetSummary, injectionSummary, generationSummary, decodingSummary, modelSummary,
+  targetSummary, injectionSummary, generationSummary, modelSummary,
 } from "../app/components/configledger/summaries";
 
 describe("ellipsize", () => {
@@ -53,10 +53,6 @@ describe("injectionSummary", () => {
 
 describe("generationSummary", () => {
   it("formats temp and rep penalty", () => expect(generationSummary(1, 1.3)).toBe("T 1.0 · rep 1.3"));
-});
-
-describe("decodingSummary", () => {
-  it("formats top-k", () => expect(decodingSummary(5)).toBe("top-5"));
 });
 
 describe("modelSummary", () => {

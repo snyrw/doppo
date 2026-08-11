@@ -1,5 +1,6 @@
 import { heatmapCache } from "@/app/schema";
 import { createSpawnHandler, isValidPrompt, sha256 } from "@/app/lib/spawn-route";
+import { LENS_TOP_K } from "@/app/lib/lens";
 
 type Params = { modelName: string; prompt: string; topK: number };
 
@@ -13,7 +14,7 @@ export const POST = createSpawnHandler<Params>({
       params: {
         modelName: body.modelName as string,
         prompt: body.prompt,
-        topK: (body.topK as number | undefined) ?? 5,
+        topK: (body.topK as number | undefined) ?? LENS_TOP_K,
       },
     };
   },

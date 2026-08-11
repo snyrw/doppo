@@ -3,6 +3,8 @@
 import React from "react";
 import { cn } from "../../lib/cn";
 import TokenPreview from "../TokenPreview";
+import { PANEL_LABEL, PANEL_META } from "./panel-type";
+import { BLOCK_GAP, TIGHT_GAP, MICRO_GAP } from "./ledger-geometry";
 
 export type TokenPreviewResult = {
   tokens: { text: string; special: boolean }[] | null;
@@ -11,15 +13,14 @@ export type TokenPreviewResult = {
 
 const radioCls = "flex cursor-pointer items-center gap-1.5 text-xs text-foreground";
 const radioInputCls = "h-[13px] w-[13px] shrink-0 cursor-pointer accent-[var(--accent)]";
-const smallInputCls = "rounded-[5px] bg-background text-[11px] text-foreground outline-none transition-colors";
-const promptLabelCls = "text-[10px] font-semibold uppercase tracking-[0.08em] text-muted";
-const promptCls = "box-border w-full resize-y rounded-md border border-card-border bg-background px-2.5 py-2 font-[inherit] text-xs leading-normal text-foreground outline-none disabled:cursor-default disabled:opacity-70";
+export const smallInputCls = "rounded-[var(--ctl-radius-xs)] bg-background text-[11px] text-foreground outline-none transition-colors";
+const promptCls = "box-border w-full resize-y rounded-[var(--ctl-radius-xs)] border border-card-border bg-background px-2.5 py-2 font-[inherit] text-xs leading-normal text-foreground outline-none disabled:cursor-default disabled:opacity-70";
 
 export function FieldLabel({ children, meta }: { children: React.ReactNode; meta?: React.ReactNode }) {
   return (
-    <div className="mb-1.5 flex items-baseline justify-between">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">{children}</span>
-      {meta != null && <span className="font-mono text-[9px] text-muted">{meta}</span>}
+    <div className="flex items-baseline justify-between" style={{ marginBottom: TIGHT_GAP }}>
+      <span className={PANEL_LABEL}>{children}</span>
+      {meta != null && <span className={PANEL_META}>{meta}</span>}
     </div>
   );
 }
@@ -38,9 +39,9 @@ export function PromptField({
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
   return (
     <div>
-      <div className="mb-1.5 flex items-baseline justify-between">
-        <label className={promptLabelCls}>{label}</label>
-        <span className="text-[9px] text-muted">{wordCount}w</span>
+      <div className="flex items-baseline justify-between" style={{ marginBottom: TIGHT_GAP }}>
+        <label className={PANEL_LABEL}>{label}</label>
+        <span className={PANEL_META}>{wordCount}w</span>
       </div>
       <textarea
         value={value}
@@ -66,9 +67,9 @@ function PositionField({
   disabled?: boolean;
 }) {
   return (
-    <div className="mb-3.5">
-      <span className="mb-2 block text-[11px] font-medium text-foreground">Position</span>
-      <div className="flex flex-col gap-[7px]">
+    <div style={{ marginBottom: BLOCK_GAP }}>
+      <span className={cn(PANEL_LABEL, "block")} style={{ marginBottom: TIGHT_GAP }}>Position</span>
+      <div className="flex flex-col" style={{ gap: TIGHT_GAP }}>
         <label className={radioCls}>
           <input type="radio" name={name} checked={mode === "last"} onChange={() => onModeChange("last")} disabled={disabled} className={radioInputCls} />
           Last token
@@ -102,9 +103,9 @@ function TargetTokenField({
   disabled?: boolean;
 }) {
   return (
-    <div className="mb-3.5">
-      <span className="mb-2 block text-[11px] font-medium text-foreground">Target token</span>
-      <div className="flex flex-col gap-[7px]">
+    <div style={{ marginBottom: BLOCK_GAP }}>
+      <span className={cn(PANEL_LABEL, "block")} style={{ marginBottom: TIGHT_GAP }}>Target token</span>
+      <div className="flex flex-col" style={{ gap: TIGHT_GAP }}>
         <label className={radioCls}>
           <input type="radio" name={name} checked={mode === "auto"} onChange={() => onModeChange("auto")} disabled={disabled} className={radioInputCls} />
           Top prediction
@@ -126,7 +127,7 @@ function TargetTokenField({
         <div className="ml-[22px] mt-0.5">
           <TokenPreview tokens={preview.tokens} loading={preview.loading} />
           {preview.tokens && preview.tokens.length > 1 && (
-            <p className="m-0 mt-[3px] text-[10px] text-amber-600">
+            <p className="m-0 text-[10px] text-amber-600" style={{ marginTop: MICRO_GAP }}>
               ⚠ Multi-token: only the first is used. Add a leading space to combine (e.g. &ldquo;{" " + custom.trim()}&rdquo;).
             </p>
           )}
@@ -148,9 +149,9 @@ function ContrastiveTokenField({
 }) {
   return (
     <div>
-      <span className="mb-1 block text-[11px] font-medium text-foreground">
+      <span className={cn(PANEL_LABEL, "block")} style={{ marginBottom: MICRO_GAP }}>
         Contrastive token
-        <span className="ml-1.5 text-[10px] font-normal text-muted">optional</span>
+        <span className={cn(PANEL_META, "ml-1.5")}>optional</span>
       </span>
       <input
         type="text"
@@ -164,13 +165,13 @@ function ContrastiveTokenField({
         <div className="mt-0.5">
           <TokenPreview tokens={preview.tokens} loading={preview.loading} />
           {preview.tokens && preview.tokens.length > 1 && (
-            <p className="m-0 mt-[3px] text-[10px] text-amber-600">
+            <p className="m-0 text-[10px] text-amber-600" style={{ marginTop: MICRO_GAP }}>
               ⚠ Multi-token: only the first is used. Add a leading space to combine (e.g. &ldquo;{" " + value.trim()}&rdquo;).
             </p>
           )}
         </div>
       )}
-      <p className="m-0 mt-[5px] text-[10px] leading-normal text-muted">{help}</p>
+      <p className={cn(PANEL_META, "m-0")} style={{ marginTop: MICRO_GAP }}>{help}</p>
     </div>
   );
 }

@@ -3,25 +3,35 @@
 
 import React from "react";
 import { TactileButton } from "../ui/TactileButton";
+import { CloseButton } from "../ui/CloseButton";
+import SectionStrip from "./SectionStrip";
 import { cn } from "../../lib/cn";
+import { PANEL_LABEL, PANEL_META } from "./panel-type";
+import {
+  LEDGER_W, LEDGER_RADIUS, LEDGER_MAX_H,
+  INSET, BLOCK_GAP, TIGHT_GAP, FOOTER_PAD_Y,
+  ACCENT_SIZE, ACCENT_RADIUS,
+} from "./ledger-geometry";
 
 export type LedgerSection = {
   id: string;
   label: string;
-  /** Live value summary shown under the section name in the rail. */
-  summary: string;
   body: React.ReactNode;
 };
 
 /**
- * Two-pane "section ledger" shell shared by all five technique config panes.
- * Left rail lists every section with its current value always readable; the
- * body shows only the active section. Panes supply `sections`, own their state,
- * validation, and submit logic, and decide visibility before rendering the shell.
+ * Single-pane config shell shared by all five technique config panes. A
+ * segmented strip selects the section; the body shows only the active one.
+ * Panes supply `sections`, own their state, validation and submit logic, and
+ * decide visibility before rendering the shell.
+ *
+ * This replaces a two-pane ledger whose 228px rail carried a live value summary
+ * per section. That information is not lost: every pane's `footerSummary`
+ * already composes every one of its sections' values.
  */
 export default function ConfigLedger({
   title,
-  width = 660,
+  accent,
   sections,
   activeSection,
   onSectionChange,
@@ -32,7 +42,8 @@ export default function ConfigLedger({
   onClose,
 }: {
   title: string;
-  width?: number;
+  /** Technique band colour — `TECHNIQUES[…].band`, never `face`. */
+  accent: string;
   sections: LedgerSection[];
   activeSection: string;
   onSectionChange: (id: string) => void;
@@ -46,70 +57,68 @@ export default function ConfigLedger({
 
   return (
     <div
-      className="absolute left-0 top-[calc(100%+6px)] z-30 flex max-h-[min(584px,calc(100vh-100px))] animate-cfg-drop-in flex-col overflow-hidden rounded-[10px] border border-card-border bg-card shadow-[0_8px_32px_rgba(0,0,0,0.18)]"
-      style={{ width, maxWidth: `min(${width}px, calc(100vw - 24px))` }}
+      data-config-panel
+      className="absolute left-0 top-[calc(100%+6px)] z-30 flex animate-cfg-drop-in flex-col overflow-hidden border border-card-border bg-card"
+      style={{
+        width: LEDGER_W,
+        maxWidth: `min(${LEDGER_W}px, calc(100vw - 24px))`,
+        maxHeight: `min(${LEDGER_MAX_H}px, calc(100vh - 100px))`,
+        borderRadius: LEDGER_RADIUS,
+      }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-surface-border px-4 py-3.5">
-        <span className="flex items-center gap-2">
-          {/* registration corner mark */}
-          <span className="h-2 w-2 border-l border-t border-accent" aria-hidden />
-          <span className="text-[13px] font-semibold tracking-[0.01em] text-foreground">{title}</span>
-        </span>
-        <button
-          onClick={onClose}
-          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded border-none bg-transparent text-base leading-none text-muted transition-colors hover:bg-surface-border hover:text-foreground"
-        >
-          ×
-        </button>
-      </div>
-
-      {/* Rail + body */}
-      <div className="flex min-h-0 flex-1">
-        {/* Section rail */}
-        <div className="w-[228px] shrink-0 overflow-y-auto border-r border-surface-border">
-          {sections.map((s, i) => {
-            const isActive = s.id === active.id;
-            return (
-              <button
-                key={s.id}
-                onClick={() => onSectionChange(s.id)}
-                className={cn(
-                  "flex w-full flex-col gap-1 border-x-0 border-t-0 border-b border-l-2 border-surface-border px-3 py-[11px] text-left transition-colors",
-                  isActive ? "border-l-accent bg-background" : "border-l-transparent bg-card hover:bg-surface-border/40",
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "h-1.5 w-1.5 shrink-0",
-                      isActive ? "bg-accent" : "border border-card-border",
-                    )}
-                    aria-hidden
-                  />
-                  <span className="flex-1 text-[11.5px] font-semibold text-foreground">{s.label}</span>
-                  <span className="font-mono text-[9px] text-muted">{String(i + 1).padStart(2, "0")}</span>
-                </span>
-                <span className="ml-[14px] truncate font-mono text-[10px] text-muted">{s.summary}</span>
-              </button>
-            );
-          })}
+      {/* Header and strip, one pinned block on the content column */}
+      <div className="shrink-0" style={{ paddingInline: INSET, paddingTop: INSET }}>
+        <div className="flex items-center" style={{ gap: TIGHT_GAP }}>
+          <span className="text-[14px] leading-none text-foreground">{title}</span>
+          <span className="flex-1" />
+          <CloseButton onClick={onClose} label="Close" />
         </div>
 
-        {/* Body — active section only */}
-        <div className="min-w-0 flex-1 overflow-y-auto px-[18px] py-4">
-          {active.body}
+        <div className="flex items-center" style={{ marginTop: BLOCK_GAP, gap: TIGHT_GAP }}>
+          {/* Technique identity. Not a button here since it doesn't actually do anything. */}
+          <span
+            data-accent
+            aria-hidden
+            className="shrink-0"
+            style={{
+              width: ACCENT_SIZE,
+              height: ACCENT_SIZE,
+              borderRadius: ACCENT_RADIUS,
+              backgroundColor: accent,
+            }}
+          />
+          <SectionStrip sections={sections} activeId={active.id} onChange={onSectionChange} />
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center gap-3 border-t border-surface-border px-4 py-2.5">
-        <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted">{footerSummary}</span>
+      {/* Rule. Inset-to-inset like CardRule, not a full-bleed border-b */}
+      <div
+        className="h-px shrink-0 bg-surface-border"
+        style={{ marginInline: INSET, marginTop: BLOCK_GAP }}
+      />
+
+      {/* Body. Active section only */}
+      <div className="min-w-0 flex-1 overflow-y-auto" style={{ padding: INSET }}>
+        {active.body}
+      </div>
+
+      {/* Footer. Shows all information */}
+      <div
+        className="flex shrink-0 items-center border-t border-surface-border"
+        style={{ paddingInline: INSET, paddingBlock: FOOTER_PAD_Y, gap: BLOCK_GAP }}
+      >
+        <div className="min-w-0 flex-1">
+          <span className={cn(PANEL_LABEL, "block")}>Summary</span>
+          <span className={cn(PANEL_META, "mt-1 block truncate")}>
+            {footerSummary}
+          </span>
+        </div>
         <TactileButton
           variant="primary"
+          capsule
           onClick={onRun}
           disabled={!canRun}
-          faceClassName="px-4 justify-center py-2 text-[13px] tracking-[0.02em] disabled:cursor-not-allowed"
+          faceClassName="px-4 justify-center py-2 text-[11px] tracking-[0.02em] disabled:cursor-not-allowed"
         >
           {runLabel}
         </TactileButton>

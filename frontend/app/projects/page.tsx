@@ -3,7 +3,7 @@
 import { useState, useEffect, useReducer, useRef, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SandboxCanvas from "../components/SandboxCanvas";
-import ConfigPane from "../components/ConfigPane";
+import LensConfigPane from "../components/LensConfigPane";
 import DlaConfigPane from "../components/DlaConfigPane";
 import AttributionConfigPane from "../components/AttributionConfigPane";
 import SteeringConfigPane from "../components/SteeringConfigPane";
@@ -520,7 +520,7 @@ function Projects() {
               </div>
             )}
 
-            <ConfigPane
+            <LensConfigPane
               isOpen={openPane === "lens"}
               availableModels={availableModels}
               modelsLoading={modelsLoading}

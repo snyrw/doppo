@@ -45,10 +45,6 @@ export function generationSummary(temperature: number, repetitionPenalty: number
   return `T ${temperature.toFixed(1)} · rep ${repetitionPenalty.toFixed(1)}`;
 }
 
-export function decodingSummary(topK: number): string {
-  return `top-${topK}`;
-}
-
 export function modelSummary(displayName: string | null | undefined): string {
   return displayName && displayName.trim() !== "" ? displayName : "no model";
 }

@@ -4,9 +4,13 @@ import { useState, useEffect } from "react";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
 import ConfigLedger, { type LedgerSection } from "./configledger/ConfigLedger";
+import { useConfigPaneLifecycle } from "./configledger/useConfigPaneLifecycle";
 import { TargetSection, PromptField } from "./configledger/fields";
+import { PANEL_META } from "./configledger/panel-type";
 import { modelSummary, promptSummary, targetSummary } from "./configledger/summaries";
 import ModelPicker from "./ModelPicker";
+import { techniqueForCard } from "../lib/techniques";
+import { cn } from "../lib/cn";
 
 type AttributionConfigPaneProps = {
   isOpen: boolean;
@@ -54,7 +58,16 @@ export default function AttributionConfigPane({
   const [tokenMode, setTokenMode] = useState<"auto" | "custom">("auto");
   const [customToken, setCustomToken] = useState("");
   const [contrastiveToken, setContrastiveToken] = useState("");
-  const [activeSection, setActiveSection] = useState("model");
+  const { activeSection, setActiveSection, doReset, handleClose } = useConfigPaneLifecycle(onClose, () => {
+    picker.reset();
+    setCleanPrompt(DEFAULT_CLEAN_PROMPT);
+    setCorruptedPrompt(DEFAULT_CORRUPTED_PROMPT);
+    setPositionMode("last");
+    setCustomPosition("");
+    setTokenMode("auto");
+    setCustomToken("");
+    setContrastiveToken("");
+  });
 
   useEffect(() => {
     if (tutorialMode && tutorialConfig) {
@@ -79,23 +92,6 @@ export default function AttributionConfigPane({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorialMode, tutorialConfig]);
-
-  const doReset = () => {
-    picker.reset();
-    setCleanPrompt(DEFAULT_CLEAN_PROMPT);
-    setCorruptedPrompt(DEFAULT_CORRUPTED_PROMPT);
-    setPositionMode("last");
-    setCustomPosition("");
-    setTokenMode("auto");
-    setCustomToken("");
-    setContrastiveToken("");
-    setActiveSection("model");
-  };
-
-  const handleClose = () => {
-    doReset();
-    onClose();
-  };
 
   const cleanPreview = useTokenPreview(isOpen ? picker.activeModelId : "", cleanPrompt);
   const corruptedPreview = useTokenPreview(isOpen ? picker.activeModelId : "", corruptedPrompt);
@@ -130,16 +126,14 @@ export default function AttributionConfigPane({
     {
       id: "model",
       label: "Model",
-      summary: modelSummary(displayName),
       body: (
         <ModelPicker picker={picker} models={availableModels} modelsLoading={modelsLoading}
-          gridMaxHeight={200} tutorialMode={tutorialMode} tutorialModelName={tutorialConfig?.modelName} />
+          tutorialMode={tutorialMode} tutorialModelName={tutorialConfig?.modelName} />
       ),
     },
     {
       id: "pair",
       label: "Contrast pair",
-      summary: pairSummary,
       body: (
         <div className="flex flex-col gap-4">
           {/* Prompts */}
@@ -166,7 +160,7 @@ export default function AttributionConfigPane({
                 Prompts must tokenize to the same length ({cleanToks} vs {corruptedToks}).
               </p>
             )}
-            <p className="m-0 mt-2 text-[11px] leading-relaxed text-muted">
+            <p className={cn(PANEL_META, "m-0 mt-2")}>
               Scores each component by how much its activation change (reference → counterfactual) moves the target logit.{" "}
               <em>Verify top K</em> then runs causal activation patches on the top candidates to confirm.
             </p>
@@ -177,7 +171,6 @@ export default function AttributionConfigPane({
     {
       id: "target",
       label: "Target",
-      summary: targetSum,
       body: (
         <TargetSection
           name="attr"
@@ -198,13 +191,14 @@ export default function AttributionConfigPane({
 
   return (
     <ConfigLedger
-      title="Attribution — new card"
+      title="Attribution"
+      accent={techniqueForCard("attribution").band}
       sections={sections}
       activeSection={activeSection}
       onSectionChange={setActiveSection}
       footerSummary={`${modelSummary(displayName)} · ${pairSummary} · ${targetSum}`}
       canRun={canRun}
-      runLabel="Run attribution"
+      runLabel="Run"
       onRun={handleRun}
       onClose={handleClose}
     />

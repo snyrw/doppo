@@ -3,7 +3,7 @@
 import { useReducer, useRef, useCallback, useState, useEffect } from "react";
 import { cn } from "../lib/cn";
 import SandboxCanvas from "../components/SandboxCanvas";
-import ConfigPane from "../components/ConfigPane";
+import LensConfigPane from "../components/LensConfigPane";
 import DlaConfigPane from "../components/DlaConfigPane";
 import AttributionConfigPane from "../components/AttributionConfigPane";
 import SteeringConfigPane from "../components/SteeringConfigPane";
@@ -335,7 +335,7 @@ export default function TutorialClient({ steps }: Props) {
             </div>
           )}
 
-          <ConfigPane
+          <LensConfigPane
             isOpen={openPane === "lens"}
             availableModels={[]}
             modelsLoading={false}

@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
 import ConfigLedger, { type LedgerSection } from "./configledger/ConfigLedger";
+import { useConfigPaneLifecycle } from "./configledger/useConfigPaneLifecycle";
 import { FieldLabel, TargetSection } from "./configledger/fields";
 import { modelSummary, promptSummary, targetSummary } from "./configledger/summaries";
 import ModelPicker from "./ModelPicker";
 import TokenPreview from "./TokenPreview";
+import { techniqueForCard } from "../lib/techniques";
 
 type DlaConfigPaneProps = {
   isOpen: boolean;
@@ -52,7 +54,15 @@ export default function DlaConfigPane({
   const [tokenMode, setTokenMode] = useState<"auto" | "custom">("auto");
   const [customToken, setCustomToken] = useState("");
   const [contrastiveToken, setContrastiveToken] = useState("");
-  const [activeSection, setActiveSection] = useState("model");
+  const { activeSection, setActiveSection, doReset, handleClose } = useConfigPaneLifecycle(onClose, () => {
+    picker.reset();
+    setPrompt(DEFAULT_PROMPT);
+    setPositionMode("last");
+    setCustomPosition("");
+    setTokenMode("auto");
+    setCustomToken("");
+    setContrastiveToken("");
+  });
 
   useEffect(() => {
     if (tutorialMode && tutorialConfig) {
@@ -76,22 +86,6 @@ export default function DlaConfigPane({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorialMode, tutorialConfig]);
-
-  const doReset = () => {
-    picker.reset();
-    setPrompt(DEFAULT_PROMPT);
-    setPositionMode("last");
-    setCustomPosition("");
-    setTokenMode("auto");
-    setCustomToken("");
-    setContrastiveToken("");
-    setActiveSection("model");
-  };
-
-  const handleClose = () => {
-    doReset();
-    onClose();
-  };
 
   const tokenPreview = useTokenPreview(isOpen ? picker.activeModelId : "", prompt);
   const targetTokenPreview = useTokenPreview(isOpen ? picker.activeModelId : "", tokenMode === "custom" ? customToken : "");
@@ -119,7 +113,6 @@ export default function DlaConfigPane({
     {
       id: "model",
       label: "Model",
-      summary: modelSummary(displayName),
       body: (
         <ModelPicker picker={picker} models={availableModels} modelsLoading={modelsLoading}
           tutorialMode={tutorialMode} tutorialModelName={tutorialConfig?.modelName} />
@@ -128,7 +121,6 @@ export default function DlaConfigPane({
     {
       id: "prompt",
       label: "Prompt",
-      summary: promptSummary(prompt),
       body: (
         <div>
           <FieldLabel>Prompt</FieldLabel>
@@ -137,7 +129,7 @@ export default function DlaConfigPane({
             onChange={e => setPrompt(e.target.value)}
             disabled={tutorialMode}
             rows={5}
-            className="box-border w-full resize-y rounded-md border border-card-border bg-background px-2.5 py-2 font-[inherit] text-[13px] leading-normal text-foreground outline-none disabled:cursor-default disabled:opacity-70"
+            className="box-border w-full resize-y rounded-[var(--ctl-radius-xs)] border border-card-border bg-background px-2.5 py-2 font-[inherit] text-[13px] leading-normal text-foreground outline-none disabled:cursor-default disabled:opacity-70"
           />
           <TokenPreview tokens={tokenPreview.tokens} loading={tokenPreview.loading} />
         </div>
@@ -146,7 +138,6 @@ export default function DlaConfigPane({
     {
       id: "target",
       label: "Target",
-      summary: targetSum,
       body: (
         <TargetSection
           name="dla"
@@ -167,13 +158,14 @@ export default function DlaConfigPane({
 
   return (
     <ConfigLedger
-      title="DLA — new card"
+      title="Direct Logit Attribution"
+      accent={techniqueForCard("dla").band}
       sections={sections}
       activeSection={activeSection}
       onSectionChange={setActiveSection}
       footerSummary={`${modelSummary(displayName)} · ${promptSummary(prompt, 16)} · ${targetSum}`}
       canRun={canRun}
-      runLabel="Run DLA"
+      runLabel="Run"
       onRun={handleRun}
       onClose={handleClose}
     />

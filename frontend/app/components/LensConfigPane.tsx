@@ -6,30 +6,32 @@ import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
 import ConfigLedger, { type LedgerSection } from "./configledger/ConfigLedger";
 import { useConfigPaneLifecycle } from "./configledger/useConfigPaneLifecycle";
 import { FieldLabel } from "./configledger/fields";
-import { PANEL_META } from "./configledger/panel-type";
 import { modelSummary, promptSummary } from "./configledger/summaries";
 import ModelPicker from "./ModelPicker";
 import TokenPreview from "./TokenPreview";
 import { techniqueForCard } from "../lib/techniques";
-import { cn } from "../lib/cn";
+import { LENS_TOP_K } from "../lib/lens";
 
-type AttentionConfigPaneProps = {
+const MAX_PROMPT_TOKENS = 48;
+
+type LensConfigPaneProps = {
   isOpen: boolean;
   availableModels: ModelInfo[];
   modelsLoading: boolean;
-  onSubmit: (config: { modelName: string; prompt: string; gpuTier?: string }) => void;
+  onSubmit: (config: { modelName: string; prompt: string; gpuTier?: string; topK: number }) => void;
   onClose: () => void;
   tutorialMode?: boolean;
   tutorialConfig?: {
     modelName: string;
     prompt: string;
     gpuTier: string;
+    topK: number;
   };
 };
 
 const DEFAULT_PROMPT = "The capital of France is Paris. The capital of Germany is";
 
-export default function AttentionConfigPane({
+export default function LensConfigPane({
   isOpen,
   availableModels,
   modelsLoading,
@@ -37,13 +39,15 @@ export default function AttentionConfigPane({
   onClose,
   tutorialMode,
   tutorialConfig,
-}: AttentionConfigPaneProps) {
+}: LensConfigPaneProps) {
   const picker = useModelSelection(availableModels);
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const { activeSection, setActiveSection, doReset, handleClose } = useConfigPaneLifecycle(onClose, () => {
     picker.reset();
     setPrompt(DEFAULT_PROMPT);
   });
+
+  const tokenPreview = useTokenPreview(isOpen ? picker.activeModelId : "", prompt);
 
   useEffect(() => {
     if (tutorialMode && tutorialConfig) {
@@ -53,12 +57,13 @@ export default function AttentionConfigPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorialMode, tutorialConfig]);
 
-  const tokenPreview = useTokenPreview(isOpen ? picker.activeModelId : "", prompt);
-  const canRun = picker.modelOk && prompt.trim() !== "";
+  const tokenCount = tokenPreview.tokens?.length ?? 0;
+  const overTokenLimit = tokenPreview.tokens !== null && tokenCount > MAX_PROMPT_TOKENS;
+  const canRun = !overTokenLimit && picker.modelOk;
 
   const handleRun = () => {
     if (!canRun) return;
-    onSubmit({ modelName: picker.modelName, prompt, gpuTier: picker.gpuTier });
+    onSubmit({ modelName: picker.modelName, prompt, gpuTier: picker.gpuTier, topK: LENS_TOP_K });
     doReset();
   };
 
@@ -71,8 +76,13 @@ export default function AttentionConfigPane({
       id: "model",
       label: "Model",
       body: (
-        <ModelPicker picker={picker} models={availableModels} modelsLoading={modelsLoading}
-          tutorialMode={tutorialMode} tutorialModelName={tutorialConfig?.modelName} />
+        <ModelPicker
+          picker={picker}
+          models={availableModels}
+          modelsLoading={modelsLoading}
+          tutorialMode={tutorialMode}
+          tutorialModelName={tutorialConfig?.modelName}
+        />
       ),
     },
     {
@@ -89,9 +99,9 @@ export default function AttentionConfigPane({
             className="box-border w-full resize-y rounded-[var(--ctl-radius-xs)] border border-card-border bg-background px-2.5 py-2 font-[inherit] text-[13px] leading-normal text-foreground outline-none disabled:cursor-default disabled:opacity-70"
           />
           <TokenPreview tokens={tokenPreview.tokens} loading={tokenPreview.loading} />
-          {tokenPreview.tokens !== null && tokenPreview.tokens.length > 30 && (
-            <p className={cn(PANEL_META, "m-0 mt-1")}>
-              Attention view uses the first 30 tokens.
+          {overTokenLimit && (
+            <p className="m-0 mt-1 text-[11px] text-red-600">
+              Prompt too long: {tokenCount} / {MAX_PROMPT_TOKENS} tokens. Trim to {MAX_PROMPT_TOKENS} or fewer.
             </p>
           )}
         </div>
@@ -99,14 +109,16 @@ export default function AttentionConfigPane({
     },
   ];
 
+  const footerSummary = `${modelSummary(displayName)} · ${promptSummary(prompt, 20)}`;
+
   return (
     <ConfigLedger
-      title="Attention"
-      accent={techniqueForCard("attention-pattern").band}
+      title="Logit Lens"
+      accent={techniqueForCard("logit-lens").band}
       sections={sections}
       activeSection={activeSection}
       onSectionChange={setActiveSection}
-      footerSummary={`${modelSummary(displayName)} · ${promptSummary(prompt, 24)}`}
+      footerSummary={footerSummary}
       canRun={canRun}
       runLabel="Run"
       onRun={handleRun}
