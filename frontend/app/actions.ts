@@ -31,6 +31,8 @@ type SerializedCard = {
   contrastiveToken?: string | null;
   corruptedPrompt?: string;       // attribution cards
   parentAttributionId?: string;   // activation cards
+  k?: number;                     // activation cards: how many components were patched
+                                  // (distinct from topK above, which is logit-lens's)
   // steering cards (head/injectionType are legacy fields still present on old rows)
   components?: Array<{ layer: number; head?: number | null; injectionType?: string }>;
   alpha?: number;
@@ -41,6 +43,8 @@ type SerializedCard = {
   extraPairs?: Array<{ clean: string; corrupted: string }>;
   generationPrompt?: string;
   cacheKey?: string | null;       // attention-pattern cards: reference into attnCache, data omitted
+  finishedAt?: number;            // when the job resolved; absent on rows saved before this existed
+  cached?: boolean;               // result came from cache, so no GPU time was billed
 };
 
 type CanvasState = import("./components/SandboxCanvas").CanvasState;
@@ -180,6 +184,30 @@ export async function upsertProjectCard(
         else cards || jsonb_build_array(${cardJson}::jsonb)
       end,
       canvas = ${JSON.stringify(canvas)}::jsonb,
+      updated_at = now()
+    where id = ${projectId} and user_id = ${userId}
+  `);
+}
+
+/**
+ * Removes a single card from a project's `cards` array by id, atomically —
+ * same reasoning as `upsertProjectCard`: a targeted UPDATE rather than an
+ * overwrite from a client-held snapshot, so a concurrent card resolving
+ * elsewhere in the project can't be clobbered by a stale removal.
+ */
+export async function deleteProjectCard(
+  projectId: string,
+  cardId: string
+): Promise<void> {
+  const userId = await getAuthedUserId();
+  await db.execute(sql`
+    update project
+    set
+      cards = (
+        select coalesce(jsonb_agg(e), '[]'::jsonb)
+        from jsonb_array_elements(cards) e
+        where e->>'id' != ${cardId}
+      ),
       updated_at = now()
     where id = ${projectId} and user_id = ${userId}
   `);

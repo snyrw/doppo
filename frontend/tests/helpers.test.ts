@@ -124,6 +124,48 @@ describe("serializeCard", () => {
     expect((result as Record<string, unknown>).corruptedPrompt).toBe("The dog");
   });
 
+  it("activation card persists its token pair and k", () => {
+    const card = {
+      id: "a1",
+      cardType: "activation" as const,
+      modelName: "gpt2-small",
+      cleanPrompt: "hello world",
+      k: 20,
+      parentAttributionId: "p1",
+      targetToken: " Mary",
+      contrastiveToken: " John",
+      data: null,
+      position: { x: 40, y: 40 },
+      gpuTier: "tl_small",
+      status: "result" as const,
+    };
+    const result = serializeCard(card as unknown as AnyCard) as Record<string, unknown>;
+    expect(result.prompt).toBe("hello world");
+    expect(result.parentAttributionId).toBe("p1");
+    expect(result.targetToken).toBe(" Mary");
+    expect(result.contrastiveToken).toBe(" John");
+    // k was previously dropped, so a card verified at 20 came back claiming 10.
+    expect(result.k).toBe(20);
+  });
+
+  it("activation card with no contrastive token serializes null, not undefined", () => {
+    const card = {
+      id: "a2",
+      cardType: "activation" as const,
+      modelName: "gpt2-small",
+      cleanPrompt: "hello",
+      k: 10,
+      parentAttributionId: "p1",
+      targetToken: " Mary",
+      contrastiveToken: null,
+      data: null,
+      position: { x: 0, y: 0 },
+      status: "result" as const,
+    };
+    const result = serializeCard(card as unknown as AnyCard) as Record<string, unknown>;
+    expect(result.contrastiveToken).toBeNull();
+  });
+
   it("steering card preserves nPairs and extraPairs", () => {
     const card = {
       id: "c3",
@@ -183,5 +225,48 @@ describe("serializeCard", () => {
     expect(result.cardType).toBe("attention-pattern");
     expect((result as { cacheKey?: string }).cacheKey).toBe("cache-abc");
     expect(result.data).toEqual({});
+  });
+});
+
+describe("serializeCard timing", () => {
+  const lens = {
+    id: "c1", cardType: "logit-lens", status: "result", modelName: "gpt2",
+    prompt: "hi", data: {}, error: null, position: { x: 0, y: 0 },
+    gpuTier: "tl_small", topK: 5, startedAt: 1000, finishedAt: 3400, cached: false,
+  } as unknown as AnyCard;
+
+  it("round-trips finishedAt and cached", () => {
+    expect(serializeCard(lens)).toMatchObject({ finishedAt: 3400, cached: false });
+  });
+
+  it("round-trips them on every card type", () => {
+    // Regression guard: serializeCard has a branch per card type, and it is easy
+    // to add a field to one and miss the other five. The attention branch forks
+    // again on cacheKey, so both of its shapes are covered.
+    const variants = [
+      { cardType: "dla" },
+      { cardType: "attribution" },
+      { cardType: "activation" },
+      { cardType: "steering" },
+      { cardType: "attention-pattern" },
+      { cardType: "attention-pattern", cacheKey: "abc" },
+    ];
+    for (const v of variants) {
+      const card = {
+        ...lens, ...v,
+        cleanPrompt: "hi", corruptedPrompt: "there", k: 10, parentAttributionId: "a1",
+        components: [{ layer: 16 }], alpha: 1, temperature: 1, repetitionPenalty: 1.3,
+        nTokens: 50, nPairs: 1, targetPosition: "last", targetToken: null,
+        contrastiveToken: null,
+      } as unknown as AnyCard;
+      expect(serializeCard(card)).toMatchObject({ finishedAt: 3400, cached: false });
+    }
+  });
+
+  it("leaves them undefined when the card has never carried them", () => {
+    const bare = { ...lens, finishedAt: undefined, cached: undefined } as unknown as AnyCard;
+    const out = serializeCard(bare);
+    expect(out.finishedAt).toBeUndefined();
+    expect(out.cached).toBeUndefined();
   });
 });

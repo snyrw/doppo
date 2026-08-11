@@ -53,7 +53,7 @@ describe("runJob done sweep", () => {
     await run;
 
     expect(dispatchedStages(dispatch)).toEqual(["loading_model", "computing", "done"]);
-    expect(onResolve).toHaveBeenCalledWith({ x: 1 }, undefined);
+    expect(onResolve).toHaveBeenCalledWith({ x: 1 }, { cacheKey: undefined, cached: false });
   });
 
   it("sweeps only the unseen phases when compute stages were observed", async () => {
@@ -79,7 +79,7 @@ describe("runJob done sweep", () => {
     await run;
 
     expect(dispatchedStages(dispatch)).toEqual(["computing", "done"]);
-    expect(onResolve).toHaveBeenCalledWith({ x: 2 }, undefined);
+    expect(onResolve).toHaveBeenCalledWith({ x: 2 }, { cacheKey: undefined, cached: false });
   });
 
   it("resolves cached spawns immediately with no sweep", async () => {
@@ -100,7 +100,9 @@ describe("runJob done sweep", () => {
     });
 
     expect(dispatchedStages(dispatch)).toEqual([]);
-    expect(onResolve).toHaveBeenCalledWith({ x: 3 }, undefined);
+    // cached: true is what the info panel reports as "Duration: cached" — a cache
+    // hit means no GPU time was billed.
+    expect(onResolve).toHaveBeenCalledWith({ x: 3 }, { cacheKey: undefined, cached: true });
   });
 
   it("passes the cacheKey from a done poll through to onResolve", async () => {
@@ -124,7 +126,7 @@ describe("runJob done sweep", () => {
     await vi.advanceTimersByTimeAsync(3000); // first poll returns done + sweep steps elapse
     await run;
 
-    expect(onResolve).toHaveBeenCalledWith({ x: 4 }, "abc123");
+    expect(onResolve).toHaveBeenCalledWith({ x: 4 }, { cacheKey: "abc123", cached: false });
   });
 
   it("passes the cacheKey from a cached spawn through to onResolve", async () => {
@@ -144,6 +146,6 @@ describe("runJob done sweep", () => {
       onResolve,
     });
 
-    expect(onResolve).toHaveBeenCalledWith({ x: 5 }, "def456");
+    expect(onResolve).toHaveBeenCalledWith({ x: 5 }, { cacheKey: "def456", cached: true });
   });
 });

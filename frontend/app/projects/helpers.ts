@@ -32,17 +32,27 @@ export function findSpawnPos(cards: { position: { x: number; y: number } }[]): {
 }
 
 export function serializeCard(c: AnyCard) {
+  /* What every branch writes regardless of card type. */
+  const common = {
+    id: c.id,
+    modelName: c.modelName,
+    position: c.position,
+    gpuTier: c.gpuTier,
+    finishedAt: c.finishedAt,
+    cached: c.cached,
+  };
+
   if (c.cardType === "dla") {
-    return { id: c.id, cardType: "dla" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, contrastiveToken: c.contrastiveToken };
+    return { ...common, cardType: "dla" as const, prompt: c.prompt, data: c.data as Record<string, unknown>, targetPosition: c.targetPosition, targetToken: c.targetToken, contrastiveToken: c.contrastiveToken };
   }
   if (c.cardType === "attribution") {
-    return { id: c.id, cardType: "attribution" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, contrastiveToken: c.contrastiveToken };
+    return { ...common, cardType: "attribution" as const, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, data: c.data as Record<string, unknown>, targetPosition: c.targetPosition, targetToken: c.targetToken, contrastiveToken: c.contrastiveToken };
   }
   if (c.cardType === "activation") {
-    return { id: c.id, cardType: "activation" as const, modelName: c.modelName, prompt: c.cleanPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, parentAttributionId: c.parentAttributionId };
+    return { ...common, cardType: "activation" as const, prompt: c.cleanPrompt, data: c.data as Record<string, unknown>, parentAttributionId: c.parentAttributionId, k: c.k, targetToken: c.targetToken, contrastiveToken: c.contrastiveToken };
   }
   if (c.cardType === "steering") {
-    return { id: c.id, cardType: "steering" as const, modelName: c.modelName, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, generationPrompt: c.generationPrompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, targetPosition: c.targetPosition, targetToken: c.targetToken, components: c.components, alpha: c.alpha, temperature: c.temperature, repetitionPenalty: c.repetitionPenalty, nTokens: c.nTokens, nPairs: c.nPairs, extraPairs: c.extraPairs ?? [] };
+    return { ...common, cardType: "steering" as const, prompt: c.cleanPrompt, corruptedPrompt: c.corruptedPrompt, generationPrompt: c.generationPrompt, data: c.data as Record<string, unknown>, targetPosition: c.targetPosition, targetToken: c.targetToken, components: c.components, alpha: c.alpha, temperature: c.temperature, repetitionPenalty: c.repetitionPenalty, nTokens: c.nTokens, nPairs: c.nPairs, extraPairs: c.extraPairs ?? [] };
   }
   if (c.cardType === "attention-pattern") {
     // Pattern data is already cached separately (attnCache/R2) and is large
@@ -50,10 +60,10 @@ export function serializeCard(c: AnyCard) {
     // reference and omit the blob when we have one. Falls back to the full
     // inline data if no cacheKey came back, so the card still saves either way.
     return c.cacheKey
-      ? { id: c.id, cardType: "attention-pattern" as const, modelName: c.modelName, prompt: c.prompt, data: {} as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, cacheKey: c.cacheKey }
-      : { id: c.id, cardType: "attention-pattern" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier };
+      ? { ...common, cardType: "attention-pattern" as const, prompt: c.prompt, data: {} as Record<string, unknown>, cacheKey: c.cacheKey }
+      : { ...common, cardType: "attention-pattern" as const, prompt: c.prompt, data: c.data as Record<string, unknown> };
   }
-  return { id: c.id, cardType: "logit-lens" as const, modelName: c.modelName, prompt: c.prompt, data: c.data as Record<string, unknown>, position: c.position, gpuTier: c.gpuTier, topK: c.topK };
+  return { ...common, cardType: "logit-lens" as const, prompt: c.prompt, data: c.data as Record<string, unknown>, topK: c.topK };
 }
 
 export function getCardPrompt(c: AnyCard): string {

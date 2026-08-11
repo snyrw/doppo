@@ -25,6 +25,7 @@ import {
   createProject,
   duplicateProject,
   deleteProject,
+  deleteProjectCard,
   loadProject,
   updateProject,
   setProjectShare,
@@ -51,7 +52,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
         lensCards: state.lensCards.map(c => {
           if (c.id === action.id && c.cardType === action.cardType) {
             const cacheKey = action.cardType === "attention-pattern" ? action.cacheKey : undefined;
-            return { ...c, status: "result" as const, data: action.data, ...(cacheKey !== undefined ? { cacheKey } : {}) } as AnyCard;
+            return {
+              ...c,
+              status: "result" as const,
+              data: action.data,
+              finishedAt: action.finishedAt,
+              cached: action.cached,
+              ...(cacheKey !== undefined ? { cacheKey } : {}),
+            } as AnyCard;
           }
           // Resolving an activation card also completes its parent attribution's verify flow
           if (action.cardType === "activation" && c.id === action.parentAttributionId && c.cardType === "attribution")
@@ -283,8 +291,10 @@ function Projects() {
         if (c.cardType === "activation") {
           return {
             ...c, cardType: "activation" as const, status: "result" as const, error: null,
-            cleanPrompt: c.prompt, k: 10,
+            cleanPrompt: c.prompt, k: c.k ?? 10,
             parentAttributionId: c.parentAttributionId ?? "",
+            targetToken: c.targetToken ?? null,
+            contrastiveToken: c.contrastiveToken ?? null,
           } as unknown as ActivationCardData;
         }
         if (c.cardType === "steering") {
@@ -720,7 +730,19 @@ function Projects() {
           canvasState={state.canvas}
           onCanvasChange={canvas => dispatch({ type: "SET_CANVAS", canvas })}
           onMoveCard={(id, position) => dispatch({ type: "MOVE_CARD", id, position })}
-          onRemoveCard={id => { cancelCardJob(id); dispatch({ type: "REMOVE_CARD", id }); }}
+          onRemoveCard={id => {
+            cancelCardJob(id);
+            dispatch({ type: "REMOVE_CARD", id });
+            // Only persisted cards have a DB row to remove from — a card still
+            // loading (never upserted) or a still-draft project has nothing to
+            // delete server-side.
+            if (projectIdRef.current) {
+              deleteProjectCard(projectIdRef.current, id).catch(err => {
+                console.error(err);
+                onSaveError("Couldn't delete the card — it may reappear on reload.");
+              });
+            }
+          }}
           onVerifyTopK={jobHandlers.verifyTopK}
           onRerunSteering={steeringHandlers.rerunSteering}
         />

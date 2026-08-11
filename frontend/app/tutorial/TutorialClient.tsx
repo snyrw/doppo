@@ -168,15 +168,30 @@ export default function TutorialClient({ steps }: Props) {
           verifyStatus: "idle" as const,
           data: raw.data as AttributionData,
         } as AttributionCardData;
-      case "activation":
+      case "activation": {
+        // The band's chips come from the attribution card already on the canvas,
+        // so data.json needs no token fields and does not drift from the script
+        // that generates it.
+        //
+        // Found by cardType, not by raw.parentAttributionId: that value is
+        // "tutorial-3", but createCardFromData ids cards by *step*, so the
+        // attribution card is "tutorial-4" and "tutorial-3" is DLA. The stored
+        // id is inert everywhere else in tutorial mode, so the mismatch has
+        // never mattered — it would matter here. There is exactly one
+        // attribution card in the tutorial.
+        const parent = state.cards.find(c => c.cardType === "attribution");
+        const parentData = parent?.cardType === "attribution" ? parent.data : null;
         return {
           ...base,
           cardType: "activation" as const,
           cleanPrompt: raw.cleanPrompt as string,
           k: raw.k as number,
           parentAttributionId: raw.parentAttributionId as string,
+          targetToken: parentData?.target_token ?? null,
+          contrastiveToken: parentData?.contrastive_token ?? null,
           data: raw.data as ActivationPatchResult,
         } as ActivationCardData;
+      }
       case "steering":
         return {
           ...base,

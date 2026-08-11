@@ -15,9 +15,7 @@ const SWEEP_STEP_MS = 200;
 
 type JobCtrl = { jobId: string | null; cancelled: boolean };
 
-// One in-flight job per card. `cancelCardJob` flips the flag so the poll loop
-// exits silently; the DELETE fires here when the jobId is already known,
-// otherwise runJob fires it as soon as the spawn response arrives.
+// One in-flight job per card.
 const jobsByCard = new Map<string, JobCtrl>();
 
 export function cancelCardJob(cardId: string): void {
@@ -52,7 +50,8 @@ export async function runJob({ endpoint, body, cardId, startedAt, dispatch, onRe
   cardId: string;
   startedAt: number;
   dispatch: Dispatch<AppAction>;
-  onResolve: (data: unknown, cacheKey?: string | null) => void;
+  /** `cached` is true when the spawn short-circuited — no GPU time was billed. */
+  onResolve: (data: unknown, meta: { cacheKey?: string | null; cached: boolean }) => void;
   onError?: () => void;
 }): Promise<void> {
   const ctrl: JobCtrl = { jobId: null, cancelled: false };
@@ -83,7 +82,7 @@ export async function runJob({ endpoint, body, cardId, startedAt, dispatch, onRe
 
     const spawnBody = await spawnRes.json() as { status?: string; jobId?: string; data?: unknown; cacheKey?: string | null };
     if (spawnBody.status === "cached" && spawnBody.data) {
-      if (!ctrl.cancelled) onResolve(spawnBody.data, spawnBody.cacheKey);
+      if (!ctrl.cancelled) onResolve(spawnBody.data, { cacheKey: spawnBody.cacheKey, cached: true });
       return;
     }
     if (!spawnBody.jobId) {
@@ -144,7 +143,7 @@ export async function runJob({ endpoint, body, cardId, startedAt, dispatch, onRe
             return;
           }
         }
-        onResolve(result.data, result.cacheKey);
+        onResolve(result.data, { cacheKey: result.cacheKey, cached: false });
         return;
       }
       if (result.status === "error") {

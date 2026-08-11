@@ -15,13 +15,17 @@ export type AppState = {
 };
 
 // One resolved action for every job-backed card type, discriminated on cardType.
+//
+// `cached` comes from runJob's onResolve meta: true when the spawn short-circuited
+// on a cache hit, so no GPU time was billed.
+type CardResolved = { cached: boolean; finishedAt: number };
 type CardResolvedAction =
-  | { type: "CARD_RESOLVED"; id: string; cardType: "logit-lens"; data: HeatmapData }
-  | { type: "CARD_RESOLVED"; id: string; cardType: "dla"; data: DlaData }
-  | { type: "CARD_RESOLVED"; id: string; cardType: "attribution"; data: AttributionData }
-  | { type: "CARD_RESOLVED"; id: string; cardType: "activation"; data: ActivationPatchResult; parentAttributionId: string }
-  | { type: "CARD_RESOLVED"; id: string; cardType: "attention-pattern"; data: AttentionData; cacheKey?: string | null }
-  | { type: "CARD_RESOLVED"; id: string; cardType: "steering"; data: SteeringResult };
+  | ({ type: "CARD_RESOLVED"; id: string; cardType: "logit-lens"; data: HeatmapData } & CardResolved)
+  | ({ type: "CARD_RESOLVED"; id: string; cardType: "dla"; data: DlaData } & CardResolved)
+  | ({ type: "CARD_RESOLVED"; id: string; cardType: "attribution"; data: AttributionData } & CardResolved)
+  | ({ type: "CARD_RESOLVED"; id: string; cardType: "activation"; data: ActivationPatchResult; parentAttributionId: string } & CardResolved)
+  | ({ type: "CARD_RESOLVED"; id: string; cardType: "attention-pattern"; data: AttentionData; cacheKey?: string | null } & CardResolved)
+  | ({ type: "CARD_RESOLVED"; id: string; cardType: "steering"; data: SteeringResult } & CardResolved);
 
 export type AppAction =
   | { type: "ADD_CARD"; card: AnyCard }

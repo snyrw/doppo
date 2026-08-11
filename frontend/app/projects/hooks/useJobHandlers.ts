@@ -48,9 +48,12 @@ export function useJobHandlers({ dispatch, stateRef, ensureProject, onSaveError 
       endpoint: "/api/job/spawn-lens",
       body: { prompt, modelName, gpuTier, topK },
       cardId: id, startedAt, dispatch,
-      onResolve: (data) => {
-        dispatch({ type: "CARD_RESOLVED", id, cardType: "logit-lens", data: data as HeatmapData });
-        persist(serializeCard({ ...card, status: "result", data: data as HeatmapData }));
+      onResolve: (data, meta) => {
+        // One timestamp for both writes: the dispatch updates state, the persist
+        // builds its row from `card` and never sees reducer output.
+        const finishedAt = Date.now();
+        dispatch({ type: "CARD_RESOLVED", id, cardType: "logit-lens", data: data as HeatmapData, cached: meta.cached, finishedAt });
+        persist(serializeCard({ ...card, status: "result", data: data as HeatmapData, cached: meta.cached, finishedAt }));
       },
     });
   }, [dispatch, persist, stateRef]);
@@ -73,9 +76,10 @@ export function useJobHandlers({ dispatch, stateRef, ensureProject, onSaveError 
       endpoint: "/api/job/spawn-dla",
       body: { prompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken },
       cardId: id, startedAt, dispatch,
-      onResolve: (data) => {
-        dispatch({ type: "CARD_RESOLVED", id, cardType: "dla", data: data as DlaData });
-        persist(serializeCard({ ...card, status: "result", data: data as DlaData }));
+      onResolve: (data, meta) => {
+        const finishedAt = Date.now();
+        dispatch({ type: "CARD_RESOLVED", id, cardType: "dla", data: data as DlaData, cached: meta.cached, finishedAt });
+        persist(serializeCard({ ...card, status: "result", data: data as DlaData, cached: meta.cached, finishedAt }));
       },
     });
   }, [dispatch, persist, stateRef]);
@@ -98,9 +102,10 @@ export function useJobHandlers({ dispatch, stateRef, ensureProject, onSaveError 
       endpoint: "/api/job/spawn-attribution",
       body: { cleanPrompt, corruptedPrompt, modelName, gpuTier, targetPosition, targetToken, contrastiveToken },
       cardId: id, startedAt, dispatch,
-      onResolve: (data) => {
-        dispatch({ type: "CARD_RESOLVED", id, cardType: "attribution", data: data as AttributionData });
-        persist(serializeCard({ ...card, status: "result", data: data as AttributionData }));
+      onResolve: (data, meta) => {
+        const finishedAt = Date.now();
+        dispatch({ type: "CARD_RESOLVED", id, cardType: "attribution", data: data as AttributionData, cached: meta.cached, finishedAt });
+        persist(serializeCard({ ...card, status: "result", data: data as AttributionData, cached: meta.cached, finishedAt }));
       },
     });
   }, [dispatch, persist, stateRef]);
@@ -114,6 +119,8 @@ export function useJobHandlers({ dispatch, stateRef, ensureProject, onSaveError 
       id: activationId, cardType: "activation", status: "loading",
       modelName: attrCard.modelName, cleanPrompt: attrCard.cleanPrompt, k,
       parentAttributionId: attributionCardId,
+      targetToken: attrCard.data.target_token,
+      contrastiveToken: attrCard.data.contrastive_token,
       data: null, error: null,
       position: { x: attrCard.position.x + 420, y: attrCard.position.y },
       gpuTier: attrCard.gpuTier, startedAt,
@@ -131,9 +138,10 @@ export function useJobHandlers({ dispatch, stateRef, ensureProject, onSaveError 
         components: attrCard.data.top_k_components, k,
       },
       cardId: activationId, startedAt, dispatch,
-      onResolve: (data) => {
-        dispatch({ type: "CARD_RESOLVED", id: activationId, cardType: "activation", data: data as ActivationPatchResult, parentAttributionId: attributionCardId });
-        persist(serializeCard({ ...card, status: "result", data: data as ActivationPatchResult }));
+      onResolve: (data, meta) => {
+        const finishedAt = Date.now();
+        dispatch({ type: "CARD_RESOLVED", id: activationId, cardType: "activation", data: data as ActivationPatchResult, parentAttributionId: attributionCardId, cached: meta.cached, finishedAt });
+        persist(serializeCard({ ...card, status: "result", data: data as ActivationPatchResult, cached: meta.cached, finishedAt }));
       },
       onError: () => dispatch({ type: "ATTRIBUTION_VERIFY_DONE", id: attributionCardId }),
     });
@@ -156,9 +164,10 @@ export function useJobHandlers({ dispatch, stateRef, ensureProject, onSaveError 
       endpoint: "/api/job/spawn-attn",
       body: { prompt, modelName, gpuTier },
       cardId: id, startedAt, dispatch,
-      onResolve: (data, cacheKey) => {
-        dispatch({ type: "CARD_RESOLVED", id, cardType: "attention-pattern", data: data as AttentionData, cacheKey });
-        persist(serializeCard({ ...card, status: "result", data: data as AttentionData, cacheKey }));
+      onResolve: (data, meta) => {
+        const finishedAt = Date.now();
+        dispatch({ type: "CARD_RESOLVED", id, cardType: "attention-pattern", data: data as AttentionData, cacheKey: meta.cacheKey, cached: meta.cached, finishedAt });
+        persist(serializeCard({ ...card, status: "result", data: data as AttentionData, cacheKey: meta.cacheKey, cached: meta.cached, finishedAt }));
       },
     });
   }, [dispatch, persist, stateRef]);

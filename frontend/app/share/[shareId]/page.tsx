@@ -34,7 +34,9 @@ export default async function SharePage({
     if (c.cardType === "activation") {
       return {
         ...c, cardType: "activation" as const, status: "result" as const, error: null,
-        cleanPrompt: c.prompt, k: 10, parentAttributionId: c.parentAttributionId ?? "",
+        cleanPrompt: c.prompt, k: c.k ?? 10, parentAttributionId: c.parentAttributionId ?? "",
+        targetToken: c.targetToken ?? null,
+        contrastiveToken: c.contrastiveToken ?? null,
       } as unknown as ActivationCardData;
     }
     if (c.cardType === "steering") {

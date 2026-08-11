@@ -43,9 +43,10 @@ export function useSteeringHandlers({ dispatch, stateRef, ensureProject, onSaveE
       endpoint: "/api/job/spawn-steering",
       body: spawnBody(card, alpha),
       cardId: card.id, startedAt: card.startedAt ?? Date.now(), dispatch,
-      onResolve: (data) => {
-        dispatch({ type: "CARD_RESOLVED", id: card.id, cardType: "steering", data: data as SteeringResult });
-        persist(serializeCard({ ...card, status: "result", alpha, data: data as SteeringResult, error: null }));
+      onResolve: (data, meta) => {
+        const finishedAt = Date.now();
+        dispatch({ type: "CARD_RESOLVED", id: card.id, cardType: "steering", data: data as SteeringResult, cached: meta.cached, finishedAt });
+        persist(serializeCard({ ...card, status: "result", alpha, data: data as SteeringResult, error: null, cached: meta.cached, finishedAt }));
       },
     });
   }, [dispatch, persist]);
