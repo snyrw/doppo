@@ -27,7 +27,10 @@ export type DocSection = {
 
 export function extractHeadings(body: string): DocHeading[] {
   const out: DocHeading[] = [];
-  for (const line of body.split("\n")) {
+  // Windows checkouts use CRLF line endings. Splitting on "\n" alone leaves a
+  // carriage return on each line, which stops the heading match below and
+  // returns an empty table of contents.
+  for (const line of body.split(/\r?\n/)) {
     const m = line.match(/^## (.+)$/);
     if (m) out.push({ text: m[1].trim(), id: slugify(m[1]) });
   }
