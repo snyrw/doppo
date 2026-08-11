@@ -16,7 +16,7 @@ import {
 // flex/grid + clamp() — NOT the real data-driven workbench visualizations — so
 // they scale with the modal at any width. Palettes are transcribed verbatim from
 // the mock (one-off decorative colors, intentionally literal, matching the
-// `techniqueBars.ts` precedent). `TECHNIQUE_FIGURES` is indexed parallel to
+// `lib/techniques.ts` precedent). `TECHNIQUE_FIGURES` is indexed parallel to
 // TECHNIQUES / TECHNIQUE_CARDS.
 //
 // Depth: every cell/bar sits on a darker bottom "lip" via a non-blurred offset

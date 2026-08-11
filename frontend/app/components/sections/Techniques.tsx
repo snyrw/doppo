@@ -10,15 +10,9 @@ import {
 } from "../figure-geometry";
 import TechniqueStack from "./TechniqueStack";
 import TechniqueCardModal from "./TechniqueCardModal";
-import { TECHNIQUES } from "./techniqueBars";
+import { TECHNIQUES } from "../../lib/techniques";
 
-// "Techniques" deck section (Figma node 15:483). Left column mirrors the sibling
-// "What Doppo is" section — eyebrow nav, registration corner + heading, subtitle,
-// hairline — so the deck reads consistently. Right column is the TechniqueStack
-// (tilted blank cards under five tactile technique bars). A single diagonal
-// hairline runs down the gutter between the two, as in the mock. Entrance reuses
-// the hero word/row timings, gated by useSectionEntrance() so it replays on
-// activation.
+// "Techniques" deck section
 const HEADING = "What Doppo does";
 const WORD_STAGGER = 60; // matches Hero
 const CONTROLS_DELAY = 380; // matches Hero (hr/subtitle settle)
@@ -28,15 +22,7 @@ export default function Techniques() {
   const [selected, setSelected] = useState<number | null>(null);
   return (
     <div className="relative h-full overflow-hidden">
-      {/* ── Figure stage: gutter hairline + technique stack (desktop only) ──
-          One full-frame stage in --hf-u units (see figure-geometry.ts):
-          right-anchored on ultrawide, pinned left and clipped off the right
-          below 16:9, never shrinking or shearing. The hairline's positive
-          rotation about the top-left origin sends the bottom down-LEFT,
-          matching the mock's lean; it fades in late, like Hero's caption rule.
-          The stack bleeds across the centerline and just past the right edge
-          exactly as in the mock; the wrapper's overflow-hidden clips the
-          off-screen-right bleed. */}
+      {/* ── Figure stage: gutter hairline + technique stack (desktop only)*/}
       <div className="deck-only absolute inset-0 overflow-hidden">
         <div
           className="absolute inset-y-0"
@@ -91,7 +77,7 @@ export default function Techniques() {
           )}
           style={{ animationDelay: `${CONTROLS_DELAY - 60}ms` }}
         >
-          An overview of the techniques that are currently usable in the workbench
+          an overview of the techniques that are currently usable in the workbench
         </p>
 
         <hr
@@ -103,9 +89,7 @@ export default function Techniques() {
         />
 
         {/* ── Flow-only: the technique bars as a plain, non-interactive list.
-            The deck shows them in the tilted stack figure; flow just needs the
-            content, so these reuse the tactile bar look via `tactile--static`
-            (no cursor / hover-lift / press-sink) and don't open the modal. ── */}
+        Planning on changing this in the future to be something less sloppy.*/}
         <ul className="flow-only mt-[clamp(28px,7vw,44px)] flex list-none flex-col gap-[10px] p-0">
           {TECHNIQUES.map((t) => (
             <li

@@ -1,6 +1,6 @@
 // Content for the five technique cards that open as modals from the Techniques
 // section (Figma nodes 134-2/3/5/6/7). Indexed parallel to TECHNIQUES in
-// `techniqueBars.ts`: 0 logit lens, 1 attention, 2 DLA, 3 patching, 4 steering.
+// `lib/techniques.ts`: 0 logit lens, 1 attention, 2 DLA, 3 patching, 4 steering.
 //
 // `title` is the muted breadcrumb title in each card header. `copy` is the
 // right-column explainer. Cards 0–2 are transcribed verbatim from Figma; cards 3
