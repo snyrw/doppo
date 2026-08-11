@@ -43,7 +43,7 @@ describe("explainSectionsFor", () => {
     expect(kinds).not.toContain("links");
   });
 
-  it("skips image paragraphs — the popup is text-only", () => {
+  it("skips image paragraphs, the popup is text-only", () => {
     const withImage: TutorialStep = {
       ...step,
       paragraphs: ["Text.", { type: "image", src: "/a.png", alt: "diagram" }],
