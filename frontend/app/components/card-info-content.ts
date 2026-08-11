@@ -12,7 +12,11 @@ export type InfoSection =
   | { kind: "identity"; technique: string; tier: string | null }
   | { kind: "text"; label: string; value: string }
   | { kind: "params"; rows: InfoRow[] }
-  | { kind: "warning"; text: string };
+  | { kind: "warning"; text: string }
+  /** An unlabeled explanation paragraph — CardExplain's main copy. */
+  | { kind: "prose"; text: string }
+  /** Reference links, e.g. CardExplain's "read more" list. */
+  | { kind: "links"; links: { label: string; url: string }[] };
 
 function timingRows(card: AnyCard): InfoRow[] {
   // `cached` and `finishedAt` are absent on rows saved before they existed, so
