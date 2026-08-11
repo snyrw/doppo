@@ -37,7 +37,7 @@ export default function PrivacySection() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <div className="text-[10px] uppercase tracking-[0.08em] text-muted">Legal</div>
+        <div className="text-[10px] font-semibold text-muted">Legal</div>
         <div className="flex gap-3 text-[13px]">
           <Link href="/privacy" className="text-accent underline">Privacy Policy</Link>
           <Link href="/terms" className="text-accent underline">Terms of Service</Link>
@@ -45,14 +45,14 @@ export default function PrivacySection() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="text-[10px] uppercase tracking-[0.08em] text-muted">Your data</div>
+        <div className="text-[10px] font-semibold text-muted">Your data</div>
         <button className="cursor-pointer self-start rounded-md border border-card-border bg-card px-3 py-1.5 text-[13px] text-foreground hover:bg-surface-border" onClick={download}>
           Download my data
         </button>
       </div>
 
       <div className="flex flex-col gap-2 rounded-md border border-red-600/40 p-3">
-        <div className="text-[10px] uppercase tracking-[0.08em] text-red-600">Danger zone</div>
+        <div className="text-[10px] font-semibold text-red-600">Danger zone</div>
         <p className="m-0 text-xs text-muted">Deleting your account permanently removes your projects, cached results, billing records, and saved payment method. This cannot be undone.</p>
         <input
           className="box-border w-full rounded-md border border-card-border bg-background px-2.5 py-1.5 text-[13px] text-foreground outline-none"

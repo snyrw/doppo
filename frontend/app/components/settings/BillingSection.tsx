@@ -41,10 +41,10 @@ export default function BillingSection() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.08em] text-muted">Balance</div>
+          <div className="text-[10px] font-semibold text-muted">Balance</div>
           <div className="text-lg font-semibold text-foreground">{balanceError ? "—" : balance === null ? "…" : fmt(balance)}</div>
         </div>
-        <button className="btn-accent cursor-pointer rounded-md px-3 py-1.5 text-[13px] font-semibold"
+        <button className="btn-accent cursor-pointer px-3 py-1.5 text-[13px] font-semibold"
           onClick={() => window.dispatchEvent(new CustomEvent("open-buy-credits"))}>
           Add balance
         </button>
@@ -58,7 +58,7 @@ export default function BillingSection() {
       </div>
 
       <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.08em] text-muted">History</div>
+        <div className="mb-2 text-[10px] font-semibold text-muted">History</div>
         <div className="flex flex-col gap-1">
           {rows.length === 0 && <p className="m-0 text-xs text-muted">No activity yet.</p>}
           {rows.map((r, i) => (

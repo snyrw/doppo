@@ -55,7 +55,7 @@ export default function SettingsDrawer() {
   return (
     <div className="fixed inset-0 z-[200] flex justify-end" role="dialog" aria-modal="true" aria-label="Settings">
       <div className="absolute inset-0 bg-black/30" onClick={() => setOpen(false)} />
-      <div className="relative flex h-full w-[420px] max-w-full flex-col border-l border-card-border bg-panel shadow-[0_0_40px_rgba(0,0,0,0.2)]">
+      <div className="relative flex h-full w-[420px] max-w-full flex-col border-l border-card-border bg-panel">
         <div className="flex items-center justify-between border-b border-surface-border px-5 py-3">
           <span className="text-sm font-semibold text-foreground">Settings</span>
           <button onClick={() => setOpen(false)} aria-label="Close settings" className="cursor-pointer border-none bg-transparent text-muted hover:text-foreground">✕</button>

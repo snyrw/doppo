@@ -11,6 +11,7 @@ import AttentionConfigPane from "../components/AttentionConfigPane";
 import Navbar from "../components/Navbar";
 import { ProjectSearch } from "../components/ProjectSearch";
 import { TactileButton } from "../components/ui/TactileButton";
+import { TOP_BAR_PAD, TOP_BAR_FACE_CLS } from "../components/ui/control-metrics";
 import type { LensCardData } from "../components/LensCard";
 import type { DlaCardData } from "../components/DlaCard";
 import type { AttributionCardData } from "../components/AttributionCard";
@@ -475,13 +476,13 @@ function Projects() {
       <Navbar />
 
       {creditsToast && (
-        <div className="fixed bottom-6 left-1/2 z-[300] -translate-x-1/2 whitespace-nowrap rounded-lg border border-card-border bg-card px-[18px] py-2.5 text-xs text-foreground shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+        <div className="fixed bottom-6 left-1/2 z-[300] -translate-x-1/2 whitespace-nowrap rounded-lg border border-card-border bg-card px-[18px] py-2.5 text-xs text-foreground">
           Balance added successfully
         </div>
       )}
 
       {saveError && (
-        <div className="fixed bottom-6 left-1/2 z-[300] -translate-x-1/2 whitespace-nowrap rounded-lg border border-red-500/40 bg-card px-[18px] py-2.5 text-xs text-foreground shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
+        <div className="fixed bottom-6 left-1/2 z-[300] -translate-x-1/2 whitespace-nowrap rounded-lg border border-red-500/40 bg-card px-[18px] py-2.5 text-xs text-foreground">
           {saveError}
         </div>
       )}
@@ -495,8 +496,10 @@ function Projects() {
             <TactileButton
               variant="primary"
               onClick={() => setOpenPane(p => (p === null ? "add" : null))}
+              style={TOP_BAR_PAD}
               faceClassName={cn(
-                "gap-1.5 px-2.5 py-[5px] text-[13px] tracking-[0.01em]",
+                "gap-1.5",
+                TOP_BAR_FACE_CLS,
                 openPane !== null && "bg-accent-hover",
               )}
             >
@@ -506,7 +509,7 @@ function Projects() {
 
             {/* Dropdown — choose a technique */}
             {openPane === "add" && (
-              <div className="absolute left-0 top-[calc(100%+6px)] z-[31] flex min-w-40 animate-cfg-drop-in flex-col rounded-md border border-card-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.10)]">
+              <div className="absolute left-0 top-[calc(100%+6px)] z-[31] flex min-w-40 animate-cfg-drop-in flex-col rounded-md border border-card-border bg-card">
                 {ADD_MENU_ITEMS.map((item) => (
                   <button
                     key={item.pane}
@@ -562,13 +565,14 @@ function Projects() {
             <TactileButton
               variant="ghost"
               onClick={() => setProjectsOpen(o => !o)}
-              faceClassName="px-2.5 py-[5px] text-[13px] font-semibold tracking-[0.01em]"
+              style={TOP_BAR_PAD}
+              faceClassName={TOP_BAR_FACE_CLS}
             >
               Projects
             </TactileButton>
 
             {projectsOpen && (
-              <div className="absolute left-0 top-[calc(100%+6px)] flex min-w-40 flex-col overflow-visible rounded-md border border-card-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.10)]">
+              <div className="absolute left-0 top-[calc(100%+6px)] flex min-w-40 flex-col overflow-visible rounded-md border border-card-border bg-card">
                 <MenuItem
                   onClick={() => { setProjectsOpen(false); setSearchOpen(true); }}
                   disabled={!loggedIn}
@@ -595,7 +599,7 @@ function Projects() {
                   </MenuItem>
 
                   {exportOpen && resolvedCards.length > 0 && (
-                    <div className="absolute left-[calc(100%+6px)] top-0 z-10 flex max-h-80 min-w-[220px] flex-col overflow-y-auto rounded-md border border-card-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.10)]">
+                    <div className="absolute left-[calc(100%+6px)] top-0 z-10 flex max-h-80 min-w-[220px] flex-col overflow-y-auto rounded-md border border-card-border bg-card">
                       {resolvedCards.map((card) => (
                         <button
                           key={card.id}
@@ -724,7 +728,7 @@ function Projects() {
       </div>
 
       {shareCopied && (
-        <div className="pointer-events-none fixed bottom-5 left-1/2 z-[1000] -translate-x-1/2 rounded-md bg-accent px-[18px] py-2 text-[13px] font-medium text-accent-fg shadow-[0_2px_12px_rgba(0,0,0,0.18)]">
+        <div className="pointer-events-none fixed bottom-5 left-1/2 z-[1000] -translate-x-1/2 rounded-md bg-accent px-[18px] py-2 text-[13px] font-medium text-accent-fg">
           Link copied to clipboard
         </div>
       )}

@@ -4,8 +4,8 @@ import React from "react";
 import { cn } from "../../lib/cn";
 
 /**
- * Square chamfered icon button with the same tactile sink as TactileButton.
- * Pass the icon (svg / glyph) as children.
+ * Square icon button matching the app's shared tactile control style (see TactileButton).
+ * Use for any standalone icon action instead of a one-off styled button.
  */
 export function IconTile({
   className,
@@ -15,9 +15,9 @@ export function IconTile({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { innerClassName?: string }) {
   return (
     <button {...rest} className={cn("tactile icon-tile", className)}>
-      <span className="tactile__base chamfer" aria-hidden="true" />
-      <span className="tactile__face chamfer">
-        <span className={cn("tactile__inner chamfer-inner", innerClassName)}>{children}</span>
+      <span className="tactile__base" aria-hidden="true" />
+      <span className="tactile__face">
+        <span className={cn("tactile__inner", innerClassName)}>{children}</span>
       </span>
     </button>
   );

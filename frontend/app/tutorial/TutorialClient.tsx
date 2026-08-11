@@ -10,6 +10,7 @@ import SteeringConfigPane from "../components/SteeringConfigPane";
 import AttentionConfigPane from "../components/AttentionConfigPane";
 import Navbar from "../components/Navbar";
 import { TactileButton } from "../components/ui/TactileButton";
+import { TOP_BAR_PAD, TOP_BAR_FACE_CLS } from "../components/ui/control-metrics";
 import type { LensCardData, HeatmapData } from "../components/LensCard";
 import type { DlaCardData, DlaData } from "../components/DlaCard";
 import type { AttributionCardData, AttributionData } from "../components/AttributionCard";
@@ -297,8 +298,10 @@ export default function TutorialClient({ steps }: Props) {
           <TactileButton
             variant="primary"
             onClick={() => setAddDropdownOpen(o => !o)}
+            style={TOP_BAR_PAD}
             faceClassName={cn(
-              "gap-1.5 px-2.5 py-[5px] text-[13px] tracking-[0.01em]",
+              "gap-1.5",
+              TOP_BAR_FACE_CLS,
               addDropdownOpen && "bg-accent-hover",
             )}
           >
@@ -307,7 +310,7 @@ export default function TutorialClient({ steps }: Props) {
           </TactileButton>
 
           {addDropdownOpen && (
-            <div className="absolute left-0 top-[calc(100%+6px)] z-40 min-w-[200px] overflow-hidden rounded-lg border border-card-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
+            <div className="absolute left-0 top-[calc(100%+6px)] z-40 min-w-[200px] overflow-hidden rounded-lg border border-card-border bg-card">
               {[1, 2, 3, 4, 6].map((i, listIdx) => {
                 const isEnabled = i === 6
                   ? currentStep === 6 && !completedSteps.has(6)

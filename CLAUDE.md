@@ -141,3 +141,13 @@ gotchas, per-card notes, and what's still unverified. Current geometry
 constants live in `card-geometry.ts`, not the doc. Shared primitives live in
 `components/CardShell.tsx`; anything used by only one or two cards stays with
 its card.
+
+**UI harmonization — in progress**, bringing the surfaces around the cards into
+line. Read `.claude/rules/ui-harmonization.md` before styling anything outside a
+card. Four rules are settled app-wide (checked by hand, no test covers them):
+everything is round, chamfers are retired; no drop shadows (the border carries
+the edge); monospace is for data only; no uppercase eyebrow labels. Spacing has
+a four-step scale on the config panel only, extracted from rebuilding it as a
+reference surface rather than decreed up front — see
+`.claude/rules/ui-harmonization.md` for the values and what hasn't moved onto it
+yet.

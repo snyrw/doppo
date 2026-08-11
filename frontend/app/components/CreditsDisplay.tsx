@@ -94,8 +94,8 @@ function CreditsButtonInner() {
       </IconTile>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-[100] w-[220px] overflow-hidden rounded-lg border border-card-border bg-card shadow-[0_4px_20px_rgba(0,0,0,0.12)]">
-          <div className="border-b border-surface-border px-3 pb-[7px] pt-2 text-[9px] uppercase tracking-[0.08em] text-muted">
+        <div className="absolute right-0 top-[calc(100%+8px)] z-[100] w-[220px] overflow-hidden rounded-lg border border-card-border bg-card">
+          <div className="border-b border-surface-border px-3 pb-[7px] pt-2 text-[9px] font-semibold text-muted">
             Usage
           </div>
 

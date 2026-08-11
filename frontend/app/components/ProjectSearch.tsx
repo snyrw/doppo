@@ -125,7 +125,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
       <div
         onKeyDown={handleKeyDown}
         className={cn(
-          "fixed left-1/2 top-[18%] z-[51] flex w-[580px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[10px] border border-card-border bg-card shadow-[0_8px_24px_rgba(0,0,0,0.12),0_32px_64px_rgba(0,0,0,0.18)] transition-[opacity,transform] duration-[160ms]",
+          "fixed left-1/2 top-[18%] z-[51] flex w-[580px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[10px] border border-card-border bg-card transition-[opacity,transform] duration-[160ms]",
           isOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
         )}
         style={{ transform: `translateX(-50%) scale(${isOpen ? 1 : 0.97})` }}
@@ -226,7 +226,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
               )}
 
               {rest.length > 0 && (
-                <Section label={query ? "Results" : "All Projects"}>
+                <Section label={query ? "Results" : "All projects"}>
                   {rest.map((p, i) => {
                     const idx = (currentProject ? 1 : 0) + recents.length + i;
                     return (
@@ -270,7 +270,7 @@ export function ProjectSearch({ isOpen, currentProjectId, onClose, onSelect }: P
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="px-4 pb-[3px] pt-2 text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
+      <div className="px-4 pb-[3px] pt-2 text-[10px] font-semibold text-muted">
         {label}
       </div>
       {children}

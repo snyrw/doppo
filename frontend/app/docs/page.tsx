@@ -70,7 +70,7 @@ export default function DocsPage() {
             Makeshift docs. Some writing might be a bit iffy until it gets a better rewrite!
           </p>
           <div className="mt-6 rounded-md border border-surface-border p-4 lg:hidden">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">On this page</p>
+            <p className="mb-2 text-xs font-semibold text-muted">On this page</p>
             <Toc sections={sections} />
           </div>
           <div className={cn("mt-4", PROSE_CLASSES)}>

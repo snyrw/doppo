@@ -1,19 +1,13 @@
 "use client";
 
-import { useState, useEffect, type CSSProperties } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { signIn, signUp, signOut, useSession, requestPasswordReset } from "../lib/auth-client";
 import { Modal } from "./ui/Modal";
 import { TactileButton } from "./ui/TactileButton";
+import { TOP_BAR_PAD } from "./ui/control-metrics";
 
 type Mode = "signin" | "signup" | "verify" | "forgot" | "forgot-sent";
-
-// Compact face padding so the navbar auth buttons land at the same ~34px face
-// height as the icon tiles next to them (text-xs line box 16px + 2*9px).
-// pad-y 7.5 puts the ghost face at 28px inner / 31px face — dimensionally
-// identical to the navbar IconTiles, so the whole right-hand cluster shares
-// one height. Changing it desyncs the two; change .icon-tile's inner to match.
-const NAV_BTN_PAD = { "--pad-x": "14px", "--pad-y": "7.5px" } as CSSProperties;
 
 export default function AuthButtons() {
   const { data: session } = useSession();
@@ -82,7 +76,7 @@ export default function AuthButtons() {
   };
 
   const inputCls = "box-border w-full rounded-md border border-card-border bg-background px-2.5 py-1.5 font-[inherit] text-[13px] text-foreground outline-none";
-  const submitBtnCls = "btn-accent w-full cursor-pointer py-2 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-50";
+  const submitBtnCls = "btn-accent btn-accent--capsule w-full cursor-pointer py-2 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-50";
   const linkBtnCls = "cursor-pointer border-none bg-transparent p-0 text-[13px] text-accent underline";
   const errorCls = "m-0 text-xs text-red-600";
 
@@ -98,14 +92,14 @@ export default function AuthButtons() {
     return (
       <div className="flex items-center gap-3">
         {/* No depth-reserve mb here: the email is centred in the header itself, not
-            against the button faces (which sit 2.5px high from their 5px lip). */}
+            against the button faces (which sit 1.5px high from their 3px lip). */}
         <span className="nav-btn-ghost cursor-default">
           {session.user.email}
         </span>
         <TactileButton
           variant="ghost"
           onClick={() => signOut()}
-          style={NAV_BTN_PAD}
+          style={TOP_BAR_PAD}
           faceClassName="font-sans text-xs font-normal text-muted"
         >
           Sign Out
@@ -119,7 +113,7 @@ export default function AuthButtons() {
       <TactileButton
         variant="ghost"
         onClick={() => openModal("signin")}
-        style={NAV_BTN_PAD}
+        style={TOP_BAR_PAD}
         faceClassName="text-xs font-normal text-muted"
       >
         Log In
@@ -127,7 +121,7 @@ export default function AuthButtons() {
       <TactileButton
         variant="ghost"
         onClick={() => openModal("signup")}
-        style={NAV_BTN_PAD}
+        style={TOP_BAR_PAD}
         faceClassName="text-xs font-normal text-muted"
       >
         Sign Up
@@ -153,7 +147,7 @@ export default function AuthButtons() {
                   </p>
                 )}
                 <button
-                  className="btn-accent w-full cursor-pointer rounded-md border-none py-2 text-[13px]"
+                  className="btn-accent btn-accent--capsule w-full cursor-pointer border-none py-2 text-[13px]"
                   onClick={() => setOpen(false)}
                 >
                   Done

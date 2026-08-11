@@ -33,7 +33,7 @@ export default function AppearanceSection() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.08em] text-muted">Theme</div>
+        <div className="mb-2 text-[10px] font-semibold text-muted">Theme</div>
         <div className="flex gap-2">
           {[{ k: false, label: "Light" }, { k: true, label: "Dark" }].map(({ k, label }) => (
             <button key={label} onClick={() => setTheme(k)}
@@ -44,7 +44,7 @@ export default function AppearanceSection() {
         </div>
       </div>
       <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.08em] text-muted">Sequential palette</div>
+        <div className="mb-2 text-[10px] font-semibold text-muted">Sequential palette</div>
         <div className="flex flex-col gap-1.5">
           {SEQUENTIAL_PALETTE_ORDER.map((name) => (
             <button key={name} onClick={() => setPalette("heatmap-palette", name)}
@@ -56,7 +56,7 @@ export default function AppearanceSection() {
         </div>
       </div>
       <div>
-        <div className="mb-2 text-[10px] uppercase tracking-[0.08em] text-muted">Diverging palette</div>
+        <div className="mb-2 text-[10px] font-semibold text-muted">Diverging palette</div>
         <div className="flex flex-col gap-1.5">
           {DIVERGING_PALETTE_ORDER.map((name) => (
             <button key={name} onClick={() => setPalette("diverging-palette", name)}

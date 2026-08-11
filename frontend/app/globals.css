@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* Tailwind theme — utilities reference the runtime vars below, so
+/* Tailwind theme: utilities reference the runtime vars below, so
    [data-theme="dark"] overrides keep working with zero dark: variants.
-   (Never use @custom-variant dark here — silent Turbopack failure.) */
+   (Never use @custom-variant dark here, it causes a Turbopack failure.) */
 @theme inline {
   --color-background: var(--bg);
   --color-panel: var(--panel);
@@ -36,22 +36,37 @@
   --card: #ecebe4;
   --card-border: #c4c3bc;
   --surface-border: #d4d2cb;
+  /* Scrollbar thumb. Its own token because --card-border is invisible on --card
+     in dark (#363533 on #272726); the thumb has to clear the surface it sits on. */
+  --scroll-thumb: #c4c3bc;
   --text: #1c1c1c;
   --text-muted: #7a7876;
   --accent: #3a3938;
   --accent-hover: #1c1c1c;
   --accent-fg: #ecebe4;
-  /* darker tone beneath chamfered accent fills — reads as the tactile "side" */
+  /* darker tone beneath the accent fill, reads as the tactile "side" */
   --accent-side: #111110;
+  /* Control shape scale: past half the height, radius stops changing, so
+     capsule is the ceiling of the scale, not a separate system.
+
+     Deliberately NOT in @theme inline: Tailwind v4's radius namespace is
+     --radius-*, so declaring these there would redefine rounded-md for every
+     panel and popover in the app. */
+  --ctl-radius-xs: 4px;      /* in-card micro controls, ~17-19px tall */
+  --ctl-radius-md: 8px;      /* chrome buttons and icon tiles, ~26-31px tall */
+  --ctl-radius-full: 9999px; /* terminal committing actions only */
+  /* Depth of the tactile "side" the face sinks onto. Shared by .tactile and
+     .btn-accent. */
+  --ctl-depth: 3px;
   /* heatmap cell color as r,g,b channels for use in rgba() */
   --heatmap-rgb: 28, 28, 28;
-  /* Hero figure lattice — faded-viridis faces + darker same-hue twins behind.
-     Light = the Figma values (sit just below warm paper, so they recede). */
+  /* Hero figure lattice: faded-viridis faces plus darker same-hue twins behind.
+     Light values sit just below warm paper so they recede. */
   --hero-l0-face: #a382ab; --hero-l0-back: #7e5987; /* mauve */
   --hero-l1-face: #9b90be; --hero-l1-back: #6b5e93; /* periwinkle */
   --hero-l2-face: #a9c5ce; --hero-l2-back: #7399a6; /* teal */
   --hero-l3-face: #ccdbad; --hero-l3-back: #b1c583; /* green */
-  /* WhatDoppoIs background spheres — flat fills, exact Figma values (light). */
+  /* WhatDoppoIs background spheres: flat neutral fills that recede against the panel (light). */
   --sphere-face: #dddcd5; --sphere-back: #bbb9b2;
 }
 
@@ -61,6 +76,8 @@
   --card: #272726;
   --card-border: #363533;
   --surface-border: #2e2e2c;
+  /* Lifted off --card-border, which is invisible on --card in dark. */
+  --scroll-thumb: #4a4947;
   --text: #ecebe4;
   --text-muted: #8a8986;
   --accent: #d4d2cb;
@@ -88,41 +105,17 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* ===========================================================================
-   Tactile chamfered button system (monochrome, Sentry-flavoured)
-   - corners are cut at 45° via clip-path (no border-radius anywhere)
-   - chunky "side" the face sinks onto when pressed
-   House style: --c (chamfer) 8px, --depth 5px, --bw (cut border) 1.5px.
-   In @layer components so Tailwind utilities (faceClassName) win on conflict.
-   =========================================================================== */
+/* Tactile button system (monochrome). In @layer components so Tailwind
+   utilities (faceClassName) win on conflict. */
 @layer components {
-
-/* Cut all four corners at 45°. Size driven by --c. */
-.chamfer {
-  clip-path: polygon(
-    var(--c) 0, calc(100% - var(--c)) 0,
-    100% var(--c), 100% calc(100% - var(--c)),
-    calc(100% - var(--c)) 100%, var(--c) 100%,
-    0 calc(100% - var(--c)), 0 var(--c)
-  );
-}
-/* Parallel inner cut, inset by --bw — used for two-layer cut borders. */
-.chamfer-inner {
-  clip-path: polygon(
-    calc(var(--c) - var(--bw)) 0, calc(100% - (var(--c) - var(--bw))) 0,
-    100% calc(var(--c) - var(--bw)), 100% calc(100% - (var(--c) - var(--bw))),
-    calc(100% - (var(--c) - var(--bw))) 100%, calc(var(--c) - var(--bw)) 100%,
-    0 calc(100% - (var(--c) - var(--bw))), 0 calc(var(--c) - var(--bw))
-  );
-}
 
 /* Layered tactile button (TactileButton / IconTile primitives). */
 .tactile {
-  --c: 8px;
-  --depth: 5px;
+  --r: var(--ctl-radius-md);
+  --depth: var(--ctl-depth);
   --bw: 1.5px;
   /* Single source for face padding. primary applies it directly; ghost subtracts
-     --bw from its inner so the cut-border layer doesn't make it 2*--bw larger than
+     --bw from its inner so the border-ring layer doesn't make it 2*--bw larger than
      a primary with the same values. Override per-instance (style / utility) to keep
      a primary+ghost pair dimensionally identical. */
   --pad-x: 20px;
@@ -136,12 +129,16 @@ body {
   cursor: pointer;
   font: inherit;
 }
+/* Capsule: the terminal committing action of a surface. Not "the primary
+   variant": navigation and toolbar buttons stay on the fixed step. */
+.tactile--capsule { --r: var(--ctl-radius-full); }
 .tactile__base {
   position: absolute;
   inset: 0;
   z-index: 0;
   transform: translateY(var(--depth));
   background: var(--tactile-side);
+  border-radius: var(--r);
 }
 .tactile__face {
   position: relative;
@@ -152,18 +149,25 @@ body {
   gap: 8px;
   transition: transform 90ms cubic-bezier(0.3, 0.7, 0.4, 1), background 140ms ease, color 140ms ease;
   will-change: transform;
+  border-radius: var(--r);
 }
+/* Concentric inner: the ring reads as even all the way round only if the inner
+   radius is the outer minus the border. max() clamps rather than going negative
+   when --bw exceeds the radius. */
+.tactile__inner { border-radius: max(0px, calc(var(--r) - var(--bw))); }
 .tactile:hover:not(:disabled) .tactile__face  { transform: translateY(-1px); }
 .tactile:active:not(:disabled) .tactile__face { transform: translateY(var(--depth)); }  /* full sink */
 .tactile:disabled { cursor: default; }
 /* Decorative, non-interactive tactile (flow-mode technique bars): keep the
    layered look but drop the cursor + hover-lift + press-sink so it doesn't
    read as clickable. */
-.tactile--static { cursor: default; }
+/* Also holds the pre-scale 5px lip: these are figures, not controls, so they
+   must not follow --ctl-depth down to 3px. */
+.tactile--static { cursor: default; --depth: 5px; }
 .tactile--static:hover .tactile__face,
 .tactile--static:active .tactile__face { transform: none; }
 
-/* primary — filled accent */
+/* primary: filled accent */
 .tactile--primary { --tactile-side: var(--accent-side); }
 .tactile--primary .tactile__face {
   background: var(--accent);
@@ -176,7 +180,7 @@ body {
 .tactile--primary:disabled { --tactile-side: var(--surface-border); }
 .tactile--primary:disabled .tactile__face { background: var(--surface-border); color: var(--text-muted); }
 
-/* secondary — cut border (outer = border tone, inner = surface) */
+/* secondary: border ring (outer = border tone, inner = surface) */
 .tactile--ghost { --tactile-side: var(--card-border); }
 .tactile--ghost .tactile__face { background: var(--card-border); padding: var(--bw); }
 .tactile--ghost .tactile__inner {
@@ -191,8 +195,8 @@ body {
   padding: calc(var(--pad-y) - var(--bw)) calc(var(--pad-x) - var(--bw));
 }
 
-/* icon tile — square, modest chamfer, cut border */
-.icon-tile { --c: 5px; --tactile-side: var(--card-border); }
+/* icon tile: square, rounded, border ring */
+.icon-tile { --r: var(--ctl-radius-md); --tactile-side: var(--card-border); }
 .icon-tile .tactile__face { background: var(--card-border); padding: var(--bw); }
 .icon-tile .tactile__inner {
   display: inline-flex;
@@ -206,26 +210,24 @@ body {
 }
 .icon-tile:hover:not(:disabled) .tactile__inner { color: var(--text); }
 
-/* Single-element chamfered accent chip — for the many small in-card buttons
-   that just want the look without a layered DOM. Depth via a shaped shadow
-   (drop-shadow follows the clip-path silhouette). */
+/* Single-element accent chip: for the many small in-card buttons that just
+   want the look without a layered DOM. Depth via a shaped shadow (drop-shadow
+   follows the border-radius silhouette). This is the tactile "side", a 0-blur
+   hard offset simulating a physical edge, not a soft elevation shadow. */
 .btn-accent {
-  --c: 6px;
+  --r: var(--ctl-radius-md);
   background: var(--accent);
   color: var(--accent-fg);
-  clip-path: polygon(
-    var(--c) 0, calc(100% - var(--c)) 0,
-    100% var(--c), 100% calc(100% - var(--c)),
-    calc(100% - var(--c)) 100%, var(--c) 100%,
-    0 calc(100% - var(--c)), 0 var(--c)
-  );
-  filter: drop-shadow(0 3px 0 var(--accent-side));
-  margin-bottom: 3px;
+  border-radius: var(--r);
+  filter: drop-shadow(0 var(--ctl-depth) 0 var(--accent-side));
+  margin-bottom: var(--ctl-depth);
   transition: transform 90ms cubic-bezier(0.3, 0.7, 0.4, 1), filter 90ms cubic-bezier(0.3, 0.7, 0.4, 1), background 140ms ease;
 }
+/* Terminal committing action. See .tactile--capsule. */
+.btn-accent--capsule { --r: var(--ctl-radius-full); }
 .btn-accent:hover:not(:disabled) { background: var(--accent-hover); }
 .btn-accent:active:not(:disabled) {
-  transform: translateY(3px);
+  transform: translateY(var(--ctl-depth));
   filter: drop-shadow(0 0 0 var(--accent-side));
 }
 
@@ -273,10 +275,9 @@ body {
 }
 
 /* === Landing deck/flow mode gates ===
-   CSS twin of DECK_QUERY in components/deck/deck-logic.ts — keep in sync.
+   CSS twin of DECK_QUERY in components/deck/deck-logic.ts, keep in sync.
    Both landing subtrees are SSR-rendered; these gates pick one per viewport.
-   Second block is the De Morgan expansion of `not (deck query)` (Turbopack has
-   a history of silently mis-compiling exotic media syntax here). */
+   Second block is the De Morgan expansion of `not (deck query)`. */
 @media (min-width: 768px) and (min-height: 600px) and (orientation: landscape) {
   .flow-only { display: none !important; }
   .landing-root { height: 100svh; overflow: hidden; }

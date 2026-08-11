@@ -44,10 +44,10 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/55 p-6"
       style={{ animation: fadingOut ? "fadeIn 180ms ease reverse forwards" : "fadeIn 180ms ease" }}
     >
-      <div className="flex max-h-[calc(100vh-48px)] w-full max-w-[560px] animate-fade-up flex-col gap-5 overflow-y-auto rounded-xl border border-card-border bg-card px-10 pb-8 pt-9 shadow-[0_16px_64px_rgba(0,0,0,0.24)]">
+      <div className="flex max-h-[calc(100vh-48px)] w-full max-w-[560px] animate-fade-up flex-col gap-5 overflow-y-auto rounded-xl border border-card-border bg-card px-10 pb-8 pt-9">
         <div>
-          <p className="m-0 mb-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
-            Tutorial Finished
+          <p className="m-0 mb-2.5 text-[10px] font-semibold text-muted">
+            Tutorial finished
           </p>
           <h1 className="m-0 text-[22px] font-medium leading-[1.4] tracking-[-0.01em] text-foreground">
             Complete!
@@ -64,7 +64,7 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
         </div>
 
         <div>
-          <p className="m-0 mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+          <p className="m-0 mb-2 text-[10px] font-semibold text-muted">
             Further reading
           </p>
           <div className="flex flex-col gap-[5px]">
@@ -85,6 +85,7 @@ export default function TutorialCompleteModal({ onDismiss }: Props) {
         <div className="mt-1 flex gap-2.5">
           <TactileButton
             variant="primary"
+            capsule
             onClick={handleGoToProjects}
             faceClassName="text-sm"
           >

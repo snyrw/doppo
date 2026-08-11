@@ -50,11 +50,11 @@ export default function TutorialDrawer({
         onPointerDown={e => e.stopPropagation()}
         className={cn(
           "fixed top-1/2 z-[60] flex -translate-y-1/2 cursor-pointer flex-col items-center gap-1 rounded-l-md border border-card-border bg-card px-1.5 py-2.5 transition-[right] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]",
-          isOpen ? "right-[360px]" : "right-0 border-r-0 shadow-[-2px_0_8px_rgba(0,0,0,0.08)]",
+          isOpen ? "right-[360px]" : "right-0 border-r-0",
         )}
         aria-label={isOpen ? "Close guide" : "Open guide"}
       >
-        <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted [writing-mode:vertical-rl]">
+        <span className="text-[10px] font-semibold text-muted [writing-mode:vertical-rl]">
           Guide
         </span>
         <span className={cn("text-xs text-muted transition-transform duration-[250ms]", isOpen ? "rotate-0" : "rotate-180")}>
@@ -69,7 +69,7 @@ export default function TutorialDrawer({
         )}
       >
         <div className="max-h-[22%] shrink-0 overflow-y-auto border-b border-surface-border px-4 pb-1.5 pt-2">
-          <p className="m-0 mb-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted">
+          <p className="m-0 mb-1 text-[9px] font-semibold text-muted">
             Steps
           </p>
           <div className="flex flex-col">
@@ -82,7 +82,7 @@ export default function TutorialDrawer({
               return (
                 <div key={i}>
                   {showPartHeader && (
-                    <p className="mx-1.5 mb-0.5 mt-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-muted">
+                    <p className="mx-1.5 mb-0.5 mt-1 text-[9px] font-semibold text-muted">
                       {s.part}
                     </p>
                   )}
@@ -117,7 +117,7 @@ export default function TutorialDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pb-8 pt-5">
-          <p className="m-0 mb-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-muted">
+          <p className="m-0 mb-2 text-[9px] font-semibold text-muted">
             {stepLabel}
           </p>
           <h2 className="m-0 mb-4 text-base font-semibold tracking-[-0.01em] text-foreground">
@@ -140,7 +140,7 @@ export default function TutorialDrawer({
 
           {step.whatToNotice && (
             <div className={cn("rounded-md bg-surface-border px-3.5 py-3", step.caveat ? "mb-4" : "mb-5")}>
-              <p className="m-0 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+              <p className="m-0 mb-1.5 text-[10px] font-semibold text-muted">
                 What to notice
               </p>
               <p className="m-0 text-xs leading-[1.7] text-foreground">
@@ -151,7 +151,7 @@ export default function TutorialDrawer({
 
           {step.caveat && (
             <div className="mb-5 rounded-md border border-surface-border px-3.5 py-3">
-              <p className="m-0 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+              <p className="m-0 mb-1.5 text-[10px] font-semibold text-muted">
                 Caveat
               </p>
               <p className="m-0 text-xs leading-[1.7] text-muted">
@@ -162,7 +162,7 @@ export default function TutorialDrawer({
 
           {step.links.length > 0 && (
             <div className={isIntroStep && viewStep === currentStep ? "mb-5" : "mb-0"}>
-              <p className="m-0 mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+              <p className="m-0 mb-2 text-[10px] font-semibold text-muted">
                 References
               </p>
               <div className="flex flex-col gap-[5px]">
@@ -185,6 +185,7 @@ export default function TutorialDrawer({
           {isIntroStep && viewStep === currentStep && (
             <TactileButton
               variant="primary"
+              capsule
               onPointerDown={e => e.stopPropagation()}
               onClick={onContinueIntro}
               className="mt-1"

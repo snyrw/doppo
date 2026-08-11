@@ -26,7 +26,7 @@ export function Modal({
         onClick={e => e.stopPropagation()}
         className={cn(
           "max-h-[85vh] overflow-y-auto rounded-xl border border-card-border",
-          "bg-card p-6 shadow-[0_8px_32px_rgba(0,0,0,0.18)]",
+          "bg-card p-6",
           className,
         )}
       >
