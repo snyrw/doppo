@@ -50,7 +50,7 @@ export interface Sphere {
 }
 
 // Whole-cluster horizontal nudge, design px (positive = right of the Figma positions).
-export const SPHERE_X_NUDGE = 20;
+const SPHERE_X_NUDGE = 20;
 
 // Note: rightU is negative for faces whose right edge bleeds past the 1920px frame (left+size > 1920); valid CSS, clipped by the field's overflow-hidden wrapper.
 export const SPHERES: readonly Sphere[] = SOURCE.map((s) => ({
