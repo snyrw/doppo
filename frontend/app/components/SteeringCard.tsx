@@ -1,9 +1,46 @@
 "use client";
 
 import React from "react";
-import { CardDragHandle, CardErrorState, CardLoadingHeader, CardLoadingState, TierBadge, useElapsedMs } from "./CardShell";
+import {
+  BandChip,
+  CardBand,
+  CardCloseButton,
+  CardErrorState,
+  CardFrame,
+  CardHeader,
+  CardLoadingHeader,
+  CardLoadingState,
+  CardRule,
+  CardScrollArea,
+  CARD_INSET,
+  CARD_MAX_W,
+  useElapsedMs,
+} from "./CardShell";
 import { cn } from "../lib/cn";
+import { techniqueForCard } from "../lib/techniques";
+import { CardInfo } from "./CardInfo";
+import { infoSectionsFor } from "./card-info-content";
+import {
+  canStep,
+  displayPrompt,
+  formatAlpha,
+  stepAlpha,
+} from "./steering-alpha";
+import { BAND_ACCENT_W, BAND_GAP } from "./card-geometry";
 import type { LoadingStage } from "../lib/loading-stage";
+
+const TECHNIQUE = techniqueForCard("steering");
+
+/* The body columns mirror the band's own flex distribution rather than
+   recomputing it. Each takes 1fr of the remainder exactly as the two `flex-1`
+   chips above do, so CSS owns the split and there is no second copy of the
+   arithmetic to drift out of step.
+
+   The fixed bases are the band furniture each column sits beneath: the left
+   column spans the accent square, the gap after it, and half the gap between the
+   chips; the right column spans the other half. */
+const LEFT_BASIS = BAND_ACCENT_W + BAND_GAP + BAND_GAP / 2;
+const RIGHT_BASIS = BAND_GAP / 2;
 
 export type SteeringComponent = {
   layer: number;
@@ -52,6 +89,10 @@ export type SteeringCardData = {
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
+  /** Set by the CARD_RESOLVED reducer. Absent on rows saved before this existed. */
+  finishedAt?: number;
+  /** True when the spawn short-circuited on a cache hit — no GPU time was billed. */
+  cached?: boolean;
   loadingStage?: LoadingStage;
 };
 
@@ -65,10 +106,6 @@ type SteeringCardProps = {
   onRerun: (cardId: string, newAlpha: number) => void;
   tutorialMode?: boolean;
 };
-
-function componentLabel(c: SteeringComponent): string {
-  return `L${c.layer}·residual`;
-}
 
 const STAGE_LABELS: Record<string, string> = {
   computing: "Computing DIM vectors…",
@@ -86,261 +123,179 @@ function SteeringCard({
   tutorialMode,
 }: SteeringCardProps) {
   const elapsedMs = useElapsedMs(card.status, card.startedAt);
-  const [headerHovered, setHeaderHovered] = React.useState(false);
   const [localAlpha, setLocalAlpha] = React.useState(card.alpha);
 
-  // Sync local alpha if the card is re-run externally (alpha stored in card updates).
+  // Re-sync when the card's alpha changes underneath us — a re-run writes the
+  // new value in the same dispatch that clears `data`, which is what makes the
+  // dirty state below resolve itself.
   React.useEffect(() => { setLocalAlpha(card.alpha); }, [card.alpha]);
 
-  const logitDiffStr = card.data
-    ? (card.data.logit_diff >= 0 ? "+" : "") + card.data.logit_diff.toFixed(2)
-    : null;
+  const loading = card.status === "loading";
+  const dirty = !tutorialMode && !loading && localAlpha !== card.alpha;
+  const stepperDisabled = tutorialMode || loading;
+  const memoSections = React.useMemo(() => infoSectionsFor(card), [card]);
 
-  return (
-    <div
-      ref={ref}
-      data-card-id={card.id}
-      className="absolute z-10 flex w-90 flex-col rounded-lg border border-card-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
-      style={{ left: card.position.x, top: card.position.y }}
-    >
+  /* Alpha, its vector diagnostics, and the Re-run that commits it.
+     The diagnostics stay here rather than in `infoSectionsFor` because they are
+     computed from the *live* alpha, not from the card — the panel recomputes
+     them as you step, before any re-run has happened.
 
-      {/* Hover popup */}
-      {headerHovered && (
-        <div className="pointer-events-none absolute bottom-[calc(100%+6px)] left-0 z-[100] min-w-[200px] max-w-[320px] rounded-lg border border-card-border bg-card px-3 py-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
-          <p className="m-0 break-all text-[11px] font-semibold text-foreground">
-            {card.modelName}
-          </p>
-          <p className="mb-[3px] mt-2 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
-            DIM pair
-          </p>
-          <p className="m-0 break-words text-[10px] leading-[1.5] text-muted">
-            clean: {card.cleanPrompt}
-          </p>
-          <p className="m-0 mt-[3px] break-words text-[10px] leading-[1.5] text-muted">
-            corrupted: {card.corruptedPrompt}
-          </p>
-          <p className="mb-[3px] mt-2 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
-            generation prompt
-          </p>
-          <p className="m-0 break-words text-[10px] leading-[1.5] text-foreground">
-            {card.generationPrompt && card.generationPrompt.trim() !== "" ? card.generationPrompt : <span className="italic text-muted">↳ defaults to clean prompt</span>}
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {card.gpuTier && <TierBadge tier={card.gpuTier} />}
-            <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.06em] text-accent">
-              Steering
-            </span>
-            <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px font-mono text-[9px] text-muted">
-              T={card.temperature.toFixed(1)}  rep={card.repetitionPenalty.toFixed(2)}
-            </span>
-          </div>
+     The function form is what lets Re-run dismiss the panel: the regenerated
+     text lands in the card body behind it. Stepping alpha leaves it open. */
+  const steeringControls = (close: () => void) => (
+    <div className="flex flex-col gap-2.5">
+      {card.data?.steering_stats && card.data.steering_stats.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className="text-[9px] font-semibold text-muted">Vector</span>
+          {card.data.steering_stats.map((s, i) => {
+            const relStrength = s.resid_norm > 0
+              ? (Math.abs(localAlpha) * s.vector_norm) / s.resid_norm
+              : 0;
+            const cos = s.pair_cos;
+            const meanCos = cos && cos.length > 0 ? cos.reduce((a, b) => a + b, 0) / cos.length : null;
+            const minCos = cos && cos.length > 0 ? Math.min(...cos) : null;
+            const nOpposed = cos ? cos.filter(c => c < 0).length : 0;
+            return (
+              <div key={i} className="flex flex-col gap-0.5 font-mono text-[9px] text-muted">
+                <span title="‖αv‖ relative to the residual stream’s mean norm at this layer">
+                  L{s.layer} ‖αv‖/‖resid‖ <span className="text-foreground">{relStrength.toFixed(2)}</span>
+                </span>
+                {meanCos !== null && minCos !== null && (
+                  <span title="Cosine of each pair’s difference vector against the mean — low or negative pairs pull against the direction">
+                    pair coherence <span className="text-foreground">{meanCos.toFixed(2)}</span> mean
+                    {" · "}<span className={cn(minCos < 0 && "text-red-600")}>{minCos.toFixed(2)}</span> min
+                    {nOpposed > 0 && <span className="text-red-600"> · {nOpposed} opposed</span>}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Header */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] leading-[15px] text-muted">Alpha</span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            onClick={() => setLocalAlpha(a => stepAlpha(a, -1))}
+            disabled={stepperDisabled || !canStep(localAlpha, -1)}
+            aria-label="Decrease alpha"
+            className="cursor-pointer border-none bg-transparent p-0 text-[11px] leading-none text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          >←</button>
+          <span className="font-mono text-[10px] leading-none tabular-nums text-foreground">
+            {formatAlpha(localAlpha)}
+          </span>
+          <button
+            onClick={() => setLocalAlpha(a => stepAlpha(a, 1))}
+            disabled={stepperDisabled || !canStep(localAlpha, 1)}
+            aria-label="Increase alpha"
+            className="cursor-pointer border-none bg-transparent p-0 text-[11px] leading-none text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          >→</button>
+        </div>
+      </div>
+
+      {dirty && (
+        <button
+          onClick={() => { onRerun(card.id, localAlpha); close(); }}
+          className="rounded-[var(--ctl-radius-xs)] cursor-pointer self-start whitespace-nowrap border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg transition-transform active:translate-y-px"
+        >
+          Re-run →
+        </button>
+      )}
+    </div>
+  );
+
+  /* No `elevated` on CardFrame: the info panel portals to document.body, so it
+     already clears every neighbouring card and has no z-index to negotiate. */
+  return (
+    <CardFrame ref={ref} cardId={card.id} position={card.position} width={CARD_MAX_W}>
+      {!tutorialMode && <CardCloseButton onClick={() => onRemove(card.id)} />}
+
+      {/* Chrome — the whole block is the drag surface; interactive children opt out */}
       <div
         onPointerDown={e => onStartDrag(e, card.id, card.position)}
         onPointerMove={onDragMove}
         onPointerUp={onDragEnd}
-        onMouseEnter={() => setHeaderHovered(true)}
-        onMouseLeave={() => setHeaderHovered(false)}
-        className="flex shrink-0 cursor-grab select-none items-center gap-1.5 rounded-t-lg border-b border-surface-border px-2.5 py-[7px]"
+        className="shrink-0 cursor-grab select-none"
       >
-        <CardDragHandle />
-        <span className="shrink-0 text-[11px] font-semibold text-foreground">
-          Steering
-        </span>
-        {card.nPairs > 1 && (
-          <span className="shrink-0 rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.05em] text-accent">
-            {card.nPairs}p
-          </span>
-        )}
-        <span className="min-w-0 flex-1 truncate text-[10px] text-muted">
-          {card.components.map(componentLabel).join(" + ") || "residual"}
-        </span>
-        {!tutorialMode && (
-          <button
-            onPointerDown={e => e.stopPropagation()}
-            onClick={() => onRemove(card.id)}
-            className="shrink-0 cursor-pointer border-none bg-transparent px-0.5 text-xs leading-none text-muted"
-          >
-            ×
-          </button>
-        )}
-      </div>
+        <CardHeader
+          modelName={card.modelName}
+          prompt={displayPrompt(card.generationPrompt, card.cleanPrompt)}
+        />
 
-      {/* Injection info + alpha slider row */}
-      <div
-        onPointerDown={e => e.stopPropagation()}
-        className="flex flex-wrap items-center gap-1.5 border-b border-surface-border px-2.5 py-[5px]"
-      >
-        {card.components.map((c, i) => (
-          <span
-            key={i}
-            className="shrink-0 rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px font-mono text-[9px] font-semibold text-accent"
-          >
-            {componentLabel(c)}
-          </span>
-        ))}
-        <div className="ml-auto flex shrink-0 items-center gap-1.5">
-          <span className="w-9 text-right font-mono text-[9px] text-muted">
-            α={localAlpha >= 0 ? localAlpha.toFixed(2) : localAlpha.toFixed(2)}
-          </span>
-          <input
-            type="range"
-            min={-8} max={8} step={0.25}
-            value={localAlpha}
-            disabled={tutorialMode}
-            onChange={e => setLocalAlpha(parseFloat(e.target.value))}
-            className="w-20 cursor-pointer accent-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-45"
+        {/* Two plain labels now that alpha has moved into the panel. Both chips
+            are `flex-1`, and the body columns below mirror that same
+            distribution — which is what places the divider. */}
+        <CardBand info={
+          <CardInfo
+            accent={TECHNIQUE.band}
+            accentLabel={TECHNIQUE.name}
+            sections={memoSections}
+            controls={steeringControls}
           />
-          {!tutorialMode && card.status !== "loading" && localAlpha !== card.alpha && (
-            <button
-              onPointerDown={e => e.stopPropagation()}
-              onClick={() => onRerun(card.id, localAlpha)}
-              className="cursor-pointer whitespace-nowrap chamfer [--c:3px] border-none bg-accent px-[7px] py-0.5 text-[9px] font-semibold text-accent-fg transition-transform active:translate-y-px"
-            >
-              Re-run →
-            </button>
-          )}
-        </div>
+        }>
+          <BandChip className="min-w-0 flex-1">Base</BandChip>
+          <BandChip className="min-w-0 flex-1">Steered</BandChip>
+        </CardBand>
+
+        <CardRule />
       </div>
 
-      {/* Loading */}
-      {card.status === "loading" && (
-        <div className="flex flex-col gap-2 px-3 py-2.5">
+      {loading && (
+        <div className="flex flex-col gap-2.5 px-5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
           <CardLoadingState stage={card.loadingStage} labels={STAGE_LABELS} />
         </div>
       )}
 
-      {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} showVerifyCard={card.showVerifyCard} />}
-
-      {/* Result */}
-      {card.status === "result" && card.data && (
-        <div onPointerDown={e => e.stopPropagation()} className="flex flex-col">
-          {/* Steered text */}
-          <div className="px-2.5 pb-1 pt-2">
-            <p className="m-0 mb-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
-              Steered
-            </p>
-            <div className="max-h-[100px] overflow-y-auto whitespace-pre-wrap break-words rounded border border-surface-border bg-card px-2 py-1.5 text-[11px] leading-[1.6] text-foreground">
-              {card.data.steered_text}
-            </div>
-          </div>
-
-          {/* Baseline text */}
-          <div className="px-2.5 pb-2 pt-1">
-            <p className="m-0 mb-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
-              Baseline
-            </p>
-            <div className="max-h-[100px] overflow-y-auto whitespace-pre-wrap break-words rounded border border-surface-border bg-card px-2 py-1.5 text-[11px] leading-[1.6] text-muted">
-              {card.data.baseline_text}
-            </div>
-          </div>
-
-          <div className="border-t border-surface-border" />
-
-          {/* Next-token comparison */}
-          <div className="px-2.5 py-2">
-            <div className="mb-1.5 flex items-center justify-between">
-              <p className="m-0 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
-                Next token
-              </p>
-              <span
-                className={cn(
-                  "rounded-[3px] border px-[5px] py-px font-mono text-[9px] font-semibold",
-                  card.data.logit_diff >= 0
-                    ? "border-[rgba(22,163,74,0.25)] bg-[rgba(22,163,74,0.08)] text-green-600"
-                    : "border-[rgba(220,38,38,0.25)] bg-[rgba(220,38,38,0.08)] text-red-600",
-                )}
-              >
-                Δ logit {logitDiffStr}
-              </span>
-            </div>
-
-            {/* Two-column token table */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* Steered column */}
-              <div>
-                <p className="m-0 mb-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-muted">
-                  Steered
-                </p>
-                {card.data.top_k_steered.map((t, i) => (
-                  <div key={i} className="mb-[3px] flex items-center gap-1 font-mono">
-                    <span className="w-[60px] shrink-0 truncate text-[9px] text-foreground">
-                      {JSON.stringify(t.token)}
-                    </span>
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-sm bg-surface-border">
-                      <div className="h-full rounded-sm bg-accent opacity-80" style={{ width: `${t.prob * 100}%` }} />
-                    </div>
-                    <span className="w-[26px] shrink-0 text-right text-[8px] text-muted">
-                      {(t.prob * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Baseline column */}
-              <div>
-                <p className="m-0 mb-1 text-[8px] font-semibold uppercase tracking-[0.06em] text-muted">
-                  Baseline
-                </p>
-                {card.data.top_k_baseline.map((t, i) => (
-                  <div key={i} className="mb-[3px] flex items-center gap-1 font-mono">
-                    <span className="w-[60px] shrink-0 truncate text-[9px] text-muted">
-                      {JSON.stringify(t.token)}
-                    </span>
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-sm bg-surface-border">
-                      <div className="h-full rounded-sm bg-muted opacity-50" style={{ width: `${t.prob * 100}%` }} />
-                    </div>
-                    <span className="w-[26px] shrink-0 text-right text-[8px] text-muted">
-                      {(t.prob * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Vector diagnostics: injection strength relative to the stream's own
-              norm at that layer, and per-pair directional coherence. */}
-          {card.data.steering_stats && card.data.steering_stats.length > 0 && (
-            <>
-              <div className="border-t border-surface-border" />
-              <div className="px-2.5 py-2">
-                <p className="m-0 mb-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">
-                  Vector
-                </p>
-                {card.data.steering_stats.map((s, i) => {
-                  const relStrength = s.resid_norm > 0 ? (Math.abs(card.alpha) * s.vector_norm) / s.resid_norm : 0;
-                  const cos = s.pair_cos;
-                  const meanCos = cos && cos.length > 0 ? cos.reduce((a, b) => a + b, 0) / cos.length : null;
-                  const minCos = cos && cos.length > 0 ? Math.min(...cos) : null;
-                  const nOpposed = cos ? cos.filter(c => c < 0).length : 0;
-                  return (
-                    <div key={i} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-mono text-[9px] text-muted">
-                      <span>L{s.layer}</span>
-                      <span title="‖αv‖ relative to the residual stream’s mean norm at this layer">
-                        ‖αv‖/‖resid‖ <span className="text-foreground">{relStrength.toFixed(2)}</span>
-                      </span>
-                      {meanCos !== null && minCos !== null && (
-                        <span title="Cosine of each pair’s difference vector against the mean — low or negative pairs pull against the direction">
-                          pair coherence <span className="text-foreground">{meanCos.toFixed(2)}</span> mean
-                          {" · "}<span className={cn(minCos < 0 && "text-red-600")}>{minCos.toFixed(2)}</span> min
-                          {nOpposed > 0 && <span className="text-red-600"> · {nOpposed} opposed</span>}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
+      {card.status === "error" && (
+        <CardErrorState
+          message={card.error ?? undefined}
+          showBuyCredits={card.showBuyCredits}
+          showVerifyCard={card.showVerifyCard}
+        />
       )}
-    </div>
+
+      {card.status === "result" && card.data && (
+        <CardScrollArea>
+          {/* items-stretch so the divider spans the full scroll content height,
+              not the viewport. Aligned to CARD_INSET, not CARD_BODY_PAD: the
+              columns share the column CardRule uses. */}
+          <div
+            onPointerDown={e => e.stopPropagation()}
+            className="flex items-stretch"
+            style={{ paddingInline: CARD_INSET, paddingBlock: 20 }}
+          >
+            {/* The columns carry no padding of their own, and the text gutters
+                sit on inner blocks instead. `flex-basis` is a BORDER-BOX size, so
+                an item can never resolve below its own padding + border: with
+                `pl-3.5` on the right column its 3px basis was floored to 14,
+                which shifted the split by 5.5px. Folding the padding into the
+                bases fixes the split but makes the free space odd, putting both
+                columns on half pixels — so the padding moves inward instead and
+                the bases stay pure.
+
+                The divider is the left column's right border rather than a track
+                of its own: a separate 1px track would leave an odd remainder and
+                land the rule on a half pixel. `min-w-0` lets long unbroken
+                generated text wrap instead of forcing the row wider. */}
+            <div
+              className="min-w-0 border-r border-card-border"
+              style={{ flex: `1 1 ${LEFT_BASIS}px` }}
+            >
+              <div className="whitespace-pre-wrap break-words pr-3.5 text-[12px] leading-[1.6] text-foreground">
+                {card.data.baseline_text}
+              </div>
+            </div>
+            <div className="min-w-0" style={{ flex: `1 1 ${RIGHT_BASIS}px` }}>
+              <div className="whitespace-pre-wrap break-words pl-3.5 text-[12px] leading-[1.6] text-foreground">
+                {card.data.steered_text}
+              </div>
+            </div>
+          </div>
+        </CardScrollArea>
+      )}
+    </CardFrame>
   );
 }
 

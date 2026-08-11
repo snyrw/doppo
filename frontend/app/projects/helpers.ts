@@ -1,8 +1,9 @@
+import { CARD_MAX_H, CARD_MAX_W } from "../components/CardShell";
 import type { AnyCard } from "./types";
 
-const CARD_COL_WIDTH = 380;
-const CARD_ROW_HEIGHT = 480;
-const GRID_MARGIN = 40;
+export const CARD_COL_WIDTH = CARD_MAX_W;
+export const CARD_ROW_HEIGHT = CARD_MAX_H;
+export const GRID_MARGIN = 40;
 
 export function autoArrangePos(index: number): { x: number; y: number } {
   const col = index % 3;

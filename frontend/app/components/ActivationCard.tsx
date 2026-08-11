@@ -1,11 +1,29 @@
 "use client";
 
 import React from "react";
-import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, TierBadge, useElapsedMs } from "./CardShell";
-import { DivergingBar } from "./DivergingBar";
 import { useDivergingPalette } from "../hooks/usePalette";
-import { HoverTooltip, type TooltipState } from "../lib/tooltip";
+import { BAND_ACTIVATION, labelForCard } from "../lib/techniques";
+import { CardInfo } from "./CardInfo";
+import { infoSectionsFor } from "./card-info-content";
+import {
+  BandChip, CardBand, CardCloseButton, CardErrorState, CardFrame, CardHeader,
+  CardLoadingHeader, CardLoadingState, CardRule, CardScrollArea, useElapsedMs,
+  CARD_INSET,
+} from "./CardShell";
+import { BarTable, type BarColumn, type BarTableRow } from "./BarTable";
+import { ACTIVATION_VALUE_W, ACTIVATION_ZONE_W, TOP_LABEL_W } from "./bar-table-geometry";
 import type { LoadingStage } from "../lib/loading-stage";
+
+const COLUMNS: BarColumn[] = [
+  { header: "Attr.", width: ACTIVATION_ZONE_W },
+  { header: "Effect", width: ACTIVATION_ZONE_W },
+];
+
+const STAGE_LABELS: Record<string, string> = {
+  preparing:         "Caching clean activations…",
+  computing_effects: "Normalizing effects…",
+  patching:          "Verifying component {i} of {n}…",
+};
 
 type VerifiedComponent = {
   layer: number;
@@ -28,6 +46,10 @@ export type ActivationCardData = {
   cleanPrompt: string;
   k: number;
   parentAttributionId: string;
+  /** Copied from the parent attribution card at creation, for the band's chips.
+   *  Null on rows saved before these were threaded through. */
+  targetToken: string | null;
+  contrastiveToken: string | null;
   data: ActivationPatchResult | null;
   error: string | null;
   showBuyCredits?: boolean;
@@ -35,6 +57,10 @@ export type ActivationCardData = {
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
+  /** Set by the CARD_RESOLVED reducer. Absent on rows saved before this existed. */
+  finishedAt?: number;
+  /** True when the spawn short-circuited on a cache hit — no GPU time was billed. */
+  cached?: boolean;
   loadingStage?: LoadingStage;
 };
 
@@ -48,19 +74,16 @@ type ActivationCardProps = {
   tutorialMode?: boolean;
 };
 
-const STAGE_LABELS: Record<string, string> = {
-  preparing: "Caching clean activations…",
-  computing_effects: "Normalizing effects…",
-  patching: "Verifying component {i} of {n}…",
-};
-
-function componentLabel(comp: VerifiedComponent): string {
-  return comp.component_type === "attn_head" ? `L${comp.layer}·H${comp.head}` : `L${comp.layer}·MLP`;
+function componentLabel(c: VerifiedComponent): string {
+  return c.component_type === "attn_head" ? `L${c.layer}·H${c.head}` : `L${c.layer}·MLP`;
 }
 
-/** Components where predicted (attribution_score) and verified (actual_effect) agree
- * on sign — the only agreement claim that holds up at k≈10 with possible near-zero
- * ties; a correlation coefficient over this few points is not a meaningful statistic. */
+const pct = (v: number) => `${v >= 0 ? "+" : "−"}${(Math.abs(v) * 100).toFixed(1)}%`;
+
+/** Components where predicted (attribution_score) and verified (actual_effect)
+ * agree on sign — the only agreement claim that holds up at k≈10 with possible
+ * near-zero ties; a correlation coefficient over this few points is not a
+ * meaningful statistic. */
 function signAgreement(components: VerifiedComponent[]): { agree: number; total: number } {
   let agree = 0;
   for (const c of components) {
@@ -69,164 +92,157 @@ function signAgreement(components: VerifiedComponent[]): { agree: number; total:
   return { agree, total: components.length };
 }
 
+function rows(data: ActivationPatchResult, attrAbsMax: number, effectAbsMax: number): BarTableRow[] {
+  return data.components.map((c, i) => {
+    const label = componentLabel(c);
+    return {
+      key: `${label}-${i}`,
+      label,
+      // Two independent scales: attribution scores and effect percentages are
+      // not the same unit, which is why BarSpec.absMax is per bar.
+      bars: [
+        { val: c.attribution_score, absMax: attrAbsMax },
+        { val: c.actual_effect, absMax: effectAbsMax },
+      ],
+      value: pct(c.actual_effect),
+      tooltip: (
+        <>
+          <div className="mb-[3px] font-semibold">{label}</div>
+          <div className="flex flex-col gap-0.5 font-mono tabular-nums">
+            <div className="flex justify-between gap-3.5">
+              <span className="text-muted">attr</span>
+              <span>{c.attribution_score >= 0 ? "+" : ""}{c.attribution_score.toFixed(3)}</span>
+            </div>
+            <div className="flex justify-between gap-3.5">
+              <span className="text-muted">effect</span>
+              <span>{pct(c.actual_effect)}</span>
+            </div>
+          </div>
+        </>
+      ),
+    };
+  });
+}
+
 function ActivationCard({
-  card,
-  ref,
-  onStartDrag,
-  onDragMove,
-  onDragEnd,
-  onRemove,
-  tutorialMode,
+  card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, tutorialMode,
 }: ActivationCardProps) {
   const elapsedMs = useElapsedMs(card.status, card.startedAt);
-  const [headerHovered, setHeaderHovered] = React.useState(false);
-  const [tooltip, setTooltip] = React.useState<TooltipState>(null);
   const palette = useDivergingPalette();
 
-  const agreement = React.useMemo(() => {
-    if (!card.data || card.data.components.length === 0) return null;
-    return signAgreement(card.data.components);
-  }, [card.data]);
+  const data = card.status === "result" ? card.data : null;
 
-  const attrAbsMax = React.useMemo(() => {
-    if (!card.data) return 1;
-    return Math.max(1e-9, ...card.data.components.map(c => Math.abs(c.attribution_score)));
-  }, [card.data]);
-
-  const effectAbsMax = React.useMemo(() => {
-    if (!card.data) return 1;
-    return Math.max(1e-9, ...card.data.components.map(c => Math.abs(c.actual_effect)));
-  }, [card.data]);
+  const attrAbsMax = React.useMemo(
+    () => (data ? Math.max(1e-9, ...data.components.map(c => Math.abs(c.attribution_score))) : 1),
+    [data],
+  );
+  const effectAbsMax = React.useMemo(
+    () => (data ? Math.max(1e-9, ...data.components.map(c => Math.abs(c.actual_effect))) : 1),
+    [data],
+  );
+  const agreement = React.useMemo(
+    () => (data && data.components.length > 0 ? signAgreement(data.components) : null),
+    [data],
+  );
+  const memoRows = React.useMemo(
+    () => (data ? rows(data, attrAbsMax, effectAbsMax) : []),
+    [data, attrAbsMax, effectAbsMax],
+  );
+  const memoSections = React.useMemo(() => infoSectionsFor(card), [card]);
 
   return (
-    <div
-      ref={ref}
-      data-card-id={card.id}
-      className="absolute z-10 flex w-80 flex-col rounded-lg border border-card-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
-      style={{ left: card.position.x, top: card.position.y }}
-    >
+    <CardFrame ref={ref} cardId={card.id} position={card.position}>
+      {!tutorialMode && <CardCloseButton onClick={() => onRemove(card.id)} />}
 
-      {/* Hover popup */}
-      {headerHovered && (
-        <div className="pointer-events-none absolute bottom-[calc(100%+6px)] left-0 z-[100] min-w-[200px] max-w-[300px] rounded-lg border border-card-border bg-card px-3 py-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
-          <p className="m-0 break-all text-[11px] font-semibold text-foreground">
-            {card.modelName}
-          </p>
-          <p className="m-0 mt-[5px] break-words text-[10px] leading-[1.5] text-muted">
-            {card.cleanPrompt}
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {card.gpuTier && <TierBadge tier={card.gpuTier} />}
-            <span className="rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.06em] text-accent">
-              Activation Patch
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Header */}
+      {/* Chrome — the whole block is the drag surface; interactive children opt out */}
       <div
         onPointerDown={e => onStartDrag(e, card.id, card.position)}
         onPointerMove={onDragMove}
         onPointerUp={onDragEnd}
-        onMouseEnter={() => setHeaderHovered(true)}
-        onMouseLeave={() => setHeaderHovered(false)}
-        className="flex shrink-0 cursor-grab select-none items-center gap-1.5 rounded-t-lg border-b border-surface-border px-2.5 py-[7px]"
+        className="shrink-0 cursor-grab select-none"
       >
-        <CardDragHandle />
-        <span className="shrink-0 text-[11px] font-semibold text-foreground">
-          Activation Patch
-        </span>
-        <span className="min-w-0 flex-1 truncate text-[10px] text-muted">
-          top {card.k}
-        </span>
-        {!tutorialMode && (
-          <button
-            onPointerDown={e => e.stopPropagation()}
-            onClick={() => onRemove(card.id)}
-            className="shrink-0 cursor-pointer border-none bg-transparent px-0.5 text-xs leading-none text-muted"
-          >
-            ×
-          </button>
-        )}
+        <CardHeader modelName={card.modelName} prompt={card.cleanPrompt} />
+
+        {/* BAND_ACTIVATION, not techniqueForCard: both patching cards share the
+            "patching" key but not the fill. */}
+        <CardBand info={
+          <CardInfo
+            accent={BAND_ACTIVATION}
+            accentLabel={labelForCard(card.cardType)}
+            sections={memoSections}
+          />
+        }>
+          {data && (
+            <>
+              {/* Null on rows saved before the tokens were threaded through; the
+                  band degrades to accent + count rather than showing empty chips. */}
+              {card.targetToken && (
+                <BandChip className="min-w-0">
+                  <span className="truncate" title={card.targetToken}>
+                    {JSON.stringify(card.targetToken)}
+                  </span>
+                </BandChip>
+              )}
+              {card.targetToken && card.contrastiveToken && (
+                <>
+                  <span className="flex shrink-0 items-center text-[10px] leading-none text-muted">→</span>
+                  <BandChip className="min-w-0">
+                    <span className="truncate" title={card.contrastiveToken}>
+                      {JSON.stringify(card.contrastiveToken)}
+                    </span>
+                  </BandChip>
+                </>
+              )}
+              <div className="min-w-0 flex-1" />
+              {/* Static label, not a control — the mock's 127x39 slab. `k` is also
+                  a panel parameter; the duplication is deliberate, since this chip
+                  is the band's only content besides the token pair. */}
+              <BandChip className="shrink-0">top {card.k}</BandChip>
+            </>
+          )}
+        </CardBand>
+
+        <CardRule />
       </div>
 
-      {/* Loading */}
       {card.status === "loading" && (
-        <div className="flex min-h-[110px] flex-col gap-2.5 px-3.5 py-3">
+        <div className="flex min-h-[110px] flex-col gap-2.5 px-5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
           <CardLoadingState stage={card.loadingStage} labels={STAGE_LABELS} />
         </div>
       )}
 
-      {/* Error */}
-      {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} showVerifyCard={card.showVerifyCard} />}
+      {card.status === "error" && (
+        <CardErrorState
+          message={card.error ?? undefined}
+          showBuyCredits={card.showBuyCredits}
+          showVerifyCard={card.showVerifyCard}
+        />
+      )}
 
-      {/* Result */}
-      {card.status === "result" && card.data && (
+      {data && (
         <>
-          {/* Column headers */}
-          {/* borderLeft matches the 3px selection border on rows so columns line up */}
-          <div className="flex items-center gap-1.5 border-b border-l-[3px] border-surface-border border-l-transparent px-2.5 pb-1 pt-1.5">
-            <span className="w-16 shrink-0 overflow-hidden whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">Component</span>
-            <span className="flex-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">Attribution</span>
-            <span className="flex-1 text-[9px] font-semibold uppercase tracking-[0.06em] text-muted">Effect</span>
-          </div>
+          <CardScrollArea>
+            <div className="pb-3" style={{ paddingInline: CARD_INSET }}>
+              <BarTable
+                labelW={TOP_LABEL_W}
+                columns={COLUMNS}
+                labelHeader="Comp."
+                valueHeader=""
+                valueW={ACTIVATION_VALUE_W}
+                rows={memoRows}
+                palette={palette}
+              />
+            </div>
+          </CardScrollArea>
 
-          {/* Rows */}
-          <div className="overflow-y-auto overflow-x-hidden bg-card">
-            {card.data.components.map((comp, i) => {
-              const label = componentLabel(comp);
-              const tooltipContent = (
-                <>
-                  <div className="mb-[3px] font-semibold">{label}</div>
-                  <div className="flex flex-col gap-0.5 font-mono tabular-nums">
-                    <div className="flex justify-between gap-3.5">
-                      <span className="text-muted">attr</span>
-                      <span>{comp.attribution_score >= 0 ? "+" : ""}{comp.attribution_score.toFixed(3)}</span>
-                    </div>
-                    <div className="flex justify-between gap-3.5">
-                      <span className="text-muted">effect</span>
-                      <span>{(comp.actual_effect * 100).toFixed(1)}%</span>
-                    </div>
-                  </div>
-                </>
-              );
-
-              return (
-                <div
-                  key={i}
-                  onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: tooltipContent })}
-                  onMouseLeave={() => setTooltip(null)}
-                  className="flex items-center gap-1.5 border-b border-l-[3px] border-surface-border border-l-transparent px-2.5 py-[5px]"
-                >
-                  {/* Component label */}
-                  <span className="w-16 shrink-0 truncate font-mono text-[9px] font-semibold text-foreground">
-                    {label}
-                  </span>
-
-                  {/* Attribution bar */}
-                  <div className="min-w-0 flex-1">
-                    <DivergingBar val={comp.attribution_score} absMax={attrAbsMax} palette={palette} width="100%" height={8} />
-                  </div>
-
-                  {/* Effect: bar + signed number */}
-                  <div className="flex min-w-0 flex-1 items-center gap-1">
-                    <div className="min-w-0 flex-1">
-                      <DivergingBar val={comp.actual_effect} absMax={effectAbsMax} palette={palette} width="100%" height={8} />
-                    </div>
-                    <span className="w-11 shrink-0 text-right font-mono text-[9px] tabular-nums text-foreground">
-                      {comp.actual_effect >= 0 ? "+" : "−"}{(Math.abs(comp.actual_effect) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Footer: sign agreement between predicted attribution and verified effect */}
+          {/* The card's conclusion — whether the gradient approximation held.
+              Paints no background, so it needs no bottom radius. */}
           {agreement !== null && (
-            <div className="border-t border-surface-border px-2.5 py-[7px]">
+            <div
+              className="shrink-0 border-t border-card-border py-2"
+              style={{ marginInline: CARD_INSET }}
+            >
               <span className="text-[9px] text-muted">
                 sign agreement: {agreement.agree}/{agreement.total} components
               </span>
@@ -234,8 +250,7 @@ function ActivationCard({
           )}
         </>
       )}
-      {tooltip && <HoverTooltip x={tooltip.x} y={tooltip.y}>{tooltip.content}</HoverTooltip>}
-    </div>
+    </CardFrame>
   );
 }
 

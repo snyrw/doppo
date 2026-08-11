@@ -3,13 +3,41 @@
 import React from "react";
 import { useSequentialPalette } from "../hooks/usePalette";
 import { interpolateColor, getContrastColor } from "../lib/palette";
-import { TIER_LABELS } from "../lib/tiers";
-import { CardDragHandle, CardLoadingState, CardErrorState, CardLoadingHeader, useElapsedMs } from "./CardShell";
+import { techniqueForCard } from "../lib/techniques";
+import { CardInfo } from "./CardInfo";
+import { infoSectionsFor } from "./card-info-content";
+import { BORDER_W } from "./card-geometry";
+import {
+  CardBand,
+  CardCloseButton,
+  CardErrorState,
+  CardFrame,
+  CardHeader,
+  CardLoadingHeader,
+  CardLoadingState,
+  CardBody,
+  CardRule,
+  CARD_BODY_PAD,
+  CARD_MAX_W,
+  CARD_MIN_W,
+  STRIP_SEGMENT_RADIUS,
+  useElapsedMs,
+} from "./CardShell";
 import { HoverTooltip, type TooltipState } from "../lib/tooltip";
 import { cn } from "../lib/cn";
 import type { LoadingStage } from "../lib/loading-stage";
 
-const stepperBtnCls = "flex h-4 w-[18px] shrink-0 cursor-pointer items-center justify-center rounded-[3px] border border-card-border bg-surface-border p-0 text-[10px] leading-none text-muted";
+const stepperBtnCls = "flex h-4 w-[18px] shrink-0 cursor-pointer items-center justify-center rounded-[var(--ctl-radius-xs)] border border-card-border bg-surface-border p-0 text-[10px] leading-none text-muted";
+
+const TECHNIQUE = techniqueForCard("logit-lens");
+
+const MODE_LABELS: Record<DisplayMode, string> = {
+  prob:    "Prob",
+  tokens:  "Tokens",
+  kl:      "KL",
+  rank:    "Rank",
+  entropy: "H",
+};
 
 export type HeatmapData = {
   x_labels: string[];
@@ -36,6 +64,10 @@ export type LensCardData = {
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
+  /** Set by the CARD_RESOLVED reducer. Absent on rows saved before this existed. */
+  finishedAt?: number;
+  /** True when the spawn short-circuited on a cache hit — no GPU time was billed. */
+  cached?: boolean;
   loadingStage?: LoadingStage;
 };
 
@@ -51,17 +83,33 @@ type LensCardProps = {
 
 type DisplayMode = "prob" | "tokens" | "kl" | "rank" | "entropy";
 
-const CHAR_W = 4.5;
+const CHAR_W = 5;
 const CELL_PAD = 6;
-const MIN_CELL_W = 20;
-const MAX_CELL_W = 48;
-const Y_LABEL_W = 28;
+const MIN_CELL_W = 24;
+const MAX_CELL_W = 52;
+const Y_LABEL_W = 30;
 const COL_GAP = 2;
 const LOG_RANK_BASE = 100000;
 
+/** Row heights, sized to sit closer to the header's type than the old 12px did. */
+const CELL_H = 15;
+const CELL_H_TOKENS = 24;
+
+/**
+ * Cell width: shrinks to keep wide rows under CARD_MAX_W, then grows to fill
+ * CARD_MIN_W so a short row's heatmap reaches the card's edge instead of
+ * leaving a gap. Never exceeds MAX_CELL_W — the card widens past that instead.
+ */
 function computeCellWidth(xLabels: string[]): number {
   const maxLen = Math.max(...xLabels.map(t => t.length));
-  return Math.max(MIN_CELL_W, Math.min(MAX_CELL_W, Math.ceil(maxLen * CHAR_W) + CELL_PAD));
+  const natural = Math.max(MIN_CELL_W, Math.min(MAX_CELL_W, Math.ceil(maxLen * CHAR_W) + CELL_PAD));
+  const shrinkBudget = CARD_MAX_W - Y_LABEL_W - CARD_BODY_PAD * 2 - BORDER_W;
+  const toFit = Math.floor(shrinkBudget / xLabels.length) - COL_GAP;
+  const shrunk = Math.max(MIN_CELL_W, Math.min(natural, toFit));
+
+  const fillBudget = CARD_MIN_W - Y_LABEL_W - CARD_BODY_PAD * 2 - BORDER_W;
+  const toFill = Math.floor(fillBudget / xLabels.length) - COL_GAP;
+  return Math.min(MAX_CELL_W, Math.max(shrunk, toFill));
 }
 
 const STAGE_LABELS: Record<string, string> = {
@@ -102,13 +150,11 @@ function LensCard({
   const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const [pinnedCol, setPinnedCol] = React.useState<number | null>(null);
   const [activeLayer, setActiveLayer] = React.useState(0);
-  const [headerHovered, setHeaderHovered] = React.useState(false);
   const [tooltip, setTooltip] = React.useState<TooltipState>(null);
 
   // Layer stride/range state — null range means use all layers
   const [stride, setStride] = React.useState(1);
   const [layerRange, setLayerRange] = React.useState<[number, number] | null>(null);
-  const [strideOpen, setStrideOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (card.data) {
@@ -146,7 +192,6 @@ function LensCard({
   const hasKl = !!card.data?.kl_data;
   const hasRank = !!card.data?.rank_data;
   const hasEntropy = !!card.data?.entropy_data;
-  const hasFilter = stride > 1 || layerRange !== null;
   const inTokensMode = mode === "tokens" && canToggle;
   const inKlMode = mode === "kl" && hasKl;
   const inRankMode = mode === "rank" && hasRank;
@@ -154,10 +199,13 @@ function LensCard({
   const cellWidth = card.data ? computeCellWidth(card.data.x_labels) : 24;
   const rowGap = mode === "tokens" && card.data?.topk_tokens != null ? 2 : 0;
 
-  // 12 = body padding, 2 = card border (border-box via Tailwind preflight)
-  const heatmapPx = card.data
-    ? Y_LABEL_W + (cellWidth + COL_GAP) * card.data.x_labels.length + 12 + 2
-    : null;
+  // Narrow heatmaps sit at CARD_MIN_W so the band has room for all five mode
+  // labels.
+  const cardWidth = card.data
+    ? Math.max(CARD_MIN_W, Y_LABEL_W + (cellWidth + COL_GAP) * card.data.x_labels.length + CARD_BODY_PAD * 2 + BORDER_W)
+    : CARD_MIN_W;
+
+  const memoSections = React.useMemo(() => infoSectionsFor(card), [card]);
 
   const handleColClick = (i: number) => {
     setPinnedCol(prev => (prev === i ? null : i));
@@ -176,18 +224,69 @@ function LensCard({
   const rangeFrom = layerRange ? layerRange[0] : 0;
   const rangeTo = layerRange ? layerRange[1] : Math.max(0, nLayers - 1);
 
+  /* Which layers the heatmap draws. Free and instant, so by the band/panel rule
+     it would belong in the band — but at CARD_MIN_W the band's 320px content is
+     already spent on the accent (18), the gap (6) and the five-label mode strip
+     (308), and a stride row plus a range stepper needs ~120 more. It lives here
+     instead, and the panel occluding the heatmap it tunes is the accepted cost:
+     this is a set-then-look control, not a live-tune one.
+
+     Plain JSX rather than a nested component: one declared during render is a
+     new component type every render, so the panel's controls would remount on
+     every parent update (react-hooks/static-components). */
+  const layerControls = (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1">
+        <span className="text-[9px] font-semibold text-muted">Stride</span>
+        <div className="flex gap-[3px]">
+          {[1, 2, 4, 8].map(s => (
+            <button
+              key={s}
+              onClick={() => setStride(s)}
+              className={cn(
+                "cursor-pointer rounded-[var(--ctl-radius-xs)] border border-card-border px-[7px] py-0.5 text-[9px]",
+                stride === s ? "bg-accent text-accent-fg" : "bg-surface-border text-muted",
+              )}
+            >
+              ×{s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-[9px] font-semibold text-muted">Layers</span>
+        <div className="flex items-center gap-1">
+          <span className="w-[22px] text-[9px] text-muted">from</span>
+          <button onClick={() => setLayerRange([Math.max(0, rangeFrom - 1), rangeTo])} className={stepperBtnCls}>−</button>
+          <span className="min-w-5 text-center text-[9px] text-foreground">{rangeFrom}</span>
+          <button onClick={() => setLayerRange([Math.min(rangeTo, rangeFrom + 1), rangeTo])} className={stepperBtnCls}>+</button>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="w-[22px] text-[9px] text-muted">to</span>
+          <button onClick={() => setLayerRange([rangeFrom, Math.max(rangeFrom, rangeTo - 1)])} className={stepperBtnCls}>−</button>
+          <span className="min-w-5 text-center text-[9px] text-foreground">{rangeTo}</span>
+          <button onClick={() => setLayerRange([rangeFrom, Math.min(nLayers - 1, rangeTo + 1)])} className={stepperBtnCls}>+</button>
+        </div>
+      </div>
+
+      <button
+        onClick={() => { setStride(1); setLayerRange(null); }}
+        className="cursor-pointer border-none bg-transparent py-[3px] text-left text-[9px] text-muted"
+      >
+        reset
+      </button>
+    </div>
+  );
+
   return (
-    <div
+    <CardFrame
       ref={ref}
-      data-card-id={card.id}
-      className={cn(
-        "absolute flex flex-col rounded-lg border border-card-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
-        pinnedCol !== null ? "z-20" : "z-10",
-        // No minWidth in result state: small heatmaps (few tokens) size to content
-        card.status === "loading" && "h-[200px] w-[280px] min-w-[280px]",
-        card.status === "error" && "w-[280px] min-w-[280px]",
-      )}
-      style={{ left: card.position.x, top: card.position.y, ...(card.status === "result" && heatmapPx ? { width: heatmapPx } : {}) }}
+      cardId={card.id}
+      position={card.position}
+      width={cardWidth}
+      elevated={pinnedCol !== null}
+      uncappedHeight
     >
       {/* spin/fadeUp live in globals.css; slideInLeft is unique to this card */}
       <style>{`
@@ -197,31 +296,14 @@ function LensCard({
         }
       `}</style>
 
-      {/* Hover popup */}
-      {headerHovered && (
-        <div className="pointer-events-none absolute bottom-[calc(100%+6px)] left-0 z-[100] min-w-[200px] max-w-[320px] animate-fade-up rounded-lg border border-card-border bg-card px-3 py-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
-          <p className="m-0 break-all text-[11px] font-semibold text-foreground">
-            {card.modelName}
-          </p>
-          <p className="m-0 mt-[5px] break-words text-[10px] leading-[1.5] text-muted">
-            {card.prompt}
-          </p>
-          {card.gpuTier && (
-            <span className="mt-1.5 inline-block rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.06em] text-accent">
-              {TIER_LABELS[card.gpuTier] ?? card.gpuTier}
-            </span>
-          )}
-        </div>
-      )}
-
       {/* Pinned column side panel */}
       {panelData && (
         <div
-          className="absolute right-[calc(100%+8px)] top-0 w-[180px] rounded-lg border border-card-border bg-card px-2.5 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)]"
+          className="absolute right-[calc(100%+8px)] top-0 w-[180px] rounded-lg border border-card-border bg-card px-2.5 py-2"
           style={{ animation: "slideInLeft 140ms ease-out" }}
         >
           <div className="mb-2 flex items-baseline justify-between gap-1">
-            <span className="max-w-[90px] shrink-0 truncate rounded-[3px] border border-card-border bg-surface-border px-[5px] py-px text-[11px] font-bold text-accent">
+            <span className="max-w-[90px] shrink-0 truncate rounded-[var(--ctl-radius-xs)] border border-card-border bg-surface-border px-[5px] py-px text-[11px] font-bold text-accent">
               {panelData.colLabel}
             </span>
             <span className="shrink-0 text-[9px] text-muted">
@@ -252,138 +334,55 @@ function LensCard({
         </div>
       )}
 
-      {/* Header */}
+      {!tutorialMode && <CardCloseButton onClick={() => onRemove(card.id)} />}
+
+      {/* Chrome — the whole block is the drag surface; interactive children opt out */}
       <div
         onPointerDown={e => onStartDrag(e, card.id, card.position)}
         onPointerMove={onDragMove}
         onPointerUp={onDragEnd}
-        onMouseEnter={() => setHeaderHovered(true)}
-        onMouseLeave={() => setHeaderHovered(false)}
-        className="flex shrink-0 cursor-grab select-none flex-col rounded-t-lg border-b border-surface-border"
+        className="shrink-0 cursor-grab select-none"
       >
-        {/* Row 1: drag handle + title + close */}
-        <div className="flex min-w-0 items-center gap-1.5 overflow-hidden px-2.5 py-[7px]">
-          <CardDragHandle />
-          <span className="shrink-0 truncate text-[11px] font-semibold text-foreground">
-            {card.modelName}
-          </span>
-          <span className="min-w-0 flex-1 truncate text-[10px] text-muted">
-            {card.prompt}
-          </span>
-          {!tutorialMode && (
-            <button
-              onPointerDown={e => e.stopPropagation()}
-              onClick={() => onRemove(card.id)}
-              className="shrink-0 cursor-pointer border-none bg-transparent px-0.5 text-xs leading-none text-muted"
-            >
-              ×
-            </button>
-          )}
-        </div>
+        <CardHeader modelName={card.modelName} prompt={card.prompt} />
 
-        {/* Row 2: mode controls — no overflow: hidden so the ··· popover can escape */}
-        {card.status === "result" && (
-          <div
-            onPointerDown={e => e.stopPropagation()}
-            className="flex flex-wrap items-center gap-1.5 border-t border-surface-border px-2.5 py-1"
-          >
-            {canToggle && (
-              <div className="flex shrink-0 overflow-hidden rounded border border-card-border">
-                {(["prob", "tokens", ...(hasKl ? ["kl"] : []), ...(hasRank ? ["rank"] : []), ...(hasEntropy ? ["entropy"] : [])] as DisplayMode[]).map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setMode(m)}
-                    className={cn(
-                      "cursor-pointer border-none px-1.5 py-0.5 text-[9px] leading-[1.4]",
-                      mode === m ? "bg-accent text-accent-fg" : "bg-transparent text-muted",
-                    )}
-                  >
-                    {m === "prob" ? "Prob" : m === "tokens" ? "Tokens" : m === "kl" ? "KL" : m === "rank" ? "Rank" : "H"}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="flex-1" />
-
-            {/* Active-filter badge — click to reset */}
-            {hasFilter && (
-              <button
-                onClick={() => { setStride(1); setLayerRange(null); }}
-                title="Reset layer filter"
-                className="shrink-0 cursor-pointer rounded border border-card-border bg-surface-border px-[5px] py-px text-[9px] leading-[1.4] text-accent"
-              >
-                {stride > 1 ? `÷${stride}` : "◉"}
-              </button>
-            )}
-
-            {/* Layer settings popover trigger — position: relative has no overflow: hidden ancestor, popover renders freely */}
-            <div className="relative shrink-0">
-              <button
-                onClick={() => setStrideOpen(o => !o)}
-                className={cn(
-                  "cursor-pointer rounded border border-transparent px-[5px] py-px text-[10px] leading-[1.4] text-muted",
-                  strideOpen ? "bg-surface-border" : "bg-transparent",
-                )}
-              >
-                ···
-              </button>
-
-              {strideOpen && (
-                <div
-                  className="absolute right-0 top-[calc(100%+4px)] z-50 flex min-w-40 flex-col gap-2 rounded-md border border-card-border bg-card px-3 py-2.5 shadow-[0_4px_16px_rgba(0,0,0,0.10)]"
+        {/* Renders in every status — only the mode strip gates. The info button
+            is most wanted while a job loads, which is exactly when the old
+            `{data && <CardBand …>}` hid it. `canToggle` still guards the strip
+            alone, so a result without top-k now keeps its info button. */}
+        <CardBand info={
+          <CardInfo
+            accent={TECHNIQUE.band}
+            accentLabel={TECHNIQUE.name}
+            sections={memoSections}
+            controls={card.status === "result" ? layerControls : undefined}
+          />
+        }>
+          {card.status === "result" && canToggle && (
+            <div className="flex h-full w-full max-w-[380px] items-stretch bg-surface-border">
+              {(["prob", "tokens", ...(hasKl ? ["kl"] : []), ...(hasRank ? ["rank"] : []), ...(hasEntropy ? ["entropy"] : [])] as DisplayMode[]).map(m => (
+                <button
+                  key={m}
                   onPointerDown={e => e.stopPropagation()}
+                  onClick={() => setMode(m)}
+                  className={cn(
+                    "flex-1 cursor-pointer border-none text-[11px] leading-none transition-colors",
+                    mode === m ? "bg-background text-foreground" : "bg-transparent text-muted",
+                  )}
+                  style={{ borderRadius: STRIP_SEGMENT_RADIUS }}
                 >
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] font-semibold tracking-[0.06em] text-muted">STRIDE</span>
-                    <div className="flex gap-[3px]">
-                      {[1, 2, 4, 8].map(s => (
-                        <button
-                          key={s}
-                          onClick={() => setStride(s)}
-                          className={cn(
-                            "cursor-pointer rounded-[3px] border border-card-border px-[7px] py-0.5 text-[9px]",
-                            stride === s ? "bg-accent text-accent-fg" : "bg-surface-border text-muted",
-                          )}
-                        >
-                          ×{s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[9px] font-semibold tracking-[0.06em] text-muted">LAYERS</span>
-                    <div className="flex items-center gap-1">
-                      <span className="w-[22px] text-[9px] text-muted">from</span>
-                      <button onClick={() => setLayerRange([Math.max(0, rangeFrom - 1), rangeTo])} className={stepperBtnCls}>−</button>
-                      <span className="min-w-5 text-center text-[9px] text-foreground">{rangeFrom}</span>
-                      <button onClick={() => setLayerRange([Math.min(rangeTo, rangeFrom + 1), rangeTo])} className={stepperBtnCls}>+</button>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="w-[22px] text-[9px] text-muted">to</span>
-                      <button onClick={() => setLayerRange([rangeFrom, Math.max(rangeFrom, rangeTo - 1)])} className={stepperBtnCls}>−</button>
-                      <span className="min-w-5 text-center text-[9px] text-foreground">{rangeTo}</span>
-                      <button onClick={() => setLayerRange([rangeFrom, Math.min(nLayers - 1, rangeTo + 1)])} className={stepperBtnCls}>+</button>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => { setStride(1); setLayerRange(null); }}
-                    className="cursor-pointer border-none bg-transparent py-[3px] text-left text-[9px] text-muted"
-                  >
-                    reset
-                  </button>
-                </div>
-              )}
+                  {MODE_LABELS[m]}
+                </button>
+              ))}
             </div>
-          </div>
-        )}
+          )}
+        </CardBand>
+
+        <CardRule />
       </div>
 
       {/* Body */}
       {card.status === "loading" && (
-        <div className="flex min-h-[110px] flex-col gap-2.5 px-3.5 py-3">
+        <div className="flex min-h-[110px] flex-col gap-2.5 px-5 py-3">
           <CardLoadingHeader gpuTier={card.gpuTier} elapsedMs={elapsedMs} />
           <CardLoadingState stage={card.loadingStage} labels={STAGE_LABELS} />
         </div>
@@ -392,7 +391,7 @@ function LensCard({
       {card.status === "error" && <CardErrorState message={card.error ?? undefined} showBuyCredits={card.showBuyCredits} showVerifyCard={card.showVerifyCard} />}
 
       {card.status === "result" && card.data && (
-        <div className="overflow-y-auto overflow-x-hidden bg-card p-1.5">
+        <CardBody>
           <div className="inline-flex flex-col" style={{ gap: rowGap }}>
             {/* X-axis labels */}
             <div className="flex" style={{ gap: COL_GAP }}>
@@ -402,7 +401,7 @@ function LensCard({
                   key={i}
                   onClick={() => canPin && handleColClick(i)}
                   className={cn(
-                    "box-border shrink-0 truncate pb-1 text-center font-mono text-[7px]",
+                    "box-border shrink-0 truncate pb-1.5 text-center font-mono text-[9px]",
                     pinnedCol === i ? "font-bold text-accent" : "font-normal text-muted",
                     canPin ? "cursor-pointer" : "cursor-default",
                   )}
@@ -417,7 +416,7 @@ function LensCard({
             {filteredIndices.map(yIndex => {
               const layerName = card.data!.y_labels[yIndex];
               const klMax = inKlMode ? Math.min(Math.max(...card.data!.kl_data![yIndex], 1e-6), 5) : 1;
-              const cellHeight = inTokensMode ? 20 : 12;
+              const cellHeight = inTokensMode ? CELL_H_TOKENS : CELL_H;
 
               const yLabelActive = pinnedCol !== null && activeLayer === yIndex;
               return (
@@ -429,7 +428,7 @@ function LensCard({
                 >
                   <div
                     className={cn(
-                      "shrink-0 overflow-hidden pr-1 text-right font-mono text-[9px]",
+                      "shrink-0 overflow-hidden pr-1.5 text-right font-mono text-[10px]",
                       yLabelActive ? "font-bold text-accent" : "font-normal text-muted",
                     )}
                     style={{ width: Y_LABEL_W }}
@@ -514,7 +513,7 @@ function LensCard({
                         onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: tooltipContent })}
                         onMouseLeave={() => setTooltip(null)}
                         className={cn(
-                          "box-border shrink-0 overflow-hidden rounded-sm",
+                          "box-border shrink-0 overflow-hidden rounded-[1px]",
                           (inTokensMode || showRankNumber) && "flex items-center justify-center",
                           canPin ? "cursor-pointer" : "cursor-default",
                         )}
@@ -522,12 +521,12 @@ function LensCard({
                         onClick={() => canPin && handleColClick(xIndex)}
                       >
                         {inTokensMode && topToken !== null && (
-                          <span className="max-w-full overflow-hidden whitespace-nowrap font-mono text-[7px] leading-none" style={{ color: getContrastColor(palette, topProb) }}>
+                          <span className="max-w-full overflow-hidden whitespace-nowrap font-mono text-[9px] leading-none" style={{ color: getContrastColor(palette, topProb) }}>
                             {topToken}
                           </span>
                         )}
                         {showRankNumber && !inTokensMode && (
-                          <span className="max-w-full overflow-hidden whitespace-nowrap font-mono text-[7px] leading-none" style={{ color: getContrastColor(palette, cellColorValue) }}>
+                          <span className="max-w-full overflow-hidden whitespace-nowrap font-mono text-[9px] leading-none" style={{ color: getContrastColor(palette, cellColorValue) }}>
                             {rank}
                           </span>
                         )}
@@ -538,10 +537,10 @@ function LensCard({
               );
             })}
           </div>
-        </div>
+        </CardBody>
       )}
       {tooltip && <HoverTooltip x={tooltip.x} y={tooltip.y}>{tooltip.content}</HoverTooltip>}
-    </div>
+    </CardFrame>
   );
 }
 

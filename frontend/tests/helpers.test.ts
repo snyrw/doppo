@@ -1,16 +1,17 @@
 // frontend/tests/helpers.test.ts
 import { describe, it, expect } from "vitest";
-import { autoArrangePos, findSpawnPos, getCardPrompt, serializeCard } from "../app/projects/helpers";
+import {
+  autoArrangePos, findSpawnPos, getCardPrompt, serializeCard,
+  CARD_COL_WIDTH, CARD_ROW_HEIGHT, GRID_MARGIN,
+} from "../app/projects/helpers";
 import type { AnyCard } from "../app/components/SandboxCanvas";
 
-// Constants from helpers.ts (not exported — kept in sync manually)
-const CARD_COL_WIDTH = 380;
-const CARD_ROW_HEIGHT = 480;
-const GRID_MARGIN = 40;
+// Previously re-declared here and "kept in sync manually", which silently rotted
+// when the lattice moved to the card size bounds. Imported now.
 
 describe("autoArrangePos", () => {
   it("index 0 → top-left cell", () => {
-    expect(autoArrangePos(0)).toEqual({ x: 40, y: 40 });
+    expect(autoArrangePos(0)).toEqual({ x: GRID_MARGIN, y: GRID_MARGIN });
   });
 
   it("index 1 → second column, same row", () => {

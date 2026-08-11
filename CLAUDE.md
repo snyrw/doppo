@@ -133,3 +133,11 @@ attn             → { tokens, patterns[layer][head][q][k], n_layers, n_heads, t
 All inference cache keys include `userId` as a scope prefix — caches are per-user.
 
 See `.claude/rules/` for: frontend patterns, database/Drizzle, Modal infrastructure.
+
+**Card chrome migration — all six cards converted**, off the original generated
+chrome onto a Figma-derived design. Read `.claude/rules/card-chrome.md` before
+touching any card component — it carries the load-bearing invariants and
+gotchas, per-card notes, and what's still unverified. Current geometry
+constants live in `card-geometry.ts`, not the doc. Shared primitives live in
+`components/CardShell.tsx`; anything used by only one or two cards stays with
+its card.

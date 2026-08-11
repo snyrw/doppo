@@ -1,5 +1,6 @@
 import { attributionCache } from "@/app/schema";
 import { createSpawnHandler, isValidPrompt, sha256 } from "@/app/lib/spawn-route";
+import { ATTRIBUTION_TOP_N } from "@/app/lib/patching";
 
 type Params = {
   modelName: string;
@@ -39,6 +40,10 @@ export const POST = createSpawnHandler<Params>({
     target_position: p.targetPosition,
     target_token: p.targetToken,
     contrastive_token: p.contrastiveToken,
+    // Server-side constant, so it stays out of `parse`. Also out of `cacheKey`:
+    // adding it would orphan every attribution cache row for every user, and it
+    // is safe to omit precisely because no two requests can disagree about it.
+    top_n: ATTRIBUTION_TOP_N,
   }),
   cachePayload: (p) => ({
     modelName: p.modelName,
