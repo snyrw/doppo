@@ -45,8 +45,9 @@ export function panelPosition(
 export type CardRect = { left: number; right: number; top: number };
 
 /**
- * Placement for the explanation popup: anchored to the card's own left/right
- * edge (whichever side has more room).
+ * Placement for the explanation popup: anchored to the card's own left or
+ * right edge, whichever side has more room. `panelPosition` above positions
+ * relative to the trigger button instead, for the technical params panel.
  */
 export function sidePanelPosition(
   card: CardRect,
