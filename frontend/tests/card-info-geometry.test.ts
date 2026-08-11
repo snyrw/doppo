@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  PANEL_W, PANEL_GAP, VIEWPORT_MARGIN, panelPosition,
+  PANEL_W, PANEL_GAP, VIEWPORT_MARGIN, panelPosition, sidePanelPosition,
 } from "../app/components/card-info-geometry";
 
 const VIEWPORT = { width: 1440, height: 900 };
@@ -48,5 +48,39 @@ describe("panelPosition", () => {
     const pos = panelPosition(corner, VIEWPORT, 400);
     expect(pos.left).toBeGreaterThanOrEqual(VIEWPORT_MARGIN);
     expect(pos.top).toBeGreaterThanOrEqual(VIEWPORT_MARGIN);
+  });
+});
+
+describe("sidePanelPosition", () => {
+  it("opens to the right of the card when the right side has more room", () => {
+    const card = { left: 100, right: 400, top: 200 };
+    expect(sidePanelPosition(card, VIEWPORT, 300).left).toBe(400 + PANEL_GAP);
+  });
+
+  it("opens to the left of the card when the left side has more room", () => {
+    const card = { left: 1200, right: 1400, top: 200 };
+    expect(sidePanelPosition(card, VIEWPORT, 300).left).toBe(1200 - PANEL_GAP - PANEL_W);
+  });
+
+  it("aligns the panel's top edge to the card's top edge", () => {
+    const card = { left: 100, right: 400, top: 250 };
+    expect(sidePanelPosition(card, VIEWPORT, 300).top).toBe(250);
+  });
+
+  it("clamps a left-side placement to the left viewport edge instead of overflowing", () => {
+    // roomLeft (250) > roomRight (1) picks the left side, but left - gap - width is negative.
+    const card = { left: 250, right: 1439, top: 200 };
+    expect(sidePanelPosition(card, VIEWPORT, 300).left).toBe(VIEWPORT_MARGIN);
+  });
+
+  it("clamps a right-side placement to the right viewport edge instead of overflowing", () => {
+    // roomRight (5) >= roomLeft (2) picks the right side, but right + gap + width overflows.
+    const card = { left: 2, right: 1435, top: 200 };
+    expect(sidePanelPosition(card, VIEWPORT, 300).left).toBe(VIEWPORT.width - PANEL_W - VIEWPORT_MARGIN);
+  });
+
+  it("clamps the top edge so a tall panel still fits inside the viewport", () => {
+    const card = { left: 100, right: 400, top: 850 };
+    expect(sidePanelPosition(card, VIEWPORT, 300).top).toBe(VIEWPORT.height - 300 - VIEWPORT_MARGIN);
   });
 });

@@ -13,7 +13,7 @@ export type ButtonRect = { left: number; top: number; bottom: number };
 
 export type Viewport = { width: number; height: number };
 
-function clamp(v: number, lo: number, hi: number): number {
+export function clamp(v: number, lo: number, hi: number): number {
   // lo wins when the range is inverted, so a panel taller than the viewport
   // sits at the top margin instead of a negative bottom-clamped position.
   return Math.max(lo, Math.min(hi, v));
@@ -35,6 +35,30 @@ export function panelPosition(
   const fitsBelow = below + panelHeight <= viewport.height - VIEWPORT_MARGIN;
   const top = clamp(
     fitsBelow ? below : above,
+    VIEWPORT_MARGIN,
+    Math.max(VIEWPORT_MARGIN, viewport.height - panelHeight - VIEWPORT_MARGIN),
+  );
+
+  return { left, top };
+}
+
+export type CardRect = { left: number; right: number; top: number };
+
+export function sidePanelPosition(
+  card: CardRect,
+  viewport: Viewport,
+  panelHeight: number,
+): { left: number; top: number } {
+  const roomRight = viewport.width - card.right;
+  const roomLeft = card.left;
+  const openRight = roomRight >= roomLeft;
+
+  const left = openRight
+    ? clamp(card.right + PANEL_GAP, VIEWPORT_MARGIN, viewport.width - PANEL_W - VIEWPORT_MARGIN)
+    : clamp(card.left - PANEL_GAP - PANEL_W, VIEWPORT_MARGIN, viewport.width - PANEL_W - VIEWPORT_MARGIN);
+
+  const top = clamp(
+    card.top,
     VIEWPORT_MARGIN,
     Math.max(VIEWPORT_MARGIN, viewport.height - panelHeight - VIEWPORT_MARGIN),
   );
