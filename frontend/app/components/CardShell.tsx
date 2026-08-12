@@ -121,19 +121,28 @@ export function CardHeader({
   modelName,
   prompt,
   subPrompt,
+  eyebrow,
+  accent,
 }: {
-  modelName: string;
+  modelName?: string;
   prompt: string;
   subPrompt?: string;
+  /** Overrides the "Model: {modelName}" line, for cards with no model. */
+  eyebrow?: string;
+  /** Inline color swatch before `prompt`, for cards with a color identity. */
+  accent?: string;
 }) {
   return (
     <div className="flex min-w-0 shrink-0 pt-4" style={{ paddingInline: CARD_INSET }}>
       <div className="min-w-0 flex-1" style={{ paddingRight: CLOSE_GUTTER }}>
         <p className="m-0 truncate text-[11px] leading-[14px] text-muted">
-          Model: {modelName}
+          {eyebrow ?? `Model: ${modelName}`}
         </p>
-        <p className="m-0 mt-0.5 truncate text-[14px] leading-[18px] text-foreground">
-          {prompt}
+        <p className="m-0 mt-0.5 flex min-w-0 items-center gap-1.5 text-[14px] leading-[18px] text-foreground">
+          {accent && (
+            <span aria-hidden className="shrink-0" style={{ width: 8, height: 8, backgroundColor: accent }} />
+          )}
+          <span className="min-w-0 flex-1 truncate">{prompt}</span>
         </p>
         {subPrompt && (
           /* The counterfactual is attribution's defining input, so it stays
