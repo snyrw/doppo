@@ -51,12 +51,7 @@ export function loadSteps(): TutorialStep[] {
     const { paragraphs, whatToNotice, caveat } = parseBody(content);
 
     return {
-      index: data.index as number,
-      label: data.label as string,
-      badge: data.badge as string | undefined,
-      part: data.part as string | undefined,
       cardType: data.cardType as TutorialStep["cardType"],
-      configType: data.configType as TutorialStep["configType"],
       heading: data.heading as string,
       paragraphs,
       whatToNotice,

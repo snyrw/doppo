@@ -3,8 +3,6 @@ import { explainSectionsFor, explainSectionsByCardType } from "../app/tutorial/e
 import type { TutorialStep } from "../app/tutorial/steps";
 
 const step: TutorialStep = {
-  index: 1,
-  label: "Logit Lens",
   cardType: "logit-lens",
   heading: "Logit Lens",
   paragraphs: ["First paragraph.", "Second paragraph."],
@@ -63,7 +61,11 @@ describe("explainSectionsByCardType", () => {
   });
 
   it("skips steps without a cardType", () => {
-    const noCardType: TutorialStep = { ...step, cardType: undefined };
+    // cardType is required by the TutorialStep type, but load-steps.ts only
+    // asserts it from unvalidated markdown frontmatter, so a malformed
+    // content file can still produce undefined at runtime. The cast below
+    // simulates that case past the type checker.
+    const noCardType = { ...step, cardType: undefined } as unknown as TutorialStep;
     const withCardType: TutorialStep = { ...step, cardType: "logit-lens" };
     const map = explainSectionsByCardType([noCardType, withCardType]);
     expect(Object.keys(map)).toEqual(["logit-lens"]);

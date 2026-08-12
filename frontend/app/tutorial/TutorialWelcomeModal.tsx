@@ -40,16 +40,10 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
 
         <div className="flex flex-col gap-3">
           <p className="m-0 text-[13px] leading-[1.75] text-muted">
-            As part of a goal to explain mechanistic interpretability concepts to as many people as possible, this site contains a tutorial section that allows you to verify results from foundational papers live in the sandbox. Completing this will hopefully allow one to understand basic interpretability techniques that can then be applied to any TransformerLens model available on the site.
+            As part of a goal to explain mechanistic interpretability concepts to as many people as possible, this site contains a demo section with six real analysis cards, pre-loaded on the canonical IOI circuit and a steering example, that you can click through to see what the sandbox produces.
           </p>
           <p className="m-0 text-[13px] leading-[1.75] text-muted">
-            There are 2 parts with 7 total stages. 1–5 trace a circuit in GPT-2 Small using an Indirect Object Identification (IOI) task, which is a canonical benchmark from Wang et al. 2022 where the model must predict the indirect object of a sentence.
-          </p>
-          <p className="m-0 text-[13px] leading-[1.75] text-muted">
-            Part 2 pivots to a different question: instead of tracing how a behavior is implemented, can you directly control it? We do this by taking pairs of prompts that represent two things, and then subtracting mean activations of one from the other to receive a &ldquo;behavior&rdquo; (steering vector) we can either increase or decrease by changing activation magnitude.
-          </p>
-          <p className="m-0 text-[13px] leading-[1.75] text-muted">
-            This tutorial assumes some level of familiarity with neural network and transformer concepts, which introductions to have been provided below.
+            This assumes some level of familiarity with neural network and transformer concepts, which introductions to have been provided below.
           </p>
         </div>
 

@@ -3,8 +3,8 @@ import TutorialClient from "./TutorialClient";
 import { loadSteps } from "./load-steps";
 
 export const metadata: Metadata = {
-  title: "Tutorial",
-  description: "A guided walkthrough of six mechanistic interpretability tools on the canonical IOI circuit.",
+  title: "Demo",
+  description: "An interactive preview of six mechanistic interpretability tools, pre-loaded on the canonical IOI circuit.",
 };
 
 export default function TutorialPage() {
