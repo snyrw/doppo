@@ -43,6 +43,13 @@ export const CARD_MAX_H = 800;
 /** CardBand's leading accent square — the slot CardInfo's button fills. */
 export const BAND_ACCENT_W = 18;
 
+/**
+ * CardHeader's inline accent swatch, before the prompt text. Smaller than the
+ * config panel's ACCENT_SIZE (18) because it has to fit inside CardHeader's
+ * 14px-line-height prompt line, where 18px would overrun the line box.
+ */
+export const HEADER_ACCENT_SIZE = 8;
+
 /** CardBand's gap between children. */
 export const BAND_GAP = 6;
 

@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { TECHNIQUES, BAND_ACTIVATION, bandShadow } from "../app/lib/techniques";
+import { TECHNIQUE_CARDS } from "../app/components/sections/techniqueCardData";
+import { TECHNIQUE_FIGURES } from "../app/components/sections/TechniqueFigures";
 
 // Every fill the info button can sit on. BAND_ACTIVATION is not in TECHNIQUES —
 // activation and attribution share the "patching" key but not the fill.
@@ -33,5 +35,14 @@ describe("bandShadow", () => {
 
   it("keeps black at black", () => {
     expect(bandShadow("#000000")).toBe("#000000");
+  });
+});
+
+describe("technique arrays stay parallel", () => {
+  it("TECHNIQUES, TECHNIQUE_CARDS, and TECHNIQUE_FIGURES have the same length", () => {
+    // TechniqueCard indexes all three with one `index`; nothing else enforces
+    // that an entry added to one is matched in the others.
+    expect(TECHNIQUE_CARDS).toHaveLength(TECHNIQUES.length);
+    expect(TECHNIQUE_FIGURES).toHaveLength(TECHNIQUES.length);
   });
 });

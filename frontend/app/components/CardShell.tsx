@@ -10,6 +10,7 @@ import {
   CARD_MAX_W,
   CARD_MIN_W,
   CARD_RADIUS,
+  HEADER_ACCENT_SIZE,
   STRIP_SEGMENT_RADIUS,
 } from "./card-geometry";
 import { cn } from "../lib/cn";
@@ -140,7 +141,11 @@ export function CardHeader({
         </p>
         <p className="m-0 mt-0.5 flex min-w-0 items-center gap-1.5 text-[14px] leading-[18px] text-foreground">
           {accent && (
-            <span aria-hidden className="shrink-0" style={{ width: 8, height: 8, backgroundColor: accent }} />
+            <span
+              aria-hidden
+              className="shrink-0"
+              style={{ width: HEADER_ACCENT_SIZE, height: HEADER_ACCENT_SIZE, backgroundColor: accent }}
+            />
           )}
           <span className="min-w-0 flex-1 truncate">{prompt}</span>
         </p>
