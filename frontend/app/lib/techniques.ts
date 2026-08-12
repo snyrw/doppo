@@ -31,7 +31,7 @@ export const TECHNIQUES: readonly Technique[] = [
   { key: "steering",   name: "steering",                 face: "#7e5987", shadow: "#5e286b", band: "#bb8ba6" },
 ] as const;
 
-/** Neutral swatch color for a card with no technique identity — used as
+/** Neutral swatch color for a card with no technique identity. Used as
  *  `CardHeader`'s `accent` on the landing page's `DoppoInfoCard` and
  *  `LearnMoreCard`. */
 export const BAND_NEUTRAL = "#5a5a5a";
