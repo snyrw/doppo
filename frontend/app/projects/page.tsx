@@ -153,7 +153,7 @@ function MenuItem({ onClick, disabled, title, radius, last, danger, children }: 
       disabled={disabled}
       title={title}
       className={cn(
-        "flex w-full items-center justify-between border-x-0 border-t-0 px-4 py-2.5 text-left text-[13px] font-medium transition-colors",
+        "keep-radius flex w-full items-center justify-between border-x-0 border-t-0 px-4 py-2.5 text-left text-[13px] font-medium transition-colors",
         last ? "border-b-0" : "border-b border-surface-border",
         enabled
           ? cn("cursor-pointer bg-card hover:bg-surface-border", danger ? "text-red-600" : "text-foreground")
@@ -524,7 +524,7 @@ function Projects() {
                   <button
                     key={item.pane}
                     onClick={() => setOpenPane(item.pane)}
-                    className="flex cursor-pointer flex-col gap-0.5 border-x-0 border-t-0 border-b border-surface-border bg-card px-4 py-2.5 text-left text-[13px] font-medium text-foreground transition-colors first:rounded-t-md last:rounded-b-md last:border-b-0 hover:bg-surface-border"
+                    className="keep-radius flex cursor-pointer flex-col gap-0.5 border-x-0 border-t-0 border-b border-surface-border bg-card px-4 py-2.5 text-left text-[13px] font-medium text-foreground transition-colors first:rounded-t-md last:rounded-b-md last:border-b-0 hover:bg-surface-border"
                   >
                     <span>{item.label}</span>
                     <span className="text-[10px] font-normal text-muted">{item.description}</span>
@@ -646,13 +646,13 @@ function Projects() {
                   <div className="flex border-t border-surface-border">
                     <button
                       onClick={() => setDeleteConfirming(false)}
-                      className="flex-1 cursor-pointer rounded-bl-md border-y-0 border-l-0 border-r border-surface-border bg-card px-3 py-2.5 text-xs font-medium text-muted transition-colors hover:bg-surface-border"
+                      className="keep-radius flex-1 cursor-pointer rounded-bl-md border-y-0 border-l-0 border-r border-surface-border bg-card px-3 py-2.5 text-xs font-medium text-muted transition-colors hover:bg-surface-border"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleDeleteConfirmed}
-                      className="flex-1 cursor-pointer rounded-br-md border-none bg-card px-3 py-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-surface-border"
+                      className="keep-radius flex-1 cursor-pointer rounded-br-md border-none bg-card px-3 py-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-surface-border"
                     >
                       Confirm
                     </button>

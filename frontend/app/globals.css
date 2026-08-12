@@ -250,6 +250,15 @@ body {
 
 } /* end @layer components */
 
+/* Simple sqquaring off of buttons site-wide. */
+button:not(.keep-radius),
+.tactile__base,
+.tactile__face,
+.tactile__inner,
+.btn-accent {
+  border-radius: 0 !important;
+}
+
 /* === Card animations === */
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
