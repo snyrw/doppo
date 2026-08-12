@@ -39,9 +39,8 @@ const tutorialData = (rawTutorialData as { steps: Record<string, unknown> }).ste
 /**
  * Builds one demo card from a data.json entry. Activation's target and
  * contrastive tokens are read off the attribution card built earlier in the
- * same pass, since data.json's own `parentAttributionId` is stale (see
- * .claude/rules/card-chrome.md, "Known bugs found along the way") and
- * there's exactly one attribution card in the demo.
+ * same pass, since there's exactly one attribution card in the demo and its
+ * fields aren't duplicated in data.json's own activation entry.
  */
 function createCardFromData(dataKey: string, cardsSoFar: AnyCard[]): AnyCard | null {
   const raw = tutorialData[dataKey] as Record<string, unknown>;
@@ -85,7 +84,7 @@ function createCardFromData(dataKey: string, cardsSoFar: AnyCard[]): AnyCard | n
         targetPosition: raw.targetPosition as number | "last",
         targetToken: raw.targetToken as string | null,
         contrastiveToken: raw.contrastiveToken as string | null,
-        verifyStatus: "idle" as const,
+        verifyStatus: "done" as const,
         data: raw.data as AttributionData,
       } as AttributionCardData;
     case "activation": {
