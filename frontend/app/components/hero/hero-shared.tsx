@@ -55,7 +55,7 @@ export function HeroCtas({
         style={style}
         faceClassName={faceClassName}
       >
-        Tutorial (WIP)
+        Demo
       </TactileButton>
     </>
   );

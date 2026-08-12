@@ -13,7 +13,7 @@ const LINK = "underline decoration-from-font underline-offset-2 transition-opaci
 // Doppo card, but is non-interactive (no drag, no remove). Copy stays close to the
 // Figma wording; the "docs" line points at the interim static page rather than a
 // not-yet-existent docs site. `className`/`style` let the caller set width + the
-// entrance animation on the outer frame — same signature as DoppoInfoCard.
+// entrance animation on the outer frame - same signature as DoppoInfoCard.
 export default function LearnMoreCard({
   className,
   style,
@@ -43,8 +43,8 @@ export default function LearnMoreCard({
         </p>
         <p className="m-0">
           If you&apos;re new to mechanistic interpretability, the{" "}
-          <Link href="/tutorial" className={LINK}>tutorial</Link> walks through some canonical works that
-          can aid in understanding what we do.
+          <Link href="/tutorial" className={LINK}>demo</Link> shows six canonical techniques applied to a
+          real circuit that can aid in understanding what we do.
         </p>
         <p className="m-0">
           Things like deeper specifics on exactly how we price, how we implement our techniques, and
