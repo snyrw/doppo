@@ -28,7 +28,7 @@ import { CLOSE_HIT, CLOSE_GUTTER } from "./ui/control-metrics";
 /* The frame's numbers live in card-geometry.ts.. Re-exported here because every card component
    already imports card geometry from CardShell and there is no reason to make
    them learn a second module. */
-export { CARD_BODY_PAD, CARD_INSET, CARD_MAX_H, CARD_MAX_W, CARD_MIN_W, STRIP_SEGMENT_RADIUS };
+export { CARD_BODY_PAD, CARD_INSET, CARD_MAX_H, CARD_MAX_W, CARD_MIN_W, CARD_RADIUS, STRIP_SEGMENT_RADIUS };
 
 /**
  * Positioned card shell — shape, border, stacking order, nothing else. Each
