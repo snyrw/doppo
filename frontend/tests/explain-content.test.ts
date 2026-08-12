@@ -41,13 +41,14 @@ describe("explainSectionsFor", () => {
     expect(kinds).not.toContain("links");
   });
 
-  it("skips image paragraphs, the popup is text-only", () => {
+  it("degrades an image paragraph to its alt text", () => {
     const withImage: TutorialStep = {
       ...step,
       paragraphs: ["Text.", { type: "image", src: "/a.png", alt: "diagram" }],
     };
     expect(explainSectionsFor(withImage).filter(s => s.kind === "prose")).toEqual([
       { kind: "prose", text: "Text." },
+      { kind: "prose", text: "diagram" },
     ]);
   });
 });

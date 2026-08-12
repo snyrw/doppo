@@ -37,10 +37,14 @@ const TECHNIQUE = techniqueForCard("steering");
    chips above do, so CSS owns the split and there is no second copy of the
    arithmetic to drift out of step.
 
-   The fixed bases are the band furniture each column sits beneath: the left
-   column spans the accent square, the gap after it, and half the gap between the
-   chips; the right column spans the other half. */
-const LEFT_BASIS = BAND_ACCENT_W + BAND_GAP + BAND_GAP / 2;
+   The bases are the band furniture each column sits beneath. The left
+   column spans however many trigger buttons the band's leading slot renders
+   (each `BAND_ACCENT_W` wide with a `BAND_GAP` between them), the gap after
+   the last one, and half the gap between the chips; the right column always
+   spans the other half, independent of trigger count. */
+function leftBasis(triggerCount: number): number {
+  return triggerCount * BAND_ACCENT_W + (triggerCount - 1) * BAND_GAP + BAND_GAP + BAND_GAP / 2;
+}
 const RIGHT_BASIS = BAND_GAP / 2;
 
 export type SteeringComponent = {
@@ -137,6 +141,10 @@ function SteeringCard({
   const dirty = !tutorialMode && !loading && localAlpha !== card.alpha;
   const stepperDisabled = tutorialMode || loading;
   const memoSections = React.useMemo(() => infoSectionsFor(card), [card]);
+  // Same condition that gates CardExplain's render below, so the two can
+  // never disagree about how many trigger buttons the band actually shows.
+  const showExplain = tutorialMode && explainSections;
+  const triggerCount = showExplain ? 2 : 1;
 
   /* Alpha, its vector diagnostics, and the Re-run that commits it.
      The diagnostics stay here rather than in `infoSectionsFor` because they are
@@ -237,7 +245,7 @@ function SteeringCard({
               sections={memoSections}
               controls={steeringControls}
             />
-            {tutorialMode && explainSections && (
+            {showExplain && (
               <CardExplain accent={TECHNIQUE.band} accentLabel={TECHNIQUE.name} sections={explainSections} />
             )}
           </>
@@ -289,7 +297,7 @@ function SteeringCard({
                 generated text wrap instead of forcing the row wider. */}
             <div
               className="min-w-0 border-r border-card-border"
-              style={{ flex: `1 1 ${LEFT_BASIS}px` }}
+              style={{ flex: `1 1 ${leftBasis(triggerCount)}px` }}
             >
               <div className="whitespace-pre-wrap break-words pr-3.5 text-[12px] leading-[1.6] text-foreground">
                 {card.data.baseline_text}

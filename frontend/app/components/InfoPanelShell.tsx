@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { bandShadow } from "../lib/techniques";
 import { TierBadge } from "./CardShell";
 import type { InfoSection } from "./card-info-content";
+import { VIEWPORT_MARGIN } from "./card-info-geometry";
 
 /**
  * Shared chrome for the card band's two popups: CardInfo's technical-params
@@ -64,7 +65,13 @@ export function useDismissablePanel(
       onClose();
     };
     const onKeyDown = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    const onWheel = () => onClose();
+    // Scrolling inside the panel must not dismiss it: only a wheel event
+    // outside the panel counts as "scrolled away from it".
+    const onWheel = (e: WheelEvent) => {
+      const t = e.target as Node;
+      if (refs.panelRef.current?.contains(t)) return;
+      onClose();
+    };
     document.addEventListener("pointerdown", onPointerDown, true);
     document.addEventListener("keydown", onKeyDown);
     window.addEventListener("wheel", onWheel, { passive: true });
@@ -89,11 +96,15 @@ export function InfoPanelFrame({
     <div
       ref={panelRef}
       onPointerDown={e => e.stopPropagation()}
-      className="fixed z-[70] flex flex-col gap-2.5 rounded-md border border-card-border bg-background px-3 py-2.5"
+      className="fixed z-[70] flex flex-col gap-2.5 overflow-y-auto rounded-md border border-card-border bg-background px-3 py-2.5"
       style={{
         width,
         left: pos?.left ?? 0,
         top: pos?.top ?? 0,
+        // Bounded so long copy scrolls inside the panel instead of running
+        // off the bottom of a `position: fixed` element, which page scroll
+        // can never reveal.
+        maxHeight: `calc(100vh - ${VIEWPORT_MARGIN * 2}px)`,
         // Hidden for the one frame between mount and measurement, so the
         // panel is never seen at 0,0.
         visibility: pos ? "visible" : "hidden",
