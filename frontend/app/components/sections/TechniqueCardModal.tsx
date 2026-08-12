@@ -40,7 +40,7 @@ export default function TechniqueCardModal({ index, onClose }: { index: number; 
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="w-fit max-w-[min(760px,92vw)] max-h-[88vh] overflow-y-auto outline-none"
+        className="w-fit max-w-[min(620px,92vw)] max-h-[88vh] overflow-y-auto outline-none"
       >
         <TechniqueCard index={index} />
       </div>
