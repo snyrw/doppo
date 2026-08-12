@@ -31,7 +31,9 @@ export const TECHNIQUES: readonly Technique[] = [
   { key: "steering",   name: "steering",                 face: "#7e5987", shadow: "#5e286b", band: "#bb8ba6" },
 ] as const;
 
-/** Neutral half of a two-chip band — the baseline or source token. */
+/** Neutral swatch color for a card with no technique identity — used as
+ *  `CardHeader`'s `accent` on the landing page's `DoppoInfoCard` and
+ *  `LearnMoreCard`. */
 export const BAND_NEUTRAL = "#5a5a5a";
 
 /** Ink for band labels; dark for contrast against the fills above. */
