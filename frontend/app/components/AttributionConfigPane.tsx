@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
 import ConfigLedger, { type LedgerSection } from "./configledger/ConfigLedger";
@@ -26,16 +26,6 @@ type AttributionConfigPaneProps = {
     contrastiveToken: string | null;
   }) => void;
   onClose: () => void;
-  tutorialMode?: boolean;
-  tutorialConfig?: {
-    modelName: string;
-    cleanPrompt: string;
-    corruptedPrompt: string;
-    gpuTier: string;
-    targetPosition: number | "last";
-    targetToken: string | null;
-    contrastiveToken: string | null;
-  };
 };
 
 const DEFAULT_CLEAN_PROMPT = "When Mary and John went to the store, John gave a drink to";
@@ -47,8 +37,6 @@ export default function AttributionConfigPane({
   modelsLoading,
   onSubmit,
   onClose,
-  tutorialMode,
-  tutorialConfig,
 }: AttributionConfigPaneProps) {
   const picker = useModelSelection(availableModels);
   const [cleanPrompt, setCleanPrompt] = useState(DEFAULT_CLEAN_PROMPT);
@@ -68,30 +56,6 @@ export default function AttributionConfigPane({
     setCustomToken("");
     setContrastiveToken("");
   });
-
-  useEffect(() => {
-    if (tutorialMode && tutorialConfig) {
-      setCleanPrompt(tutorialConfig.cleanPrompt);
-      setCorruptedPrompt(tutorialConfig.corruptedPrompt);
-      picker.forceModel(tutorialConfig.modelName);
-      if (tutorialConfig.targetPosition === "last") {
-        setPositionMode("last");
-        setCustomPosition("");
-      } else {
-        setPositionMode("custom");
-        setCustomPosition(String(tutorialConfig.targetPosition));
-      }
-      if (tutorialConfig.targetToken === null) {
-        setTokenMode("auto");
-        setCustomToken("");
-      } else {
-        setTokenMode("custom");
-        setCustomToken(tutorialConfig.targetToken);
-      }
-      setContrastiveToken(tutorialConfig.contrastiveToken ?? "");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorialMode, tutorialConfig]);
 
   const cleanPreview = useTokenPreview(isOpen ? picker.activeModelId : "", cleanPrompt);
   const corruptedPreview = useTokenPreview(isOpen ? picker.activeModelId : "", corruptedPrompt);
@@ -127,8 +91,7 @@ export default function AttributionConfigPane({
       id: "model",
       label: "Model",
       body: (
-        <ModelPicker picker={picker} models={availableModels} modelsLoading={modelsLoading}
-          tutorialMode={tutorialMode} tutorialModelName={tutorialConfig?.modelName} />
+        <ModelPicker picker={picker} models={availableModels} modelsLoading={modelsLoading} />
       ),
     },
     {
@@ -143,7 +106,6 @@ export default function AttributionConfigPane({
             onChange={setCleanPrompt}
             preview={cleanPreview}
             placeholder="Where the behavior you want to explain occurs"
-            disabled={tutorialMode}
           />
 
           <div>
@@ -153,7 +115,6 @@ export default function AttributionConfigPane({
               onChange={setCorruptedPrompt}
               preview={corruptedPreview}
               placeholder="A variation that changes the behavior"
-              disabled={tutorialMode}
             />
             {lengthMismatch && (
               <p className="m-0 mt-1.5 text-[10px] leading-normal text-red-600">
@@ -183,7 +144,6 @@ export default function AttributionConfigPane({
           contrastivePreview={contrastivePreview}
           contrastivePlaceholder={`e.g. " John"`}
           contrastiveHelp="When set, the gradient metric becomes logit(target) − logit(contrastive)."
-          disabled={tutorialMode}
         />
       ),
     },

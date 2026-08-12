@@ -11,13 +11,6 @@ type ModelPickerProps = {
   picker: ModelSelection;
   models: ModelInfo[];
   modelsLoading: boolean;
-  tutorialMode?: boolean;
-  tutorialModelName?: string;
-  /**
-   * How the picker renders in tutorial mode: "static" shows just the pinned
-   * model name; "input" keeps the (disabled) custom-ID field visible.
-   */
-  tutorialVariant?: "static" | "input";
 };
 
 /** Featured-model grid + custom HuggingFace ID input, driven by useModelSelection. */
@@ -25,68 +18,54 @@ export default function ModelPicker({
   picker,
   models,
   modelsLoading,
-  tutorialMode,
-  tutorialModelName,
-  tutorialVariant = "static",
 }: ModelPickerProps) {
-  if (tutorialMode && tutorialVariant === "static") {
-    return (
-      <div style={{ marginBottom: BLOCK_GAP }}>
-        <label className={cn(PANEL_LABEL, "block")} style={{ marginBottom: TIGHT_GAP }}>Model</label>
-        <div className={cn(PANEL_META, "text-foreground")}>{tutorialModelName}</div>
-      </div>
-    );
-  }
-
   return (
     <>
-      {!tutorialMode && (
-        <div style={{ marginBottom: BLOCK_GAP }}>
-          <h3 className={cn(PANEL_HEADING, "m-0")} style={{ marginBottom: TIGHT_GAP }}>Model</h3>
+      <div style={{ marginBottom: BLOCK_GAP }}>
+        <h3 className={cn(PANEL_HEADING, "m-0")} style={{ marginBottom: TIGHT_GAP }}>Model</h3>
 
-          {modelsLoading ? (
-            <div className={cn(PANEL_META, "py-3")}>Loading models…</div>
-          ) : (
-            <div
-              className="flex flex-col overflow-y-auto pr-0.5"
-              style={{ maxHeight: GRID_MAX_H, gap: MICRO_GAP }}
-            >
-              {models.map(m => {
-                const isSelected = picker.selectedModel === m.id && !picker.usingCustom;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => picker.selectFeaturedModel(m.id)}
-                    title={m.description}
-                    className={cn(
-                      "flex cursor-pointer items-baseline justify-between gap-2 rounded-[var(--ctl-radius-xs)] border-[1.5px] px-[9px] py-1.5 text-left transition-colors",
-                      isSelected
-                        ? "border-accent bg-surface-border"
-                        : "border-card-border bg-card hover:border-accent",
-                    )}
-                  >
-                    <span className={cn(
-                      "min-w-0 truncate",
-                      isSelected ? "text-[11px] leading-[14px] font-semibold text-accent" : PANEL_LABEL,
-                    )}>
-                      {m.display_name}
-                    </span>
-                    <span className={cn(PANEL_META, "shrink-0")}>
-                      {formatModelMeta(m.description, m.display_name, m.gpu_tier)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+        {modelsLoading ? (
+          <div className={cn(PANEL_META, "py-3")}>Loading models…</div>
+        ) : (
+          <div
+            className="flex flex-col overflow-y-auto pr-0.5"
+            style={{ maxHeight: GRID_MAX_H, gap: MICRO_GAP }}
+          >
+            {models.map(m => {
+              const isSelected = picker.selectedModel === m.id && !picker.usingCustom;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => picker.selectFeaturedModel(m.id)}
+                  title={m.description}
+                  className={cn(
+                    "flex cursor-pointer items-baseline justify-between gap-2 rounded-[var(--ctl-radius-xs)] border-[1.5px] px-[9px] py-1.5 text-left transition-colors",
+                    isSelected
+                      ? "border-accent bg-surface-border"
+                      : "border-card-border bg-card hover:border-accent",
+                  )}
+                >
+                  <span className={cn(
+                    "min-w-0 truncate",
+                    isSelected ? "text-[11px] leading-[14px] font-semibold text-accent" : PANEL_LABEL,
+                  )}>
+                    {m.display_name}
+                  </span>
+                  <span className={cn(PANEL_META, "shrink-0")}>
+                    {formatModelMeta(m.description, m.display_name, m.gpu_tier)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* The custom-ID row extends the list above rather than opening a second
           block: once the list is one column, the old featured/or/custom-ID
           split was 82px of chrome between a list and the input that extends it. */}
       <div>
-        {/* Mini rule, recycled from ConfigLedger's section divider — sized to
+        {/* Mini rule, recycled from ConfigLedger's section divider, sized to
             the label's own width (plus a small overhang) rather than full-bleed,
             so it reads as "Model" and "Use Your Own" being two sections. */}
         <div
@@ -104,7 +83,6 @@ export default function ModelPicker({
             value={picker.customRepoId}
             onChange={e => picker.setCustomRepo(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && picker.customRepoId.trim()) picker.validateCustomRepo(); }}
-            disabled={tutorialMode}
             className={cn(
               "flex-1 rounded-[var(--ctl-radius-xs)] border bg-background px-2 py-1.5 text-[11px] text-foreground outline-none transition-colors disabled:cursor-default disabled:opacity-70",
               picker.usingCustom ? "border-accent" : "border-card-border",
@@ -112,7 +90,7 @@ export default function ModelPicker({
           />
           <button
             onClick={picker.validateCustomRepo}
-            disabled={tutorialMode || !picker.customRepoId.trim() || picker.customValidating}
+            disabled={!picker.customRepoId.trim() || picker.customValidating}
             className="cursor-pointer whitespace-nowrap rounded-[var(--ctl-radius-xs)] border border-card-border bg-surface-border px-2.5 py-1.5 text-[11px] text-muted transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             {picker.customValidating ? "…" : "Validate"}
@@ -121,7 +99,7 @@ export default function ModelPicker({
         {picker.customValidation && (
           <p className={cn("m-0 text-[11px]", picker.customValidation.valid ? "text-green-600" : "text-red-600")} style={{ marginTop: TIGHT_GAP }}>
             {picker.customValidation.valid
-              ? `✓ Valid — ${picker.customValidation.gpu_tier ? TIER_LABELS[picker.customValidation.gpu_tier] ?? picker.customValidation.gpu_tier : "unknown GPU"}`
+              ? `✓ Valid, ${picker.customValidation.gpu_tier ? TIER_LABELS[picker.customValidation.gpu_tier] ?? picker.customValidation.gpu_tier : "unknown GPU"}`
               : `✗ ${picker.customValidation.reason}`}
             {picker.customValidation.valid && picker.customValidation.adapter && (
               <span className="block text-muted">

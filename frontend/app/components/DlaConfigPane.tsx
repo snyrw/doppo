@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
 import ConfigLedger, { type LedgerSection } from "./configledger/ConfigLedger";
@@ -24,15 +24,6 @@ type DlaConfigPaneProps = {
     contrastiveToken: string | null;
   }) => void;
   onClose: () => void;
-  tutorialMode?: boolean;
-  tutorialConfig?: {
-    modelName: string;
-    prompt: string;
-    gpuTier: string;
-    targetPosition: number | "last";
-    targetToken: string | null;
-    contrastiveToken: string | null;
-  };
 };
 
 const DEFAULT_PROMPT = "The capital of France is Paris. The capital of Germany is";
@@ -44,8 +35,6 @@ export default function DlaConfigPane({
   modelsLoading,
   onSubmit,
   onClose,
-  tutorialMode,
-  tutorialConfig,
 }: DlaConfigPaneProps) {
   const picker = useModelSelection(availableModels);
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
@@ -63,29 +52,6 @@ export default function DlaConfigPane({
     setCustomToken("");
     setContrastiveToken("");
   });
-
-  useEffect(() => {
-    if (tutorialMode && tutorialConfig) {
-      setPrompt(tutorialConfig.prompt);
-      picker.forceModel(tutorialConfig.modelName);
-      if (tutorialConfig.targetPosition === "last") {
-        setPositionMode("last");
-        setCustomPosition("");
-      } else {
-        setPositionMode("custom");
-        setCustomPosition(String(tutorialConfig.targetPosition));
-      }
-      if (tutorialConfig.targetToken === null) {
-        setTokenMode("auto");
-        setCustomToken("");
-      } else {
-        setTokenMode("custom");
-        setCustomToken(tutorialConfig.targetToken);
-      }
-      setContrastiveToken(tutorialConfig.contrastiveToken ?? "");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorialMode, tutorialConfig]);
 
   const tokenPreview = useTokenPreview(isOpen ? picker.activeModelId : "", prompt);
   const targetTokenPreview = useTokenPreview(isOpen ? picker.activeModelId : "", tokenMode === "custom" ? customToken : "");
@@ -114,8 +80,7 @@ export default function DlaConfigPane({
       id: "model",
       label: "Model",
       body: (
-        <ModelPicker picker={picker} models={availableModels} modelsLoading={modelsLoading}
-          tutorialMode={tutorialMode} tutorialModelName={tutorialConfig?.modelName} />
+        <ModelPicker picker={picker} models={availableModels} modelsLoading={modelsLoading} />
       ),
     },
     {
@@ -127,7 +92,6 @@ export default function DlaConfigPane({
           <textarea
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
-            disabled={tutorialMode}
             rows={5}
             className="box-border w-full resize-y rounded-[var(--ctl-radius-xs)] border border-card-border bg-background px-2.5 py-2 font-[inherit] text-[13px] leading-normal text-foreground outline-none disabled:cursor-default disabled:opacity-70"
           />
@@ -150,7 +114,6 @@ export default function DlaConfigPane({
           contrastivePreview={contrastivePreview}
           contrastivePlaceholder={`e.g. " Berlin"`}
           contrastiveHelp="When set, uses logit difference (target − contrastive) as the attribution direction."
-          disabled={tutorialMode}
         />
       ),
     },

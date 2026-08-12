@@ -43,17 +43,6 @@ type SteeringConfigPaneProps = {
   }) => void;
   onClose: () => void;
   onPairsSaved?: (summary: { id: string; name: string; pairCount: number; createdAt: Date }) => void;
-  tutorialMode?: boolean;
-  tutorialConfig?: {
-    modelName: string;
-    cleanPrompt: string;
-    corruptedPrompt: string;
-    generationPrompt?: string;
-    nPairs?: number;
-    gpuTier: string;
-    layer: number;
-    extraPairs?: Array<{ clean: string; corrupted: string }>;
-  };
 };
 
 const DEFAULT_CLEAN_PROMPT = "When Mary and John went to the store, John gave a drink to";
@@ -66,8 +55,6 @@ export default function SteeringConfigPane({
   onSubmit,
   onClose,
   onPairsSaved,
-  tutorialMode,
-  tutorialConfig,
 }: SteeringConfigPaneProps) {
   const { data: session } = useSession();
   const picker = useModelSelection(availableModels);
@@ -117,20 +104,7 @@ export default function SteeringConfigPane({
   });
 
   useEffect(() => {
-    if (tutorialMode && tutorialConfig) {
-      setCleanPrompt(tutorialConfig.cleanPrompt);
-      setCorruptedPrompt(tutorialConfig.corruptedPrompt);
-      picker.forceCustomModel(tutorialConfig.modelName, tutorialConfig.gpuTier);
-      setInjectionLayer(String(tutorialConfig.layer));
-      setMode("full");
-      if (tutorialConfig.generationPrompt) setGenerationPrompt(tutorialConfig.generationPrompt);
-      if (tutorialConfig.extraPairs) setExtraPairs(tutorialConfig.extraPairs);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorialMode, tutorialConfig]);
-
-  useEffect(() => {
-    if (mode !== "saved" || tutorialMode) return;
+    if (mode !== "saved") return;
     let cancelled = false;
     setSavedSetsLoading(true);
     setSavedSetsError(null);
@@ -139,7 +113,7 @@ export default function SteeringConfigPane({
       .catch((err) => { if (!cancelled) setSavedSetsError(err instanceof Error ? err.message : "Failed to load saved sets."); })
       .finally(() => { if (!cancelled) setSavedSetsLoading(false); });
     return () => { cancelled = true; };
-  }, [mode, tutorialMode]);
+  }, [mode]);
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -177,7 +151,7 @@ export default function SteeringConfigPane({
     setSaving(true);
     setSaveError(null);
     try {
-      const name = conceptDescription.trim() || `Untitled set — ${new Date().toLocaleDateString()}`;
+      const name = conceptDescription.trim() || `Untitled set - ${new Date().toLocaleDateString()}`;
       const { id } = await saveSteeringPairSet(name, cleanPrompt, corruptedPrompt, extraPairs);
       setJustSaved(true);
       setSavedSets((prev) => [
@@ -294,8 +268,6 @@ export default function SteeringConfigPane({
             picker={picker}
             models={availableModels}
             modelsLoading={modelsLoading}
-            tutorialMode={tutorialMode}
-            tutorialVariant="input"
           />
         </div>
       ),
@@ -314,14 +286,13 @@ export default function SteeringConfigPane({
               {(["quick", "full", "saved"] as const).map((m, i) => (
                 <button
                   key={m}
-                  onClick={() => { if (tutorialMode) return; setMode(m); if (m === "quick") { setExtraPairs([]); setGenerateError(null); } }}
-                  disabled={tutorialMode}
+                  onClick={() => { setMode(m); if (m === "quick") { setExtraPairs([]); setGenerateError(null); } }}
                   className={cn(
                     "flex-1 cursor-pointer border-none py-1 text-[10px] transition-colors disabled:cursor-default",
                     i < 2 && "border-r border-card-border",
                     mode === m
                       ? "bg-surface-border font-semibold text-foreground"
-                      : cn("bg-transparent font-normal text-muted", tutorialMode && "opacity-45"),
+                      : "bg-transparent font-normal text-muted",
                   )}
                 >
                   {m === "quick" ? "Quick (1 pair)" : m === "full" ? `Full (up to ${pairCap} pairs)` : "Saved"}
@@ -362,7 +333,6 @@ export default function SteeringConfigPane({
                 onChange={setCleanPrompt}
                 preview={cleanPreview}
                 placeholder="Where the behavior you want to steer occurs"
-                disabled={tutorialMode}
               />
             </div>
 
@@ -372,7 +342,6 @@ export default function SteeringConfigPane({
               onChange={setCorruptedPrompt}
               preview={corruptedPreview}
               placeholder="A variation that represents the direction to steer toward"
-              disabled={tutorialMode}
             />
           </div>
 
@@ -382,71 +351,64 @@ export default function SteeringConfigPane({
               <label className={cn(PANEL_LABEL, "mb-2 block")}>
                 Generate dataset pairs with Claude Haiku
               </label>
-              {!tutorialMode && !session && (
+              {!session && (
                 <p className="m-0 mb-2 text-[10px] leading-normal text-amber-600">
                   Sign in to generate pairs.
                 </p>
               )}
               <textarea
-                value={tutorialMode ? "English → French (LLM-style questions)" : conceptDescription}
+                value={conceptDescription}
                 onChange={e => setConceptDescription(e.target.value)}
                 rows={2}
                 placeholder={`Describe the steering concept, e.g. "the model mentions Paris" or "confident vs. hesitant tone"`}
-                disabled={tutorialMode || !session}
+                disabled={!session}
                 className={cn(
                   "box-border w-full resize-y rounded-[var(--ctl-radius-xs)] border px-2.5 py-2 font-[inherit] text-[11px] leading-normal text-foreground outline-none",
-                  !tutorialMode && conceptDescription.trim() && session ? "border-accent" : "border-card-border",
-                  tutorialMode || !session ? "bg-surface-border" : "bg-background",
-                  tutorialMode ? "cursor-default opacity-70" : session ? "opacity-100" : "opacity-60",
+                  conceptDescription.trim() && session ? "border-accent" : "border-card-border",
+                  !session ? "bg-surface-border" : "bg-background",
+                  session ? "opacity-100" : "opacity-60",
                 )}
               />
               <div className="mt-2 flex items-center justify-between gap-2">
                 <span className={PANEL_META}>
-                  {tutorialMode
-                    ? `${tutorialConfig?.nPairs ?? 40} pairs total`
-                    : extraPairs.length > 0
-                      ? `${totalPairs} pairs total (seed + ${extraPairs.length} generated)`
-                      : `Will generate ${pairCap - 1} pairs (${pairCap} total with seed)`}
+                  {extraPairs.length > 0
+                    ? `${totalPairs} pairs total (seed + ${extraPairs.length} generated)`
+                    : `Will generate ${pairCap - 1} pairs (${pairCap} total with seed)`}
                 </span>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button
                     onClick={handleGenerate}
-                    disabled={tutorialMode || !canGenerate}
+                    disabled={!canGenerate}
                     className={cn(
                       "whitespace-nowrap rounded-[var(--ctl-radius-xs)] border-none px-2.5 py-[5px] text-[10px] font-medium transition-colors",
-                      !tutorialMode && canGenerate
+                      canGenerate
                         ? "cursor-pointer bg-accent text-accent-fg"
                         : "cursor-not-allowed bg-surface-border text-muted",
-                      tutorialMode && "opacity-70",
                     )}
                   >
-                    {tutorialMode
-                      ? `${tutorialConfig?.nPairs ?? 40} pairs generated`
-                      : generating ? "Generating…"
+                    {generating ? "Generating…"
                       : extraPairs.length > 0 ? "Regenerate" : "Generate pairs"}
                   </button>
-                  {!tutorialMode && (
-                    <button
-                      onClick={handleSavePairs}
-                      disabled={extraPairs.length === 0 || saving}
-                      className={cn(
-                        "whitespace-nowrap rounded-[var(--ctl-radius-xs)] border-none px-2.5 py-[5px] text-[10px] font-medium transition-colors",
-                        extraPairs.length > 0 && !saving
-                          ? "cursor-pointer bg-accent text-accent-fg"
-                          : "cursor-not-allowed bg-surface-border text-muted",
-                      )}
-                    >
-                      {saving ? "Saving…" : justSaved ? "Saved ✓" : "Save Pairs"}
-                    </button>
-                  )}
+                  <button
+                    onClick={handleSavePairs}
+                    disabled={extraPairs.length === 0 || saving}
+                    className={cn(
+                      "whitespace-nowrap rounded-[var(--ctl-radius-xs)] border-none px-2.5 py-[5px] text-[10px] font-medium transition-colors",
+                      extraPairs.length > 0 && !saving
+                        ? "cursor-pointer bg-accent text-accent-fg"
+                        : "cursor-not-allowed bg-surface-border text-muted",
+                    )}
+                  >
+                    {saving ? "Saving…" : justSaved ? "Saved ✓" : "Save Pairs"}
+                  </button>
                 </div>
               </div>
-              {!tutorialMode && generateError && (
+              {generateError && (
                 <p className="m-0 mt-1.5 text-[10px] leading-normal text-red-600">
                   ✗ {generateError}
                 </p>
               )}
-              {!tutorialMode && saveError && (
+              {saveError && (
                 <p className="m-0 mt-1.5 text-[10px] leading-normal text-red-600">
                   ✗ {saveError}
                 </p>
@@ -459,14 +421,12 @@ export default function SteeringConfigPane({
                     <span className={PANEL_META}>
                       Generated pairs ({extraPairs.length})
                     </span>
-                    {!tutorialMode && (
-                      <button
-                        onClick={() => setExtraPairs([])}
-                        className={cn(PANEL_META, "cursor-pointer border-none bg-transparent px-0.5")}
-                      >
-                        Clear all
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setExtraPairs([])}
+                      className={cn(PANEL_META, "cursor-pointer border-none bg-transparent px-0.5")}
+                    >
+                      Clear all
+                    </button>
                   </div>
                   <div className="flex max-h-[180px] flex-col gap-[3px] overflow-y-auto">
                     {extraPairs.map((pair, i) => (
@@ -482,14 +442,12 @@ export default function SteeringConfigPane({
                             {pair.corrupted}
                           </div>
                         </div>
-                        {!tutorialMode && (
-                          <button
-                            onClick={() => removePair(i)}
-                            className="mt-px shrink-0 cursor-pointer border-none bg-transparent px-px text-[11px] leading-none text-muted"
-                          >
-                            ×
-                          </button>
-                        )}
+                        <button
+                          onClick={() => removePair(i)}
+                          className="mt-px shrink-0 cursor-pointer border-none bg-transparent px-px text-[11px] leading-none text-muted"
+                        >
+                          ×
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -582,18 +540,17 @@ export default function SteeringConfigPane({
             <span className={cn(PANEL_LABEL, "mb-2 block")}>Position (DIM vector source)</span>
             <div className="flex flex-col gap-[7px]">
               <label className={radioCls}>
-                <input type="radio" name="steer-position" checked={positionMode === "last"} onChange={() => setPositionMode("last")} disabled={tutorialMode} className={radioInputCls} />
+                <input type="radio" name="steer-position" checked={positionMode === "last"} onChange={() => setPositionMode("last")} className={radioInputCls} />
                 Last token
               </label>
               <label className={cn(radioCls, "items-start")}>
-                <input type="radio" name="steer-position" checked={positionMode === "custom"} onChange={() => setPositionMode("custom")} disabled={tutorialMode} className={cn(radioInputCls, "mt-0.5")} />
+                <input type="radio" name="steer-position" checked={positionMode === "custom"} onChange={() => setPositionMode("custom")} className={cn(radioInputCls, "mt-0.5")} />
                 <span>Token index</span>
                 <input
                   type="number" min={0} placeholder="e.g. 3"
                   value={customPosition}
                   onFocus={() => setPositionMode("custom")}
                   onChange={e => { setPositionMode("custom"); setCustomPosition(e.target.value); }}
-                  disabled={tutorialMode}
                   className={cn(smallInputCls, "ml-1.5 w-[72px] border px-1.5 py-[3px]", positionMode === "custom" ? "border-accent" : "border-card-border")}
                 />
               </label>
@@ -610,7 +567,6 @@ export default function SteeringConfigPane({
               placeholder="e.g. 12"
               value={injectionLayer}
               onChange={e => setInjectionLayer(e.target.value)}
-              disabled={tutorialMode}
               className={cn(smallInputCls, "w-[100px] border px-2 py-1", injectionLayer.trim() ? "border-accent" : "border-card-border")}
             />
             <p className={helpTextCls}>
@@ -632,7 +588,6 @@ export default function SteeringConfigPane({
             <textarea
               value={generationPrompt}
               onChange={e => setGenerationPrompt(e.target.value)}
-              disabled={tutorialMode}
               rows={2}
               placeholder={`Leave empty to use the clean prompt.`}
               className={cn(
@@ -656,7 +611,6 @@ export default function SteeringConfigPane({
               type="range" min={0.1} max={2.0} step={0.1}
               value={temperature}
               onChange={e => setTemperature(parseFloat(e.target.value))}
-              disabled={tutorialMode}
               className={sliderCls}
             />
             <p className={cn(PANEL_META, "m-0 mt-1")}>
@@ -675,7 +629,6 @@ export default function SteeringConfigPane({
               type="range" min={1.0} max={2.0} step={0.05}
               value={repetitionPenalty}
               onChange={e => setRepetitionPenalty(parseFloat(e.target.value))}
-              disabled={tutorialMode}
               className={sliderCls}
             />
             <p className={cn(PANEL_META, "m-0 mt-1")}>
