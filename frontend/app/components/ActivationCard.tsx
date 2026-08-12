@@ -4,7 +4,8 @@ import React from "react";
 import { useDivergingPalette } from "../hooks/usePalette";
 import { BAND_ACTIVATION, labelForCard } from "../lib/techniques";
 import { CardInfo } from "./CardInfo";
-import { infoSectionsFor } from "./card-info-content";
+import { CardExplain } from "./CardExplain";
+import { infoSectionsFor, type InfoSection } from "./card-info-content";
 import {
   BandChip, CardBand, CardCloseButton, CardErrorState, CardFrame, CardHeader,
   CardLoadingHeader, CardLoadingState, CardRule, CardScrollArea, useElapsedMs,
@@ -72,6 +73,7 @@ type ActivationCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   tutorialMode?: boolean;
+  explainSections?: InfoSection[];
 };
 
 function componentLabel(c: VerifiedComponent): string {
@@ -125,7 +127,7 @@ function rows(data: ActivationPatchResult, attrAbsMax: number, effectAbsMax: num
 }
 
 function ActivationCard({
-  card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, tutorialMode,
+  card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, tutorialMode, explainSections,
 }: ActivationCardProps) {
   const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const palette = useDivergingPalette();
@@ -166,11 +168,16 @@ function ActivationCard({
         {/* BAND_ACTIVATION, not techniqueForCard: both patching cards share the
             "patching" key but not the fill. */}
         <CardBand info={
-          <CardInfo
-            accent={BAND_ACTIVATION}
-            accentLabel={labelForCard(card.cardType)}
-            sections={memoSections}
-          />
+          <>
+            <CardInfo
+              accent={BAND_ACTIVATION}
+              accentLabel={labelForCard(card.cardType)}
+              sections={memoSections}
+            />
+            {tutorialMode && explainSections && (
+              <CardExplain accent={BAND_ACTIVATION} accentLabel={labelForCard(card.cardType)} sections={explainSections} />
+            )}
+          </>
         }>
           {data && (
             <>

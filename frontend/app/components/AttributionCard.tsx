@@ -3,7 +3,8 @@
 import React from "react";
 import { techniqueForCard } from "../lib/techniques";
 import { CardInfo } from "./CardInfo";
-import { infoSectionsFor } from "./card-info-content";
+import { CardExplain } from "./CardExplain";
+import { infoSectionsFor, type InfoSection } from "./card-info-content";
 import { useDivergingPalette } from "../hooks/usePalette";
 import { cn } from "../lib/cn";
 import { TOP_N_OPTIONS, type TopN } from "../lib/patching";
@@ -91,6 +92,7 @@ type AttributionCardProps = {
   onRemove: (id: string) => void;
   onVerifyTopK: (cardId: string, k: number) => void;
   tutorialMode?: boolean;
+  explainSections?: InfoSection[];
 };
 
 const componentLabel = (c: TopKComponent) =>
@@ -205,7 +207,7 @@ function VerifyChip({
 }
 
 function AttributionCard({
-  card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, onVerifyTopK, tutorialMode,
+  card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, onVerifyTopK, tutorialMode, explainSections,
 }: AttributionCardProps) {
   // Head by default: step-4-attribution.md tells the reader to compare "the
   // heatmap" to DLA's, so landing anywhere else makes the tutorial copy wrong.
@@ -265,12 +267,17 @@ function AttributionCard({
         />
 
         <CardBand info={
-          <CardInfo
-            accent={TECHNIQUE.band}
-            accentLabel={TECHNIQUE.name}
-            sections={memoSections}
-            controls={data ? verifyControls : undefined}
-          />
+          <>
+            <CardInfo
+              accent={TECHNIQUE.band}
+              accentLabel={TECHNIQUE.name}
+              sections={memoSections}
+              controls={data ? verifyControls : undefined}
+            />
+            {tutorialMode && explainSections && (
+              <CardExplain accent={TECHNIQUE.band} accentLabel={TECHNIQUE.name} sections={explainSections} />
+            )}
+          </>
         }>
           {data && (
             <>

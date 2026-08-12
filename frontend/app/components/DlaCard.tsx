@@ -4,7 +4,8 @@ import React from "react";
 import { useDivergingPalette } from "../hooks/usePalette";
 import { techniqueForCard } from "../lib/techniques";
 import { CardInfo } from "./CardInfo";
-import { infoSectionsFor } from "./card-info-content";
+import { CardExplain } from "./CardExplain";
+import { infoSectionsFor, type InfoSection } from "./card-info-content";
 import {
   BandChip, CardBand, CardCloseButton, CardErrorState, CardFrame, CardHeader,
   CardLoadingHeader, CardLoadingState, CardRule, CardScrollArea, ViewStrip,
@@ -82,6 +83,7 @@ type DlaCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   tutorialMode?: boolean;
+  explainSections?: InfoSection[];
 };
 
 const VIEW_LABELS: Record<View, string> = { layer: "Layer", head: "Head", top: "Top" };
@@ -163,7 +165,7 @@ function topRows(data: DlaData, absMax: number): BarTableRow[] {
     }));
 }
 
-function DlaCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, tutorialMode }: DlaCardProps) {
+function DlaCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, tutorialMode, explainSections }: DlaCardProps) {
   const [view, setView] = React.useState<View>("layer");
   const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const palette = useDivergingPalette();
@@ -207,11 +209,16 @@ function DlaCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, tuto
         {/* The tier badge moved into the panel. The ViewStrip stays: it is
             one-click view selection, which is what the band is for. */}
         <CardBand info={
-          <CardInfo
-            accent={TECHNIQUE.band}
-            accentLabel={TECHNIQUE.name}
-            sections={memoSections}
-          />
+          <>
+            <CardInfo
+              accent={TECHNIQUE.band}
+              accentLabel={TECHNIQUE.name}
+              sections={memoSections}
+            />
+            {tutorialMode && explainSections && (
+              <CardExplain accent={TECHNIQUE.band} accentLabel={TECHNIQUE.name} sections={explainSections} />
+            )}
+          </>
         }>
           {data && (
             <>

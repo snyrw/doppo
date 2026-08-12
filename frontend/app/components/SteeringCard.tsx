@@ -19,7 +19,8 @@ import {
 import { cn } from "../lib/cn";
 import { techniqueForCard } from "../lib/techniques";
 import { CardInfo } from "./CardInfo";
-import { infoSectionsFor } from "./card-info-content";
+import { CardExplain } from "./CardExplain";
+import { infoSectionsFor, type InfoSection } from "./card-info-content";
 import {
   canStep,
   displayPrompt,
@@ -105,6 +106,7 @@ type SteeringCardProps = {
   onRemove: (id: string) => void;
   onRerun: (cardId: string, newAlpha: number) => void;
   tutorialMode?: boolean;
+  explainSections?: InfoSection[];
 };
 
 const STAGE_LABELS: Record<string, string> = {
@@ -121,6 +123,7 @@ function SteeringCard({
   onRemove,
   onRerun,
   tutorialMode,
+  explainSections,
 }: SteeringCardProps) {
   const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const [localAlpha, setLocalAlpha] = React.useState(card.alpha);
@@ -227,12 +230,17 @@ function SteeringCard({
             are `flex-1`, and the body columns below mirror that same
             distribution — which is what places the divider. */}
         <CardBand info={
-          <CardInfo
-            accent={TECHNIQUE.band}
-            accentLabel={TECHNIQUE.name}
-            sections={memoSections}
-            controls={steeringControls}
-          />
+          <>
+            <CardInfo
+              accent={TECHNIQUE.band}
+              accentLabel={TECHNIQUE.name}
+              sections={memoSections}
+              controls={steeringControls}
+            />
+            {tutorialMode && explainSections && (
+              <CardExplain accent={TECHNIQUE.band} accentLabel={TECHNIQUE.name} sections={explainSections} />
+            )}
+          </>
         }>
           <BandChip className="min-w-0 flex-1">Base</BandChip>
           <BandChip className="min-w-0 flex-1">Steered</BandChip>

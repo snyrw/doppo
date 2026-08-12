@@ -4,7 +4,8 @@ import React from "react";
 import { getHeadColor } from "../lib/palette";
 import { techniqueForCard } from "../lib/techniques";
 import { CardInfo } from "./CardInfo";
-import { infoSectionsFor } from "./card-info-content";
+import { CardExplain } from "./CardExplain";
+import { infoSectionsFor, type InfoSection } from "./card-info-content";
 import { BORDER_W } from "./card-geometry";
 import {
   BandChip,
@@ -64,6 +65,7 @@ type AttentionCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   tutorialMode?: boolean;
+  explainSections?: InfoSection[];
 };
 
 /* CARD_MAX_W now lives in CardShell — it bounds every card, not just this one,
@@ -304,6 +306,7 @@ function AttentionCard({
   onDragEnd,
   onRemove,
   tutorialMode,
+  explainSections,
 }: AttentionCardProps) {
   const [currentLayer, setCurrentLayer] = React.useState(0);
   const [selectedCell, setSelectedCell] = React.useState<SelectedCell>(null);
@@ -398,11 +401,16 @@ function AttentionCard({
       >
         <CardHeader modelName={card.modelName} prompt={card.prompt} />
         <CardBand info={
-          <CardInfo
-            accent={TECHNIQUE.band}
-            accentLabel={TECHNIQUE.name}
-            sections={memoSections}
-          />
+          <>
+            <CardInfo
+              accent={TECHNIQUE.band}
+              accentLabel={TECHNIQUE.name}
+              sections={memoSections}
+            />
+            {tutorialMode && explainSections && (
+              <CardExplain accent={TECHNIQUE.band} accentLabel={TECHNIQUE.name} sections={explainSections} />
+            )}
+          </>
         }>
           {data && (
             /* 265 = the mock's 530px pager bar at scale. */

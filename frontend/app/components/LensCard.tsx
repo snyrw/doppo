@@ -5,7 +5,8 @@ import { useSequentialPalette } from "../hooks/usePalette";
 import { interpolateColor, getContrastColor } from "../lib/palette";
 import { techniqueForCard } from "../lib/techniques";
 import { CardInfo } from "./CardInfo";
-import { infoSectionsFor } from "./card-info-content";
+import { CardExplain } from "./CardExplain";
+import { infoSectionsFor, type InfoSection } from "./card-info-content";
 import { BORDER_W } from "./card-geometry";
 import {
   CardBand,
@@ -79,6 +80,7 @@ type LensCardProps = {
   onDragEnd: (e: React.PointerEvent<HTMLDivElement>) => void;
   onRemove: (id: string) => void;
   tutorialMode?: boolean;
+  explainSections?: InfoSection[];
 };
 
 type DisplayMode = "prob" | "tokens" | "kl" | "rank" | "entropy";
@@ -144,6 +146,7 @@ function LensCard({
   onDragEnd,
   onRemove,
   tutorialMode,
+  explainSections,
 }: LensCardProps) {
   const palette = useSequentialPalette();
   const [mode, setMode] = React.useState<DisplayMode>("prob");
@@ -350,12 +353,17 @@ function LensCard({
             `{data && <CardBand …>}` hid it. `canToggle` still guards the strip
             alone, so a result without top-k now keeps its info button. */}
         <CardBand info={
-          <CardInfo
-            accent={TECHNIQUE.band}
-            accentLabel={TECHNIQUE.name}
-            sections={memoSections}
-            controls={card.status === "result" ? layerControls : undefined}
-          />
+          <>
+            <CardInfo
+              accent={TECHNIQUE.band}
+              accentLabel={TECHNIQUE.name}
+              sections={memoSections}
+              controls={card.status === "result" ? layerControls : undefined}
+            />
+            {tutorialMode && explainSections && (
+              <CardExplain accent={TECHNIQUE.band} accentLabel={TECHNIQUE.name} sections={explainSections} />
+            )}
+          </>
         }>
           {card.status === "result" && canToggle && (
             <div className="flex h-full w-full max-w-[380px] items-stretch bg-surface-border">

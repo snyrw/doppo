@@ -9,6 +9,7 @@ import SteeringCard, { type SteeringCardData } from "./SteeringCard";
 import AttentionCard, { type AttentionCardData } from "./AttentionCard";
 import { useCanvasPan } from "../hooks/useCanvasPan";
 import { useCardDrag } from "../hooks/useCardDrag";
+import type { InfoSection } from "./card-info-content";
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 3;
@@ -29,6 +30,7 @@ type SandboxCanvasProps = {
   onVerifyTopK: (attributionCardId: string, k: number) => void;
   onRerunSteering: (cardId: string, newAlpha: number) => void;
   tutorialMode?: boolean;
+  explainContent?: Partial<Record<AnyCard["cardType"], InfoSection[]>>;
 };
 
 export default function SandboxCanvas({
@@ -40,6 +42,7 @@ export default function SandboxCanvas({
   onVerifyTopK,
   onRerunSteering,
   tutorialMode,
+  explainContent,
 }: SandboxCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -165,6 +168,7 @@ export default function SandboxCanvas({
       onDragEnd,
       onRemove: onRemoveCard,
       tutorialMode,
+      explainSections: explainContent?.[card.cardType],
     };
     switch (card.cardType) {
       case "dla":
