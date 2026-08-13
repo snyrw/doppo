@@ -657,10 +657,15 @@ class _TLBase:
             head_attribution.append(row)
 
         layer_attribution: list[float] = []
+        layer_attn_attribution: list[float] = []
+        layer_mlp_attribution: list[float] = []
         for L in range(n_layers):
             mlp_diff = clean_mlp_cpu[L] - corrupted_mlp_cpu[L]
             mlp_attr = float((mlp_diff * grad_mlp_cpu[L]).sum())
-            layer_attribution.append(sum(head_attribution[L]) + mlp_attr)
+            attn_attr = sum(head_attribution[L])
+            layer_attribution.append(attn_attr + mlp_attr)
+            layer_attn_attribution.append(attn_attr)
+            layer_mlp_attribution.append(mlp_attr)
             all_components.append({
                 "layer": L,
                 "head": -1,
@@ -682,6 +687,8 @@ class _TLBase:
                 "y_labels": [f"L{i}" for i in range(n_layers)],
                 "x_labels": [f"H{i}" for i in range(n_heads)],
                 "layer_attribution": layer_attribution,
+                "layer_attn_attribution": layer_attn_attribution,
+                "layer_mlp_attribution": layer_mlp_attribution,
                 "head_attribution": head_attribution,
                 "top_k_components": top_k_components,
             },

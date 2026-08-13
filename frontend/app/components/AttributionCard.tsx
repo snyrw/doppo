@@ -16,7 +16,7 @@ import {
 import { BarTable, type BarColumn, type BarTableRow } from "./BarTable";
 import { HeadView } from "./HeadGrid";
 import {
-  ATTR_ZONE_W, LAYER_LABEL_W, TOP_LABEL_W, TOP_ZONE_W, headViewWidth, signed,
+  LAYER_LABEL_W, LAYER_ZONE_W, TOP_LABEL_W, TOP_ZONE_W, headViewWidth, signed,
 } from "./bar-table-geometry";
 import type { LoadingStage } from "../lib/loading-stage";
 
@@ -26,7 +26,10 @@ const VIEWS = ["layer", "head", "top"] as const;
 type View = (typeof VIEWS)[number];
 const VIEW_LABELS: Record<View, string> = { layer: "Layer", head: "Head", top: "Top" };
 
-const LAYER_COLUMNS: BarColumn[] = [{ header: "", width: ATTR_ZONE_W }];
+const LAYER_COLUMNS: BarColumn[] = [
+  { header: "Attn", width: LAYER_ZONE_W },
+  { header: "MLP", width: LAYER_ZONE_W },
+];
 const TOP_COLUMNS: BarColumn[] = [{ header: "", width: TOP_ZONE_W }];
 
 const DEFAULT_TOP_N: TopN = 10;
@@ -54,6 +57,9 @@ export type AttributionData = {
   y_labels: string[];
   x_labels: string[];
   layer_attribution: number[];
+  /** Absent on rows cached before the attn/mlp split existed. */
+  layer_attn_attribution?: number[];
+  layer_mlp_attribution?: number[];
   head_attribution: number[][];
   top_k_components: TopKComponent[];
 };
@@ -99,17 +105,49 @@ const componentLabel = (c: TopKComponent) =>
   c.component_type === "attn_head" ? `L${c.layer}·H${c.head}` : `L${c.layer}·MLP`;
 
 function layerRows(data: AttributionData, absMax: number): BarTableRow[] {
+  const { layer_attn_attribution: attnArr, layer_mlp_attribution: mlpArr } = data;
   return data.y_labels.map((label, i) => {
-    const val = data.layer_attribution[i];
+    const total = data.layer_attribution[i];
+
+    // Cache rows from before the split existed: one bar spanning both zones,
+    // same as DLA's embed row when it has no attn/mlp breakdown either.
+    if (!attnArr || !mlpArr) {
+      return {
+        key: label,
+        label,
+        bars: [{ val: total, absMax, span: 2 }],
+        value: signed(total),
+        tooltip: (
+          <>
+            <span className="font-semibold">{label}</span>{" "}
+            <span className="font-mono tabular-nums">{signed(total, 3)}</span>
+          </>
+        ),
+      };
+    }
+
+    const attn = attnArr[i];
+    const mlp = mlpArr[i];
     return {
       key: label,
       label,
-      bars: [{ val, absMax }],
-      value: signed(val),
+      bars: [{ val: attn, absMax }, { val: mlp, absMax }],
+      value: signed(total),
       tooltip: (
         <>
-          <span className="font-semibold">{label}</span>{" "}
-          <span className="font-mono tabular-nums">{signed(val, 3)}</span>
+          <div className="mb-[3px] font-semibold">{label}</div>
+          <div className="flex flex-col gap-0.5 font-mono tabular-nums">
+            <div className="flex justify-between gap-3.5">
+              <span className="text-muted">Attn</span><span>{signed(attn, 3)}</span>
+            </div>
+            <div className="flex justify-between gap-3.5">
+              <span className="text-muted">MLP</span><span>{signed(mlp, 3)}</span>
+            </div>
+            <div className="mt-px flex justify-between gap-3.5 border-t border-surface-border pt-0.5">
+              <span className="text-muted">Total</span>
+              <span className="font-semibold">{signed(total, 3)}</span>
+            </div>
+          </div>
         </>
       ),
     };
@@ -209,9 +247,7 @@ function VerifyChip({
 function AttributionCard({
   card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, onVerifyTopK, tutorialMode, explainSections,
 }: AttributionCardProps) {
-  // Head by default: step-4-attribution.md tells the reader to compare "the
-  // heatmap" to DLA's, so landing anywhere else makes the tutorial copy wrong.
-  const [view, setView] = React.useState<View>("head");
+  const [view, setView] = React.useState<View>("layer");
   const [topN, setTopN] = React.useState<TopN>(DEFAULT_TOP_N);
   const elapsedMs = useElapsedMs(card.status, card.startedAt);
   const palette = useDivergingPalette();
@@ -221,7 +257,13 @@ function AttributionCard({
 
   const absMax = React.useMemo(() => {
     if (!data) return 1;
-    if (view === "layer") return Math.max(1e-9, ...data.layer_attribution.map(Math.abs));
+    if (view === "layer") {
+      return Math.max(1e-9, ...[
+        ...data.layer_attribution,
+        ...(data.layer_attn_attribution ?? []),
+        ...(data.layer_mlp_attribution ?? []),
+      ].map(Math.abs));
+    }
     return Math.max(1e-9, ...data.head_attribution.flatMap(row => row.map(Math.abs)));
   }, [data, view]);
 
@@ -342,7 +384,7 @@ function AttributionCard({
                 labelW={LAYER_LABEL_W}
                 columns={LAYER_COLUMNS}
                 labelHeader=""
-                valueHeader="Attr"
+                valueHeader="≈Logit"
                 rows={memoLayerRows}
                 palette={palette}
               />
@@ -351,7 +393,7 @@ function AttributionCard({
                 labelW={TOP_LABEL_W}
                 columns={TOP_COLUMNS}
                 labelHeader="Comp."
-                valueHeader="Attr"
+                valueHeader="≈Logit"
                 rows={memoTopRows}
                 palette={palette}
               />
