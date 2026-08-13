@@ -8,7 +8,7 @@ import SectionStrip from "./SectionStrip";
 import { cn } from "../../lib/cn";
 import { PANEL_LABEL, PANEL_META } from "./panel-type";
 import {
-  LEDGER_W, LEDGER_RADIUS, LEDGER_MAX_H,
+  LEDGER_W, LEDGER_RADIUS,
   INSET, BLOCK_GAP, TIGHT_GAP, FOOTER_PAD_Y,
   ACCENT_SIZE, ACCENT_RADIUS,
 } from "./ledger-geometry";
@@ -22,12 +22,6 @@ export type LedgerSection = {
 /**
  * Single-pane config shell shared by all five technique config panes. A
  * segmented strip selects the section; the body shows only the active one.
- * Panes supply `sections`, own their state, validation and submit logic, and
- * decide visibility before rendering the shell.
- *
- * This replaces a two-pane ledger whose 228px rail carried a live value summary
- * per section. That information is not lost: every pane's `footerSummary`
- * already composes every one of its sections' values.
  */
 export default function ConfigLedger({
   title,
@@ -58,11 +52,10 @@ export default function ConfigLedger({
   return (
     <div
       data-config-panel
-      className="absolute left-0 top-[calc(100%+6px)] z-30 flex animate-cfg-drop-in flex-col overflow-hidden border border-card-border bg-card"
+      className="absolute left-0 top-[calc(100%+6px)] z-30 flex animate-cfg-drop-in flex-col border border-card-border bg-card"
       style={{
         width: LEDGER_W,
         maxWidth: `min(${LEDGER_W}px, calc(100vw - 24px))`,
-        maxHeight: `min(${LEDGER_MAX_H}px, calc(100vh - 100px))`,
         borderRadius: LEDGER_RADIUS,
       }}
     >
@@ -98,7 +91,7 @@ export default function ConfigLedger({
       />
 
       {/* Body. Active section only */}
-      <div className="min-w-0 flex-1 overflow-y-auto" style={{ padding: INSET }}>
+      <div className="min-w-0 flex-1" style={{ padding: INSET }}>
         {active.body}
       </div>
 

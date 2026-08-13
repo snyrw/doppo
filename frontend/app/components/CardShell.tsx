@@ -4,7 +4,6 @@ import React from "react";
 import {
   BAND_GAP,
   CARD_BODY_PAD,
-  CARD_INNER_RADIUS,
   CARD_INSET,
   CARD_MAX_H,
   CARD_MAX_W,
@@ -38,7 +37,9 @@ export { CARD_BODY_PAD, CARD_INSET, CARD_MAX_H, CARD_MAX_W, CARD_MIN_W, CARD_RAD
  *
  * `width` is for cards that size to their data; omit to sit at CARD_MIN_W.
  * `elevated` lifts a card whose popover or side panel must clear its neighbors.
- * `uncappedHeight` opts out of CARD_MAX_H, for a card that must never scroll.
+ * `uncappedHeight` opts out of CARD_MAX_H, for a card that must never scroll —
+ * every card type passes it except attention, whose pattern grid can get much
+ * taller than any other card's content and keeps its own scroll strip.
  */
 export function CardFrame({
   cardId,
@@ -74,30 +75,6 @@ export function CardFrame({
         borderRadius: CARD_RADIUS,
         width: width ?? CARD_MIN_W,
         maxHeight: uncappedHeight ? undefined : CARD_MAX_H,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-export function CardScrollArea({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      onWheel={e => {
-        const el = e.currentTarget;
-        if (el.scrollHeight > el.clientHeight) e.stopPropagation();
-      }}
-      className={cn("min-h-0 flex-1 overflow-y-auto overflow-x-hidden", className)}
-      style={{
-        borderBottomLeftRadius: CARD_INNER_RADIUS,
-        borderBottomRightRadius: CARD_INNER_RADIUS,
       }}
     >
       {children}
@@ -278,7 +255,7 @@ export function useElapsedMs(status: "loading" | "result" | "error", startedAt: 
 export function TierBadge({ tier }: { tier: string | undefined }) {
   if (!tier) return null;
   return (
-    <span className="rounded-[var(--ctl-radius-xs)] border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.06em] text-accent">
+    <span className="border border-card-border bg-surface-border px-[5px] py-px text-[9px] font-semibold tracking-[0.06em] text-accent">
       {TIER_LABELS[tier] ?? tier}
     </span>
   );

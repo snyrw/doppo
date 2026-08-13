@@ -10,13 +10,13 @@ import { cn } from "../lib/cn";
 import { TOP_N_OPTIONS, type TopN } from "../lib/patching";
 import {
   BandChip, CardBand, CardCloseButton, CardErrorState, CardFrame, CardHeader,
-  CardLoadingHeader, CardLoadingState, CardRule, CardScrollArea, ViewStrip,
-  CARD_INSET, CARD_MAX_W, CARD_MIN_W, useElapsedMs,
+  CardLoadingHeader, CardLoadingState, CardRule, ViewStrip,
+  CARD_INSET, CARD_MIN_W, useElapsedMs,
 } from "./CardShell";
 import { BarTable, type BarColumn, type BarTableRow } from "./BarTable";
 import { HeadView } from "./HeadGrid";
 import {
-  LAYER_LABEL_W, LAYER_ZONE_W, TOP_LABEL_W, TOP_ZONE_W, headViewWidth, signed,
+  HEAD_VIEW_MAX_W, LAYER_LABEL_W, LAYER_ZONE_W, TOP_LABEL_W, TOP_ZONE_W, headViewWidth, signed,
 } from "./bar-table-geometry";
 import type { LoadingStage } from "../lib/loading-stage";
 
@@ -273,7 +273,7 @@ function AttributionCard({
 
   // Only the head view sizes to its data; the two tables always fit CARD_MIN_W.
   const cardWidth = data && view === "head"
-    ? headViewWidth(data.x_labels.length, CARD_INSET, CARD_MIN_W, CARD_MAX_W)
+    ? headViewWidth(data.x_labels.length, CARD_INSET, CARD_MIN_W, HEAD_VIEW_MAX_W)
     : CARD_MIN_W;
 
   /* Top-N sits directly above the Verify it drives, so "Top shows exactly what
@@ -292,7 +292,7 @@ function AttributionCard({
   );
 
   return (
-    <CardFrame ref={ref} cardId={card.id} position={card.position} width={cardWidth}>
+    <CardFrame ref={ref} cardId={card.id} position={card.position} width={cardWidth} uncappedHeight>
       {!tutorialMode && <CardCloseButton onClick={() => onRemove(card.id)} />}
 
       {/* Chrome — the whole block is the drag surface; interactive children opt out */}
@@ -377,29 +377,27 @@ function AttributionCard({
 
       {/* pb keeps the last row clear of the frame's bottom edge. */}
       {data && view !== "head" && (
-        <CardScrollArea>
-          <div className="pb-3" style={{ paddingInline: CARD_INSET }}>
-            {view === "layer" ? (
-              <BarTable
-                labelW={LAYER_LABEL_W}
-                columns={LAYER_COLUMNS}
-                labelHeader=""
-                valueHeader="≈Logit"
-                rows={memoLayerRows}
-                palette={palette}
-              />
-            ) : (
-              <BarTable
-                labelW={TOP_LABEL_W}
-                columns={TOP_COLUMNS}
-                labelHeader="Comp."
-                valueHeader="≈Logit"
-                rows={memoTopRows}
-                palette={palette}
-              />
-            )}
-          </div>
-        </CardScrollArea>
+        <div className="pb-3" style={{ paddingInline: CARD_INSET }}>
+          {view === "layer" ? (
+            <BarTable
+              labelW={LAYER_LABEL_W}
+              columns={LAYER_COLUMNS}
+              labelHeader=""
+              valueHeader="≈Logit"
+              rows={memoLayerRows}
+              palette={palette}
+            />
+          ) : (
+            <BarTable
+              labelW={TOP_LABEL_W}
+              columns={TOP_COLUMNS}
+              labelHeader="Comp."
+              valueHeader="≈Logit"
+              rows={memoTopRows}
+              palette={palette}
+            />
+          )}
+        </div>
       )}
     </CardFrame>
   );

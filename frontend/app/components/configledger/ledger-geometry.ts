@@ -15,18 +15,6 @@ export const LEDGER_W = 460;
  */
 export const LEDGER_RADIUS = 12;
 
-/**
- * Height cap, before ConfigLedger's viewport clamp.
- *
- * Was 640, which the lens Model section reached (~655) and overflowed — so the
- * panel maxed out and its body scrolled rather than the panel being content-
- * sized. Trimming that section to ~428 clears the cap for lens, but steering
- * has four sections and by far the densest bodies, so a real ceiling has to
- * stay or it sprawls again. Steering's bodies scroll; that is already their
- * behaviour.
- */
-export const LEDGER_MAX_H = 520;
-
 /* --- Spacing scale: four steps on the 4px grid --- */
 
 /** Panel edge to all content. Header, strip, rule, body and footer share it. */

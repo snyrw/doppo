@@ -8,7 +8,7 @@ import { CardExplain } from "./CardExplain";
 import { infoSectionsFor, type InfoSection } from "./card-info-content";
 import {
   BandChip, CardBand, CardCloseButton, CardErrorState, CardFrame, CardHeader,
-  CardLoadingHeader, CardLoadingState, CardRule, CardScrollArea, useElapsedMs,
+  CardLoadingHeader, CardLoadingState, CardRule, useElapsedMs,
   CARD_INSET,
 } from "./CardShell";
 import { BarTable, type BarColumn, type BarTableRow } from "./BarTable";
@@ -153,7 +153,7 @@ function ActivationCard({
   const memoSections = React.useMemo(() => infoSectionsFor(card), [card]);
 
   return (
-    <CardFrame ref={ref} cardId={card.id} position={card.position}>
+    <CardFrame ref={ref} cardId={card.id} position={card.position} uncappedHeight>
       {!tutorialMode && <CardCloseButton onClick={() => onRemove(card.id)} />}
 
       {/* Chrome — the whole block is the drag surface; interactive children opt out */}
@@ -229,19 +229,17 @@ function ActivationCard({
 
       {data && (
         <>
-          <CardScrollArea>
-            <div className="pb-3" style={{ paddingInline: CARD_INSET }}>
-              <BarTable
-                labelW={TOP_LABEL_W}
-                columns={COLUMNS}
-                labelHeader="Comp."
-                valueHeader=""
-                valueW={ACTIVATION_VALUE_W}
-                rows={memoRows}
-                palette={palette}
-              />
-            </div>
-          </CardScrollArea>
+          <div className="pb-3" style={{ paddingInline: CARD_INSET }}>
+            <BarTable
+              labelW={TOP_LABEL_W}
+              columns={COLUMNS}
+              labelHeader="Comp."
+              valueHeader=""
+              valueW={ACTIVATION_VALUE_W}
+              rows={memoRows}
+              palette={palette}
+            />
+          </div>
 
           {/* The card's conclusion — whether the gradient approximation held.
               Paints no background, so it needs no bottom radius. */}

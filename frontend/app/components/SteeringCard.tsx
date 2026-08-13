@@ -11,7 +11,6 @@ import {
   CardLoadingHeader,
   CardLoadingState,
   CardRule,
-  CardScrollArea,
   CARD_INSET,
   CARD_MAX_W,
   useElapsedMs,
@@ -33,15 +32,7 @@ import type { LoadingStage } from "../lib/loading-stage";
 const TECHNIQUE = techniqueForCard("steering");
 
 /* The body columns mirror the band's own flex distribution rather than
-   recomputing it. Each takes 1fr of the remainder exactly as the two `flex-1`
-   chips above do, so CSS owns the split and there is no second copy of the
-   arithmetic to drift out of step.
-
-   The bases are the band furniture each column sits beneath. The left
-   column spans however many trigger buttons the band's leading slot renders
-   (each `BAND_ACCENT_W` wide with a `BAND_GAP` between them), the gap after
-   the last one, and half the gap between the chips; the right column always
-   spans the other half, independent of trigger count. */
+   recomputing it. */
 function leftBasis(triggerCount: number): number {
   return triggerCount * BAND_ACCENT_W + (triggerCount - 1) * BAND_GAP + BAND_GAP + BAND_GAP / 2;
 }
@@ -219,7 +210,7 @@ function SteeringCard({
   /* No `elevated` on CardFrame: the info panel portals to document.body, so it
      already clears every neighbouring card and has no z-index to negotiate. */
   return (
-    <CardFrame ref={ref} cardId={card.id} position={card.position} width={CARD_MAX_W}>
+    <CardFrame ref={ref} cardId={card.id} position={card.position} width={CARD_MAX_W} uncappedHeight>
       {!tutorialMode && <CardCloseButton onClick={() => onRemove(card.id)} />}
 
       {/* Chrome — the whole block is the drag surface; interactive children opt out */}
@@ -273,43 +264,28 @@ function SteeringCard({
       )}
 
       {card.status === "result" && card.data && (
-        <CardScrollArea>
-          {/* items-stretch so the divider spans the full scroll content height,
-              not the viewport. Aligned to CARD_INSET, not CARD_BODY_PAD: the
-              columns share the column CardRule uses. */}
+        /* items-stretch so the divider spans the full content height.
+           Aligned to CARD_INSET, not CARD_BODY_PAD: the columns share the
+           column CardRule uses. */
+        <div
+          onPointerDown={e => e.stopPropagation()}
+          className="flex items-stretch"
+          style={{ paddingInline: CARD_INSET, paddingBlock: 20 }}
+        >
           <div
-            onPointerDown={e => e.stopPropagation()}
-            className="flex items-stretch"
-            style={{ paddingInline: CARD_INSET, paddingBlock: 20 }}
+            className="min-w-0 border-r border-card-border"
+            style={{ flex: `1 1 ${leftBasis(triggerCount)}px` }}
           >
-            {/* The columns carry no padding of their own, and the text gutters
-                sit on inner blocks instead. `flex-basis` is a BORDER-BOX size, so
-                an item can never resolve below its own padding + border: with
-                `pl-3.5` on the right column its 3px basis was floored to 14,
-                which shifted the split by 5.5px. Folding the padding into the
-                bases fixes the split but makes the free space odd, putting both
-                columns on half pixels — so the padding moves inward instead and
-                the bases stay pure.
-
-                The divider is the left column's right border rather than a track
-                of its own: a separate 1px track would leave an odd remainder and
-                land the rule on a half pixel. `min-w-0` lets long unbroken
-                generated text wrap instead of forcing the row wider. */}
-            <div
-              className="min-w-0 border-r border-card-border"
-              style={{ flex: `1 1 ${leftBasis(triggerCount)}px` }}
-            >
-              <div className="whitespace-pre-wrap break-words pr-3.5 text-[12px] leading-[1.6] text-foreground">
-                {card.data.baseline_text}
-              </div>
-            </div>
-            <div className="min-w-0" style={{ flex: `1 1 ${RIGHT_BASIS}px` }}>
-              <div className="whitespace-pre-wrap break-words pl-3.5 text-[12px] leading-[1.6] text-foreground">
-                {card.data.steered_text}
-              </div>
+            <div className="whitespace-pre-wrap break-words pr-3.5 text-[12px] leading-[1.6] text-foreground">
+              {card.data.baseline_text}
             </div>
           </div>
-        </CardScrollArea>
+          <div className="min-w-0" style={{ flex: `1 1 ${RIGHT_BASIS}px` }}>
+            <div className="whitespace-pre-wrap break-words pl-3.5 text-[12px] leading-[1.6] text-foreground">
+              {card.data.steered_text}
+            </div>
+          </div>
+        </div>
       )}
     </CardFrame>
   );

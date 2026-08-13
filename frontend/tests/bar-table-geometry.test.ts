@@ -2,9 +2,10 @@ import { describe, it, expect } from "vitest";
 import {
   CONTENT_W, ROW_H, BAR_H, TICK_H, TICK_W, COL_GAP, LABEL_GAP,
   LAYER_LABEL_W, LAYER_ZONE_W, TOP_LABEL_W, TOP_ZONE_W, VALUE_W,
-  ATTR_ZONE_W, ACTIVATION_ZONE_W, ACTIVATION_VALUE_W,
-  HEAD_LABEL_W, HEAD_GAP, HEAD_CELL_BASE, HEAD_CELL_MIN, HEAD_CELL_MAX, BORDER_W,
-  barRect, headCellSize, headGridWidth, headViewWidth,
+  ACTIVATION_ZONE_W, ACTIVATION_VALUE_W,
+  HEAD_LABEL_W, HEAD_GAP, HEAD_GAP_FLOOR, HEAD_CELL_BASE, HEAD_CELL_MIN, HEAD_CELL_FLOOR,
+  HEAD_CELL_MAX, HEAD_VIEW_MAX_W, HEAD_LABEL_HIDE_BELOW, BORDER_W,
+  barRect, headCellSize, headGridWidth, headViewWidth, headLayout, headLabelText,
 } from "../app/components/bar-table-geometry";
 /* Imported, not restated. card-geometry.ts is pure for exactly this reason, and
    local copies here would go stale the moment the frame is retuned — while still
@@ -35,7 +36,6 @@ describe("derived bar zones", () => {
   it("are an even width, so the baseline tick lands on a whole pixel", () => {
     expect(LAYER_ZONE_W % 2).toBe(0);
     expect(TOP_ZONE_W % 2).toBe(0);
-    expect(ATTR_ZONE_W % 2).toBe(0);
     expect(ACTIVATION_ZONE_W % 2).toBe(0);
     // The emb row spans both layer zones plus the gap between them.
     expect((LAYER_ZONE_W + COL_GAP + LAYER_ZONE_W) % 2).toBe(0);
@@ -48,7 +48,6 @@ describe("derived bar zones", () => {
     const FLOOR = 64;
     expect(LAYER_ZONE_W).toBeGreaterThanOrEqual(FLOOR);
     expect(TOP_ZONE_W).toBeGreaterThanOrEqual(FLOOR);
-    expect(ATTR_ZONE_W).toBeGreaterThanOrEqual(FLOOR);
     expect(ACTIVATION_ZONE_W).toBeGreaterThanOrEqual(FLOOR);
   });
 
@@ -57,8 +56,6 @@ describe("derived bar zones", () => {
       LAYER_LABEL_W + LABEL_GAP + LAYER_ZONE_W + COL_GAP + LAYER_ZONE_W + COL_GAP + VALUE_W,
     ).toBeLessThanOrEqual(CONTENT_W);
     expect(TOP_LABEL_W + LABEL_GAP + TOP_ZONE_W + COL_GAP + VALUE_W)
-      .toBeLessThanOrEqual(CONTENT_W);
-    expect(LAYER_LABEL_W + LABEL_GAP + ATTR_ZONE_W + COL_GAP + VALUE_W)
       .toBeLessThanOrEqual(CONTENT_W);
     expect(
       TOP_LABEL_W + LABEL_GAP + ACTIVATION_ZONE_W + COL_GAP + ACTIVATION_ZONE_W
@@ -125,17 +122,22 @@ describe("barRect grows out of the baseline tick, never through it", () => {
   });
 });
 
-describe("head grid fills its column, then falls back to scrolling", () => {
-  const w = (n: number) => headViewWidth(n, CARD_INSET, CARD_MIN_W, CARD_MAX_W);
+describe("head grid packs left, never scrolls", () => {
+  const w = (n: number) => headViewWidth(n, CARD_INSET, CARD_MIN_W, HEAD_VIEW_MAX_W);
   const contentOf = (cardW: number) => cardW - BORDER_W - CARD_INSET * 2;
   const fit = (n: number) => {
     const content = contentOf(w(n));
-    return { content, grid: headGridWidth(n, headCellSize(n, content)) };
+    const { cell, gap } = headLayout(n, content);
+    return { content, cell, gap, grid: headGridWidth(n, cell, gap) };
   };
 
   it("card sizes to the head count between the bounds", () => {
-    expect(w(12)).toBe(CARD_MIN_W);   // 46 + 168 + 66 + 68 = 348, clamps up
-    expect(w(64)).toBe(CARD_MAX_W);   // 1388, clamps down
+    expect(w(12)).toBe(CARD_MIN_W);       // clamps up
+    expect(w(200)).toBe(HEAD_VIEW_MAX_W); // clamps down
+  });
+
+  it("has more headroom than the shared card cap, so more heads stay legible", () => {
+    expect(HEAD_VIEW_MAX_W).toBeGreaterThan(CARD_MAX_W);
   });
 
   it("cells grow to fill the column rather than leaving a hole", () => {
@@ -146,32 +148,86 @@ describe("head grid fills its column, then falls back to scrolling", () => {
     expect(grid).toBeLessThanOrEqual(content);
   });
 
-  it("the label gutter matches the tables, so cells start where bars start", () => {
-    expect(HEAD_LABEL_W).toBe(LAYER_LABEL_W);
+  it("the label gutter is its own, tighter width — head labels are always short", () => {
+    // Deliberately narrower than the bar tables' LAYER_LABEL_W: "L0".."L999"
+    // never needs the room "emb"/"ln_bias" does, so the grid sits close to
+    // the labels instead of leaving a wide gap before the first cell.
+    expect(HEAD_LABEL_W).toBeLessThan(LAYER_LABEL_W);
     expect(HEAD_GAP).toBe(COL_GAP);
   });
 
-  it("cells shrink as heads multiply, down to the floor", () => {
-    const sizes = [12, 20, 32].map(n => headCellSize(n, contentOf(w(n))));
-    expect(sizes[0]).toBeGreaterThan(sizes[1]);
-    expect(sizes[1]).toBeGreaterThan(sizes[2]);
-    expect(Math.min(...sizes)).toBeGreaterThanOrEqual(HEAD_CELL_MIN);
+  it("when cells have room to spare, the grid packs left instead of centering or stretching", () => {
+    // Few heads at a wide-ish content width: cell caps at HEAD_CELL_MAX, the
+    // gap stays nominal, and whatever's left just sits empty at the right —
+    // no outer centering margin, no gap-stretching to fill the column.
+    const content = 320;
+    const { cell, gap } = headLayout(3, content);
+    expect(cell).toBe(HEAD_CELL_MAX);
+    expect(gap).toBe(HEAD_GAP);
+    expect(headGridWidth(3, cell, gap)).toBeLessThan(content);
   });
 
-  it("many heads: cells bottom out and the grid overflows into a scroll", () => {
-    expect(headCellSize(64, contentOf(w(64)))).toBe(HEAD_CELL_MIN);
-    const { content, grid } = fit(64);
-    expect(grid).toBeGreaterThan(content);
+  it("cells shrink as heads multiply, down to the old floor, then further", () => {
+    const sizes = [12, 20, 32, 64, 128].map(n => fit(n).cell);
+    for (let i = 1; i < sizes.length; i++) expect(sizes[i]).toBeLessThanOrEqual(sizes[i - 1]);
+    expect(Math.min(...sizes)).toBeGreaterThanOrEqual(HEAD_CELL_FLOOR);
   });
 
-  it("never exceeds the column while cells are still above the floor", () => {
-    for (const n of [12, 16, 20, 24, 32]) {
+  it("many heads: the gap shrinks toward its floor before the cell drops below HEAD_CELL_MIN", () => {
+    // Comfortably past HEAD_VIEW_MAX_W's natural fit: cell sits right at
+    // HEAD_CELL_MIN while the gap has already given up most of its room.
+    const { cell, gap } = fit(48);
+    expect(cell).toBe(HEAD_CELL_MIN);
+    expect(gap).toBeLessThan(HEAD_GAP);
+
+    // Past that, the cell itself has to shrink below HEAD_CELL_MIN, with the
+    // gap already pinned at its own floor.
+    const { cell: cellTighter, gap: gapTighter } = fit(72);
+    expect(cellTighter).toBeLessThan(HEAD_CELL_MIN);
+    expect(gapTighter).toBe(HEAD_GAP_FLOOR);
+  });
+
+  it("never scrolls: the grid fits the column at any realistic head count", () => {
+    for (const n of [1, 2, 12, 16, 20, 24, 32, 40, 64, 96, 128]) {
       const { content, grid } = fit(n);
-      if (headCellSize(n, content) > HEAD_CELL_MIN) expect(grid).toBeLessThanOrEqual(content);
+      expect(grid).toBeLessThanOrEqual(content);
     }
+  });
+
+  it("extreme head counts still produce a positive, non-degenerate cell", () => {
+    const { cell, gap } = fit(128);
+    expect(cell).toBeGreaterThanOrEqual(HEAD_CELL_FLOOR);
+    expect(gap).toBeGreaterThanOrEqual(HEAD_GAP_FLOOR);
   });
 
   it("a very narrow model caps rather than blowing cells up", () => {
     expect(headCellSize(2, contentOf(w(2)))).toBe(HEAD_CELL_MAX);
+  });
+
+  it("a single head has no gap to distribute, so it just left-aligns", () => {
+    const { cell, gap } = headLayout(1, 320);
+    expect(cell).toBe(HEAD_CELL_MAX);
+    expect(gap).toBe(HEAD_GAP);
+  });
+});
+
+describe("headLabelText degrades instead of truncating mid-glyph", () => {
+  it("shows the full label when the cell is comfortably at or above HEAD_CELL_BASE", () => {
+    expect(headLabelText("H10", HEAD_CELL_BASE)).toBe("H10");
+    expect(headLabelText("H10", HEAD_CELL_MAX)).toBe("H10");
+  });
+
+  it("drops the H prefix once the cell is smaller than HEAD_CELL_BASE", () => {
+    expect(headLabelText("H10", HEAD_CELL_BASE - 1)).toBe("10");
+    expect(headLabelText("H5", HEAD_CELL_MIN)).toBe("5");
+  });
+
+  it("drops the label entirely below HEAD_LABEL_HIDE_BELOW", () => {
+    expect(headLabelText("H10", HEAD_LABEL_HIDE_BELOW - 1)).toBe("");
+    expect(headLabelText("H5", HEAD_CELL_FLOOR)).toBe("");
+  });
+
+  it("the bare number at HEAD_LABEL_HIDE_BELOW is the boundary, still shown", () => {
+    expect(headLabelText("H10", HEAD_LABEL_HIDE_BELOW)).toBe("10");
   });
 });
