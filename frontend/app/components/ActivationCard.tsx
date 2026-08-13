@@ -233,7 +233,7 @@ function ActivationCard({
             <BarTable
               labelW={TOP_LABEL_W}
               columns={COLUMNS}
-              labelHeader="Comp."
+              labelHeader=""
               valueHeader=""
               valueW={ACTIVATION_VALUE_W}
               rows={memoRows}
