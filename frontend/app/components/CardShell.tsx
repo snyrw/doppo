@@ -277,6 +277,22 @@ const PHASE_TITLES = ["GPU requested", "Loading model", "Computing"] as const;
 
 const EMPTY_STAGE: LoadingStage = { stage: null, stageAgeS: null, progress: null };
 
+/** Three squares that spawn one every 0.5s, hold once all three are up, then
+ *  cascade-exit (lift + fade) the same 0.5s apart. */
+function LoadingDots() {
+  return (
+    <span className="flex shrink-0 items-center gap-1" aria-hidden>
+      {[0, 1, 2].map(i => (
+        <span
+          key={i}
+          className="h-[5px] w-[5px] animate-loading-dot bg-accent"
+          style={{ animationDelay: `${i * 0.5}s` }}
+        />
+      ))}
+    </span>
+  );
+}
+
 /**
  * Standard card loading state: three-phase timeline (GPU requested → Loading
  * model → Computing), driven by the raw backend stage key.
@@ -291,49 +307,31 @@ export function CardLoadingState({
   const ls = stage ?? EMPTY_STAGE;
   const phase = phaseOf(ls.stage);
   return (
-    <>
-      <div className="flex flex-1 flex-col justify-center gap-1.5 px-4 py-2">
-        {PHASE_TITLES.map((title, i) => {
-          const n = (i + 1) as LoadingPhase;
-          const state = n < phase ? "done" : n === phase ? "active" : "pending";
-          return (
-            <div key={title} className="flex flex-col gap-0.5">
-              <div
-                className={cn(
-                  "flex items-center gap-2 text-[11px]",
-                  state === "active" ? "text-foreground" : "text-muted",
-                  state === "pending" && "opacity-40"
-                )}
-              >
-                {state === "done" ? (
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
-                    <path d="M3 7.5L6 10.5L11 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                ) : state === "active" ? (
-                  <div className="h-3.5 w-3.5 shrink-0 animate-spinner rounded-full border-2 border-surface-border border-t-accent" />
-                ) : (
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
-                    <circle cx="7" cy="7" r="2.5" fill="currentColor" opacity="0.35" />
-                  </svg>
-                )}
-                <span>{title}</span>
-                {state === "active" && n === 2 && ls.progress && (
-                  <span className="ml-auto font-mono text-[10px] tabular-nums text-muted">
-                    {formatGb(ls.progress.doneBytes)}
-                    {ls.progress.totalBytes !== null && ` / ${formatGb(ls.progress.totalBytes)}`} GB
+    <div className="flex flex-1 flex-col justify-center gap-1.5 py-2" style={{ paddingInline: CARD_INSET }}>
+      {PHASE_TITLES.map((title, i) => {
+        const n = (i + 1) as LoadingPhase;
+        const active = n === phase;
+        return (
+          <div key={title} className="flex flex-col gap-0.5">
+            <div className={cn("flex items-center justify-between text-[11px]", active ? "text-foreground" : "text-muted")}>
+              <span>{title}</span>
+              {active && <LoadingDots />}
+            </div>
+            {active && (
+              <p className="m-0 text-[10px] leading-normal text-muted">
+                {stageText(ls, labels)}
+                {n === 2 && ls.progress && (
+                  <span className="ml-1 font-mono tabular-nums">
+                    ({formatGb(ls.progress.doneBytes)}
+                    {ls.progress.totalBytes !== null && ` / ${formatGb(ls.progress.totalBytes)}`} GB)
                   </span>
                 )}
-              </div>
-              {state === "active" && (
-                <p className="m-0 pl-[22px] text-[10px] leading-normal text-muted">
-                  {stageText(ls, labels)}
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </>
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -348,7 +346,7 @@ export function CardErrorState({
   showVerifyCard?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-2 px-3.5 py-3">
+    <div className="flex flex-col gap-2 py-3" style={{ paddingInline: CARD_INSET }}>
       <p className="m-0 text-[11px] text-red-600">
         ✗ {message ?? "Unknown error"}
       </p>

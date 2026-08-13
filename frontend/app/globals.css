@@ -20,6 +20,7 @@
   --font-display: var(--font-plex-sans), system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", monospace;
   --animate-spinner: spin 0.8s linear infinite;
+  --animate-loading-dot: loadingDot 2.4s ease-in-out infinite;
   --animate-cfg-drop-in: cfgDropIn 140ms ease-out;
   --animate-fade-up: fadeUp 200ms ease-out;
   --animate-fade-in: fadeIn 150ms ease-out;
@@ -264,6 +265,15 @@ button:not(.keep-radius),
 @keyframes fadeUp { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes cfgDropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* One dot's full spawn->hold->lift-out->rest cycle; three dots share this
+   keyframe at staggered animation-delay (0, 0.5s, 1s) so they spawn 0.5s
+   apart, overlap fully visible, then cascade-exit the same 0.5s apart. */
+@keyframes loadingDot {
+  0%, 100% { opacity: 0; transform: translateY(0); }
+  8% { opacity: 1; transform: translateY(0); }
+  54% { opacity: 1; transform: translateY(0); }
+  67% { opacity: 0; transform: translateY(-4px); }
+}
 @keyframes heroWord { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Respect reduced-motion: no animation → `both` fill-mode drops, elements show

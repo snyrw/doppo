@@ -19,6 +19,7 @@ import type { ActivationCardData } from "../components/ActivationCard";
 import type { SteeringCardData, SteeringComponent } from "../components/SteeringCard";
 import type { AttentionCardData, AttentionData } from "../components/AttentionCard";
 import { useSession } from "../lib/auth-client";
+import { phaseOf } from "../lib/loading-stage";
 import { cn } from "../lib/cn";
 import type { ModelInfo } from "../hooks/useModelSelection";
 import {
@@ -97,10 +98,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ),
       };
     case "CARD_STAGE":
+      // Backend heartbeats can re-report an earlier stage key near job end
+      // (worker restart, retry on a new GPU); never let the timeline show a
+      // phase behind the one it's already shown for this run.
       return {
         ...state,
         lensCards: state.lensCards.map(c =>
-          c.id === action.id ? { ...c, loadingStage: action.stage } : c
+          c.id === action.id && phaseOf(action.stage.stage) >= phaseOf(c.loadingStage?.stage)
+            ? { ...c, loadingStage: action.stage } : c
         ),
       };
     case "STEERING_CARD_RERUN":
@@ -108,7 +113,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         lensCards: state.lensCards.map(c =>
           c.id === action.id && c.cardType === "steering"
-            ? { ...c, status: "loading" as const, data: null, error: null, alpha: action.alpha, startedAt: Date.now() } : c
+            ? { ...c, status: "loading" as const, data: null, error: null, alpha: action.alpha, startedAt: Date.now(), loadingStage: undefined } : c
         ),
       };
     case "REMOVE_CARD":
