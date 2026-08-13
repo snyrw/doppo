@@ -15,6 +15,11 @@ export const LEDGER_W = 460;
  */
 export const LEDGER_RADIUS = 12;
 
+/**
+ * Space reserved below the panel's viewport-height cap.
+ */
+export const LEDGER_VIEWPORT_MARGIN = 105;
+
 /* --- Spacing scale: four steps on the 4px grid --- */
 
 /** Panel edge to all content. Header, strip, rule, body and footer share it. */

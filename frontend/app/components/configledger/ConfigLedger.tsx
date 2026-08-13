@@ -8,7 +8,7 @@ import SectionStrip from "./SectionStrip";
 import { cn } from "../../lib/cn";
 import { PANEL_LABEL, PANEL_META } from "./panel-type";
 import {
-  LEDGER_W, LEDGER_RADIUS,
+  LEDGER_W, LEDGER_RADIUS, LEDGER_VIEWPORT_MARGIN,
   INSET, BLOCK_GAP, TIGHT_GAP, FOOTER_PAD_Y,
   ACCENT_SIZE, ACCENT_RADIUS,
 } from "./ledger-geometry";
@@ -52,10 +52,11 @@ export default function ConfigLedger({
   return (
     <div
       data-config-panel
-      className="absolute left-0 top-[calc(100%+6px)] z-30 flex animate-cfg-drop-in flex-col border border-card-border bg-card"
+      className="absolute left-0 top-[calc(100%+6px)] z-30 flex animate-cfg-drop-in flex-col overflow-hidden border border-card-border bg-card"
       style={{
         width: LEDGER_W,
         maxWidth: `min(${LEDGER_W}px, calc(100vw - 24px))`,
+        maxHeight: `calc(100vh - ${LEDGER_VIEWPORT_MARGIN}px)`,
         borderRadius: LEDGER_RADIUS,
       }}
     >
@@ -91,7 +92,7 @@ export default function ConfigLedger({
       />
 
       {/* Body. Active section only */}
-      <div className="min-w-0 flex-1" style={{ padding: INSET }}>
+      <div className="min-w-0 flex-1 overflow-y-auto" style={{ padding: INSET }}>
         {active.body}
       </div>
 
