@@ -88,7 +88,7 @@ type DisplayMode = "prob" | "tokens" | "kl" | "rank" | "entropy";
 const CHAR_W = 5;
 const CELL_PAD = 6;
 const MIN_CELL_W = 24;
-const MAX_CELL_W = 52;
+const MAX_CELL_W = 70;
 const Y_LABEL_W = 30;
 const COL_GAP = 2;
 const LOG_RANK_BASE = 100000;
@@ -208,6 +208,12 @@ function LensCard({
     ? Math.max(CARD_MIN_W, Y_LABEL_W + (cellWidth + COL_GAP) * card.data.x_labels.length + CARD_BODY_PAD * 2 + BORDER_W)
     : CARD_MIN_W;
 
+  /* When a card sits at CARD_MIN_W wider than its heatmap needs, the leftover
+     space is split as a margin rather than left as a one-sided gap. */
+  const heatmapBlockWidth = card.data ? Y_LABEL_W + (cellWidth + COL_GAP) * card.data.x_labels.length : 0;
+  const bodySlack = Math.max(0, cardWidth - CARD_BODY_PAD * 2 - BORDER_W - heatmapBlockWidth);
+  const bodyMarginLeft = Math.max(0, bodySlack / 2 - Y_LABEL_W / 2);
+
   const memoSections = React.useMemo(() => infoSectionsFor(card), [card]);
 
   const handleColClick = (i: number) => {
@@ -227,16 +233,7 @@ function LensCard({
   const rangeFrom = layerRange ? layerRange[0] : 0;
   const rangeTo = layerRange ? layerRange[1] : Math.max(0, nLayers - 1);
 
-  /* Which layers the heatmap draws. Free and instant, so by the band/panel rule
-     it would belong in the band — but at CARD_MIN_W the band's 320px content is
-     already spent on the accent (18), the gap (6) and the five-label mode strip
-     (308), and a stride row plus a range stepper needs ~120 more. It lives here
-     instead, and the panel occluding the heatmap it tunes is the accepted cost:
-     this is a set-then-look control, not a live-tune one.
-
-     Plain JSX rather than a nested component: one declared during render is a
-     new component type every render, so the panel's controls would remount on
-     every parent update (react-hooks/static-components). */
+  /* Which layers the heatmap draws. */
   const layerControls = (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1">
@@ -400,7 +397,7 @@ function LensCard({
 
       {card.status === "result" && card.data && (
         <CardBody>
-          <div className="inline-flex flex-col" style={{ gap: rowGap }}>
+          <div className="inline-flex flex-col" style={{ gap: rowGap, marginLeft: bodyMarginLeft }}>
             {/* X-axis labels */}
             <div className="flex" style={{ gap: COL_GAP }}>
               <div className="shrink-0" style={{ width: Y_LABEL_W }} />
