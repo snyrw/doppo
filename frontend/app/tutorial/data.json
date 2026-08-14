@@ -7,8 +7,8 @@
       "prompt": "When Mary and John went to the store, John gave a drink to",
       "gpuTier": "tl_small",
       "position": {
-        "x": 80,
-        "y": 80
+        "x": -40,
+        "y": -80
       },
       "data": {
         "x_labels": [
@@ -3729,8 +3729,8 @@
       "prompt": "When Mary and John went to the store, John gave a drink to",
       "gpuTier": "tl_small",
       "position": {
-        "x": 700,
-        "y": 80
+        "x": -53,
+        "y": 404
       },
       "data": {
         "tokens": [
@@ -40798,8 +40798,8 @@
       "targetToken": " Mary",
       "contrastiveToken": " John",
       "position": {
-        "x": 80,
-        "y": 560
+        "x": 593,
+        "y": 349
       },
       "data": {
         "target_token": " Mary",
@@ -41059,8 +41059,8 @@
       "targetToken": " Mary",
       "contrastiveToken": " John",
       "position": {
-        "x": 700,
-        "y": 560
+        "x": 593,
+        "y": -80
       },
       "data": {
         "target_token": " Mary",
@@ -41504,8 +41504,8 @@
       "k": 10,
       "parentAttributionId": "tutorial-3",
       "position": {
-        "x": 1320,
-        "y": 80
+        "x": 961,
+        "y": -80
       },
       "data": {
         "total_diff": 6.5,
@@ -41999,8 +41999,8 @@
         }
       ],
       "position": {
-        "x": 1320,
-        "y": 560
+        "x": 961,
+        "y": 327
       },
       "data": {
         "steered_text": "Je m'excuse, je vais vous proposer une recette simple et économique. Voici une idée de plat qui devrait vous satisfaire :\n\n**Pâtes au",
@@ -42180,8 +42180,8 @@
       "generationPrompt": "Who was Doppo Kunikida?",
       "extraPairs": [],
       "position": {
-        "x": 1820,
-        "y": 560
+        "x": 961,
+        "y": 588
       },
       "data": {
         "steered_text": "Jeannot \"Doppo\" Kunikida est un auteur japonais de manga, né le 9 mars 1871 et décédé le 9 mars 1934. Il",
@@ -42361,8 +42361,8 @@
       "generationPrompt": "Have the Seattle Mariners ever won the World Series?",
       "extraPairs": [],
       "position": {
-        "x": 2320,
-        "y": 560
+        "x": 961,
+        "y": 772
       },
       "data": {
         "steered_text": "Non. Le Seattle Mariners n'ont jamais remporté la World Series. Ils ont cependant eu de bons joueurs comme Ichiro Suzuki, Felix Hernandez et Ken Griffey Jr. qui",

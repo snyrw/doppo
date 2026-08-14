@@ -138,7 +138,7 @@ function buildInitialCards(): AnyCard[] {
 export default function TutorialClient({ steps }: Props) {
   const [state, dispatch] = useReducer(reducer, undefined, () => ({
     cards: buildInitialCards(),
-    canvas: { panOffset: { x: 0, y: 0 }, zoom: 1 },
+    canvas: { panOffset: { x: 275, y: 100 }, zoom: 0.64 }, // very lazy way of getting the tutorial to look right, whatever
   }));
   const [showWelcome, setShowWelcome] = useState(true);
 
