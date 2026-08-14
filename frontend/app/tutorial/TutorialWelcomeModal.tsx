@@ -8,11 +8,10 @@ type Props = {
 };
 
 const LINKS = [
-  { label: "3Blue1Brown — Transformers, the tech behind LLMs", url: "https://www.youtube.com/watch?v=wjZofJX0v4M" },
-  { label: "Andrej Karpathy — Let's reproduce GPT-2 (124M)", url: "https://www.youtube.com/watch?v=l8pRSuU81PU" },
-  { label: "ARENA — Chapter 0 & 1", url: "https://learn.arena.education/" },
-  { label: "Olah et al., 2020 — Zoom In: An Introduction to Circuits", url: "https://distill.pub/2020/circuits/zoom-in" },
-  { label: "Elhage et al., 2021 — A Mathematical Framework for Transformer Circuits", url: "https://transformer-circuits.pub/2021/framework/index.html" },
+  { label: "Neel Nanda: Mech Interp Glossary (old, but demo content is mostly from this era)", url: "https://dynalist.io/d/n2ZWtnoYHrU1s4vnFSAQ519J" },
+  { label: "ARENA: Chapter 0 & 1 (enough to quickstart, full thing is great)", url: "https://learn.arena.education/" },
+  { label: "Elhage et al., 2021: A Mathematical Framework for Transformer Circuits (jargon-dense, established transformer interpretability vocab)", url: "https://transformer-circuits.pub/2021/framework/index.html" },
+  { label: "Neel Nanda: Mathematical Framework Walkthrough (core author explains the paper step-by-step)", url:"https://www.youtube.com/watch?v=KV5gbOmHbjU"}
 ];
 
 export default function TutorialWelcomeModal({ onStart }: Props) {
@@ -30,9 +29,6 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
     >
       <div className="flex max-h-[calc(100vh-48px)] w-full max-w-[560px] animate-fade-up flex-col gap-5 overflow-y-auto rounded-xl border border-card-border bg-card px-10 pb-8 pt-9">
         <div>
-          <p className="m-0 mb-2.5 text-[10px] font-semibold text-muted">
-            Tutorial
-          </p>
           <h1 className="m-0 text-[22px] font-medium leading-[1.4] tracking-[-0.01em] text-foreground">
             Welcome to Doppo!
           </h1>
@@ -40,10 +36,10 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
 
         <div className="flex flex-col gap-3">
           <p className="m-0 text-[13px] leading-[1.75] text-muted">
-            As part of a goal to explain mechanistic interpretability concepts to as many people as possible, this site contains a demo section with six real analysis cards, pre-loaded on the canonical IOI circuit and a steering example, that you can click through to see what the sandbox produces.
+            This part of the site contains our demo. The demo itself has all of our current techniques along with a brief on what they show through canonical examples like the IOI circuit. Breakdowns can be seen if you press "?".
           </p>
           <p className="m-0 text-[13px] leading-[1.75] text-muted">
-            This assumes some level of familiarity with neural network and transformer concepts, which introductions to have been provided below.
+            The writing will try (and hopefully succeed) to explain these concepts well enough without a strong interpretability background, but if you've found yourself not understanding things fully here, it is recommended that you skim through or take notes on the following sources below. Some of these have conceptually driven interpretability for many years now and are where much of the jargon comes from.
           </p>
         </div>
 
@@ -60,7 +56,7 @@ export default function TutorialWelcomeModal({ onStart }: Props) {
                 rel="noopener noreferrer"
                 className="border-b border-surface-border pb-[5px] text-xs text-foreground no-underline"
               >
-                {l.label} ↗
+                {l.label}
               </a>
             ))}
           </div>
