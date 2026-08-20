@@ -31,3 +31,10 @@ export function explainSectionsByCardType(
   }
   return map;
 }
+
+/** Extra text for each card, in one lookup keyed by the data.json entry key. */
+export function variantBlurbsByKey(steps: TutorialStep[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const step of steps) Object.assign(map, step.variants);
+  return map;
+}

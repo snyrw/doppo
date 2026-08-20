@@ -2,19 +2,21 @@
 title: Techniques
 ---
 
-So far, we have 6 techniques that can be used on Doppo. This mostly acts as a reference to show what we've done and where we've diverged in technical detail from baseline. The purpose for that was to add a quick verification on what exactly you were spending your time on rather than just guessing or reading through the code base. That means that this might be overly wordy or dense, and thus probably is not the best as an introductory learning tool. Changes are being considered to boil things down a bit more with simple sections that cover nuance behind the works; reading the papers/works linked is another good start as well.
+So far, we have 6 techniques that can be used on Doppo. This mostly acts as a reference to show what we've done and where we've diverged in technical detail from baseline. 
+
+The purpose for that was to add a quick verification on what exactly you were spending your time on rather than just guessing or reading through the code base. That means that this might be jargon-dense and a bit word vomit-y, and thus probably is not the best as an introductory learning tool.
 
 ## Logit lens
 
-Follows nostalgebraist's logit lens (2020). The residual stream entering each block (plus the final residual) is passed through the model's own final layer norm and unembedding matrix, giving the next-token distribution the model would produce if the remaining layers were skipped. This reuses the trained final layer norm rather than projecting the raw residual, which matches the original post.
+Follows nostalgebraist's logit lens (2020). The residual stream entering each block (plus the final residual) is passed through the model's own final layer norm and unembedding matrix, giving the next-token distribution the model would produce if the remaining layers were skipped. This reuses the trained final layer norm rather than projecting the raw residual.
 
-The default heatmap colors each cell by the probability that layer assigns to the token that actually comes next in the prompt, and each cell lists the layer's top-5 predicted tokens. Alternate views in the card header: per-layer KL divergence from the final layer's distribution, the rank each layer assigns to the final layer's top-1 token, and the entropy of each layer's distribution.
+The default heatmap colors each cell by the probability that layer assigns to the token that actually comes next in the prompt, and each cell lists the layer's top-5 predicted tokens. Alternate views in the card header include per-layer KL divergence from the final layer's distribution, the rank each layer assigns to the final layer's top-1 token, and the entropy of each layer's distribution.
 
 ## Attention patterns
 
 The post-softmax attention weights for every head in every layer, read directly from the model's attention hooks. This is the same matrix displayed by standard attention visualizers such as BertViz (Vig, 2019) and CircuitsVis.
 
-Prompts are truncated to their first 30 tokens. Pattern size grows quadratically with sequence length, and cards become too large/laggy past that point.
+Prompts are truncated to their first 30 tokens, as cards become too large/laggy to show comfortably past that point.
 
 ## Direct logit attribution
 
@@ -42,10 +44,6 @@ Difference-in-means activation addition, following Arditi et al., "Refusal in La
 
 The vector is the mean, over all contrast pairs, of the residual stream entering block L at the clean prompt's last token minus the same read at the corrupted prompt's last token. Each prompt is read at its own last token, so pairs need not tokenize to the same length. When the model has a chat template it is applied before extraction, landing the read on the final post-instruction template token. The vector is not unit-normalized. Alpha times the vector is added at the same hook at every position, during both the prompt pass and each generated token, so alpha = 1 adds exactly one unit of the concept's mean displacement where it was measured.
 
-The source layer is chosen by the user rather than by the paper's validated sweep, since there is no task metric for an arbitrary concept, and the vector comes from paired free-form prompts rather than two unpaired instruction sets (for equal-size sets the mean of differences equals the difference of group means, so the construction is the same).
-
-Reliability caveats from the literature apply directly. Vectors built from a handful of pairs are unstable across resamples and are noticeably noisy below roughly 30 pairs. They settle down around 100, which is where we've capped it in an effort to balance usability of this feature without being redundant.
-
 A pair set can be saved to your account and reloaded into a later steering card, so a set you spent generation time on does not have to be rebuilt. Saved sets store the prompts only, not results, and are capped at 20 per account.
 
-Generation applies the model's chat template when one exists. Sampling uses temperature with a repetition penalty on already-generated tokens (HF convention); a temperature of 0 or below gives greedy decoding.
+Generation applies the model's chat template when one exists. Sampling uses temperature with a repetition penalty on already-generated tokens, and a temperature of 0 or below gives greedy decoding.

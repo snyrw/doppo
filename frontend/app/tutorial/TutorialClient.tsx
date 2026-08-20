@@ -14,7 +14,7 @@ import type { SteeringCardData, SteeringResult } from "../components/SteeringCar
 import type { AttentionCardData, AttentionData } from "../components/AttentionCard";
 import type { AnyCard, CanvasState } from "../components/SandboxCanvas";
 import TutorialWelcomeModal from "./TutorialWelcomeModal";
-import { explainSectionsByCardType } from "./explain-content";
+import { explainSectionsByCardType, variantBlurbsByKey } from "./explain-content";
 import type { TutorialStep } from "./steps";
 import rawTutorialData from "./data.json";
 
@@ -143,21 +143,23 @@ export default function TutorialClient({ steps }: Props) {
   const [showWelcome, setShowWelcome] = useState(true);
 
   const explainContent = useMemo(() => explainSectionsByCardType(steps), [steps]);
+  const variantBlurbs = useMemo(() => variantBlurbsByKey(steps), [steps]);
+  const welcomeStep = useMemo(() => steps.find(s => s.id === "welcome"), [steps]);
 
   // Dev-only: Alt+P logs each card's current on-screen position as JSON, for
   // hand-arranging the layout (drag cards, then paste the coordinates into
   // data.json's `position` fields). Not wired to anything in production.
-  useEffect(() => {
-    if (process.env.NODE_ENV === "production") return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.altKey && e.key.toLowerCase() === "p") {
-        const dump = Object.fromEntries(state.cards.map(c => [c.id, c.position]));
-        console.log(JSON.stringify(dump, null, 2));
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [state.cards]);
+  // useEffect(() => {
+  //   if (process.env.NODE_ENV === "production") return;
+  //   const onKey = (e: KeyboardEvent) => {
+  //     if (e.altKey && e.key.toLowerCase() === "p") {
+  //       const dump = Object.fromEntries(state.cards.map(c => [c.id, c.position]));
+  //       console.log(JSON.stringify(dump, null, 2));
+  //     }
+  //   };
+  //   window.addEventListener("keydown", onKey);
+  //   return () => window.removeEventListener("keydown", onKey);
+  // }, [state.cards]);
 
   if (!dataReady) {
     return (
@@ -177,7 +179,9 @@ export default function TutorialClient({ steps }: Props) {
     <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
 
-      {showWelcome && <TutorialWelcomeModal onStart={() => setShowWelcome(false)} />}
+      {showWelcome && welcomeStep && (
+        <TutorialWelcomeModal step={welcomeStep} onStart={() => setShowWelcome(false)} />
+      )}
 
       <div className="relative flex flex-1 flex-col">
         {/* Grayed-out, non-interactive preview of the real /projects top bar.
@@ -212,6 +216,7 @@ export default function TutorialClient({ steps }: Props) {
           onVerifyTopK={() => {}}
           onRerunSteering={() => {}}
           explainContent={explainContent}
+          variantBlurbs={variantBlurbs}
           tutorialMode
         />
       </div>

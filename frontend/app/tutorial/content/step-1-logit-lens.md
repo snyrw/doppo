@@ -8,14 +8,12 @@ heading: Logit Lens
 links:
   - label: "nostalgebraist 2020, interpreting GPT: the logit lens"
     url: "https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens"
-  - label: "Belrose et al. 2023, Eliciting Latent Predictions from Transformers with the Tuned Lens"
-    url: "https://arxiv.org/abs/2303.08112"
 ---
 
-Each transformer layer reads from and writes to a shared "residual stream", which is to say that the final state of a transformer is the additive result of all attention and MLP computations. The final layer's state is projected through the unembedding matrix W_U (the linear map from residual stream to vocabulary logits) to produce the model's output distribution. In 2020, nostalgebraist introduced the logit lens, which applies W_U at each intermediate layer as well and treats the residual stream at that depth as if the forward pass had already ended. The result is a heatmap where each cell shows the top predicted token at a given layer and token position.
+Transformer layers read and write to the additive result of all layers before it, which is known as the residual stream. To eventually get words from a transformer, we apply an unembedding matrix W_U at the final layer that then turns this residual stream into vocabulary logits.
 
-The prompt is the IOI sentence from Wang et al.: "When Mary and John went to the store, John gave a drink to". The correct next token is " Mary". Five metrics are available: next-token probability (how likely the top token is), top-1 probability (the probability the model assigns to the correct continuation), KL divergence from the final layer's distribution (how far the implicit prediction at this depth is from what the full model produces), rank (where the correct token falls in the sorted vocabulary), and entropy (how spread out or concentrated the probability mass is). Together they show different aspects of when and how decisively the model commits to a prediction at each depth.
+In 2020, nostalgebraist introduced the logit lens, which applies W_U after each layer instead of just at the end. This results in the ability to see output change across each layer, and this is often rendered as a heatmap. There are several different modes that you can look at with this heatmap that tell you different things, such as basic token probability, top-k tokens and their probabilities, and so on.
 
-## What to Notice
+The prompt loaded here, "When Mary and John went to the store, John gave a drink to", comes from IOI (indirect object identification), a task Wang et al. (2022) used to reverse-engineer a full circuit in GPT-2 Small. The model has to complete the sentence with the name that appears once, " Mary", rather than " John", which appears twice. It's a simple, well-understood task from a canonical paper in interpretability, which is why we use it for most of the cards here.
 
-Focus on the rightmost column (the final token position, " to"). Find the layer where " Mary" first appears at high probability. The transition typically occurs around the mid-to-late layers. That is where the specific attention heads (Name Mover and S-Inhibition) fire; the following step will examine those components directly.
+Focus on the rightmost column (the final token position, " to"), and find the layer where " Mary" first appears at high probability. The transition typically occurs around the mid-to-late layers. This ties into the attention head analysis card below, where you'll look at various heads that are proposed to have caused the transition.

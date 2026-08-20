@@ -46,17 +46,21 @@ export function loadSteps(): TutorialStep[] {
     .sort();
 
   return files.map(filename => {
-    const raw = fs.readFileSync(path.join(CONTENT_DIR, filename), "utf8");
+    const raw = fs.readFileSync(path.join(CONTENT_DIR, filename), "utf8").replace(/\r\n/g, "\n");
     const { data, content } = matter(raw);
     const { paragraphs, whatToNotice, caveat } = parseBody(content);
 
     return {
+      id: data.id as string | undefined,
       cardType: data.cardType as TutorialStep["cardType"],
       heading: data.heading as string,
       paragraphs,
       whatToNotice,
       caveat,
+      paper: data.paper as TutorialLink | undefined,
       links: (data.links ?? []) as TutorialLink[],
+      cta: data.cta as TutorialLink | undefined,
+      variants: data.variants as Record<string, string> | undefined,
     };
   });
 }

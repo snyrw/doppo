@@ -31,6 +31,8 @@ type SandboxCanvasProps = {
   onRerunSteering: (cardId: string, newAlpha: number) => void;
   tutorialMode?: boolean;
   explainContent?: Partial<Record<AnyCard["cardType"], InfoSection[]>>;
+  /** Extra text for one card, keyed by its id with the "tutorial-" part cut off. */
+  variantBlurbs?: Record<string, string>;
 };
 
 export default function SandboxCanvas({
@@ -43,6 +45,7 @@ export default function SandboxCanvas({
   onRerunSteering,
   tutorialMode,
   explainContent,
+  variantBlurbs,
 }: SandboxCanvasProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -161,6 +164,11 @@ export default function SandboxCanvas({
   }, []);
 
   function renderCard(card: AnyCard) {
+    const baseSections = explainContent?.[card.cardType];
+    const blurb = variantBlurbs?.[card.id.replace(/^tutorial-/, "")];
+    const explainSections = blurb && baseSections
+      ? [{ kind: "prose" as const, text: blurb }, ...baseSections]
+      : baseSections;
     const sharedProps = {
       ref: setCardRef(card.id),
       onStartDrag: startDrag,
@@ -168,7 +176,7 @@ export default function SandboxCanvas({
       onDragEnd,
       onRemove: onRemoveCard,
       tutorialMode,
-      explainSections: explainContent?.[card.cardType],
+      explainSections,
     };
     switch (card.cardType) {
       case "dla":
