@@ -23,7 +23,7 @@
   --animate-loading-dot: loadingDot 2.4s ease-in-out infinite;
   --animate-cfg-drop-in: cfgDropIn 140ms ease-out;
   --animate-fade-up: fadeUp 200ms ease-out;
-  --animate-fade-in: fadeIn 150ms ease-out;
+  --animate-fade-in: fadeIn 150ms ease-out both;
   /* Hero entrance: words rise+fade quickly; figure rows fade in after. `both`
      holds the from-state during the per-element animation-delay (set inline). */
   --animate-hero-word: heroWord 260ms ease-out both;
@@ -280,7 +280,10 @@ button:not(.keep-radius),
    at their natural (full) opacity immediately. */
 @media (prefers-reduced-motion: reduce) {
   .animate-hero-word,
-  .animate-hero-row { animation: none; }
+  .animate-hero-row,
+  .animate-fade-in {
+    animation: none;
+  }
 }
 
 /* === Hero specimen palette animation === */

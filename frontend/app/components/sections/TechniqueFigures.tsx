@@ -5,27 +5,13 @@ import { cn } from "../../lib/cn";
 import { STEERING_EXAMPLES } from "./techniqueCardData";
 import {
   BAR_LIP, CELL_LIP, ATTN_CELL_LIP,
-  LENS_COLS, LENS_ROWS, LENS_GRID, type LensCell,
-  ATTN_TOKENS, ATTN_GRID, type AttnStrength,
-  DLA_BARS,
-  PATCH_PAIRS,
+  LENS_COLS, LENS_ROWS, LENS_GRID, LENS_LEVELS, type LensCell,
+  ATTN_TOKENS, ATTN_GRID, ATTN_LEVELS, type AttnStrength,
+  DLA_BARS, DLA_LEVELS, dlaStrongestLabel,
+  PATCH_PAIRS, PATCH_LEVELS, patchAlwaysOverestimates,
 } from "./techniqueFigureData";
 
-// The five decorative figures that sit in the left column of each technique card
-// (Figma nodes 134-2/3/5/6/7). These are static, on-brand recreations built from
-// flex/grid + clamp() — NOT the real data-driven workbench visualizations — so
-// they scale with the modal at any width. Palettes are transcribed verbatim from
-// the mock (one-off decorative colors, intentionally literal, matching the
-// `lib/techniques.ts` precedent). `TECHNIQUE_FIGURES` is indexed parallel to
-// TECHNIQUES / TECHNIQUE_CARDS.
-//
-// Depth: every cell/bar sits on a darker bottom "lip" via a non-blurred offset
-// drop shadow (`0 Npx 0 0 lip`) — the same extruded look as the house tactile
-// system, so the graphics read as raised tiles like the Figma mock.
-
-// Shared rounded inner box that frames each figure (Figma's inner panel: same
-// surface as the card with a hairline border). `inline-flex` so it hugs its
-// content snugly — the card centers it in the figure column.
+// The five decorative figures that sit in the left column of each technique card.
 function FigureBox({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
@@ -45,10 +31,7 @@ const LABEL_SIZE = "text-[clamp(9px,0.95vw,15px)]";
 // ── 0. Logit Lens — 8×4 warm heatmap ─────────────────────────────────────────
 // confidence level → {face, lip}: pale (low) → saturated warm (high)
 const LENS_LEVEL: Record<LensCell["level"], { face: string; lip: string }> = {
-  0: { face: "#efdede", lip: "#e2cccc" },
-  1: { face: "#e7b8b8", lip: "#d49f9f" },
-  2: { face: "#d88585", lip: "#c06e6e" },
-  3: { face: "#c26868", lip: "#a04747" },
+  0: LENS_LEVELS[0], 1: LENS_LEVELS[1], 2: LENS_LEVELS[2], 3: LENS_LEVELS[3],
 };
 
 function LensFigure() {
@@ -67,24 +50,32 @@ function LensFigure() {
         ))}
         {/* 8 layer rows: layer label + 4 predicted-token cells */}
         {LENS_GRID.map((row, r) => (
-          <LensRow key={`r${r}`} label={`L${LENS_ROWS[r]}`} row={row} />
+          <LensRow key={`r${r}`} label={`L${LENS_ROWS[r]}`} row={row} rowIndex={r} />
         ))}
       </div>
     </FigureBox>
   );
 }
 
-function LensRow({ label, row }: { label: string; row: LensCell[] }) {
+const ROW_STAGGER_MS = 70;
+
+function LensRow({ label, row, rowIndex }: { label: string; row: LensCell[]; rowIndex: number }) {
+  const delay = { animationDelay: `${rowIndex * ROW_STAGGER_MS}ms` };
   return (
     <>
-      <span className={cn(LABEL, LABEL_SIZE, "pr-[clamp(4px,0.6vw,10px)] text-right tabular-nums")}>{label}</span>
+      <span
+        className={cn(LABEL, LABEL_SIZE, "animate-fade-in pr-[clamp(4px,0.6vw,10px)] text-right tabular-nums")}
+        style={delay}
+      >
+        {label}
+      </span>
       {row.map((cell, ci) => {
         const { face, lip } = LENS_LEVEL[cell.level];
         return (
           <span
             key={ci}
-            className="flex h-[clamp(16px,1.8vw,28px)] w-[clamp(30px,3.6vw,54px)] items-center justify-center overflow-hidden rounded-[2px] px-[2px]"
-            style={{ background: face, boxShadow: `0 ${CELL_LIP} 0 0 ${lip}` }}
+            className="animate-fade-in flex h-[clamp(16px,1.8vw,28px)] w-[clamp(30px,3.6vw,54px)] items-center justify-center overflow-hidden rounded-[2px] px-[2px]"
+            style={{ background: face, boxShadow: `0 ${CELL_LIP} 0 0 ${lip}`, ...delay }}
           >
             <span className="truncate font-mono text-[clamp(7px,0.78vw,12px)] leading-none text-[#3a2a2a]">
               {cell.token}
@@ -97,10 +88,10 @@ function LensRow({ label, row }: { label: string; row: LensCell[] }) {
 }
 
 // ── 1. Attention Analysis — 5×5 lower-triangular grid ─────────────────────────
-// strength → {face, lip}: strong = darkest amber, weak = pale amber
-const ATTN_FACE: Record<"weak" | "strong", { face: string; lip: string }> = {
-  strong: { face: "#86744c", lip: "#4b412a" },
-  weak: { face: "#e6d4ac", lip: "#cab07a" },
+// strength → {face, lip}: off-white (weak) through light yellow (medium) to the
+// technique's own button yellow (strong) — see ATTN_LEVELS in techniqueFigureData.
+const ATTN_FACE: Record<"weak" | "medium" | "strong", { face: string; lip: string }> = {
+  weak: ATTN_LEVELS[0], medium: ATTN_LEVELS[1], strong: ATTN_LEVELS[2],
 };
 const ATTN_EMPTY_LIP = "#c4c3bc";
 
@@ -144,7 +135,7 @@ function AttnRow({ token, row }: { token: string; row: AttnStrength[] }) {
         return (
           <span
             key={cKey}
-            className="aspect-square w-[clamp(24px,2.9vw,42px)] rounded-[2px]"
+            className="aspect-square w-[clamp(26px,2.9vw,38px)] rounded-[2px]"
             style={{
               background: color ? color.face : "#ffffff",
               boxShadow: `0 ${ATTN_CELL_LIP} 0 0 ${color ? color.lip : ATTN_EMPTY_LIP}`,
@@ -157,18 +148,33 @@ function AttnRow({ token, row }: { token: string; row: AttnStrength[] }) {
 }
 
 // ── Shared horizontal bar (face + darker bottom lip) ──────────────────────────
-function Bar({ len, face, lip }: { len: number; face: string; lip: string }) {
+function useRevealed(): boolean {
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setRevealed(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return revealed;
+}
+
+function Bar({ len, face, lip, delayMs = 0 }: { len: number; face: string; lip: string; delayMs?: number }) {
+  const revealed = useRevealed();
   return (
     <div
-      className="h-[clamp(15px,1.8vw,30px)] rounded-[2px]"
-      style={{ width: `${len * 100}%`, background: face, boxShadow: `0 ${BAR_LIP} 0 0 ${lip}` }}
+      className="h-[clamp(15px,1.8vw,30px)] rounded-[2px] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+      style={{
+        width: `${(revealed ? len : 0) * 100}%`,
+        background: face,
+        boxShadow: `0 ${BAR_LIP} 0 0 ${lip}`,
+        transitionDelay: `${delayMs}ms`,
+      }}
     />
   );
 }
 
 // ── 2. Direct Logit Attribution — per-layer divergent bars (8× stride) ─────────
-const DLA_FACE = { pos: "#739157", neg: "#a2ba8b" } as const;
-const DLA_LIP = { pos: "#446327", neg: "#699440" } as const;
+const DLA_FACE = { pos: DLA_LEVELS[3].face, neg: DLA_LEVELS[1].face } as const;
+const DLA_LIP = { pos: DLA_LEVELS[3].lip, neg: DLA_LEVELS[1].lip } as const;
 
 function DlaFigure() {
   return (
@@ -184,10 +190,10 @@ function DlaFigure() {
                 {b.label}
               </span>
               <div className="flex flex-1 justify-end">
-                {neg && <Bar len={len} face={DLA_FACE[kind]} lip={DLA_LIP[kind]} />}
+                {neg && <Bar len={len} face={DLA_FACE[kind]} lip={DLA_LIP[kind]} delayMs={i * 90} />}
               </div>
               <div className="flex flex-1 justify-start">
-                {!neg && <Bar len={len} face={DLA_FACE[kind]} lip={DLA_LIP[kind]} />}
+                {!neg && <Bar len={len} face={DLA_FACE[kind]} lip={DLA_LIP[kind]} delayMs={i * 90} />}
               </div>
             </div>
           );
@@ -203,18 +209,18 @@ function DlaFigure() {
 }
 
 // ── 3. Patching — grouped predict / actual pairs per component ─────────────────
-const PATCH_FACE = { predict: "#7399a6", actual: "#9dc1cd" } as const;
-const PATCH_LIP = { predict: "#487c8d", actual: "#6f9aa9" } as const;
+const PATCH_FACE = { predict: PATCH_LEVELS[3].face, actual: PATCH_LEVELS[1].face } as const;
+const PATCH_LIP = { predict: PATCH_LEVELS[3].lip, actual: PATCH_LEVELS[1].lip } as const;
 
 function PatchingFigure() {
   return (
     <FigureBox>
       <div className="flex w-[clamp(210px,26vw,320px)] flex-col gap-[clamp(11px,1.4vw,22px)]">
-        {PATCH_PAIRS.map((p) => (
+        {PATCH_PAIRS.map((p, i) => (
           <div key={p.label} className="flex flex-col gap-[clamp(3px,0.5vw,7px)]">
             <span className={cn(LABEL, LABEL_SIZE, "tabular-nums")}>{p.label}</span>
-            <Bar len={p.predict} face={PATCH_FACE.predict} lip={PATCH_LIP.predict} />
-            <Bar len={p.actual} face={PATCH_FACE.actual} lip={PATCH_LIP.actual} />
+            <Bar len={p.predict} face={PATCH_FACE.predict} lip={PATCH_LIP.predict} delayMs={i * 110} />
+            <Bar len={p.actual} face={PATCH_FACE.actual} lip={PATCH_LIP.actual} delayMs={i * 110} />
           </div>
         ))}
         <span className={cn(LABEL, LABEL_SIZE, "mt-[clamp(2px,0.4vw,6px)]")}>dark = predict, light = actual</span>
