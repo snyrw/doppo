@@ -6,6 +6,7 @@ import { TactileButton } from "../ui/TactileButton";
 import { CloseButton } from "../ui/CloseButton";
 import SectionStrip from "./SectionStrip";
 import { cn } from "../../lib/cn";
+import { formatTierRate } from "../../lib/rates";
 import { PANEL_LABEL, PANEL_META } from "./panel-type";
 import {
   LEDGER_W, LEDGER_RADIUS, LEDGER_VIEWPORT_MARGIN,
@@ -30,7 +31,9 @@ export default function ConfigLedger({
   activeSection,
   onSectionChange,
   footerSummary,
+  gpuTier,
   canRun,
+  disabledReason,
   runLabel,
   onRun,
   onClose,
@@ -42,12 +45,17 @@ export default function ConfigLedger({
   activeSection: string;
   onSectionChange: (id: string) => void;
   footerSummary: string;
+  /** Resolved GPU tier for the current model, if any — shown as a billing rate. */
+  gpuTier?: string;
   canRun: boolean;
+  /** Shown next to Run when it's disabled and the reason isn't obvious from the pane body. */
+  disabledReason?: string;
   runLabel: string;
   onRun: () => void;
   onClose: () => void;
 }) {
   const active = sections.find(s => s.id === activeSection) ?? sections[0];
+  const rateLabel = formatTierRate(gpuTier);
 
   return (
     <div
@@ -102,10 +110,23 @@ export default function ConfigLedger({
         style={{ paddingInline: INSET, paddingBlock: FOOTER_PAD_Y, gap: BLOCK_GAP }}
       >
         <div className="min-w-0 flex-1">
-          <span className={cn(PANEL_LABEL, "block")}>Summary</span>
-          <span className={cn(PANEL_META, "mt-1 block truncate")}>
-            {footerSummary}
-          </span>
+          <div className="flex items-baseline gap-2">
+            <span className={cn(PANEL_LABEL, "block")}>Summary</span>
+            {rateLabel && (
+              <span className="shrink-0 text-[10px] font-semibold text-orange-600">
+                {rateLabel}
+              </span>
+            )}
+          </div>
+          {disabledReason ? (
+            <span className="mt-1 block truncate text-[11px] text-orange-600">
+              {disabledReason}
+            </span>
+          ) : (
+            <span className={cn(PANEL_META, "mt-1 block truncate")}>
+              {footerSummary}
+            </span>
+          )}
         </div>
         <TactileButton
           variant="primary"

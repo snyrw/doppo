@@ -5,6 +5,7 @@ import { useSession } from "@/app/lib/auth-client";
 import { TIER_PAIR_CAPS, DEFAULT_PAIR_CAP } from "../lib/tiers";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
+import { useCanAffordTier } from "../hooks/useCanAffordTier";
 import ConfigLedger, { type LedgerSection } from "./configledger/ConfigLedger";
 import { useConfigPaneLifecycle } from "./configledger/useConfigPaneLifecycle";
 import { FieldLabel, PromptField, smallInputCls } from "./configledger/fields";
@@ -218,7 +219,10 @@ export default function SteeringConfigPane({
   const cleanPreview = useTokenPreview(isOpen ? picker.activeModelId : "", cleanPrompt);
   const corruptedPreview = useTokenPreview(isOpen ? picker.activeModelId : "", corruptedPrompt);
   const positionOk = positionMode === "last" || (customPosition.trim() !== "" && !isNaN(parseInt(customPosition)));
-  const canRun = picker.modelOk && positionOk && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "";
+  const locallyOk = picker.modelOk && positionOk && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "";
+  const afford = useCanAffordTier(picker.gpuTier);
+  const canRun = locallyOk && afford.affordable;
+  const disabledReason = locallyOk && !afford.affordable ? "Add balance to run this tier" : undefined;
 
   const pairCap = picker.selectedGpuTier ? (TIER_PAIR_CAPS[picker.selectedGpuTier] ?? DEFAULT_PAIR_CAP) : DEFAULT_PAIR_CAP;
   const totalPairs = 1 + extraPairs.length;
@@ -650,7 +654,9 @@ export default function SteeringConfigPane({
       activeSection={activeSection}
       onSectionChange={setActiveSection}
       footerSummary={`${modelSummary(displayName)} · ${pairSummary} · ${injectionSum} · ${genSum}`}
+      gpuTier={picker.gpuTier}
       canRun={canRun}
+      disabledReason={disabledReason}
       runLabel={runLabel}
       onRun={handleRun}
       onClose={handleClose}

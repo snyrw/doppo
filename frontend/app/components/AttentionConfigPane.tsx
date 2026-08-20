@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
+import { useCanAffordTier } from "../hooks/useCanAffordTier";
 import ConfigLedger, { type LedgerSection } from "./configledger/ConfigLedger";
 import { useConfigPaneLifecycle } from "./configledger/useConfigPaneLifecycle";
 import { FieldLabel } from "./configledger/fields";
@@ -38,7 +39,10 @@ export default function AttentionConfigPane({
   });
 
   const tokenPreview = useTokenPreview(isOpen ? picker.activeModelId : "", prompt);
-  const canRun = picker.modelOk && prompt.trim() !== "";
+  const locallyOk = picker.modelOk && prompt.trim() !== "";
+  const afford = useCanAffordTier(picker.gpuTier);
+  const canRun = locallyOk && afford.affordable;
+  const disabledReason = locallyOk && !afford.affordable ? "Add balance to run this tier" : undefined;
 
   const handleRun = () => {
     if (!canRun) return;
@@ -89,7 +93,9 @@ export default function AttentionConfigPane({
       activeSection={activeSection}
       onSectionChange={setActiveSection}
       footerSummary={`${modelSummary(displayName)} · ${promptSummary(prompt, 24)}`}
+      gpuTier={picker.gpuTier}
       canRun={canRun}
+      disabledReason={disabledReason}
       runLabel="Run"
       onRun={handleRun}
       onClose={handleClose}

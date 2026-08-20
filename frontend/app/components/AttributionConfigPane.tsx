@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
+import { useCanAffordTier } from "../hooks/useCanAffordTier";
 import ConfigLedger, { type LedgerSection } from "./configledger/ConfigLedger";
 import { useConfigPaneLifecycle } from "./configledger/useConfigPaneLifecycle";
 import { TargetSection, PromptField } from "./configledger/fields";
@@ -66,7 +67,10 @@ export default function AttributionConfigPane({
   const cleanToks = cleanPreview.tokens?.length;
   const corruptedToks = corruptedPreview.tokens?.length;
   const lengthMismatch = cleanToks != null && corruptedToks != null && cleanToks !== corruptedToks;
-  const canRun = picker.modelOk && positionOk && tokenOk && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "" && !lengthMismatch;
+  const locallyOk = picker.modelOk && positionOk && tokenOk && cleanPrompt.trim() !== "" && corruptedPrompt.trim() !== "" && !lengthMismatch;
+  const afford = useCanAffordTier(picker.gpuTier);
+  const canRun = locallyOk && afford.affordable;
+  const disabledReason = locallyOk && !afford.affordable ? "Add balance to run this tier" : undefined;
 
   const handleRun = () => {
     if (!canRun) return;
@@ -157,7 +161,9 @@ export default function AttributionConfigPane({
       activeSection={activeSection}
       onSectionChange={setActiveSection}
       footerSummary={`${modelSummary(displayName)} · ${pairSummary} · ${targetSum}`}
+      gpuTier={picker.gpuTier}
       canRun={canRun}
+      disabledReason={disabledReason}
       runLabel="Run"
       onRun={handleRun}
       onClose={handleClose}

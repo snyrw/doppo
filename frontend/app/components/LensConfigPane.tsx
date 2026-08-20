@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTokenPreview } from "../hooks/useTokenPreview";
 import { useModelSelection, type ModelInfo } from "../hooks/useModelSelection";
+import { useCanAffordTier } from "../hooks/useCanAffordTier";
 import ConfigLedger, { type LedgerSection } from "./configledger/ConfigLedger";
 import { useConfigPaneLifecycle } from "./configledger/useConfigPaneLifecycle";
 import { FieldLabel } from "./configledger/fields";
@@ -42,7 +43,10 @@ export default function LensConfigPane({
 
   const tokenCount = tokenPreview.tokens?.length ?? 0;
   const overTokenLimit = tokenPreview.tokens !== null && tokenCount > MAX_PROMPT_TOKENS;
-  const canRun = !overTokenLimit && picker.modelOk;
+  const locallyOk = !overTokenLimit && picker.modelOk;
+  const afford = useCanAffordTier(picker.gpuTier);
+  const canRun = locallyOk && afford.affordable;
+  const disabledReason = locallyOk && !afford.affordable ? "Add balance to run this tier" : undefined;
 
   const handleRun = () => {
     if (!canRun) return;
@@ -99,7 +103,9 @@ export default function LensConfigPane({
       activeSection={activeSection}
       onSectionChange={setActiveSection}
       footerSummary={footerSummary}
+      gpuTier={picker.gpuTier}
       canRun={canRun}
+      disabledReason={disabledReason}
       runLabel="Run"
       onRun={handleRun}
       onClose={handleClose}

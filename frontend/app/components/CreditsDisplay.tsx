@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, Suspense } from "react";
 import { LOW_BALANCE_THRESHOLD_MICROS } from "@/app/lib/rates";
+import { useUsageBalance } from "@/app/hooks/useUsageBalance";
 import { cn } from "../lib/cn";
 import { BuyCreditsModal } from "./BuyCreditsModal";
 import { IconTile } from "./ui/IconTile";
@@ -11,32 +12,8 @@ function formatMicros(micros: number): string {
   return `$${(micros / 1_000_000).toFixed(2)}`;
 }
 
-function useCreditsBalance() {
-  const [balanceMicros, setBalanceMicros] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const refresh = () => {
-      fetch("/api/credits/balance")
-        .then(res => res.json())
-        .then(({ balanceMicros: b }) => {
-          if (!cancelled && b !== null) setBalanceMicros(b);
-        })
-        .catch(() => {});
-    };
-    refresh();
-    window.addEventListener("credits-updated", refresh);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("credits-updated", refresh);
-    };
-  }, []);
-
-  return { balanceMicros };
-}
-
 function CreditsButtonInner() {
-  const { balanceMicros } = useCreditsBalance();
+  const { balanceMicros } = useUsageBalance();
   const [open, setOpen] = useState(false);
   const [buyOpen, setBuyOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -47,19 +24,9 @@ function CreditsButtonInner() {
     return () => window.removeEventListener("open-buy-credits", handler);
   }, []);
 
-  useEffect(() => {
-    const handler = async () => {
-      try {
-        const res = await fetch("/api/credits/verify-card", { method: "POST" });
-        const json = await res.json().catch(() => ({}));
-        if (res.ok && json.url) window.location.assign(json.url);
-      } catch {
-        // network error — user can retry from the card
-      }
-    };
-    window.addEventListener("open-verify-card", handler);
-    return () => window.removeEventListener("open-verify-card", handler);
-  }, []);
+  // No "open-verify-card" listener: nothing dispatches it while the
+  // verification gate is disabled (see spawn-route.ts). The
+  // /api/credits/verify-card route itself is untouched.
 
   useEffect(() => {
     if (!open) return;
@@ -95,14 +62,11 @@ function CreditsButtonInner() {
 
       {open && (
         <div className="absolute right-0 top-[calc(100%+8px)] z-[100] w-[220px] overflow-hidden rounded-lg border border-card-border bg-card">
-          <div className="border-b border-surface-border px-3 pb-[7px] pt-2 text-[9px] font-semibold text-muted">
-            Usage
-          </div>
 
           {balanceMicros !== null && (
             <div className="flex items-center justify-between border-b border-surface-border px-3 pb-2 pt-2.5">
               <span className="text-[11px] text-muted">
-                Balance
+                Usage
               </span>
               <span className={cn("text-[13px] font-semibold", balanceColorCls)}>
                 {formatMicros(balanceMicros)}
@@ -115,7 +79,7 @@ function CreditsButtonInner() {
               onClick={() => { setBuyOpen(true); setOpen(false); }}
               className="w-full cursor-pointer rounded-md border border-card-border bg-background px-2.5 py-[7px] text-left text-[11px] text-foreground"
             >
-              Add balance →
+              Add balance
             </button>
             <span className="pl-0.5 text-[10px] text-muted opacity-70">
               Free tier: $1.00/month included
@@ -123,7 +87,7 @@ function CreditsButtonInner() {
             <Link
               href="/docs#usage-and-pricing"
               onClick={() => setOpen(false)}
-              className="pl-0.5 text-[10px] text-muted underline decoration-surface-border underline-offset-2 hover:text-foreground"
+              className="pl-0.5 text-[10px] text-indigo-300 underline decoration-surface-border underline-offset-5 hover:text-foreground"
             >
               What we charge, and why
             </Link>
