@@ -128,23 +128,10 @@ describe("gates that must run before a job is spawned", () => {
     expect(backendFetch).not.toHaveBeenCalled();
   });
 
-  it("returns 403 with a machine-readable code when a gated tier needs a card", async () => {
+  // Card-verification gate is disabled (see spawn-route.ts) — gated tiers run
+  // without a verified card while it's off.
+  it("lets a gated tier through without a verified card", async () => {
     resolvedTier = "tl_large";
-    paymentVerified = false;
-    const res = await POST(req());
-    expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ code: "verification_required" });
-    expect(backendFetch).not.toHaveBeenCalled();
-  });
-
-  it("lets a gated tier through once the card is verified", async () => {
-    resolvedTier = "tl_large";
-    paymentVerified = true;
-    const res = await POST(req());
-    expect(res.status).toBe(200);
-  });
-
-  it("does not gate the small tiers on card verification", async () => {
     paymentVerified = false;
     const res = await POST(req());
     expect(res.status).toBe(200);

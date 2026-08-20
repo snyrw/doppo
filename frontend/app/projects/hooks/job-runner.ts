@@ -26,15 +26,10 @@ export function cancelCardJob(cardId: string): void {
   jobsByCard.delete(cardId);
 }
 
-function handleSpawnError(
-  status: number,
-  err: { error?: string; code?: string }
-): { error: string; showBuyCredits?: boolean; showVerifyCard?: boolean } {
-  if (status === 402) return { error: err.error ?? "Insufficient usage balance", showBuyCredits: true };
-  if (status === 403 && err.code === "verification_required")
-    return { error: err.error ?? "Add a card to run this GPU tier.", showVerifyCard: true };
-  if (status === 401) return { error: err.error ?? "Sign in to run inference" };
-  return { error: err.error ?? `Request failed (${status})` };
+function handleSpawnError(status: number, err: { error?: string }): string {
+  if (status === 402) return err.error ?? "Insufficient usage balance";
+  if (status === 401) return err.error ?? "Sign in to run inference";
+  return err.error ?? `Request failed (${status})`;
 }
 
 /**
@@ -57,8 +52,8 @@ export async function runJob({ endpoint, body, cardId, startedAt, dispatch, onRe
   const ctrl: JobCtrl = { jobId: null, cancelled: false };
   jobsByCard.set(cardId, ctrl);
 
-  const fail = (error: string, showBuyCredits?: boolean, showVerifyCard?: boolean) => {
-    dispatch({ type: "CARD_ERRORED", id: cardId, error, showBuyCredits, showVerifyCard });
+  const fail = (error: string) => {
+    dispatch({ type: "CARD_ERRORED", id: cardId, error });
     onError?.();
   };
 
@@ -74,9 +69,8 @@ export async function runJob({ endpoint, body, cardId, startedAt, dispatch, onRe
       return;
     }
     if (!spawnRes.ok) {
-      const err = await spawnRes.json().catch(() => ({})) as { error?: string; code?: string };
-      const { error, showBuyCredits, showVerifyCard } = handleSpawnError(spawnRes.status, err);
-      fail(error, showBuyCredits, showVerifyCard);
+      const err = await spawnRes.json().catch(() => ({})) as { error?: string };
+      fail(handleSpawnError(spawnRes.status, err));
       return;
     }
 

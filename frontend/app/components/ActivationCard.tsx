@@ -53,8 +53,6 @@ export type ActivationCardData = {
   contrastiveToken: string | null;
   data: ActivationPatchResult | null;
   error: string | null;
-  showBuyCredits?: boolean;
-  showVerifyCard?: boolean;
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
@@ -220,11 +218,7 @@ function ActivationCard({
       )}
 
       {card.status === "error" && (
-        <CardErrorState
-          message={card.error ?? undefined}
-          showBuyCredits={card.showBuyCredits}
-          showVerifyCard={card.showVerifyCard}
-        />
+        <CardErrorState message={card.error ?? undefined} />
       )}
 
       {data && (

@@ -17,7 +17,6 @@ import { formatGb, phaseOf, stageText, type LoadingPhase, type LoadingStage } fr
 import { BAND_INK } from "../lib/techniques";
 import { TIER_LABELS } from "../lib/tiers";
 import { CloseButton } from "./ui/CloseButton";
-import { ControlButton } from "./ui/ControlButton";
 import { CLOSE_HIT, CLOSE_GUTTER } from "./ui/control-metrics";
 
 /* Card chrome, shared by every card type.
@@ -336,36 +335,12 @@ export function CardLoadingState({
 }
 
 /** Red error message block shown when a card enters the "error" status. */
-export function CardErrorState({
-  message,
-  showBuyCredits,
-  showVerifyCard,
-}: {
-  message: string | undefined;
-  showBuyCredits?: boolean;
-  showVerifyCard?: boolean;
-}) {
+export function CardErrorState({ message }: { message: string | undefined }) {
   return (
     <div className="flex flex-col gap-2 py-3" style={{ paddingInline: CARD_INSET }}>
       <p className="m-0 text-[11px] text-red-600">
         ✗ {message ?? "Unknown error"}
       </p>
-      {showBuyCredits && (
-        <ControlButton
-          onClick={() => window.dispatchEvent(new CustomEvent("open-buy-credits"))}
-          className="self-start bg-background px-2.5 py-1 text-[11px] text-foreground"
-        >
-          Add balance →
-        </ControlButton>
-      )}
-      {showVerifyCard && (
-        <ControlButton
-          onClick={() => window.dispatchEvent(new CustomEvent("open-verify-card"))}
-          className="self-start bg-background px-2.5 py-1 text-[11px] text-foreground"
-        >
-          Add a card →
-        </ControlButton>
-      )}
     </div>
   );
 }

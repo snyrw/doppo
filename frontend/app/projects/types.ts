@@ -32,7 +32,7 @@ export type AppAction =
   | CardResolvedAction
   | { type: "ATTRIBUTION_VERIFY_STARTED"; id: string }
   | { type: "ATTRIBUTION_VERIFY_DONE"; id: string }
-  | { type: "CARD_ERRORED"; id: string; error: string; showBuyCredits?: boolean; showVerifyCard?: boolean }
+  | { type: "CARD_ERRORED"; id: string; error: string }
   | { type: "CARD_STAGE"; id: string; stage: LoadingStage }
   | { type: "MOVE_CARD"; id: string; position: { x: number; y: number } }
   | { type: "REMOVE_CARD"; id: string }

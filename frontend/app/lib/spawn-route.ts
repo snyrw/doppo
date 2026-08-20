@@ -19,8 +19,9 @@ import {
   BackendFetchError,
   MAX_PROMPT_CHARS,
 } from "./api-helpers";
-import { checkBalance, isPaymentVerified } from "./credits";
-import { isGatedTier } from "./tiers";
+import { checkBalance } from "./credits";
+// isGatedTier / isPaymentVerified: needed only if the commented-out
+// verification gate below is restored.
 import { countActiveJobs, insertActiveJobIfUnderCap, MAX_ACTIVE_JOBS_PER_USER } from "./jobs";
 
 type CacheTable =
@@ -93,15 +94,21 @@ export function createSpawnHandler<P extends { modelName: string }>(cfg: SpawnCo
     const { allowed } = await checkBalance(userId, resolvedTier);
     if (!allowed) return Response.json({ error: "Insufficient usage balance. Add balance to continue." }, { status: 402 });
 
-    if (isGatedTier(resolvedTier) && !(await isPaymentVerified(userId))) {
-      return Response.json(
-        {
-          error: "Add a card to run models on A100-class GPUs and larger. You won't be charged for verification.",
-          code: "verification_required",
-        },
-        { status: 403 }
-      );
-    }
+    // Card-verification gate for large GPU tiers is disabled while we run
+    // ungated to see how people respond. isGatedTier/isPaymentVerified and the
+    // /api/credits/verify-card route are untouched — re-enable by restoring
+    // this block. Pair it with real UI gating (disabled Run + a reason, same
+    // pattern as the balance check), not the old inline "Add a card ->" CTA.
+    //
+    // if (isGatedTier(resolvedTier) && !(await isPaymentVerified(userId))) {
+    //   return Response.json(
+    //     {
+    //       error: "Add a card to run models on A100-class GPUs and larger. You won't be charged for verification.",
+    //       code: "verification_required",
+    //     },
+    //     { status: 403 }
+    //   );
+    // }
 
     // No retry: a spawn creates a billable Modal job, so a retry on an ambiguous
     // network failure could double-spawn. Fail fast with a clean 502 instead.

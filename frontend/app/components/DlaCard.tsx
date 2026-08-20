@@ -60,8 +60,6 @@ export type DlaCardData = {
   prompt: string;
   data: DlaData | null;
   error: string | null;
-  showBuyCredits?: boolean;
-  showVerifyCard?: boolean;
   position: { x: number; y: number };
   gpuTier?: string;
   startedAt?: number;
@@ -257,11 +255,7 @@ function DlaCard({ card, ref, onStartDrag, onDragMove, onDragEnd, onRemove, tuto
       )}
 
       {card.status === "error" && (
-        <CardErrorState
-          message={card.error ?? undefined}
-          showBuyCredits={card.showBuyCredits}
-          showVerifyCard={card.showVerifyCard}
-        />
+        <CardErrorState message={card.error ?? undefined} />
       )}
 
       {data && view === "head" && (
