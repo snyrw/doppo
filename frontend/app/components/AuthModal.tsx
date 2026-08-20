@@ -141,11 +141,6 @@ export default function AuthButtons() {
                     ? <>We sent a verification link to <strong className="text-foreground">{email}</strong>. Click it to activate your account.</>
                     : <>We sent a password reset link to <strong className="text-foreground">{email}</strong>. Check your inbox.</>}
                 </p>
-                {mode === "verify" && (
-                  <p className="m-0 text-[11px] text-muted">
-                    (In local dev, the link is printed to the server console instead.)
-                  </p>
-                )}
                 <button
                   className="btn-accent btn-accent--capsule w-full cursor-pointer border-none py-2 text-[13px]"
                   onClick={() => setOpen(false)}

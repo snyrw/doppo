@@ -160,7 +160,7 @@ export function InfoSectionView({ section }: { section: InfoSection }) {
               rel="noopener noreferrer"
               className="text-[10px] text-foreground underline decoration-surface-border underline-offset-2"
             >
-              {l.label} ↗
+              {l.label}
             </a>
           ))}
         </div>
