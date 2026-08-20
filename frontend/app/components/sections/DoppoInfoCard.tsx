@@ -45,12 +45,11 @@ export default function DoppoInfoCard({
         </p>
         <p className="m-0">
           Under the hood, we use TransformerLens, which was chosen for its wide-ranging support
-          of thousands of transformer models. Some aspects of this library are being actively
-          developed, so we cannot ensure that every model you&apos;ll try with Doppo will work perfectly.
+          of thousands of transformer models.
         </p>
         <p className="m-0">
-          As part of a goal to make interpretability broadly accessible, we also provide services at a price that mirrors
-          general inference costs with the eventual goal of decreasing what users pay. Users currently are allotted a free $1/month
+          As part of a goal to make interpretability accessible, we also provide services at a price that mirrors
+          general inference costs. Users currently are allotted a free $1/month
           priced against our service provider{" "} <a href="https://modal.com" target="_blank" rel="noopener
           noreferrer" className={LINK}>Modal</a> to use on smaller tasks. Additional usage balance is available for
           purchase with no further markup beyond a Stripe fee for sustainability.

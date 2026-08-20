@@ -1,11 +1,5 @@
 // Content for the five technique cards that open as modals from the Techniques
-// section (Figma nodes 134-2/3/5/6/7). Indexed parallel to TECHNIQUES in
-// `lib/techniques.ts`: 0 logit lens, 1 attention, 2 DLA, 3 patching, 4 steering.
-//
-// `title` is the muted breadcrumb title in each card header. `copy` is the
-// right-column explainer. Cards 0–2 are transcribed verbatim from Figma; cards 3
-// (patching) and 4 (steering) inherited the wrong DLA text in Figma, so their
-// copy is rewritten here to actually describe the technique.
+// section.
 export interface TechniqueCardContent {
   title: string;
   copy: string;
@@ -14,7 +8,7 @@ export interface TechniqueCardContent {
 export const TECHNIQUE_CARDS: readonly TechniqueCardContent[] = [
   {
     title: "Logit Lens",
-    copy: "Transformers apply an unembedding matrix to turn logits into tokens that turn into human-readable output. The logit lens simply applies the unembedding matrix at every single layer to see how “predictions” change.",
+    copy: "Transformers apply an unembedding matrix to turn logits into tokens that turn into human-readable output. The logit lens simply applies the unembedding matrix at every single layer to see how said output changes.",
   },
   {
     title: "Attention Analysis",
@@ -22,21 +16,21 @@ export const TECHNIQUE_CARDS: readonly TechniqueCardContent[] = [
   },
   {
     title: "Direct Logit Att.",
-    copy: "Direct Logit Attribution shows which model components (such as attention heads or neurons) are most responsible for increasing or decreasing the score of a particular predicted token. Positive values push the model toward that prediction, while negative values push it away, making it easier to see where the model's final decision came from.",
+    copy: "Direct Logit Attribution shows which model components (such as attention heads or neurons) are most responsible for increasing or decreasing the score of a particular predicted token. Positive values push the model toward that prediction, while negative values push it away.",
   },
   {
     title: "Patching",
-    copy: "Activation patching copies one component's activation from a clean run into a corrupted run, then measures how far the output snaps back toward the clean prediction. The dark bar is the effect attribution predicts a component has; the light bar is what patching it in actually does — comparing the two shows which parts of the model genuinely carry the behavior.",
+    copy: "Activation patching copies one component's activation from a clean run into a corrupted run, then measures how far the output goes back toward the clean prediction.",
   },
   {
     title: "Steering",
-    copy: "Steering adds a direction to the model's residual stream at inference time to bend its behavior — here, nudging English answers into French. The direction is the difference in means between contrasting prompt pairs, and an alpha controls how hard it pushes. Same question and base answer, steered into a new language.",
+    copy: "Steering adds a 'direction' to the model's residual stream to change behavior. The direction is the difference in means between contrasting prompt pairs (like English and French), and a coefficient controls what we're pushing towards.",
   },
 ] as const;
 
 // The three steering examples the SteeringFigure cycles through, in order
 // (library → Gollum → Seattle). Base answers are English; steered answers are the
-// same content nudged into French — the visible payoff of the steering vector.
+// same content nudged into French.
 export interface SteeringExample {
   question: string;
   base: string;
