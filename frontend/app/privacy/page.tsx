@@ -25,7 +25,7 @@ export default function PrivacyPage() {
         your privacy rights and choices. We are responsible for making decisions about how your
         personal information is processed. If you do not agree with our policies and practices, please
         do not use our Services. If you still have any questions or concerns, please contact us at{" "}
-        <a href="mailto:help@doppo.tools">help@doppo.tools</a>.
+        <a href="mailto:support@doppo.tools">support@doppo.tools</a>.
       </p>
 
       <h2>Summary of key points</h2>
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
       </p>
       <p>
         <strong>How do you exercise your rights?</strong> The easiest way to exercise your rights is by
-        contacting us at <a href="mailto:help@doppo.tools">help@doppo.tools</a>. We will consider and
+        contacting us at <a href="mailto:support@doppo.tools">support@doppo.tools</a>. We will consider and
         act upon any request in accordance with applicable data protection laws.
       </p>
 
@@ -252,7 +252,7 @@ export default function PrivacyPage() {
         their use of the Services. If we learn that personal information from users under 18 has been
         collected, we will deactivate the account and take reasonable measures to promptly delete such
         data. If you become aware of any data we may have collected from children under 18, please
-        contact us at <a href="mailto:help@doppo.tools">help@doppo.tools</a>.
+        contact us at <a href="mailto:support@doppo.tools">support@doppo.tools</a>.
       </p>
 
       <h2>10. What are your privacy rights?</h2>
@@ -262,7 +262,7 @@ export default function PrivacyPage() {
         copy of your personal information, to request rectification or erasure, to restrict the
         processing of your personal information, to data portability, and not to be subject to
         automated decision-making. You can make such a request by contacting us at{" "}
-        <a href="mailto:help@doppo.tools">help@doppo.tools</a>.
+        <a href="mailto:support@doppo.tools">support@doppo.tools</a>.
       </p>
       <p>
         If you are located in the EEA or UK and believe we are unlawfully processing your personal
@@ -324,7 +324,7 @@ export default function PrivacyPage() {
         We have not sold or shared personal information to third parties for a business or commercial
         purpose in the preceding twelve (12) months, and will not sell or share personal information in
         the future. To exercise your rights, email us at{" "}
-        <a href="mailto:help@doppo.tools">help@doppo.tools</a>. We will verify your identity before
+        <a href="mailto:support@doppo.tools">support@doppo.tools</a>. We will verify your identity before
         acting on a request. If we decline to take action, you may appeal by emailing us at the same
         address; if your appeal is denied, you may submit a complaint to your state attorney general.
       </p>
@@ -354,7 +354,7 @@ export default function PrivacyPage() {
       <h2>15. How can you contact us about this notice?</h2>
       <p>
         If you have questions or comments about this notice, you may email us at{" "}
-        <a href="mailto:help@doppo.tools">help@doppo.tools</a>.
+        <a href="mailto:support@doppo.tools">support@doppo.tools</a>.
       </p>
 
       <h2>16. How can you review, update, or delete the data we collect from you?</h2>
@@ -363,7 +363,7 @@ export default function PrivacyPage() {
         request access to the personal information we collect from you, details about how we have
         processed it, correct inaccuracies, or delete your personal information. You may also have the
         right to withdraw your consent. To request to review, update, or delete your personal
-        information, email us at <a href="mailto:help@doppo.tools">help@doppo.tools</a>.
+        information, email us at <a href="mailto:support@doppo.tools">support@doppo.tools</a>.
       </p>
       <p>
         See also our <Link href="/terms">Terms of Service</Link>.

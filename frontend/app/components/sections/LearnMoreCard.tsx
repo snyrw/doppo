@@ -49,7 +49,7 @@ export default function LearnMoreCard({
         <p className="m-0">
           We hope you enjoy Doppo! If you have issues with this site or just don&apos;t like what we do,
           feel free to reach out to{" "}
-          <a href="mailto:help@doppo.tools" className={LINK}>help@doppo.tools</a>.
+          <a href="mailto:support@doppo.tools" className={LINK}>support@doppo.tools</a>.
         </p>
       </div>
     </div>

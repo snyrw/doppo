@@ -18,7 +18,7 @@ export default function TermsPage() {
         Terms”) (collectively, the “Services”).
       </p>
       <p>
-        You can contact us by email at <a href="mailto:help@doppo.tools">help@doppo.tools</a>.
+        You can contact us by email at <a href="mailto:support@doppo.tools">support@doppo.tools</a>.
       </p>
       <p>
         These Legal Terms constitute a legally binding agreement made between you, whether personally or
@@ -30,7 +30,7 @@ export default function TermsPage() {
       <p>
         We will provide you with prior notice of any scheduled changes to the Services you are using.
         The modified Legal Terms will become effective upon posting or notifying you by email at
-        help@doppo.tools. By continuing to use the Services after the effective date of any changes, you
+        support@doppo.tools. By continuing to use the Services after the effective date of any changes, you
         agree to be bound by the modified terms.
       </p>
       <p>
@@ -312,7 +312,7 @@ export default function TermsPage() {
       <p>
         In order to resolve a complaint regarding the Services or to receive further information
         regarding use of the Services, please contact us at{" "}
-        <a href="mailto:help@doppo.tools">help@doppo.tools</a>.
+        <a href="mailto:support@doppo.tools">support@doppo.tools</a>.
       </p>
     </LegalPage>
   );

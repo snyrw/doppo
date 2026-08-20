@@ -45,7 +45,7 @@ export default function Home() {
           <span>
             {new Date().getFullYear()} Doppo
             <span className="mx-2 text-surface-border">|</span>
-            Beta, open issue or msg help@doppo.tools for bugs
+            Beta, open issue or msg support@doppo.tools for bugs
           </span>
         </span>
         <nav className="flex items-center gap-4">
