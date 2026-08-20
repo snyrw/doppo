@@ -1,4 +1,18 @@
-# Doppo
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="frontend/public/darklogo.png">
+    <source media="(prefers-color-scheme: light)" srcset="frontend/public/lightlogo.png">
+    <img src="frontend/public/lightlogo.png" alt="Doppo logo" width="72">
+  </picture>
+</p>
+
+<h1 align="center">Doppo</h1>
+
+<p align="center">
+  <a href="https://doppo.tools"><img alt="Live at doppo.tools" src="https://img.shields.io/badge/live-doppo.tools-000000"></a>
+  <a href="https://github.com/snyrw/doppo/actions/workflows/test.yml"><img alt="Tests" src="https://github.com/snyrw/doppo/actions/workflows/test.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/snyrw/doppo"></a>
+</p>
 
 A browser-based mechanistic interpretability tool aiming to bring easy and quick
 access to some of the field's well-known techniques. Currently, we host the logit
@@ -19,7 +33,7 @@ Hosted at [doppo.tools](https://doppo.tools). Try [our demo](https://doppo.tools
 
 ## Model support
 
-Under the hood, we use [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens)'s `TransformerBridge` to load in many different models from HuggingFace. This covers a very wide range of models, which TransformerLens themselves have verified [here](). Doppo itself can do the following:
+Under the hood, we use [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens)'s `TransformerBridge` to load in many different models from HuggingFace. This covers a very wide range of models, which TransformerLens themselves have verified [here](https://transformerlensorg.github.io/TransformerLens/generated/transformer_bridge_models.html). Doppo itself can do the following:
 - Load in popular "featured" models (Llamas, Gemmas, Qwens, etc) from a set of around 20 or so via a model picker
 - Load in custom models and LoRA adapters (merged onto base at runtime) directly from HuggingFace via a HF ID; these are ran through a verification process checking for config details and security
 

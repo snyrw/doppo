@@ -2,6 +2,9 @@
 
 Contributions on Doppo are currently welcome! If you're curious about adding/fixing/removing/doing anything, follow the instructions below to get started.
 
+There's no required format for PRs or issues. Open one however you'd like, as long as you follow most of the steps (setup, tests).
+
+
 ## Prerequisites
 
 - Node.js 20+
@@ -168,9 +171,5 @@ frontend/
   tests/            vitest suite
   .env.example      All required environment variables
 ```
-
----
-
-## Issues and PRs
 
 
