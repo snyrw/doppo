@@ -61,12 +61,17 @@ export const ATTN_CELL_LIP = "clamp(5px,0.55vw,8px)"; // attention cell w: clamp
 export const BAR_LIP = "clamp(3px,0.4vw,6px)"; // DLA / patch bar h: clamp(15,1.8vw,30)
 
 // ── Logit Lens ────────────────────────────────────────────────────────────────
-// Real top-1 token and probability from a local run of GPT-2 Small
-// (openai-community/gpt2 via plain HF transformers, not TransformerLens — see
-// CLAUDE.md, TransformerBridge only runs on the Modal worker) on `<bos> Hello ,
-// world .`, the same toy prompt the other four figures use schematically.
-// At each of the 8 sampled layers, logits = lm_head(ln_f(resid_post)) — the
-// standard logit-lens readout applying the model's final layer norm early.
+// Real top-1 token and probability from a local run of GPT-2 Small through the
+// actual transformer_lens.model_bridge.TransformerBridge (transformer-lens
+// 3.5.0, same pin as backend/config.py) on `<bos> Hello , world .`, the same
+// toy prompt the other four figures use schematically. Mirrors
+// backend/inference.py's run_logit_lens exactly: cache.accumulated_resid(
+// layer=-1, incl_mid=False) → model.ln_final → model.unembed at each of the 8
+// sampled layers. (An earlier pass reproduced this by hand against plain HF
+// `transformers` instead of TransformerBridge — that version silently
+// double-applied the final layer norm on the last row, since HF's
+// `output_hidden_states` already runs `ln_f` into its last hidden-state entry;
+// TransformerBridge's raw `resid_post` doesn't have that trap.)
 // Columns are the prompt's 4 non-bos tokens; rows are 8 of GPT-2 Small's 12
 // layers. Level buckets the real top-1 probability: <0.35, <0.55, <0.85, >=0.85.
 export interface LensCell {
@@ -85,7 +90,7 @@ export const LENS_GRID: LensCell[][] = [
   [c("!", 1), c("dear", 2), c("!", 3), c("You", 2)], //           L8
   [c("folks", 0), c("dear", 1), c("!", 3), c("You", 0)], //       L9
   [c("everyone", 1), c("everyone", 0), c("!", 3), c("I", 1)], //  L10
-  [c(",", 0), c("↵", 0), c(".", 0), c("↵", 0)], //                L11 — never confidently resolves on this short prompt
+  [c(",", 0), c("I", 0), c("!", 1), c("↵", 0)], //                L11 — never confidently resolves on this short prompt
 ];
 
 // ── Attention ─────────────────────────────────────────────────────────────────

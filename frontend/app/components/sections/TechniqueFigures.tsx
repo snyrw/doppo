@@ -107,7 +107,7 @@ function AttentionFigure() {
         style={{ gridTemplateColumns: "auto repeat(5, minmax(0, 1fr))" }}
       >
         {ATTN_GRID.map((row, r) => (
-          <AttnRow key={r} token={ATTN_TOKENS[r]} row={row} />
+          <AttnRow key={r} token={ATTN_TOKENS[r]} row={row} rowIndex={r} />
         ))}
         {/* bottom axis: blank corner + column (key) token labels */}
         <span />
@@ -125,20 +125,27 @@ function AttentionFigure() {
   );
 }
 
-function AttnRow({ token, row }: { token: string; row: AttnStrength[] }) {
+function AttnRow({ token, row, rowIndex }: { token: string; row: AttnStrength[]; rowIndex: number }) {
+  const delay = { animationDelay: `${rowIndex * ROW_STAGGER_MS}ms` };
   return (
     <>
-      <span className={cn(LABEL, LABEL_SIZE, "pr-[clamp(4px,0.6vw,10px)] text-right")}>{token}</span>
+      <span
+        className={cn(LABEL, LABEL_SIZE, "animate-fade-in pr-[clamp(4px,0.6vw,10px)] text-right")}
+        style={delay}
+      >
+        {token}
+      </span>
       {row.map((strength, cKey) => {
         const filled = strength !== "";
         const color = filled ? ATTN_FACE[strength] : null;
         return (
           <span
             key={cKey}
-            className="aspect-square w-[clamp(26px,2.9vw,38px)] rounded-[2px]"
+            className="animate-fade-in aspect-square w-[clamp(26px,2.9vw,38px)] rounded-[2px]"
             style={{
               background: color ? color.face : "#ffffff",
               boxShadow: `0 ${ATTN_CELL_LIP} 0 0 ${color ? color.lip : ATTN_EMPTY_LIP}`,
+              ...delay,
             }}
           />
         );

@@ -27,7 +27,7 @@ describe("logit lens grid (real GPT-2 Small run, 'Hello, world.')", () => {
     // Unlike the old IOI-prompt data, "Hello, world." has no strongly likely
     // continuation, so the real final-layer top-1 stays low-confidence.
     const last = LENS_GRID[LENS_GRID.length - 1];
-    expect(last.every((c) => c.level === 0)).toBe(true);
+    expect(last.every((c) => c.level < 2)).toBe(true);
   });
 });
 
